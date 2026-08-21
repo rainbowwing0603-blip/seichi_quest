@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'mission_page.dart';
 
 /// Existing pages can launch missions without changing their internal logic.

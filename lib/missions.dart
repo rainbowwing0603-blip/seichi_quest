@@ -19,7 +19,8 @@ class QuestMission {
     required this.icon,
   });
 
-  double progress(int value) => target <= 0 ? 1 : (value / target).clamp(0.0, 1.0);
+  double progress(int value) =>
+      target <= 0 ? 1 : (value / target).clamp(0.0, 1.0);
 }
 
 /// Initial mission catalog. Progress can later be connected to Supabase.
@@ -103,8 +104,13 @@ class QuestMissionCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(mission.title,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(
+                          mission.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                         const SizedBox(height: 3),
                         Text(mission.description),
                       ],
