@@ -16,7 +16,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await supabase.Supabase.initialize(
     url: supabaseUrl,
-    anonKey: supabasePublishableKey,
+    publishableKey: supabasePublishableKey,
   );
   runApp(const SeichiQuestApp());
 }
@@ -929,7 +929,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             color: Colors.white,
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
-              color: collected ? Colors.green.withOpacity(.35) : Colors.black12,
+              color: collected
+                  ? Colors.green.withValues(alpha: .35)
+                  : Colors.black12,
             ),
             boxShadow: const [
               BoxShadow(
@@ -1045,7 +1047,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         gradient: const LinearGradient(
           colors: [Color(0xFFE8F8EA), Color(0xFFD0F0D4)],
         ),
-        border: Border.all(color: Colors.green.withOpacity(.45), width: 3),
+        border: Border.all(
+          color: Colors.green.withValues(alpha: .45),
+          width: 3,
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1467,7 +1472,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           width: 46,
           height: 46,
           decoration: BoxDecoration(
-            color: Colors.deepPurple.withOpacity(.1),
+            color: Colors.deepPurple.withValues(alpha: .1),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Icon(icon, color: Colors.deepPurple),
@@ -1601,7 +1606,7 @@ class SonarPainter extends CustomPainter {
       canvas.drawCircle(center, base * (.25 + phase * .75), paint);
     }
     final fill = Paint()
-      ..color = Colors.deepPurple.withOpacity(.08 + .10 * intensity);
+      ..color = Colors.deepPurple.withValues(alpha: .08 + .10 * intensity);
     canvas.drawCircle(center, base * .30, fill);
   }
 
