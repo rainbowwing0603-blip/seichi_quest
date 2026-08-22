@@ -17,11 +17,19 @@ $path = 'lib\main.dart'
 $text = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
 
 function Replace-RegexOnce([string]$source, [string]$pattern, [string]$replacement, [string]$name) {
-    $matches = [regex]::Matches($source, $pattern, [System.Text.RegularExpressions.RegexOptions]::Singleline)
+    $regex = [System.Text.RegularExpressions.Regex]::new(
+        $pattern,
+        [System.Text.RegularExpressions.RegexOptions]::Singleline
+    )
+    $matches = $regex.Matches($source)
     if ($matches.Count -ne 1) {
         throw "Regex target '$name' found $($matches.Count) times. Aborting safely."
     }
-    return [regex]::Replace($source, $pattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $replacement }, 1, [System.Text.RegularExpressions.RegexOptions]::Singleline)
+    return $regex.Replace(
+        $source,
+        [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $replacement },
+        1
+    )
 }
 
 if ($text -notmatch "import 'dart:ui' as ui;") {
