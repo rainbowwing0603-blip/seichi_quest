@@ -1761,7 +1761,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
               const SizedBox(
                 width: 13,
               ),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment:
                       CrossAxisAlignment
