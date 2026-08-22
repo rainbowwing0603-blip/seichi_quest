@@ -4082,7 +4082,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox.shrink(),
+          const BannerAdWidget(),
           NavigationBar(
             selectedIndex: _selectedTab,
             onDestinationSelected: (index) {
