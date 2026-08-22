@@ -79,7 +79,6 @@ alter table public.user_achievements enable row level security;
 alter table public.user_quests enable row level security;
 alter table public.leaderboard_scores enable row level security;
 
--- 自分のデータだけ読み書き可能
 create policy "profiles own rows" on public.user_profiles
   for all using (auth.uid() = id) with check (auth.uid() = id);
 
@@ -95,14 +94,12 @@ create policy "achievements own rows" on public.user_achievements
 create policy "quests own rows" on public.user_quests
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
--- ランキングは全ユーザーのスコアを閲覧可能。更新は本人のみ。
 create policy "leaderboard public read" on public.leaderboard_scores
   for select using (true);
 
 create policy "leaderboard own write" on public.leaderboard_scores
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
--- 初期実績
 insert into public.achievements (id, title, description, required_count, icon)
 values
   ('first_stamp', 'はじめの一歩', '最初の聖地を獲得する', 1, '🌱'),
@@ -117,3 +114,69 @@ values
   ('five_visits', '五か所巡り', '聖地を5か所訪れる', 5, 50),
   ('ten_visits', '十か所巡り', '聖地を10か所訪れる', 10, 100)
 on conflict (id) do nothing;
+
+-- スタンプ獲得時に統計・ランキング・実績・クエストを自動更新する。
+-- SECURITY DEFINER により、ユーザー側から他ユーザーの行を直接更新する必要はありません。
+create or replace function public.on_stamp_collected()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  collected integer;
+  q record;
+begin
+  select count(*) into collected
+  from public.user_stamps
+  where user_id = new.user_id;
+
+  insert into public.user_stats(user_id, collected_count, updated_at)
+  values (new.user_id, collected, now())
+  on conflict (user_id) do update
+    set collected_count = excluded.collected_count,
+        updated_at = now();
+
+  insert into public.leaderboard_scores(user_id, score, collected_count, updated_at)
+  values (new.user_id, collected, collected, now())
+  on conflict (user_id) do update
+    set score = excluded.score,
+        collected_count = excluded.collected_count,
+        updated_at = now();
+
+  insert into public.user_achievements(user_id, achievement_id)
+  select new.user_id, a.id
+  from public.achievements a
+  where a.is_active
+    and a.required_count <= collected
+  on conflict (user_id, achievement_id) do nothing;
+
+  for q in
+    select id, target_count
+    from public.quests
+    where is_active
+      and (starts_at is null or starts_at <= now())
+      and (ends_at is null or ends_at >= now())
+  loop
+    insert into public.user_quests(user_id, quest_id, progress, completed_at, updated_at)
+    values (
+      new.user_id,
+      q.id,
+      least(collected, q.target_count),
+      case when collected >= q.target_count then now() else null end,
+      now()
+    )
+    on conflict (user_id, quest_id) do update
+      set progress = excluded.progress,
+          completed_at = coalesce(public.user_quests.completed_at, excluded.completed_at),
+          updated_at = now();
+  end loop;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_stamp_collected on public.user_stamps;
+create trigger trg_stamp_collected
+after insert on public.user_stamps
+for each row execute function public.on_stamp_collected();
