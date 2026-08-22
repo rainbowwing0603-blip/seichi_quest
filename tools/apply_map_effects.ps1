@@ -7,8 +7,7 @@ if ($branch -ne 'refactor/modularize') {
     throw "Wrong branch: $branch"
 }
 
-$status = git status --porcelain
-if ($status) {
+if (git status --porcelain) {
     throw 'Working tree is not clean.'
 }
 
@@ -17,76 +16,42 @@ git pull --ff-only origin refactor/modularize
 $path = 'lib\main.dart'
 $text = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
 
-function Replace-Once([string]$source, [string]$old, [string]$new, [string]$name) {
-    $count = ([regex]::Matches($source, [regex]::Escape($old))).Count
-    if ($count -ne 1) {
-        throw "Replacement target '$name' found $count times. Aborting safely."
+function Replace-RegexOnce([string]$source, [string]$pattern, [string]$replacement, [string]$name) {
+    $matches = [regex]::Matches($source, $pattern, [System.Text.RegularExpressions.RegexOptions]::Singleline)
+    if ($matches.Count -ne 1) {
+        throw "Regex target '$name' found $($matches.Count) times. Aborting safely."
     }
-    return $source.Replace($old, $new)
+    return [regex]::Replace($source, $pattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $replacement }, 1, [System.Text.RegularExpressions.RegexOptions]::Singleline)
 }
 
-$text = Replace-Once $text "import 'dart:math' as math;`r`n" "import 'dart:math' as math;`r`nimport 'dart:ui' as ui;`r`n" 'ui import'
+if ($text -notmatch "import 'dart:ui' as ui;") {
+    $text = Replace-RegexOnce $text "import 'dart:math' as math;\r?\n" "import 'dart:math' as math;`r`nimport 'dart:ui' as ui;`r`n" 'ui import'
+}
 
-$text = Replace-Once $text @'
-  late AnimationController _sonarController;
-'@ @'
+if ($text -notmatch '_markerIconDefault') {
+    $text = Replace-RegexOnce $text "  late AnimationController _sonarController;\r?\n" @'
   late AnimationController _sonarController;
 
   BitmapDescriptor? _markerIconDefault;
   BitmapDescriptor? _markerIconCollected;
   BitmapDescriptor? _markerIconNext;
 '@ 'marker icon fields'
+}
 
-$text = Replace-Once $text @'
-      _updateNextDestination();
-    } catch (e) {
-'@ @'
-      await _prepareMarkerIcons();
-      _updateNextDestination();
-    } catch (e) {
-'@ 'marker icon preparation'
-
-$oldMarker = @'
-  Set<Marker> _buildMarkers() {
-    final markers = <Marker>{};
-
-    for (final seichi in _seichiList) {
-      final collected =
-          _collectedIds.contains(seichi.id);
-
-      markers.add(
-        Marker(
-          markerId: MarkerId(seichi.id),
-          position: LatLng(
-            seichi.latitude,
-            seichi.longitude,
-          ),
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(
-            collected
-                ? BitmapDescriptor.hueGreen
-                : BitmapDescriptor.hueViolet,
-          ),
-          infoWindow: InfoWindow(
-            title:
-                '${seichi.icon} ${seichi.card} ${seichi.name}',
-            snippet: collected
-                ? '🏆 スタンプ獲得済み'
-                : '${seichi.reading} ・ '
-                    '到達半径 ${seichi.stampRadiusMeters}m',
-          ),
-          onTap: () {
-            _showSeichiDetails(seichi);
-          },
-        ),
-      );
-    }
-
-    return markers;
+if ($text -notmatch '_prepareMarkerIcons\(\)') {
+    $text = Replace-RegexOnce $text "  Future<void> _initialize\(\) async \{.*?\r?\n  \}" @'
+  Future<void> _initialize() async {
+    await _loadSavedStamps();
+    await _loadSeichi();
+    await _prepareMarkerIcons();
+    await _initializeLocation();
   }
-'@
+'@ 'initialize marker icons'
+}
 
-$newMarker = @'
+if ($text -notmatch 'Future<BitmapDescriptor> _createCuteMarkerIcon') {
+    $markerPattern = "  Set<Marker> _buildMarkers\(\) \{.*?\r?\n  \}\r?\n\r?\n  // ============================================================\r?\n  // 聖地詳細"
+    $markerReplacement = @'
   Future<BitmapDescriptor> _createCuteMarkerIcon({
     required Color color,
     required IconData icon,
@@ -139,9 +104,7 @@ $newMarker = @'
     );
     image.dispose();
 
-    return BitmapDescriptor.fromBytes(
-      bytes!.buffer.asUint8List(),
-    );
+    return BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
   }
 
   Future<void> _prepareMarkerIcons() async {
@@ -247,74 +210,58 @@ $newMarker = @'
       ),
     };
   }
-'@
-$text = Replace-Once $text $oldMarker $newMarker 'marker implementation'
 
-$oldMap = @'
-      mapToolbarEnabled: false,
-      markers: _buildMarkers(),
-      onMapCreated:
-          (controller) {
-        _mapController = controller;
-
-        if (_currentPosition != null) {
-          _moveCameraToCurrentLocation();
-        }
-      },
-      onTap: (_) {},
-    );
+  // ============================================================
+  // 聖地詳細
 '@
-$newMap = @'
-      mapToolbarEnabled: false,
-      markers: _buildMarkers(),
-      circles: _buildMapCircles(),
-      onMapCreated:
-          (controller) {
-        _mapController = controller;
+    $text = Replace-RegexOnce $text $markerPattern $markerReplacement 'marker implementation'
+}
 
-        if (_currentPosition != null) {
-          _moveCameraToCurrentLocation();
-        }
-      },
-      onTap: (_) {},
-    );
-'@
-$text = Replace-Once $text $oldMap $newMap 'Google Maps circles'
+$mapPattern = "  Widget _buildMap\(\) \{.*?\r?\n  \}\r?\n\r?\n  // ============================================================\r?\n  // マップ画面"
+$mapReplacement = @'
+  Widget _buildMap() {
+    LatLng initialTarget = _defaultCenter;
 
-$oldPage = @'
-  Widget _buildMapPage() {
-    return Stack(
-      children: [
-        _buildMap(),
-        _buildNextDestinationCard(),
-'@
-$newPage = @'
-  Widget _buildMapPage() {
+    if (_currentPosition != null) {
+      initialTarget = LatLng(
+        _currentPosition!.latitude,
+        _currentPosition!.longitude,
+      );
+    }
+
     return AnimatedBuilder(
       animation: _sonarController,
       builder: (context, child) {
-        return Stack(
-          children: [
-            _buildMap(),
-            _buildNextDestinationCard(),
-'@
-$text = Replace-Once $text $oldPage $newPage 'map animation wrapper'
+        return GoogleMap(
+          initialCameraPosition: CameraPosition(
+            target: initialTarget,
+            zoom: 10.5,
+          ),
+          mapType: MapType.normal,
+          myLocationEnabled: _currentPosition != null,
+          myLocationButtonEnabled: false,
+          compassEnabled: true,
+          zoomControlsEnabled: false,
+          mapToolbarEnabled: false,
+          markers: _buildMarkers(),
+          circles: _buildMapCircles(),
+          onMapCreated: (controller) {
+            _mapController = controller;
 
-$oldEnd = @'
-        _buildStampAnimation(),
-      ],
-    );
-  }
-'@
-$newEnd = @'
-            _buildStampAnimation(),
-          ],
+            if (_currentPosition != null) {
+              _moveCameraToCurrentLocation();
+            }
+          },
+          onTap: (_) {},
         );
       },
     );
   }
+
+  // ============================================================
+  // マップ画面
 '@
-$text = Replace-Once $text $oldEnd $newEnd 'map animation wrapper end'
+$text = Replace-RegexOnce $text $mapPattern $mapReplacement 'Google Maps animation'
 
 [System.IO.File]::WriteAllText($path, $text, [System.Text.UTF8Encoding]::new($false))
 
@@ -328,4 +275,4 @@ git add lib\main.dart
 git commit -m "Add map sonar ripple and cute seichi markers"
 git push origin refactor/modularize
 
-Write-Host 'Implementation, tests, commit and push completed.' -ForegroundColor Green
+Write-Host 'Map effects applied and pushed.' -ForegroundColor Green
