@@ -13,7 +13,6 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       'ca-app-pub-1391846841313915/2597290432';
 
   BannerAd? _bannerAd;
-  bool _isLoaded = false;
 
   @override
   void initState() {
@@ -21,7 +20,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     _loadBanner();
   }
 
-  Future<void> _loadBanner() async {
+  void _loadBanner() {
     final bannerAd = BannerAd(
       adUnitId: _adUnitId,
       request: const AdRequest(),
@@ -34,33 +33,31 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
           }
           setState(() {
             _bannerAd = ad as BannerAd;
-            _isLoaded = true;
           });
         },
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
-          debugPrint('Banner ad failed to load: $error');
+          debugPrint('AdMob banner failed to load: $error');
         },
       ),
     );
 
-    await bannerAd.load();
+    _bannerAd = bannerAd;
+    bannerAd.load();
   }
 
   @override
   Widget build(BuildContext context) {
     final bannerAd = _bannerAd;
-    if (!_isLoaded || bannerAd == null) {
+    if (bannerAd == null) {
       return const SizedBox.shrink();
     }
 
     return SafeArea(
       top: false,
-      child: Container(
+      child: SizedBox(
         width: double.infinity,
         height: bannerAd.size.height.toDouble(),
-        alignment: Alignment.center,
-        color: Theme.of(context).scaffoldBackgroundColor,
         child: AdWidget(ad: bannerAd),
       ),
     );
@@ -69,6 +66,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   void dispose() {
     _bannerAd?.dispose();
+    _bannerAd = null;
     super.dispose();
   }
 }
