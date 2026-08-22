@@ -4,12 +4,12 @@ Set-Location 'C:\src\seichi_quest'
 
 $branch = (git branch --show-current).Trim()
 if ($branch -ne 'refactor/modularize') {
-    throw "現在のブランチは '$branch' です。refactor/modularize で実行してください。"
+    throw "Wrong branch: $branch"
 }
 
 $status = git status --porcelain
 if ($status) {
-    throw '作業ツリーに未コミット変更があります。先に保存してください。'
+    throw 'Working tree is not clean.'
 }
 
 git pull --ff-only origin refactor/modularize
@@ -20,7 +20,7 @@ $text = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
 function Replace-Once([string]$source, [string]$old, [string]$new, [string]$name) {
     $count = ([regex]::Matches($source, [regex]::Escape($old))).Count
     if ($count -ne 1) {
-        throw "$name の対象が $count 箇所です。安全のため変更を中止しました。"
+        throw "Replacement target '$name' found $count times. Aborting safely."
     }
     return $source.Replace($old, $new)
 }
@@ -47,10 +47,6 @@ $text = Replace-Once $text @'
 '@ 'marker icon preparation'
 
 $oldMarker = @'
-  // ============================================================
-  // マーカー
-  // ============================================================
-
   Set<Marker> _buildMarkers() {
     final markers = <Marker>{};
 
@@ -91,10 +87,6 @@ $oldMarker = @'
 '@
 
 $newMarker = @'
-  // ============================================================
-  // かわいいマーカー + 地図ソナー
-  // ============================================================
-
   Future<BitmapDescriptor> _createCuteMarkerIcon({
     required Color color,
     required IconData icon,
@@ -166,9 +158,7 @@ $newMarker = @'
       icon: Icons.flag_rounded,
     );
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     setState(() {
       _markerIconDefault = defaultIcon;
@@ -205,15 +195,13 @@ $newMarker = @'
               ),
           infoWindow: InfoWindow(
             title: isNext
-                ? '🎯 ${seichi.card} ${seichi.name}'
+                ? '次の目的地: ${seichi.card} ${seichi.name}'
                 : '${seichi.icon} ${seichi.card} ${seichi.name}',
             snippet: collected
-                ? '🏆 スタンプ獲得済み'
+                ? 'スタンプ獲得済み'
                 : '${seichi.reading} ・ 到達半径 ${seichi.stampRadiusMeters}m',
           ),
-          onTap: () {
-            _showSeichiDetails(seichi);
-          },
+          onTap: () => _showSeichiDetails(seichi),
         ),
       );
     }
@@ -223,9 +211,7 @@ $newMarker = @'
 
   Set<Circle> _buildMapCircles() {
     final seichi = _nextSeichi;
-    if (seichi == null) {
-      return const <Circle>{};
-    }
+    if (seichi == null) return const <Circle>{};
 
     final intensity = _sonarIntensity();
     final progress = _sonarController.value;
@@ -237,14 +223,9 @@ $newMarker = @'
         circleId: const CircleId('next-arrival-zone'),
         center: LatLng(seichi.latitude, seichi.longitude),
         radius: baseRadius,
-        fillColor: Colors.deepPurple.withOpacity(
-          0.035 + intensity * 0.045,
-        ),
-        strokeColor: Colors.deepPurple.withOpacity(
-          0.18 + intensity * 0.30,
-        ),
+        fillColor: Colors.deepPurple.withOpacity(0.035 + intensity * 0.045),
+        strokeColor: Colors.deepPurple.withOpacity(0.18 + intensity * 0.30),
         strokeWidth: 2,
-        zIndex: 1,
       ),
       Circle(
         circleId: const CircleId('next-sonar-ripple'),
@@ -255,20 +236,14 @@ $newMarker = @'
           (1.0 - progress) * (0.20 + intensity * 0.55),
         ),
         strokeWidth: 4,
-        zIndex: 2,
       ),
       Circle(
         circleId: const CircleId('next-sonar-core'),
         center: LatLng(seichi.latitude, seichi.longitude),
         radius: math.max(8.0, baseRadius * 0.12),
-        fillColor: Colors.deepPurple.withOpacity(
-          0.08 + intensity * 0.16,
-        ),
-        strokeColor: Colors.deepPurple.withOpacity(
-          0.25 + intensity * 0.35,
-        ),
+        fillColor: Colors.deepPurple.withOpacity(0.08 + intensity * 0.16),
+        strokeColor: Colors.deepPurple.withOpacity(0.25 + intensity * 0.35),
         strokeWidth: 2,
-        zIndex: 3,
       ),
     };
   }
@@ -343,15 +318,14 @@ $text = Replace-Once $text $oldEnd $newEnd 'map animation wrapper end'
 
 [System.IO.File]::WriteAllText($path, $text, [System.Text.UTF8Encoding]::new($false))
 
-flutter format lib\main.dart | Out-Host
-flutter test
-if ($LASTEXITCODE -ne 0) {
-    throw 'flutter test に失敗したため、コミットしていません。'
-}
+flutter format lib\main.dart
+if ($LASTEXITCODE -ne 0) { throw 'flutter format failed.' }
 
-git add lib\main.dart tools\apply_map_effects.ps1
+flutter test
+if ($LASTEXITCODE -ne 0) { throw 'flutter test failed. Nothing was committed.' }
+
+git add lib\main.dart
 git commit -m "Add map sonar ripple and cute seichi markers"
 git push origin refactor/modularize
 
-Write-Host ''
-Write-Host '実装・テスト・GitHubへの保存まで完了しました。' -ForegroundColor Green
+Write-Host 'Implementation, tests, commit and push completed.' -ForegroundColor Green
