@@ -14,45 +14,67 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Fix and verify banner placement
+      - name: Fix banner placement
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          p = Path('lib/main.dart')
+          s = p.read_text(encoding='utf-8')
+          imp = "import 'widgets/banner_ad_widget.dart';"
+          if imp not in s:
+              s = s.replace("import 'models/seichi.dart';", "import 'models/seichi.dart';\n" + imp, 1)
+          start = s.find('      bottomNavigationBar:')
+          end = s.find('  @override\n  void dispose', start)
+          if start < 0 or end < 0:
+              raise SystemExit('navigation block not found')
+          block = '''      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const BannerAdWidget(),
+          NavigationBar(
+            selectedIndex: _selectedTab,
+            onDestinationSelected: (index) {
+              setState(() {
+                _selectedTab = index;
+              });
+            },
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.map_outlined),
+                selectedIcon: Icon(Icons.map),
+                label: 'マップ',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.flag_outlined),
+                selectedIcon: Icon(Icons.flag),
+                label: 'クエスト',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.workspace_premium_outlined),
+                selectedIcon: Icon(Icons.workspace_premium),
+                label: 'スタンプ',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.leaderboard_outlined),
+                selectedIcon: Icon(Icons.leaderboard),
+                label: 'ランキング',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'マイページ',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-          path = Path('lib/main.dart')
-          text = path.read_text(encoding='utf-8')
-
-          import_line = "import 'widgets/banner_ad_widget.dart';"
-          if import_line not in text:
-              anchor = "import 'models/seichi.dart';"
-              text = text.replace(anchor, anchor + "\n" + import_line, 1)
-
-          if "const BannerAdWidget()" not in text:
-              old = "      bottomNavigationBar: NavigationBar(\n        selectedIndex: _selectedTab,"
-              new = "      bottomNavigationBar: Column(\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          const BannerAdWidget(),\n          NavigationBar(\n            selectedIndex: _selectedTab,"
-              if old not in text:
-                  raise SystemExit('NavigationBar anchor not found')
-              text = text.replace(old, new, 1)
-
-              old_end = "        ],\n      ),\n    );"
-              new_end = "        ],\n          ),\n        ],\n      ),\n    );"
-              pos = text.rfind(old_end)
-              if pos < 0:
-                  raise SystemExit('Scaffold closing anchor not found')
-              text = text[:pos] + new_end + text[pos + len(old_end):]
-          else:
-              malformed = "        ],\n      ),\n    );"
-              corrected = "        ],\n          ),\n        ],\n      ),\n    );"
-              if malformed in text:
-                  text = text.replace(malformed, corrected, 1)
-
-          path.write_text(text, encoding='utf-8')
+'''
+          s = s[:start] + block + s[end:]
+          p.write_text(s, encoding='utf-8')
           PY
-
-          grep -q "import 'widgets/banner_ad_widget.dart';" lib/main.dart
-          grep -q "const BannerAdWidget()" lib/main.dart
-
       - name: Commit source change
         run: |
           git config user.name "github-actions[bot]"
