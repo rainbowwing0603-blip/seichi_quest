@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'models/seichi.dart';
+import 'widgets/banner_ad_widget.dart';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -2238,8 +2239,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Widget build(BuildContext context) {
     return Scaffold(
       body: _page(),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedTab,
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const BannerAdWidget(),
+          NavigationBar(
+            selectedIndex: _selectedTab,
         onDestinationSelected: (index) {
           setState(() {
             _selectedTab = index;
