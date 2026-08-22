@@ -2247,44 +2247,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           const BannerAdWidget(),
           NavigationBar(
             selectedIndex: _selectedTab,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedTab = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map),
-            label: 'マップ',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.flag_outlined),
-            selectedIcon: Icon(Icons.flag),
-            label: 'クエスト',
-          ),
-          NavigationDestination(
-            icon: Icon(
-              Icons.workspace_premium_outlined,
-            ),
-            selectedIcon: Icon(
-              Icons.workspace_premium,
-            ),
-            label: 'スタンプ',
-          ),
-          NavigationDestination(
-            icon: Icon(
-              Icons.leaderboard_outlined,
-            ),
-            selectedIcon: Icon(
-              Icons.leaderboard,
-            ),
-            label: 'ランキング',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'マイページ',
+            onDestinationSelected: (index) {
+              setState(() {
+                _selectedTab = index;
+              });
+            },
+            destinations: const [
+              NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'マップ'),
+              NavigationDestination(icon: Icon(Icons.flag_outlined), selectedIcon: Icon(Icons.flag), label: 'クエスト'),
+              NavigationDestination(icon: Icon(Icons.workspace_premium_outlined), selectedIcon: Icon(Icons.workspace_premium), label: 'スタンプ'),
+              NavigationDestination(icon: Icon(Icons.leaderboard_outlined), selectedIcon: Icon(Icons.leaderboard), label: 'ランキング'),
+              NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'マイページ'),
+            ],
           ),
         ],
       ),
