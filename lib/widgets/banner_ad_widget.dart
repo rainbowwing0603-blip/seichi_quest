@@ -10,7 +10,7 @@ class BannerAdWidget extends StatefulWidget {
 
 class _BannerAdWidgetState extends State<BannerAdWidget> {
   static const String _adUnitId =
-      'ca-app-pub-3940256099942544/9214589741';
+      'ca-app-pub-1391846841313915/2597290432';
 
   BannerAd? _bannerAd;
   bool _isLoaded = false;
@@ -54,11 +54,15 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      width: double.infinity,
-      height: bannerAd.size.height.toDouble(),
-      alignment: Alignment.center,
-      child: AdWidget(ad: bannerAd),
+    return SafeArea(
+      top: false,
+      child: Container(
+        width: double.infinity,
+        height: bannerAd.size.height.toDouble(),
+        alignment: Alignment.center,
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: AdWidget(ad: bannerAd),
+      ),
     );
   }
 
