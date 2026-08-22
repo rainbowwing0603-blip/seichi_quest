@@ -1311,6 +1311,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             ),
           ),
         ],
+          ),
+        ],
       ),
     );
   }
