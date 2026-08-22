@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
@@ -101,6 +102,88 @@ class Seichi {
           value?.toString() ?? '',
         ) ??
         fallback;
+  }
+}
+
+
+class BannerAdWidget extends StatefulWidget {
+  const BannerAdWidget({super.key});
+
+  @override
+  State<BannerAdWidget> createState() => _BannerAdWidgetState();
+}
+
+class _BannerAdWidgetState extends State<BannerAdWidget> {
+  BannerAd? _bannerAd;
+  bool _isLoaded = false;
+
+  // Google公式テスト用バナー広告ID
+  // 実広告IDへの切り替えは、動作確認後に行う。
+  static const String _testBannerAdUnitId =
+      'ca-app-pub-1391846841313915/2597290432';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBanner();
+  }
+
+  void _loadBanner() {
+    final banner = BannerAd(
+      adUnitId: _testBannerAdUnitId,
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          if (!mounted) {
+            ad.dispose();
+            return;
+          }
+
+          setState(() {
+            _bannerAd = ad as BannerAd;
+            _isLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+
+          if (!mounted) {
+            return;
+          }
+
+          setState(() {
+            _bannerAd = null;
+            _isLoaded = false;
+          });
+        },
+      ),
+    );
+
+    try {
+      banner.load();
+    } catch (_) {
+      banner.dispose();
+    }
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isLoaded || _bannerAd == null) {
+      return const SizedBox.shrink();
+    }
+
+    return SizedBox(
+      width: _bannerAd!.size.width.toDouble(),
+      height: _bannerAd!.size.height.toDouble(),
+      child: AdWidget(ad: _bannerAd!),
+    );
   }
 }
 
@@ -4082,7 +4165,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const BannerAdWidget(),
+          BannerAdWidget(),
           NavigationBar(
             selectedIndex: _selectedTab,
             onDestinationSelected: (index) {
