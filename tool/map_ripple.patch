@@ -1,0 +1,104 @@
+*** Begin Patch
+*** Update File: lib/main.dart
+@@
+   // ============================================================
+   // Google Maps
+   // ============================================================
++
++  Set<Circle> _buildMapRippleCircles() {
++    final seichi = _nextSeichi;
++    final distance = _nextDistance;
++
++    if (seichi == null || distance == null) {
++      return {};
++    }
++
++    final intensity = _sonarIntensity();
++    final progress = _sonarController.value;
++
++    // 次の目的地を中心に、ソナーと同じ周期で波紋を広げる。
++    // 到達半径を超えている間だけ表示し、近づくほど濃くする。
++    final rippleRadius =
++        45.0 + (progress * (seichi.stampRadiusMeters * 0.75));
++
++    final opacity =
++        (0.08 + (intensity * 0.24)) *
++        (1.0 - progress * 0.45);
++
++    return {
++      Circle(
++        circleId: const CircleId('next_destination_ripple'),
++        center: LatLng(
++          seichi.latitude,
++          seichi.longitude,
++        ),
++        radius: rippleRadius,
++        strokeWidth: 2,
++        strokeColor: Colors.deepPurple.withOpacity(
++          opacity.clamp(0.04, 0.30),
++        ),
++        fillColor: Colors.deepPurple.withOpacity(
++          (opacity * 0.28).clamp(0.01, 0.08),
++        ),
++        zIndex: 2,
++      ),
++    };
++  }
+ 
+   Widget _buildMap() {
+@@
+-    return GoogleMap(
+-      initialCameraPosition:
+-          CameraPosition(
+-        target: initialTarget,
+-        zoom: 10.5,
+-      ),
+-      mapType: MapType.normal,
+-      myLocationEnabled:
+-          _currentPosition != null,
+-      myLocationButtonEnabled: false,
+-      compassEnabled: true,
+-      zoomControlsEnabled: false,
+-      mapToolbarEnabled: false,
+-      markers: _buildMarkers(),
+-      onMapCreated:
+-          (controller) {
+-        _mapController = controller;
+-
+-        if (_currentPosition != null) {
+-          _moveCameraToCurrentLocation();
+-        }
+-      },
+-      onTap: (_) {},
++    return AnimatedBuilder(
++      animation: _sonarController,
++      builder: (context, child) {
++        return GoogleMap(
++          initialCameraPosition:
++              CameraPosition(
++            target: initialTarget,
++            zoom: 10.5,
++          ),
++          mapType: MapType.normal,
++          myLocationEnabled:
++              _currentPosition != null,
++          myLocationButtonEnabled: false,
++          compassEnabled: true,
++          zoomControlsEnabled: false,
++          mapToolbarEnabled: false,
++          markers: _buildMarkers(),
++          circles: _buildMapRippleCircles(),
++          onMapCreated:
++              (controller) {
++            _mapController = controller;
++
++            if (_currentPosition != null) {
++              _moveCameraToCurrentLocation();
++            }
++          },
++          onTap: (_) {},
++        );
++      },
+     );
+   }
+*** End Patch
