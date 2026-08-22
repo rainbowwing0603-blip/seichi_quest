@@ -1,0 +1,28 @@
+name: Integrate achievement history
+
+on:
+  push:
+    branches:
+      - feature/achievements-history-20260822
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: ${{ !contains(github.event.head_commit.message, '[achievement-integrated]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Apply integration
+        run: python tool/integrate_achievement_history.py
+
+      - name: Commit integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart
+          git diff --cached --quiet || git commit -m "Connect achievements to quest and collection flow [achievement-integrated]"
+          git push
