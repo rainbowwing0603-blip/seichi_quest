@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Insert BannerAdWidget into main.dart
+      - name: Fix and verify banner placement
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -28,23 +28,30 @@ jobs:
               anchor = "import 'models/seichi.dart';"
               text = text.replace(anchor, anchor + "\n" + import_line, 1)
 
-          old = """      bottomNavigationBar: NavigationBar(\n        selectedIndex: _selectedTab,"""
-          new = """      bottomNavigationBar: Column(\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          const BannerAdWidget(),\n          NavigationBar(\n            selectedIndex: _selectedTab,"""
-          if old in text:
+          if "const BannerAdWidget()" not in text:
+              old = "      bottomNavigationBar: NavigationBar(\n        selectedIndex: _selectedTab,"
+              new = "      bottomNavigationBar: Column(\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          const BannerAdWidget(),\n          NavigationBar(\n            selectedIndex: _selectedTab,"
+              if old not in text:
+                  raise SystemExit('NavigationBar anchor not found')
               text = text.replace(old, new, 1)
-          elif "const BannerAdWidget()" not in text:
-              raise SystemExit('NavigationBar anchor not found')
 
-          old_end = """        ],\n      ),\n    );"""
-          new_end = """          ),\n        ],\n      ),\n    );"""
-          if "const BannerAdWidget()" in text and new_end not in text:
+              old_end = "        ],\n      ),\n    );"
+              new_end = "        ],\n          ),\n        ],\n      ),\n    );"
               pos = text.rfind(old_end)
               if pos < 0:
                   raise SystemExit('Scaffold closing anchor not found')
               text = text[:pos] + new_end + text[pos + len(old_end):]
+          else:
+              malformed = "        ],\n      ),\n    );"
+              corrected = "        ],\n          ),\n        ],\n      ),\n    );"
+              if malformed in text:
+                  text = text.replace(malformed, corrected, 1)
 
           path.write_text(text, encoding='utf-8')
           PY
+
+          grep -q "import 'widgets/banner_ad_widget.dart';" lib/main.dart
+          grep -q "const BannerAdWidget()" lib/main.dart
 
       - name: Commit source change
         run: |
@@ -52,5 +59,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add lib/main.dart
           git diff --cached --quiet && exit 0
-          git commit -m "Display AdMob banner in app"
+          git commit -m "Fix AdMob banner placement"
           git push
