@@ -2,8 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 /// オンライン進行機能のDBアクセスをまとめるサービス。
 ///
-/// 現在の端末内スタンプ処理を置き換えず、将来の同期・ランキング・
-/// クエスト・実績機能を安全に追加するための薄い層です。
+/// 端末内スタンプ処理を壊さず、ログイン済みの場合だけオンラインへ同期します。
 class OnlineProgressService {
   OnlineProgressService({supabase.SupabaseClient? client})
       : _client = client ?? supabase.Supabase.instance.client;
@@ -24,6 +23,8 @@ class OnlineProgressService {
     });
   }
 
+  /// 1札をオンラインへ同期します。
+  /// DB側のトリガーが統計・ランキング・実績・クエストを更新します。
   Future<void> syncStamp(String seichiId) async {
     final id = userId;
     if (id == null) return;
@@ -33,6 +34,27 @@ class OnlineProgressService {
       'seichi_id': seichiId,
       'collected_at': DateTime.now().toUtc().toIso8601String(),
     });
+  }
+
+  /// 端末側で既に取得済みの札をまとめて同期します。
+  Future<void> syncStamps(Iterable<String> seichiIds) async {
+    final id = userId;
+    if (id == null) return;
+
+    final ids = seichiIds.where((id) => id.isNotEmpty).toSet();
+    if (ids.isEmpty) return;
+
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _client.from('user_stamps').upsert(
+      ids
+          .map((seichiId) => {
+                'user_id': id,
+                'seichi_id': seichiId,
+                'collected_at': now,
+              })
+          .toList(),
+      onConflict: 'user_id,seichi_id',
+    );
   }
 
   Future<Set<String>> fetchCollectedStampIds() async {
@@ -50,12 +72,39 @@ class OnlineProgressService {
         .toSet();
   }
 
+  Future<Map<String, dynamic>?> fetchMyStats() async {
+    final id = userId;
+    if (id == null) return null;
+
+    final row = await _client
+        .from('user_stats')
+        .select('collected_count, quest_count, achievement_count, updated_at')
+        .eq('user_id', id)
+        .maybeSingle();
+
+    return row;
+  }
+
   Future<List<Map<String, dynamic>>> fetchLeaderboard({int limit = 50}) async {
+    final safeLimit = limit.clamp(1, 100);
     final rows = await _client
         .from('leaderboard_scores')
         .select('user_id, score, collected_count, updated_at')
         .order('score', ascending: false)
-        .limit(limit);
+        .limit(safeLimit);
+
+    return List<Map<String, dynamic>>.from(rows);
+  }
+
+  Future<List<Map<String, dynamic>>> fetchMyQuests() async {
+    final id = userId;
+    if (id == null) return <Map<String, dynamic>>[];
+
+    final rows = await _client
+        .from('user_quests')
+        .select('quest_id, progress, completed_at, updated_at')
+        .eq('user_id', id)
+        .order('updated_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(rows);
   }
@@ -78,6 +127,21 @@ class OnlineProgressService {
         .order('required_count');
 
     return List<Map<String, dynamic>>.from(rows);
+  }
+
+  Future<Set<String>> fetchMyAchievementIds() async {
+    final id = userId;
+    if (id == null) return <String>{};
+
+    final rows = await _client
+        .from('user_achievements')
+        .select('achievement_id')
+        .eq('user_id', id);
+
+    return rows
+        .map((row) => row['achievement_id']?.toString())
+        .whereType<String>()
+        .toSet();
   }
 
   Future<void> close() async {
