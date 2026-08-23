@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'collection_history_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
@@ -238,6 +239,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   SharedPreferences? _preferences;
 
+  final CollectionHistoryService _historyService =
+      CollectionHistoryService();
+
   bool _isLoading = true;
   bool _isLoadingLocation = false;
 
@@ -311,8 +315,41 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _initialize() async {
     await _loadSavedStamps();
+    await _ensureCloudUser();
+    await _historyService.syncPending();
+    await _loadCloudHistory();
     await _loadSeichi();
     await _initializeLocation();
+  }
+
+  Future<void> _ensureCloudUser() async {
+    final client = supabase.Supabase.instance.client;
+
+    if (client.auth.currentUser != null) {
+      return;
+    }
+
+    try {
+      await client.auth.signInAnonymously();
+    } catch (_) {
+      // オフライン、または匿名認証未有効時はローカル動作を継続する。
+    }
+  }
+
+  Future<void> _loadCloudHistory() async {
+    try {
+      final history = await _historyService.loadHistory();
+      for (final item in history) {
+        final id = item['seichi_id']?.toString();
+        if (id != null && id.isNotEmpty) {
+          _collectedIds.add(id);
+        }
+      }
+
+      await _saveStamps();
+    } catch (_) {
+      // DB取得失敗時は端末キャッシュをそのまま使用する。
+    }
   }
 
   // ============================================================
@@ -734,6 +771,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       }
 
       await _saveStamps();
+
+      // スタンプ獲得自体はローカル保存を正として即時成立させる。
+      // DB同期はオンラインならその場で行い、失敗時は端末キューに残す。
+      final position = _currentPosition;
+      await _ensureCloudUser();
+      await _historyService.recordCollection(
+        seichiId: seichi.id,
+        collectedAt: DateTime.now(),
+        latitude: position?.latitude,
+        longitude: position?.longitude,
+      );
 
       if (!mounted) {
         return;
