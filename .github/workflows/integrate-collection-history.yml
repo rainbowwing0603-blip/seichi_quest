@@ -1,0 +1,63 @@
+name: Integrate collection history
+
+on:
+  push:
+    branches:
+      - refactor/modularize
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: ${{ !startsWith(github.event.head_commit.message, 'Integrate collection history') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/modularize
+          fetch-depth: 1
+
+      - name: Patch main.dart
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('lib/main.dart')
+          text = path.read_text(encoding='utf-8')
+
+          import_anchor = "import 'package:shared_preferences/shared_preferences.dart';\n"
+          import_line = "import 'collection_history_service.dart';\n"
+          if import_line not in text:
+              text = text.replace(import_anchor, import_line + import_anchor, 1)
+
+          field_anchor = "  SharedPreferences? _preferences;\n"
+          field_block = "  SharedPreferences? _preferences;\n\n  final CollectionHistoryService _historyService =\n      CollectionHistoryService();\n"
+          if "final CollectionHistoryService _historyService" not in text:
+              text = text.replace(field_anchor, field_block, 1)
+
+          initialize_old = """  Future<void> _initialize() async {\n    await _loadSavedStamps();\n    await _loadSeichi();\n    await _initializeLocation();\n  }"""
+          initialize_new = """  Future<void> _initialize() async {\n    await _loadSavedStamps();\n    await _ensureCloudUser();\n    await _historyService.syncPending();\n    await _loadCloudHistory();\n    await _loadSeichi();\n    await _initializeLocation();\n  }\n\n  Future<void> _ensureCloudUser() async {\n    final client = supabase.Supabase.instance.client;\n\n    if (client.auth.currentUser != null) {\n      return;\n    }\n\n    try {\n      await client.auth.signInAnonymously();\n    } catch (_) {\n      // オフライン、または匿名認証未有効時はローカル動作を継続する。\n    }\n  }\n\n  Future<void> _loadCloudHistory() async {\n    try {\n      final history = await _historyService.loadHistory();\n      for (final item in history) {\n        final id = item['seichi_id']?.toString();\n        if (id != null && id.isNotEmpty) {\n          _collectedIds.add(id);\n        }\n      }\n\n      await _saveStamps();\n    } catch (_) {\n      // DB取得失敗時は端末キャッシュをそのまま使用する。\n    }\n  }"""
+          if initialize_old in text and "Future<void> _ensureCloudUser()" not in text:
+              text = text.replace(initialize_old, initialize_new, 1)
+
+          collect_anchor = """      await _saveStamps();\n\n      if (!mounted) {"""
+          collect_new = """      await _saveStamps();\n\n      // スタンプ獲得自体はローカル保存を正として即時成立させる。\n      // DB同期はオンラインならその場で行い、失敗時は端末キューに残す。\n      final position = _currentPosition;\n      await _ensureCloudUser();\n      await _historyService.recordCollection(\n        seichiId: seichi.id,\n        collectedAt: DateTime.now(),\n        latitude: position?.latitude,\n        longitude: position?.longitude,\n      );\n\n      if (!mounted) {"""
+          if collect_anchor in text and "_historyService.recordCollection" not in text:
+              text = text.replace(collect_anchor, collect_new, 1)
+
+          path.write_text(text, encoding='utf-8')
+
+          if "collection_history_service.dart" not in text:
+              raise SystemExit('import patch failed')
+          if "_historyService.recordCollection" not in text:
+              raise SystemExit('collection patch failed')
+
+      - name: Commit integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart
+          git diff --cached --quiet && exit 0
+          git commit -m "Integrate collection history offline sync"
+          git push origin refactor/modularize
