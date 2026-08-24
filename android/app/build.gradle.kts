@@ -30,9 +30,18 @@ android {
     }
 
     buildTypes {
+        debug {
+            // DebugはGoogle公式テスト用AdMob App ID
+            manifestPlaceholders["adMobAppId"] =
+                "ca-app-pub-3940256099942544~3347511713"
+        }
+
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Releaseは聖地クエスト本番用AdMob App ID
+            manifestPlaceholders["adMobAppId"] =
+                "ca-app-pub-1391846841313915~6472071786"
+
+            // 現在はデバッグ署名を使用
             signingConfig = signingConfigs.getByName("debug")
         }
     }

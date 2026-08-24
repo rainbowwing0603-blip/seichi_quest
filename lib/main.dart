@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -24,6 +25,8 @@ const supabasePublishableKey =
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await MobileAds.instance.initialize();
 
   await supabase.Supabase.initialize(
     url: supabaseUrl,
@@ -118,10 +121,18 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
 
-  // Google公式テスト用バナー広告ID
-  // 実広告IDへの切り替えは、動作確認後に行う。
+  // Debug/ProfileではGoogle公式テスト広告、
+  // Releaseでは聖地クエスト本番広告を使用する。
   static const String _testBannerAdUnitId =
+      'ca-app-pub-3940256099942544/9214589741';
+
+  static const String _productionBannerAdUnitId =
       'ca-app-pub-1391846841313915/2597290432';
+
+  static String get _bannerAdUnitId =>
+      kReleaseMode
+          ? _productionBannerAdUnitId
+          : _testBannerAdUnitId;
 
   @override
   void initState() {
@@ -131,7 +142,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   void _loadBanner() {
     final banner = BannerAd(
-      adUnitId: _testBannerAdUnitId,
+      adUnitId: _bannerAdUnitId,
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(

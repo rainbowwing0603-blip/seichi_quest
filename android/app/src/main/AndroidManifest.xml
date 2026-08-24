@@ -12,7 +12,7 @@
         <!-- AdMob App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-1391846841313915~6472071786" />
+            android:value="${adMobAppId}" />
 
         <!-- Google Maps API Key -->
         <meta-data
