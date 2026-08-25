@@ -32,9 +32,6 @@ $newBlock = @'
 
     Seichi? target;
 
-    // ----------------------------------------------------------
-    // 1. 手動指定を最優先
-    // ----------------------------------------------------------
     if (_manualNextSeichiId != null) {
       for (final seichi in _seichiList) {
         if (seichi.id == _manualNextSeichiId &&
@@ -44,22 +41,14 @@ $newBlock = @'
         }
       }
 
-      // 指定先を獲得済み・削除済みなら自動選択へ戻す。
       if (target == null) {
         _manualNextSeichiId = null;
       }
     }
 
-    // ----------------------------------------------------------
-    // 2. 自動選択
-    //    ・到達範囲内を最優先
-    //    ・現在の目的地がまだ十分近ければ維持
-    //    ・それ以外は最寄りの未獲得聖地
-    // ----------------------------------------------------------
     if (target == null) {
       Seichi? nearest;
       double? nearestDistance;
-
       Seichi? inRange;
       double? inRangeDistance;
 
@@ -87,7 +76,6 @@ $newBlock = @'
         }
       }
 
-      // 到達可能な聖地があれば、それを最優先する。
       if (inRange != null) {
         target = inRange;
       } else {
@@ -102,8 +90,6 @@ $newBlock = @'
             current.longitude,
           );
 
-          // GPSの揺れで目的地が頻繁に入れ替わるのを防ぐ。
-          // 新候補が150m以上近くなった場合だけ切り替える。
           const switchMarginMeters = 150.0;
 
           if (nearest != null &&
@@ -146,6 +132,6 @@ $newBlock = @'
 $updated = $source.Substring(0, $start) + $newBlock + $source.Substring($end)
 [System.IO.File]::WriteAllText($path, $updated, $encoding)
 
-Write-Host "スマート自動選択を適用しました。"
-Write-Host "バックアップ: $backup"
-Write-Host "次に flutter analyze を実行してください。"
+Write-Host 'Smart next-destination selection applied.'
+Write-Host "Backup: $backup"
+Write-Host 'Next, run flutter analyze.'
