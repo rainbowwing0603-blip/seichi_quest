@@ -10,6 +10,7 @@ import 'widgets/banner_ad_widget.dart';
 import 'models/seichi.dart';
 import 'painters/sonar_painter.dart';
 import 'painters/stamp_ring_painter.dart';
+import 'services/next_destination_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
@@ -480,66 +481,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   void _updateNextDestination() {
-    final position = _currentPosition;
+    final result = const NextDestinationService()
+        .findNextDestination(
+      position: _currentPosition,
+      seichiList: _seichiList,
+      collectedIds: _collectedIds,
+      manualNextSeichiId: _manualNextSeichiId,
+    );
 
-    if (position == null ||
-        _seichiList.isEmpty) {
-      return;
-    }
-
-    Seichi? target;
-
-    // 手動指定された目的地がまだ未獲得なら、その目的地を優先する。
-    if (_manualNextSeichiId != null) {
-      for (final seichi in _seichiList) {
-        if (seichi.id == _manualNextSeichiId &&
-            !_collectedIds.contains(seichi.id)) {
-          target = seichi;
-          break;
-        }
-      }
-
-      // 指定先を獲得済み・削除済みの場合は自動選択へ戻す。
-      if (target == null) {
-        _manualNextSeichiId = null;
-      }
-    }
-
-    // 手動指定がない場合は、従来どおり最寄りの未獲得聖地。
-    if (target == null) {
-      double? nearestDistance;
-
-      for (final seichi in _seichiList) {
-        if (_collectedIds.contains(seichi.id)) {
-          continue;
-        }
-
-        final distance =
-            Geolocator.distanceBetween(
-          position.latitude,
-          position.longitude,
-          seichi.latitude,
-          seichi.longitude,
-        );
-
-        if (nearestDistance == null ||
-            distance < nearestDistance) {
-          target = seichi;
-          nearestDistance = distance;
-        }
-      }
-    }
-
-    double? targetDistance;
-
-    if (target != null) {
-      targetDistance =
-          Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        target.latitude,
-        target.longitude,
-      );
+    if (result.seichi == null &&
+        _manualNextSeichiId != null) {
+      _manualNextSeichiId = null;
     }
 
     if (!mounted) {
@@ -547,8 +499,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     setState(() {
-      _nextSeichi = target;
-      _nextDistance = targetDistance;
+      _nextSeichi = result.seichi;
+      _nextDistance = result.distance;
     });
   }
 
