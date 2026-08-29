@@ -10,7 +10,6 @@ class CollectionPage extends StatelessWidget {
     required this.collectedIds,
     required this.collectionFilter,
     required this.onFilterChanged,
-    required this.onShowStampDetail,
     required this.onMoveToSeichi,
     required this.onSetNextDestination,
   });
@@ -19,8 +18,6 @@ class CollectionPage extends StatelessWidget {
   final Set<String> collectedIds;
   final int collectionFilter;
   final ValueChanged<int> onFilterChanged;
-  final void Function(Seichi seichi, bool collected)
-      onShowStampDetail;
   final Future<void> Function(Seichi seichi)
       onMoveToSeichi;
   final void Function(Seichi seichi)
