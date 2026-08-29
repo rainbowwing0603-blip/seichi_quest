@@ -11,9 +11,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class CollectionHistoryService {
   CollectionHistoryService({
     SupabaseClient? client,
-    SharedPreferences? preferences,
-  })  : _client = client ?? Supabase.instance.client,
-        _preferences = preferences;
+    this._preferences,
+  }) : _client = client ?? Supabase.instance.client;
 
   static const _queueKey = 'pending_collection_history_v1';
   static const _historyKey = 'collection_history_cache_v1';

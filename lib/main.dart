@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'collection_history_service.dart';
+import 'widgets/banner_ad_widget.dart';
+import 'models/seichi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
@@ -30,7 +31,7 @@ Future<void> main() async {
 
   await supabase.Supabase.initialize(
     url: supabaseUrl,
-    anonKey: supabasePublishableKey,
+    publishableKey: supabasePublishableKey,
   );
 
   runApp(const SeichiQuestApp());
@@ -40,171 +41,19 @@ Future<void> main() async {
 // 聖地データ
 // ============================================================
 
-class Seichi {
-  final String id;
-  final String card;
-  final String reading;
-  final String name;
-  final double latitude;
-  final double longitude;
-  final int stampRadiusMeters;
-  final String description;
-  final String icon;
-  final bool isActive;
 
-  const Seichi({
-    required this.id,
-    required this.card,
-    required this.reading,
-    required this.name,
-    required this.latitude,
-    required this.longitude,
-    required this.stampRadiusMeters,
-    required this.description,
-    required this.icon,
-    required this.isActive,
-  });
-
-  factory Seichi.fromMap(Map<String, dynamic> map) {
-    return Seichi(
-      id: map['id']?.toString() ?? '',
-      card: map['card']?.toString() ?? '',
-      reading: map['reading']?.toString() ?? '',
-      name: map['name']?.toString() ?? '名称未設定',
-      latitude: _toDouble(map['latitude']),
-      longitude: _toDouble(map['longitude']),
-      stampRadiusMeters: _toInt(
-        map['stamp_radius_meters'],
-        fallback: 200,
-      ),
-      description: map['description']?.toString() ?? '',
-      icon: map['icon']?.toString() ?? '📍',
-      isActive: map['is_active'] == true,
-    );
-  }
-
-  static double _toDouble(dynamic value) {
-    if (value is num) {
-      return value.toDouble();
-    }
-
-    return double.tryParse(
-          value?.toString() ?? '',
-        ) ??
-        0.0;
-  }
-
-  static int _toInt(
-    dynamic value, {
-    required int fallback,
-  }) {
-    if (value is num) {
-      return value.toInt();
-    }
-
-    return int.tryParse(
-          value?.toString() ?? '',
-        ) ??
-        fallback;
-  }
-}
-
-
-class BannerAdWidget extends StatefulWidget {
-  const BannerAdWidget({super.key});
-
-  @override
-  State<BannerAdWidget> createState() => _BannerAdWidgetState();
-}
-
-class _BannerAdWidgetState extends State<BannerAdWidget> {
-  BannerAd? _bannerAd;
-  bool _isLoaded = false;
-
-  // Debug/ProfileではGoogle公式テスト広告、
-  // Releaseでは聖地クエスト本番広告を使用する。
-  static const String _testBannerAdUnitId =
-      'ca-app-pub-3940256099942544/9214589741';
-
-  static const String _productionBannerAdUnitId =
-      'ca-app-pub-1391846841313915/2597290432';
-
-  static String get _bannerAdUnitId =>
-      kReleaseMode
-          ? _productionBannerAdUnitId
-          : _testBannerAdUnitId;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBanner();
-  }
-
-  void _loadBanner() {
-    final banner = BannerAd(
-      adUnitId: _bannerAdUnitId,
-      size: AdSize.banner,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (ad) {
-          if (!mounted) {
-            ad.dispose();
-            return;
-          }
-
-          setState(() {
-            _bannerAd = ad as BannerAd;
-            _isLoaded = true;
-          });
-        },
-        onAdFailedToLoad: (ad, error) {
-          ad.dispose();
-
-          if (!mounted) {
-            return;
-          }
-
-          setState(() {
-            _bannerAd = null;
-            _isLoaded = false;
-          });
-        },
-      ),
-    );
-
-    try {
-      banner.load();
-    } catch (_) {
-      banner.dispose();
-    }
-  }
-
-  @override
-  void dispose() {
-    _bannerAd?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_isLoaded || _bannerAd == null) {
-      return const SizedBox.shrink();
-    }
-
-    return SizedBox(
-      width: _bannerAd!.size.width.toDouble(),
-      height: _bannerAd!.size.height.toDouble(),
-      child: AdWidget(ad: _bannerAd!),
-    );
-  }
-}
 
 // ============================================================
 // アプリ本体
 // ============================================================
 
 class SeichiQuestApp extends StatelessWidget {
-  const SeichiQuestApp({super.key});
+  const SeichiQuestApp({
+    super.key,
+    this.home,
+  });
+
+  final Widget? home;
 
   @override
   Widget build(BuildContext context) {
@@ -219,7 +68,7 @@ class SeichiQuestApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: const Color(0xFFF7F5FB),
       ),
-      home: const SeichiMapPage(),
+      home: home ?? const SeichiMapPage(),
     );
   }
 }
@@ -1426,8 +1275,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color:
-              Colors.white.withOpacity(
-            0.96,
+              Colors.white.withValues(
+            alpha: 0.96,
           ),
           borderRadius:
               BorderRadius.circular(20),
@@ -1883,8 +1732,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                 decoration:
                     BoxDecoration(
                   color: Colors.white
-                      .withOpacity(
-                    0.16,
+                      .withValues(
+                    alpha: 0.16,
                   ),
                   borderRadius:
                       BorderRadius.circular(
@@ -1923,7 +1772,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                     Text(
                       total == 44
                           ? '上毛かるた 44札'
-                          : '上毛かるた ${total}札',
+                          : '上毛かるた $total札',
                       style:
                           TextStyle(
                         color:
@@ -1944,8 +1793,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                 decoration:
                     BoxDecoration(
                   color: Colors.white
-                      .withOpacity(
-                    0.16,
+                      .withValues(
+                    alpha: 0.16,
                   ),
                   borderRadius:
                       BorderRadius.circular(
@@ -2039,8 +1888,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
               minHeight: 9,
               backgroundColor:
                   Colors.white
-                      .withOpacity(
-                0.20,
+                      .withValues(
+                alpha: 0.20,
               ),
               valueColor:
                   const AlwaysStoppedAnimation<
@@ -2160,8 +2009,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
               color: selected
                   ? Colors.deepPurple
                   : Colors.black
-                      .withOpacity(
-                    0.06,
+                      .withValues(
+                    alpha: 0.06,
                   ),
             ),
           ),
@@ -2226,8 +2075,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                   BoxDecoration(
                 color: Colors
                     .deepPurple
-                    .withOpacity(
-                  0.08,
+                    .withValues(
+                  alpha: 0.08,
                 ),
                 shape:
                     BoxShape.circle,
@@ -2321,12 +2170,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             border: Border.all(
               color: collected
                   ? Colors.green
-                      .withOpacity(
-                    0.35,
+                      .withValues(
+                    alpha: 0.35,
                   )
                   : Colors.grey
-                      .withOpacity(
-                    0.12,
+                      .withValues(
+                    alpha: 0.12,
                   ),
               width:
                   collected ? 1.4 : 1,
@@ -2335,12 +2184,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
               BoxShadow(
                 color: collected
                     ? Colors.green
-                        .withOpacity(
-                      0.08,
+                        .withValues(
+                      alpha: 0.08,
                     )
                     : Colors.black
-                        .withOpacity(
-                      0.045,
+                        .withValues(
+                      alpha: 0.045,
                     ),
                 blurRadius: 12,
                 offset:
@@ -2381,8 +2230,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                       decoration:
                           BoxDecoration(
                         color: Colors.green
-                            .withOpacity(
-                          0.10,
+                            .withValues(
+                          alpha: 0.10,
                         ),
                         borderRadius:
                             BorderRadius.circular(
@@ -2503,7 +2352,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.92),
+                  color: Colors.white.withValues(alpha: 0.92),
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: Colors.grey.shade300,
@@ -2537,12 +2386,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           ],
         ),
         border: Border.all(
-          color: Colors.green.withOpacity(0.45),
+          color: Colors.green.withValues(alpha: 0.45),
           width: 3,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.green.withOpacity(0.12),
+            color: Colors.green.withValues(alpha: 0.12),
             blurRadius: 8,
           ),
         ],
@@ -2715,8 +2564,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                     decoration:
                         BoxDecoration(
                       color: Colors.green
-                          .withOpacity(
-                        0.08,
+                          .withValues(
+                        alpha: 0.08,
                       ),
                       borderRadius:
                           BorderRadius
@@ -3113,8 +2962,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             decoration:
                 BoxDecoration(
               color: Colors.white
-                  .withOpacity(
-                0.12,
+                  .withValues(
+                alpha: 0.12,
               ),
               borderRadius:
                   BorderRadius.circular(
@@ -3285,13 +3134,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                 BoxDecoration(
               color: completed
                   ? Colors.green
-                      .withOpacity(
-                    0.12,
+                      .withValues(
+                    alpha: 0.12,
                   )
                   : Colors
                       .deepPurple
-                      .withOpacity(
-                    0.08,
+                      .withValues(
+                    alpha: 0.08,
                   ),
               shape:
                   BoxShape.circle,
@@ -3494,8 +3343,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                   BoxDecoration(
                 color: Colors
                     .deepPurple
-                    .withOpacity(
-                  0.07,
+                    .withValues(
+                  alpha: 0.07,
                 ),
                 borderRadius:
                     BorderRadius.circular(
@@ -3642,8 +3491,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                   BoxShadow(
                     color: Colors
                         .deepPurple
-                        .withOpacity(
-                      0.25,
+                        .withValues(
+                      alpha: 0.25,
                     ),
                     blurRadius: 18,
                     offset:
@@ -3878,8 +3727,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
               BoxDecoration(
             color: Colors
                 .deepPurple
-                .withOpacity(
-              0.08,
+                .withValues(
+              alpha: 0.08,
             ),
             shape:
                 BoxShape.circle,
@@ -4034,35 +3883,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   }
 
   // ============================================================
-  // 5メニュー切り替え
-  // ============================================================
-
-  void _onTabSelected(
-    int index,
-  ) {
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _selectedTab = index;
-    });
-
-    if (index == 0) {
-      Future.delayed(
-        const Duration(
-          milliseconds: 150,
-        ),
-        () {
-          if (mounted) {
-            _moveCameraToCurrentLocation();
-          }
-        },
-      );
-    }
-  }
-
-  // ============================================================
   // 現在のページ
   // ============================================================
 
@@ -4086,84 +3906,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       default:
         return _buildMapPage();
     }
-  }
-
-  // ============================================================
-  // BottomNavigationBar
-  // ============================================================
-
-  Widget _buildBottomNavigationBar() {
-    return NavigationBar(
-      selectedIndex:
-          _selectedTab,
-      onDestinationSelected:
-          _onTabSelected,
-      height: 72,
-      backgroundColor:
-          Colors.white,
-      elevation: 10,
-      indicatorColor:
-          Colors.deepPurple
-              .withOpacity(
-        0.12,
-      ),
-      destinations:
-          const [
-        NavigationDestination(
-          icon: Icon(
-            Icons.map_outlined,
-          ),
-          selectedIcon:
-              Icon(
-            Icons.map,
-          ),
-          label: 'マップ',
-        ),
-        NavigationDestination(
-          icon: Icon(
-            Icons
-                .workspace_premium_outlined,
-          ),
-          selectedIcon:
-              Icon(
-            Icons
-                .workspace_premium,
-          ),
-          label: 'スタンプ帳',
-        ),
-        NavigationDestination(
-          icon: Icon(
-            Icons.flag_outlined,
-          ),
-          selectedIcon:
-              Icon(
-            Icons.flag,
-          ),
-          label: 'クエスト',
-        ),
-        NavigationDestination(
-          icon: Icon(
-            Icons
-                .leaderboard_outlined,
-          ),
-          selectedIcon:
-              Icon(
-            Icons.leaderboard,
-          ),
-          label: 'ランキング',
-        ),
-        NavigationDestination(
-          icon: Icon(
-            Icons.person_outline,
-          ),
-          selectedIcon:
-              Icon(
-            Icons.person,
-          ),
-          label: 'マイページ',
-        ),
-      ],
-    );
   }
 
   // ============================================================
@@ -4294,8 +4036,8 @@ class StampRingPainter
       ..strokeWidth =
           large ? 2 : 1.4
       ..color =
-          Colors.green.withOpacity(
-        0.35,
+          Colors.green.withValues(
+        alpha: 0.35,
       );
 
     canvas.drawCircle(
@@ -4310,8 +4052,8 @@ class StampRingPainter
       ..strokeWidth =
           large ? 1.2 : 1
       ..color =
-          Colors.green.withOpacity(
-        0.22,
+          Colors.green.withValues(
+        alpha: 0.22,
       );
 
     canvas.drawCircle(
@@ -4388,8 +4130,8 @@ class SonarPainter
         ..strokeWidth = 2
         ..color = Colors
             .deepPurple
-            .withOpacity(
-          opacity,
+            .withValues(
+          alpha: opacity,
         );
 
       canvas.drawCircle(
@@ -4404,8 +4146,8 @@ class SonarPainter
           PaintingStyle.fill
       ..color = Colors
           .deepPurple
-          .withOpacity(
-        0.12 +
+          .withValues(
+        alpha: 0.12 +
             intensity * 0.18,
       );
 

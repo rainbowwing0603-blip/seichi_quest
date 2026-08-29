@@ -18,7 +18,7 @@ class OnlineProgressService {
 
     await _client.from('user_profiles').upsert({
       'id': id,
-      if (displayName != null) 'display_name': displayName,
+      'display_name': ?displayName,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     });
   }
@@ -41,7 +41,7 @@ class OnlineProgressService {
     final id = userId;
     if (id == null) return;
 
-    final ids = seichiIds.where((id) => id.isNotEmpty).toSet();
+    final ids = seichiIds.where((seichiId) => seichiId.isNotEmpty).toSet();
     if (ids.isEmpty) return;
 
     final now = DateTime.now().toUtc().toIso8601String();
