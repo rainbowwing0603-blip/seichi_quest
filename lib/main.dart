@@ -9,6 +9,7 @@ import 'collection_history_service.dart';
 import 'widgets/banner_ad_widget.dart';
 import 'models/seichi.dart';
 import 'painters/sonar_painter.dart';
+import 'painters/stamp_ring_painter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
@@ -4005,75 +4006,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 // スタンプ円形リング
 // ============================================================
 
-class StampRingPainter
-    extends CustomPainter {
-  final bool large;
 
-  const StampRingPainter({
-    this.large = false,
-  });
-
-  @override
-  void paint(
-    Canvas canvas,
-    Size size,
-  ) {
-    final center = Offset(
-      size.width / 2,
-      size.height / 2,
-    );
-
-    final radius =
-        math.min(
-          size.width,
-          size.height,
-        ) /
-            2 -
-        (large ? 12 : 8);
-
-    final paint = Paint()
-      ..style =
-          PaintingStyle.stroke
-      ..strokeWidth =
-          large ? 2 : 1.4
-      ..color =
-          Colors.green.withValues(
-        alpha: 0.35,
-      );
-
-    canvas.drawCircle(
-      center,
-      radius,
-      paint,
-    );
-
-    final innerPaint = Paint()
-      ..style =
-          PaintingStyle.stroke
-      ..strokeWidth =
-          large ? 1.2 : 1
-      ..color =
-          Colors.green.withValues(
-        alpha: 0.22,
-      );
-
-    canvas.drawCircle(
-      center,
-      radius -
-          (large ? 7 : 5),
-      innerPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(
-    covariant StampRingPainter
-        oldDelegate,
-  ) {
-    return oldDelegate.large !=
-        large;
-  }
-}
 
 // ============================================================
 // ソナー描画
