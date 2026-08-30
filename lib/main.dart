@@ -9,6 +9,7 @@ import 'widgets/banner_ad_widget.dart';
 import 'widgets/collection_page.dart';
 import 'widgets/quest_page.dart';
 import 'widgets/ranking_page.dart';
+import 'widgets/stamp_animation.dart';
 import 'widgets/my_page.dart';
 import 'models/seichi.dart';
 import 'painters/sonar_painter.dart';
@@ -1246,110 +1247,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // スタンプ獲得演出
   // ============================================================
 
-  Widget _buildStampAnimation() {
-    if (!_justCollected) {
-      return const SizedBox.shrink();
-    }
-
-    return Positioned.fill(
-      child: IgnorePointer(
-        child: Center(
-          child:
-              TweenAnimationBuilder<double>(
-            tween: Tween(
-              begin: 0.7,
-              end: 1.0,
-            ),
-            duration:
-                const Duration(
-              milliseconds: 500,
-            ),
-            builder: (
-              context,
-              scale,
-              child,
-            ) {
-              return Transform.scale(
-                scale: scale,
-                child: child,
-              );
-            },
-            child: Material(
-              elevation: 16,
-              borderRadius:
-                  BorderRadius.circular(
-                28,
-              ),
-              child: Container(
-                width: 290,
-                padding:
-                    const EdgeInsets.all(
-                  24,
-                ),
-                decoration:
-                    BoxDecoration(
-                  color: Colors.white,
-                  borderRadius:
-                      BorderRadius.circular(
-                    28,
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize:
-                      MainAxisSize.min,
-                  children: [
-                    const Text(
-                      '🏆',
-                      style: TextStyle(
-                        fontSize: 64,
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    const Text(
-                      '聖地到達！',
-                      style:
-                          TextStyle(
-                        fontSize: 27,
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    Text(
-                      _collectedName ?? '',
-                      textAlign:
-                          TextAlign.center,
-                      style:
-                          const TextStyle(
-                        fontSize: 17,
-                        fontWeight:
-                            FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 14,
-                    ),
-                    Text(
-                      '${_getCollectedCount()} / ${_seichiList.length} 聖地獲得',
-                      style:
-                          const TextStyle(
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   // ============================================================
   // コレクションバッジ
   // ============================================================
@@ -1520,7 +1417,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _buildLocationButton(),
         _buildNextButton(),
         _buildErrorCard(),
-        _buildStampAnimation(),
+        StampAnimation(
+          justCollected: _justCollected,
+          collectedName: _collectedName,
+          collectedCount: _getCollectedCount(),
+          total: _seichiList.length,
+        ),
       ],
     );
   }
