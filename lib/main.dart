@@ -9,10 +9,9 @@ import 'widgets/banner_ad_widget.dart';
 import 'widgets/collection_page.dart';
 import 'widgets/quest_page.dart';
 import 'widgets/ranking_page.dart';
-import 'widgets/stamp_animation.dart';
+import 'widgets/map_page.dart';
 import 'widgets/my_page.dart';
 import 'models/seichi.dart';
-import 'painters/sonar_painter.dart';
 import 'services/next_destination_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
@@ -961,287 +960,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ソナー強度
   // ============================================================
 
-  double _sonarIntensity() {
-    final distance = _nextDistance;
-
-    if (distance == null) {
-      return 0.15;
-    }
-
-    final radius =
-        _nextSeichi?.stampRadiusMeters ?? 200;
-
-    if (distance <= radius) {
-      return 1.0;
-    }
-
-    final normalized =
-        1.0 - (distance / 2000.0);
-
-    return normalized.clamp(
-      0.1,
-      1.0,
-    );
-  }
-
   // ============================================================
   // エラー
   // ============================================================
 
-  Widget _buildErrorCard() {
-    if (_errorMessage == null) {
-      return const SizedBox.shrink();
-    }
-
-    return Positioned(
-      left: 16,
-      right: 16,
-      bottom: 95,
-      child: Material(
-        elevation: 8,
-        borderRadius:
-            BorderRadius.circular(18),
-        child: Container(
-          padding:
-              const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius:
-                BorderRadius.circular(18),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.warning_amber_rounded,
-                color: Colors.orange,
-                size: 28,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  _errorMessage!,
-                  style:
-                      const TextStyle(
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    _errorMessage = null;
-                  });
-                },
-                icon:
-                    const Icon(Icons.close),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   // ============================================================
   // 次の目的地カード
   // ============================================================
-
-  Widget _buildNextDestinationCard() {
-    final seichi = _nextSeichi;
-    final distance = _nextDistance;
-
-    if (seichi == null) {
-      return Positioned(
-        top: 14,
-        left: 14,
-        right: 14,
-        child: _buildTopCard(
-          child: Row(
-            children: [
-              const Icon(
-                Icons.emoji_events,
-                size: 30,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  _getCollectedCount() >=
-                          _seichiList.length &&
-                      _seichiList.isNotEmpty
-                      ? 'すべての聖地を制覇しました！'
-                      : '次の聖地を探しています…',
-                  style:
-                      const TextStyle(
-                    fontWeight:
-                        FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final intensity =
-        _sonarIntensity();
-
-    return Positioned(
-      top: 14,
-      left: 14,
-      right: 14,
-      child: _buildTopCard(
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                AnimatedBuilder(
-                  animation:
-                      _sonarController,
-                  builder:
-                      (context, child) {
-                    return SizedBox(
-                      width: 50,
-                      height: 50,
-                      child: CustomPaint(
-                        painter:
-                            SonarPainter(
-                          progress:
-                              _sonarController
-                                  .value,
-                          intensity:
-                              intensity,
-                        ),
-                        child:
-                            Center(
-                          child: Text(
-                            seichi.icon,
-                            style:
-                                const TextStyle(
-                              fontSize: 23,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'NEXT DESTINATION',
-                        style: TextStyle(
-                          fontSize: 10,
-                          letterSpacing:
-                              1.5,
-                          fontWeight:
-                              FontWeight.bold,
-                          color:
-                              Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 3,
-                      ),
-                      Text(
-                        '${seichi.card}  ${seichi.name}',
-                        maxLines: 1,
-                        overflow:
-                            TextOverflow.ellipsis,
-                        style:
-                            const TextStyle(
-                          fontSize: 18,
-                          fontWeight:
-                              FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  tooltip: '目的地へ',
-                  onPressed:
-                      _moveCameraToNextSeichi,
-                  icon: const Icon(
-                    Icons
-                        .navigation_rounded,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    distance == null
-                        ? '距離を計算中…'
-                        : '現在地から ${_formatDistance(distance)}',
-                    style:
-                        const TextStyle(
-                      fontSize: 15,
-                      fontWeight:
-                          FontWeight.w600,
-                    ),
-                  ),
-                ),
-                Text(
-                  '到達 ${seichi.stampRadiusMeters}m',
-                  style:
-                      const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-              child:
-                  LinearProgressIndicator(
-                value: intensity,
-                minHeight: 6,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTopCard({
-    required Widget child,
-  }) {
-    return Material(
-      elevation: 8,
-      borderRadius:
-          BorderRadius.circular(20),
-      child: Container(
-        padding:
-            const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color:
-              Colors.white.withValues(
-            alpha: 0.96,
-          ),
-          borderRadius:
-              BorderRadius.circular(20),
-        ),
-        child: child,
-      ),
-    );
-  }
 
   // ============================================================
   // スタンプ獲得演出
@@ -1251,182 +976,54 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // コレクションバッジ
   // ============================================================
 
-  Widget _buildCollectionBadge() {
-    return Positioned(
-      top: 145,
-      right: 14,
-      child: Material(
-        elevation: 5,
-        borderRadius:
-            BorderRadius.circular(18),
-        child: Container(
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 9,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius:
-                BorderRadius.circular(18),
-          ),
-          child: Row(
-            mainAxisSize:
-                MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.workspace_premium,
-                size: 19,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '${_getCollectedCount()} / ${_seichiList.length}',
-                style:
-                    const TextStyle(
-                  fontWeight:
-                      FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   // ============================================================
   // 現在地ボタン
   // ============================================================
-
-  Widget _buildLocationButton() {
-    return Positioned(
-      right: 14,
-      bottom: 165,
-      child: FloatingActionButton(
-        heroTag: 'currentLocation',
-        elevation: 6,
-        onPressed:
-            _moveCameraToCurrentLocation,
-        child: _isLoadingLocation
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child:
-                    CircularProgressIndicator(
-                  strokeWidth: 2,
-                ),
-              )
-            : const Icon(
-                Icons.my_location,
-              ),
-      ),
-    );
-  }
 
   // ============================================================
   // 次の目的地ボタン
   // ============================================================
 
-  Widget _buildNextButton() {
-    if (_nextSeichi == null) {
-      return const SizedBox.shrink();
-    }
-
-    return Positioned(
-      left: 16,
-      right: 16,
-      bottom: 88,
-      child: FilledButton.icon(
-        onPressed:
-            _moveCameraToNextSeichi,
-        icon: const Icon(
-          Icons.navigation_rounded,
-        ),
-        label: Text(
-          '次の聖地へ  ${_nextSeichi!.card}',
-        ),
-        style:
-            FilledButton.styleFrom(
-          minimumSize:
-              const Size.fromHeight(
-            52,
-          ),
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(
-              18,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   // ============================================================
   // Google Maps
   // ============================================================
-
-  Widget _buildMap() {
-    LatLng initialTarget =
-        _defaultCenter;
-
-    if (_currentPosition != null) {
-      initialTarget = LatLng(
-        _currentPosition!.latitude,
-        _currentPosition!.longitude,
-      );
-    }
-
-    return GoogleMap(
-      initialCameraPosition:
-          CameraPosition(
-        target: initialTarget,
-        zoom: 10.5,
-      ),
-      mapType: MapType.normal,
-      myLocationEnabled:
-          _currentPosition != null,
-      myLocationButtonEnabled: false,
-      compassEnabled: true,
-      zoomControlsEnabled: false,
-      mapToolbarEnabled: false,
-      markers: _buildMarkers(),
-      onMapCreated:
-          (controller) {
-        _mapController = controller;
-
-        if (_currentPosition != null) {
-          _moveCameraToCurrentLocation();
-        }
-      },
-      onTap: (_) {},
-    );
-  }
 
   // ============================================================
   // マップ画面
   // ============================================================
 
   Widget _buildMapPage() {
-    return Stack(
-      children: [
-        _buildMap(),
-        _buildNextDestinationCard(),
-        _buildCollectionBadge(),
-        _buildLocationButton(),
-        _buildNextButton(),
-        _buildErrorCard(),
-        StampAnimation(
-          justCollected: _justCollected,
-          collectedName: _collectedName,
-          collectedCount: _getCollectedCount(),
-          total: _seichiList.length,
-        ),
-      ],
+    return MapPage(
+      mapController: _mapController,
+      currentPosition: _currentPosition,
+      nextSeichi: _nextSeichi,
+      nextDistance: _nextDistance,
+      collectedIds: _collectedIds,
+      isLoadingLocation: _isLoadingLocation,
+      errorMessage: _errorMessage,
+      sonarController: _sonarController,
+      justCollected: _justCollected,
+      collectedName: _collectedName,
+      collectedCount: _getCollectedCount(),
+      total: _seichiList.length,
+      defaultCenter: _defaultCenter,
+      markers: _buildMarkers(),
+      onMoveToCurrentLocation: _moveCameraToCurrentLocation,
+      onMoveToNextSeichi: _moveCameraToNextSeichi,
+      onMapCreated: (controller) {
+        _mapController = controller;
+
+        if (_currentPosition != null) {
+          _moveCameraToCurrentLocation();
+        }
+      },
+      onDismissError: () {
+        setState(() {
+          _errorMessage = null;
+        });
+      },
     );
   }
-
   // ============================================================
   // クエスト画面
   // ============================================================
