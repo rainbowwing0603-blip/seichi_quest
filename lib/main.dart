@@ -11,6 +11,7 @@ import 'widgets/quest_page.dart';
 import 'widgets/ranking_page.dart';
 import 'widgets/map_page.dart';
 import 'widgets/my_page.dart';
+import 'widgets/profile_page.dart';
 import 'models/seichi.dart';
 import 'services/next_destination_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1050,8 +1051,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     return MyPage(
       count: _getCollectedCount(),
       total: _seichiList.length,
-      onShowProfile: () {
-        _showComingSoon('プロフィール機能');
+      onShowProfile: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const ProfilePage(),
+          ),
+        );
       },
       onShowNotifications: () {
         _showComingSoon('通知設定');

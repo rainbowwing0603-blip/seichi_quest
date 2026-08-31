@@ -264,8 +264,11 @@ class MyPage extends StatelessWidget {
           18,
         ),
       ),
-      child: ListTile(
-        contentPadding:
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: ListTile(
+          contentPadding:
             const EdgeInsets.symmetric(
           horizontal: 18,
           vertical: 4,
@@ -308,7 +311,8 @@ class MyPage extends StatelessWidget {
             const Icon(
           Icons.chevron_right,
         ),
-        onTap: onTap,
+          onTap: onTap,
+        ),
       ),
     );
   }
