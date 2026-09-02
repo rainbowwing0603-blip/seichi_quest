@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -87,7 +88,8 @@ class CollectionHistoryService {
           },
           onConflict: 'user_id,seichi_id',
         );
-      } catch (_) {
+      } catch (error) {
+        debugPrint('[HISTORY] sync failed: $error');
         // 1件失敗しても後続を捨てない。次回起動・通信復旧時に再試行する。
         remaining.add(event);
       }

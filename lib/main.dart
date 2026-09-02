@@ -12,8 +12,11 @@ import 'widgets/ranking_page.dart';
 import 'widgets/map_page.dart';
 import 'widgets/my_page.dart';
 import 'widgets/profile_page.dart';
+import 'widgets/notification_settings_page.dart';
+import 'widgets/app_settings_page.dart';
 import 'models/seichi.dart';
 import 'services/next_destination_service.dart';
+import 'services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
@@ -34,6 +37,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await MobileAds.instance.initialize();
+
+  await NotificationService.instance.initialize();
 
   await supabase.Supabase.initialize(
     url: supabaseUrl,
@@ -98,6 +103,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   StreamSubscription<Position>? _positionSubscription;
 
   Position? _currentPosition;
+
+  // スタンプ判定に使用した直前のGPS位置。
+  // GPSの急跳びによる誤獲得を防ぐために使用する。
+  Position? _lastStampCheckPosition;
 
   List<Seichi> _seichiList = [];
 
@@ -191,17 +200,41 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Future<void> _ensureCloudUser() async {
     final client = supabase.Supabase.instance.client;
 
-    if (client.auth.currentUser != null) {
+    final existingUser = client.auth.currentUser;
+
+    if (existingUser != null) {
+      debugPrint(
+        '[AUTH] existing user: ${existingUser.id}, '
+        'anonymous=${existingUser.isAnonymous}',
+      );
       return;
     }
 
+    debugPrint(
+      '[AUTH] no current user. Starting anonymous sign-in...',
+    );
+
     try {
-      await client.auth.signInAnonymously();
-    } catch (_) {
-      // オフライン、または匿名認証未有効時はローカル動作を継続する。
+      final response = await client.auth.signInAnonymously();
+      final user = response.user;
+
+      if (user != null) {
+        debugPrint(
+          '[AUTH] anonymous sign-in success: ${user.id}, '
+          'anonymous=${user.isAnonymous}',
+        );
+      } else {
+        debugPrint('[AUTH] anonymous sign-in returned null user');
+      }
+    } on supabase.AuthException catch (error) {
+      debugPrint(
+        '[AUTH] anonymous sign-in failed: '
+        'code=${error.statusCode}, message=${error.message}',
+      );
+    } catch (error) {
+      debugPrint('[AUTH] anonymous sign-in failed: $error');
     }
   }
-
   Future<void> _loadCloudHistory() async {
     try {
       final history = await _historyService.loadHistory();
@@ -242,6 +275,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       'collected_seichi_ids',
       _collectedIds.toList(),
     );
+  }
+
+  // ============================================================
+  // アプリ設定
+  // ============================================================
+
+
+  bool _isAutoNextDestinationEnabled() {
+    return _preferences?.getBool(
+          'setting_auto_next_destination',
+        ) ??
+        true;
   }
 
   // ============================================================
@@ -316,7 +361,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _isLoading = false;
       });
 
-      _updateNextDestination();
+      // 自動次目的地設定がONの場合のみ更新する。
+      if (_isAutoNextDestinationEnabled()) {
+        _updateNextDestination();
+      }
     } catch (e) {
       if (!mounted) {
         return;
@@ -544,12 +592,64 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _seichiList.isEmpty) {
       return;
     }
+    // GPS位置が短時間で現実的でない距離まで跳んだ場合は、
+    // スタンプ判定を行わない。
+    //
+    // 100m/s = 360km/h。
+    // 誤ったGPS位置によるスタンプ獲得を防ぐための
+    // アプリ側の実装上の閾値。
+    const maxPlausibleSpeedMps = 100.0;
 
+    final previousPosition = _lastStampCheckPosition;
+
+    if (previousPosition != null) {
+      final elapsedSeconds =
+          position.timestamp
+              .difference(previousPosition.timestamp)
+              .inMilliseconds /
+          1000.0;
+
+      if (elapsedSeconds > 0) {
+        final movedDistance =
+            Geolocator.distanceBetween(
+          previousPosition.latitude,
+          previousPosition.longitude,
+          position.latitude,
+          position.longitude,
+        );
+
+        final calculatedSpeed =
+            movedDistance / elapsedSeconds;
+
+        if (calculatedSpeed > maxPlausibleSpeedMps) {
+          return;
+        }
+      }
+    }
+
+    _lastStampCheckPosition = position;
+
+
+    // GPS精度が極端に悪い場合は誤獲得を防ぐため判定しない。
+    // 聖地ごとの到達半径が広い場合は、それに応じて許容する。
+    bool hasSufficientAccuracy(Seichi seichi) {
+      final radius = seichi.stampRadiusMeters.toDouble();
+
+      final requiredAccuracy = [
+        radius * 0.5,
+        30.0,
+      ].reduce((a, b) => a > b ? a : b);
+
+      return position.accuracy <= requiredAccuracy;
+    }
     for (final seichi in _seichiList) {
       if (_collectedIds.contains(seichi.id)) {
         continue;
       }
 
+      if (!hasSufficientAccuracy(seichi)) {
+        continue;
+      }
       final distance =
           Geolocator.distanceBetween(
         position.latitude,
@@ -608,6 +708,19 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _justCollected = true;
         _collectedName = seichi.name;
       });
+
+      // スタンプ獲得通知
+      // 設定がONの場合のみ通知する。
+      // 通知に失敗してもスタンプ獲得自体は成立済み。
+      if (_preferences?.getBool('setting_stamp_notification') ?? true) {
+        try {
+          await NotificationService.instance.showStampCollected(
+            seichiName: seichi.name,
+          );
+        } catch (_) {
+          // 通知失敗時もスタンプ獲得状態は維持する。
+        }
+      }
 
       _updateNextDestination();
 
@@ -1058,33 +1171,27 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           ),
         );
       },
-      onShowNotifications: () {
-        _showComingSoon('通知設定');
-      },
-      onShowSettings: () {
-        _showComingSoon('アプリ設定');
+      onShowNotifications: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const NotificationSettingsPage(),
+          ),
+        );
       },
       onShowAbout: _showAbout,
+      onShowSettings: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const AppSettingsPage(),
+          ),
+        );
+      },
     );
   }
   // ============================================================
   // ページヘッダー
   // ============================================================
 
-  void _showComingSoon(
-    String title,
-  ) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      SnackBar(
-        content: Text(
-          '$title は今後実装予定です。',
-        ),
-        behavior:
-            SnackBarBehavior.floating,
-      ),
-    );
-  }
 
   // ============================================================
   // アプリ情報
