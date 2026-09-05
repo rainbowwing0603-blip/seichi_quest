@@ -29,12 +29,14 @@ class CollectionHistoryService {
   ///
   /// 戻り値は「端末への保存が成功したか」。DB同期の成否には依存しない。
   Future<bool> recordCollection({
+    required String eventId,
     required String seichiId,
     required DateTime collectedAt,
     double? latitude,
     double? longitude,
   }) async {
     final event = <String, dynamic>{
+      'event_id': eventId,
       'seichi_id': seichiId,
       'collected_at': collectedAt.toUtc().toIso8601String(),
       'latitude': latitude,
@@ -46,7 +48,9 @@ class CollectionHistoryService {
 
     // 端末上でも同じ札を二重記録しない。
     final exists = cached.any(
-      (item) => item['seichi_id']?.toString() == seichiId,
+      (item) =>
+          item['event_id']?.toString() == eventId &&
+          item['seichi_id']?.toString() == seichiId,
     );
 
     if (!exists) {
@@ -81,12 +85,13 @@ class CollectionHistoryService {
         await _client.from('collection_history').upsert(
           {
             'user_id': user.id,
+            'event_id': event['event_id'],
             'seichi_id': event['seichi_id'],
             'collected_at': event['collected_at'],
             'latitude': event['latitude'],
             'longitude': event['longitude'],
           },
-          onConflict: 'user_id,seichi_id',
+          onConflict: 'user_id,event_id,seichi_id',
         );
       } catch (error) {
         debugPrint('[HISTORY] sync failed: $error');
@@ -103,7 +108,9 @@ class CollectionHistoryService {
     final queue = _readJsonList(prefs, _queueKey);
 
     final alreadyQueued = queue.any(
-      (item) => item['seichi_id']?.toString() == event['seichi_id']?.toString(),
+      (item) =>
+          item['event_id']?.toString() == event['event_id']?.toString() &&
+          item['seichi_id']?.toString() == event['seichi_id']?.toString(),
     );
 
     if (!alreadyQueued) {
@@ -114,9 +121,14 @@ class CollectionHistoryService {
 
   /// DBと端末キャッシュを合わせた履歴を取得する。
   /// DBが取得できない場合でも、端末キャッシュを返す。
-  Future<List<Map<String, dynamic>>> loadHistory() async {
+  Future<List<Map<String, dynamic>>> loadHistory({
+    required String eventId,
+  }) async {
     final prefs = await _prefs;
-    final local = _readJsonList(prefs, _historyKey);
+    final allLocal = _readJsonList(prefs, _historyKey);
+    final local = allLocal
+        .where((item) => item['event_id']?.toString() == eventId)
+        .toList();
 
     final user = _client.auth.currentUser;
     if (user == null) {
@@ -126,27 +138,34 @@ class CollectionHistoryService {
     try {
       final data = await _client
           .from('collection_history')
-          .select('seichi_id, collected_at, latitude, longitude')
+          .select('event_id, seichi_id, collected_at, latitude, longitude')
           .eq('user_id', user.id)
+          .eq('event_id', eventId)
           .order('collected_at', ascending: false);
 
       final remote = List<Map<String, dynamic>>.from(data);
       final merged = <String, Map<String, dynamic>>{};
 
       for (final item in local) {
+        final eventIdValue = item['event_id']?.toString();
         final id = item['seichi_id']?.toString();
-        if (id != null && id.isNotEmpty) {
-          merged[id] = item;
+        if (eventIdValue != null &&
+            eventIdValue.isNotEmpty &&
+            id != null &&
+            id.isNotEmpty) {
+          merged['$eventIdValue:$id'] = item;
         }
       }
-
       for (final item in remote) {
+        final eventIdValue = item['event_id']?.toString();
         final id = item['seichi_id']?.toString();
-        if (id != null && id.isNotEmpty) {
-          merged[id] = item;
+        if (eventIdValue != null &&
+            eventIdValue.isNotEmpty &&
+            id != null &&
+            id.isNotEmpty) {
+          merged['$eventIdValue:$id'] = item;
         }
       }
-
       final result = merged.values.toList()
         ..sort((a, b) {
           final aDate = DateTime.tryParse(a['collected_at']?.toString() ?? '');
@@ -157,11 +176,102 @@ class CollectionHistoryService {
           return bDate.compareTo(aDate);
         });
 
-      await prefs.setString(_historyKey, jsonEncode(result));
+      final updatedAllLocal = <String, Map<String, dynamic>>{};
+
+      for (final item in allLocal) {
+        final eventIdValue = item['event_id']?.toString();
+        final id = item['seichi_id']?.toString();
+
+        if (eventIdValue != null &&
+            eventIdValue.isNotEmpty &&
+            id != null &&
+            id.isNotEmpty) {
+          updatedAllLocal['$eventIdValue:$id'] = item;
+        }
+      }
+
+      for (final item in result) {
+        final eventIdValue = item['event_id']?.toString();
+        final id = item['seichi_id']?.toString();
+
+        if (eventIdValue != null &&
+            eventIdValue.isNotEmpty &&
+            id != null &&
+            id.isNotEmpty) {
+          updatedAllLocal['$eventIdValue:$id'] = item;
+        }
+      }
+
+      final updatedCache = updatedAllLocal.values.toList()
+        ..sort((a, b) {
+          final aDate = DateTime.tryParse(
+            a['collected_at']?.toString() ?? '',
+          );
+          final bDate = DateTime.tryParse(
+            b['collected_at']?.toString() ?? '',
+          );
+
+          if (aDate == null && bDate == null) return 0;
+          if (aDate == null) return 1;
+          if (bDate == null) return -1;
+
+          return bDate.compareTo(aDate);
+        });
+
+      await prefs.setString(
+        _historyKey,
+        jsonEncode(updatedCache),
+      );
       return result;
     } catch (_) {
       return local;
     }
+  }
+
+  /// 指定イベントの獲得履歴をDBと端末からリセットする。
+  ///
+  /// DB側はSupabase RPCで現在のユーザー自身の履歴だけを削除し、
+  /// 端末側では指定イベントのキャッシュと保留キューだけを削除する。
+  Future<void> resetEventCollectionHistory({
+    required String eventId,
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw Exception('認証されたユーザーが必要です。');
+    }
+
+    await _client.rpc(
+      'reset_event_collection_history',
+      params: {
+        'p_event_id': eventId,
+      },
+    );
+
+    final prefs = await _prefs;
+
+    final allLocal = _readJsonList(prefs, _historyKey);
+    final remainingLocal = allLocal
+        .where(
+          (item) =>
+              item['event_id']?.toString() != eventId,
+        )
+        .toList();
+    await prefs.setString(
+      _historyKey,
+      jsonEncode(remainingLocal),
+    );
+
+    final queue = _readJsonList(prefs, _queueKey);
+    final remainingQueue = queue
+        .where(
+          (item) =>
+              item['event_id']?.toString() != eventId,
+        )
+        .toList();
+    await prefs.setString(
+      _queueKey,
+      jsonEncode(remainingQueue),
+    );
   }
 
   List<Map<String, dynamic>> _readJsonList(

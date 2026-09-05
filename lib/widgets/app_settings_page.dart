@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppSettingsPage extends StatefulWidget {
-  const AppSettingsPage({super.key});
+  const AppSettingsPage({
+    super.key,
+    required this.onResetEventCollectionHistory,
+  });
+
+  final Future<void> Function() onResetEventCollectionHistory;
 
   @override
   State<AppSettingsPage> createState() => _AppSettingsPageState();
@@ -93,6 +98,9 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
                   onChanged: _setAutoNextDestination,
                 ),
                 const SizedBox(height: 24),
+                _buildSectionTitle('データ'),
+                _buildResetHistoryTile(),
+                const SizedBox(height: 24),
                 _buildSectionTitle('情報'),
                 _buildInfoTile(
                   icon: Icons.info_outline,
@@ -102,6 +110,101 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
               ],
             ),
     );
+  }
+
+  Widget _buildResetHistoryTile() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 6,
+        ),
+        leading: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: Colors.red.withValues(alpha: 0.08),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.delete_outline,
+            color: Colors.red,
+          ),
+        ),
+        title: const Text(
+          '獲得履歴をリセット',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: const Text(
+          '現在のイベントで獲得した聖地をすべて未獲得に戻します',
+          style: TextStyle(
+            fontSize: 12,
+          ),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: _confirmResetEventCollectionHistory,
+      ),
+    );
+  }
+
+  Future<void> _confirmResetEventCollectionHistory() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('獲得履歴をリセットしますか？'),
+          content: const Text(
+            '現在のイベントで獲得した聖地がすべて未獲得になります。\n'
+            'この操作は元に戻せません。',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('キャンセル'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('リセット'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    try {
+      await widget.onResetEventCollectionHistory();
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('獲得履歴をリセットしました。'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('リセットに失敗しました: $error'),
+        ),
+      );
+    }
   }
 
   Widget _buildSectionTitle(String title) {

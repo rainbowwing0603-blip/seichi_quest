@@ -49,3 +49,4 @@ app.*.map.json
 
 node_modules/
 supabase/remote_public_schema.sql
+*.before-*

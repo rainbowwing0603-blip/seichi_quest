@@ -15,6 +15,8 @@ import 'widgets/profile_page.dart';
 import 'widgets/notification_settings_page.dart';
 import 'widgets/app_settings_page.dart';
 import 'models/seichi.dart';
+import 'models/achievement.dart';
+import 'services/achievement_service.dart';
 import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -98,6 +100,9 @@ class SeichiMapPage extends StatefulWidget {
 
 class _SeichiMapPageState extends State<SeichiMapPage>
     with SingleTickerProviderStateMixin {
+  static const AchievementService _achievementService =
+      AchievementService();
+
   GoogleMapController? _mapController;
 
   StreamSubscription<Position>? _positionSubscription;
@@ -109,13 +114,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Position? _lastStampCheckPosition;
 
   List<Seichi> _seichiList = [];
-
   final Set<String> _collectedIds = {};
 
   SharedPreferences? _preferences;
 
   final CollectionHistoryService _historyService =
       CollectionHistoryService();
+  // 現在表示・獲得対象としているイベント。
+  String? _currentEventId;
+  String? _currentEventName;
+  List<Map<String, dynamic>> _events = [];
+  List<Achievement> _eventAchievements = [];
 
   bool _isLoading = true;
   bool _isLoadingLocation = false;
@@ -188,7 +197,105 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _initialize();
   }
 
-  Future<void> _initialize() async {
+  Future<void> _loadCurrentEvent() async {
+    try {
+      final data = await supabase.Supabase.instance.client
+          .from('events')
+          .select('id, name, description, slug')
+          .eq('is_active', true)
+          .order('created_at');
+
+      final events = List<Map<String, dynamic>>.from(data);
+
+      _events = events;
+
+      Map<String, dynamic>? currentEvent;
+
+      for (final event in events) {
+        if (event['slug']?.toString() == 'jomo-karuta-gunma') {
+          currentEvent = event;
+          break;
+        }
+      }
+
+      if (currentEvent == null) {
+        throw Exception('現在のイベントが見つかりません。');
+      }
+
+      _currentEventId = currentEvent['id']?.toString();
+      _currentEventName = currentEvent['name']?.toString();
+
+      if (_currentEventId == null || _currentEventId!.isEmpty) {
+        throw Exception('現在のイベントIDが取得できません。');
+      }
+    } catch (e) {
+      debugPrint('現在のイベント取得エラー: $e');
+      rethrow;
+    }
+  }
+Future<void> _loadEventAchievements() async {
+    if (_currentEventId == null ||
+        _currentEventId!.isEmpty) {
+      throw Exception(
+        'イベントIDが未取得のため、チャレンジを読み込めません。',
+      );
+    }
+
+    final data = await supabase.Supabase.instance.client
+        .from('event_achievements')
+        .select(
+          'sort_order, achievements('
+          'id, title, description, icon, required_count'
+          ')',
+        )
+        .eq('event_id', _currentEventId!)
+        .order('sort_order');
+
+    final rows =
+        List<Map<String, dynamic>>.from(data);
+
+    final achievements = <Achievement>[];
+
+    for (final row in rows) {
+      final raw = row['achievements'];
+
+      if (raw is! Map<String, dynamic>) {
+        continue;
+      }
+
+      final id = raw['id']?.toString() ?? '';
+
+      if (id.isEmpty) {
+        continue;
+      }
+
+      final requiredCount =
+          raw['required_count'] is int
+              ? raw['required_count'] as int
+              : int.tryParse(
+                    raw['required_count']?.toString() ?? '',
+                  ) ??
+                  0;
+
+      achievements.add(
+        Achievement(
+          id: id,
+          title: raw['title']?.toString() ?? '',
+          description:
+              raw['description']?.toString() ?? '',
+          icon: raw['icon']?.toString() ?? '',
+          requiredCount: requiredCount,
+        ),
+      );
+    }
+
+    _eventAchievements = achievements;
+  }
+
+Future<void> _initialize() async {
+    await _ensureCloudUser();
+    await _loadCurrentEvent();
+    await _loadEventAchievements();
     await _loadSavedStamps();
     await _ensureCloudUser();
     await _historyService.syncPending();
@@ -235,9 +342,34 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       debugPrint('[AUTH] anonymous sign-in failed: $error');
     }
   }
+  Future<void> _resetCurrentEventCollectionHistory() async {
+    final eventId = _currentEventId;
+
+    if (eventId == null || eventId.isEmpty) {
+      throw Exception('現在のイベントIDが取得できません。');
+    }
+
+    await _historyService.resetEventCollectionHistory(
+      eventId: eventId,
+    );
+
+    _collectedIds.clear();
+    _manualNextSeichiId = null;
+
+    await _saveStamps();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {});
+  }
+
   Future<void> _loadCloudHistory() async {
     try {
-      final history = await _historyService.loadHistory();
+      final history = await _historyService.loadHistory(
+        eventId: _currentEventId!,
+      );
       for (final item in history) {
         final id = item['seichi_id']?.toString();
         if (id != null && id.isNotEmpty) {
@@ -259,20 +391,48 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _preferences =
         await SharedPreferences.getInstance();
 
-    final savedIds =
-        _preferences?.getStringList(
-              'collected_seichi_ids',
-            ) ??
-            [];
+    if (_currentEventId == null || _currentEventId!.isEmpty) {
+      throw Exception('イベントIDが未取得のため、獲得スタンプを読み込めません。');
+    }
+
+    final eventKey =
+        'collected_seichi_ids_${_currentEventId!}';
+
+    var savedIds =
+        _preferences?.getStringList(eventKey);
+
+    // 旧形式の保存データがある場合は、
+    // 現在のイベント専用キーへ一度だけ移行する。
+    if (savedIds == null) {
+      final legacyIds =
+          _preferences?.getStringList(
+                'collected_seichi_ids',
+              );
+
+      if (legacyIds != null) {
+        savedIds = legacyIds;
+
+        await _preferences?.setStringList(
+          eventKey,
+          legacyIds,
+        );
+      }
+    }
 
     _collectedIds
       ..clear()
-      ..addAll(savedIds);
+      ..addAll(savedIds ?? []);
   }
+Future<void> _saveStamps() async {
+    if (_currentEventId == null || _currentEventId!.isEmpty) {
+      throw Exception('イベントIDが未取得のため、獲得スタンプを保存できません。');
+    }
 
-  Future<void> _saveStamps() async {
+    final eventKey =
+        'collected_seichi_ids_${_currentEventId!}';
+
     await _preferences?.setStringList(
-      'collected_seichi_ids',
+      eventKey,
       _collectedIds.toList(),
     );
   }
@@ -280,7 +440,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
   // アプリ設定
   // ============================================================
-
 
   bool _isAutoNextDestinationEnabled() {
     return _preferences?.getBool(
@@ -311,7 +470,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // Supabaseから聖地取得
   // ============================================================
 
-  Future<void> _loadSeichi() async {
+Future<void> _loadSeichi() async {
     try {
       if (mounted) {
         setState(() {
@@ -326,7 +485,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             'id, card, reading, name, latitude, longitude, '
             'stamp_radius_meters, description, icon, is_active',
           )
-          .eq('is_active', true);
+          .eq('is_active', true)
+          .eq('event_id', _currentEventId!);
 
       final list = List<Map<String, dynamic>>.from(data)
           .map(Seichi.fromMap)
@@ -472,7 +632,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       _startLocationStream();
 
-      await _checkStampDistance();
     } catch (e) {
       if (!mounted) {
         return;
@@ -628,6 +787,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     _lastStampCheckPosition = position;
+    debugPrint(
+      '[STAMP_GPS] '
+      'lat=${position.latitude}, '
+      'lon=${position.longitude}, '
+      'accuracy=${position.accuracy}m, '
+      'timestamp=${position.timestamp}, '
+      'seichiCount=${_seichiList.length}',
+    );
 
 
     // GPS精度が極端に悪い場合は誤獲得を防ぐため判定しない。
@@ -642,6 +809,39 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       return position.accuracy <= requiredAccuracy;
     }
+    Seichi? nearestSeichi;
+    double nearestDistance = double.infinity;
+
+    for (final seichi in _seichiList) {
+      if (_collectedIds.contains(seichi.id)) {
+        continue;
+      }
+
+      final distance =
+          Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        seichi.latitude,
+        seichi.longitude,
+      );
+
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestSeichi = seichi;
+      }
+    }
+
+    if (nearestSeichi != null) {
+      debugPrint(
+        '[STAMP_DISTANCE] '
+        'name=${nearestSeichi.name}, '
+        'card=${nearestSeichi.card}, '
+        'distance=${nearestDistance.toStringAsFixed(1)}m, '
+        'radius=${nearestSeichi.stampRadiusMeters}m, '
+        'accuracy=${position.accuracy}m',
+      );
+    }
+
     for (final seichi in _seichiList) {
       if (_collectedIds.contains(seichi.id)) {
         continue;
@@ -678,22 +878,47 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
+    debugPrint('[STAMP_COLLECT] name=${seichi.name}, card=${seichi.card}, id=${seichi.id}');
     _isCollecting = true;
 
     try {
+      final previousCollectedCount = _getCollectedCount();
+
       _collectedIds.add(seichi.id);
+
+      final newCollectedCount = _getCollectedCount();
 
       if (_manualNextSeichiId == seichi.id) {
         _manualNextSeichiId = null;
       }
 
       await _saveStamps();
+      final previousAchievements =
+          _achievementService.getUnlockedAchievements(
+        _eventAchievements,
+        previousCollectedCount,
+      );
+
+      final newAchievements =
+          _achievementService.getUnlockedAchievements(
+        _eventAchievements,
+        newCollectedCount,
+      );
+
+      final newlyUnlockedAchievements = newAchievements
+          .where(
+            (achievement) => !previousAchievements.any(
+              (previous) => previous.id == achievement.id,
+            ),
+          )
+          .toList(growable: false);
 
       // スタンプ獲得自体はローカル保存を正として即時成立させる。
       // DB同期はオンラインならその場で行い、失敗時は端末キューに残す。
       final position = _currentPosition;
       await _ensureCloudUser();
       await _historyService.recordCollection(
+        eventId: _currentEventId!,
         seichiId: seichi.id,
         collectedAt: DateTime.now(),
         latitude: position?.latitude,
@@ -723,6 +948,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       }
 
       _updateNextDestination();
+      for (final achievement in newlyUnlockedAchievements) {
+        await _showAchievementUnlockDialog(achievement);
+      }
 
       Future.delayed(
         const Duration(milliseconds: 2800),
@@ -746,7 +974,65 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // カメラを現在地へ
   // ============================================================
 
-  Future<void> _moveCameraToCurrentLocation() async {
+  Future<void> _showAchievementUnlockDialog(
+  Achievement achievement,
+) async {
+  if (!mounted) {
+    return;
+  }
+
+  await showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text(
+          '🎉 実績解除！',
+          textAlign: TextAlign.center,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              achievement.icon,
+              style: const TextStyle(
+                fontSize: 56,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              achievement.title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              achievement.description,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          Center(
+            child: TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+Future<void> _moveCameraToCurrentLocation() async {
     final position = _currentPosition;
 
     if (position == null ||
@@ -1147,7 +1433,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       nextSeichi: _nextSeichi,
       nextDistance: _nextDistance,
       collectedCount: _getCollectedCount(),
+      total: _seichiList.length,
       onShowDestination: _moveCameraToNextSeichi,
+      eventAchievements: _eventAchievements,
     );
   }
   Widget _buildRankingPage() {
@@ -1160,10 +1448,151 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // マイページ
   // ============================================================
 
+  Future<void> _selectEvent(
+    Map<String, dynamic> event,
+  ) async {
+    final eventId = event['id']?.toString();
+    final eventName =
+        event['name']?.toString() ?? '名称未設定';
+
+    if (eventId == null || eventId.isEmpty) {
+      throw Exception('選択したイベントのIDが取得できません。');
+    }
+
+    if (eventId == _currentEventId) {
+      return;
+    }
+
+    try {
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+          _errorMessage = null;
+        });
+      }
+
+      _currentEventId = eventId;
+      _currentEventName = eventName;
+
+      _collectedIds.clear();
+      _eventAchievements.clear();
+      _manualNextSeichiId = null;
+
+      await _loadEventAchievements();
+      await _loadSavedStamps();
+      await _loadCloudHistory();
+      await _loadSeichi();
+
+      _updateNextDestination();
+
+      if (mounted) {
+        setState(() {});
+      }
+
+      debugPrint(
+        '[EVENT] selected: id=, name=',
+      );
+    } catch (e) {
+      debugPrint(
+        '[EVENT] select error: ',
+      );
+
+      if (mounted) {
+        setState(() {
+          _errorMessage =
+              'クエストの切り替えに失敗しました。';
+        });
+      }
+
+      rethrow;
+    }
+  }
+  Future<void> _showEventSelector() async {
+    if (_events.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('選択できるクエストがありません。'),
+        ),
+      );
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(
+              24,
+              8,
+              24,
+              24,
+            ),
+            children: [
+              const Text(
+                'クエストを選択',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ..._events.map(
+                (event) {
+                  final eventId =
+                      event['id']?.toString();
+                  final eventName =
+                      event['name']?.toString() ??
+                          '名称未設定';
+                  final description =
+                      event['description']?.toString() ?? '';
+                  final isCurrent =
+                      eventId == _currentEventId;
+
+                  return ListTile(
+                    contentPadding:
+                        const EdgeInsets.symmetric(
+                      vertical: 4,
+                    ),
+                    leading: Icon(
+                      isCurrent
+                          ? Icons.check_circle
+                          : Icons.explore_outlined,
+                    ),
+                    title: Text(eventName),
+                    subtitle: description.isEmpty
+                        ? null
+                        : Text(description),
+                    trailing: isCurrent
+                        ? const Icon(Icons.check)
+                        : null,
+                    onTap: () async {
+                      Navigator.of(sheetContext).pop();
+
+                      try {
+                        await _selectEvent(event);
+                      } catch (_) {
+                        // _selectEvent() 内でエラー表示済み
+                      }
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
   Widget _buildMyPage() {
     return MyPage(
       count: _getCollectedCount(),
       total: _seichiList.length,
+      currentEventName: _currentEventName,
+      onSelectEvent: _showEventSelector,
       onShowProfile: () async {
         await Navigator.of(context).push(
           MaterialPageRoute(
@@ -1182,7 +1611,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       onShowSettings: () async {
         await Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => const AppSettingsPage(),
+            builder: (_) => AppSettingsPage(
+  onResetEventCollectionHistory: _resetCurrentEventCollectionHistory,
+),
           ),
         );
       },
@@ -1228,6 +1659,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         return _buildMapPage();
 
       case 1:
+        return _buildQuestPage();
+
+      case 2:
         return CollectionPage(
           seichiList: _seichiList,
           collectedIds: _collectedIds,
@@ -1240,9 +1674,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           onMoveToSeichi: _moveCameraToSeichi,
           onSetNextDestination: _setNextDestination,
         );
-
-      case 2:
-        return _buildQuestPage();
 
       case 3:
         return _buildRankingPage();

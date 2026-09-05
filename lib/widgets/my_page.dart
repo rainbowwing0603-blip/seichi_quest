@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 class MyPage extends StatelessWidget {
   final int count;
   final int total;
+  final String? currentEventName;
+  final VoidCallback onSelectEvent;
   final VoidCallback onShowProfile;
   final VoidCallback onShowNotifications;
   final VoidCallback onShowSettings;
@@ -12,6 +14,8 @@ class MyPage extends StatelessWidget {
     super.key,
     required this.count,
     required this.total,
+    required this.currentEventName,
+    required this.onSelectEvent,
     required this.onShowProfile,
     required this.onShowNotifications,
     required this.onShowSettings,
@@ -142,6 +146,16 @@ class MyPage extends StatelessWidget {
             ),
             const SizedBox(
               height: 24,
+            ),
+            _buildSettingsTile(
+              icon:
+                  Icons.explore_outlined,
+              title:
+                  '現在のクエスト',
+              subtitle:
+                  currentEventName ?? 'クエストを選択',
+              onTap:
+                  onSelectEvent,
             ),
             _buildSettingsTile(
               icon:

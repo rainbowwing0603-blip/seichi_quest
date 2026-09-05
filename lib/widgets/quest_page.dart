@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/achievement.dart';
 import '../models/seichi.dart';
+import '../services/achievement_service.dart';
 
 class QuestPage extends StatelessWidget {
   const QuestPage({
@@ -8,16 +10,42 @@ class QuestPage extends StatelessWidget {
     required this.nextSeichi,
     required this.nextDistance,
     required this.collectedCount,
+    required this.total,
     required this.onShowDestination,
+    required this.eventAchievements,
   });
 
   final Seichi? nextSeichi;
   final double? nextDistance;
   final int collectedCount;
+  final int total;
   final VoidCallback onShowDestination;
+  final List<Achievement> eventAchievements;
+
+  static const AchievementService _achievementService =
+      AchievementService();
 
   @override
   Widget build(BuildContext context) {
+    final sortedAchievements =
+        List<Achievement>.from(eventAchievements)
+          ..sort((a, b) {
+            final aCompleted = _achievementService.isUnlocked(
+              a,
+              collectedCount,
+            );
+            final bCompleted = _achievementService.isUnlocked(
+              b,
+              collectedCount,
+            );
+
+            if (aCompleted != bCompleted) {
+              return aCompleted ? 1 : -1;
+            }
+
+            return a.requiredCount.compareTo(b.requiredCount);
+          });
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -30,7 +58,9 @@ class QuestPage extends StatelessWidget {
               icon: Icons.flag,
             ),
             const SizedBox(height: 4),
-            if (nextSeichi != null)
+            if (total == 0)
+              _buildEmptyQuestCard()
+            else if (nextSeichi != null)
               _buildQuestMainCard(nextSeichi!)
             else
               _buildAllClearCard(),
@@ -43,34 +73,13 @@ class QuestPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            _buildMissionTile(
-              icon: Icons.location_on,
-              title: '最初の聖地',
-              subtitle: '1つの聖地を獲得する',
-              progress: collectedCount > 0 ? 1 : 0,
-              total: 1,
-            ),
-            _buildMissionTile(
-              icon: Icons.emoji_events,
-              title: 'コレクター',
-              subtitle: '10個の聖地を獲得する',
-              progress: collectedCount.clamp(0, 10),
-              total: 10,
-            ),
-            _buildMissionTile(
-              icon: Icons.map,
-              title: '群馬探訪',
-              subtitle: '25個の聖地を獲得する',
-              progress: collectedCount.clamp(0, 25),
-              total: 25,
-            ),
-            _buildMissionTile(
-              icon: Icons.workspace_premium,
-              title: '完全制覇',
-              subtitle: '44個すべての聖地を獲得する',
-              progress: collectedCount.clamp(0, 44),
-              total: 44,
-            ),
+            if (sortedAchievements.isEmpty)
+              _buildNoAchievementCard()
+            else
+              ...sortedAchievements.map(
+                (achievement) =>
+                    _buildAchievementTile(achievement),
+              ),
           ],
         ),
       ),
@@ -262,6 +271,37 @@ class QuestPage extends StatelessWidget {
     );
   }
 
+  Widget _buildEmptyQuestCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: const Column(
+        children: [
+          Text(
+            '🗺️',
+            style: TextStyle(fontSize: 64),
+          ),
+          SizedBox(height: 10),
+          Text(
+            '準備中',
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'このクエストには聖地が登録されていません。',
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
   Widget _buildAllClearCard() {
     return Container(
       width: double.infinity,
@@ -294,18 +334,57 @@ class QuestPage extends StatelessWidget {
     );
   }
 
-  Widget _buildMissionTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required int progress,
-    required int total,
-  }) {
-    final ratio = total == 0
-        ? 0.0
-        : (progress / total).clamp(0.0, 1.0).toDouble();
+  Widget _buildNoAchievementCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.grey.shade200,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.emoji_events_outlined,
+            size: 42,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'このクエストにはチャレンジがありません',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'クエストを楽しみながら、次のチャレンジを探してみよう！',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    final completed = progress >= total;
+  Widget _buildAchievementTile(Achievement achievement) {
+    final progress = collectedCount.clamp(0, achievement.requiredCount);
+    final completed = _achievementService.isUnlocked(
+      achievement,
+      collectedCount,
+    );
+    final ratio = _achievementService.getProgress(
+      achievement,
+      collectedCount,
+    );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -325,12 +404,15 @@ class QuestPage extends StatelessWidget {
                   : Colors.deepPurple.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              completed ? Icons.check : icon,
-              color: completed
-                  ? Colors.green
-                  : Colors.deepPurple,
-            ),
+            child: completed
+                ? const Icon(
+                    Icons.check,
+                    color: Colors.green,
+                  )
+                : Text(
+                    achievement.icon,
+                    style: const TextStyle(fontSize: 25),
+                  ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -338,7 +420,7 @@ class QuestPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  achievement.title,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -346,7 +428,7 @@ class QuestPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  subtitle,
+                  achievement.description,
                   style: const TextStyle(
                     color: Colors.grey,
                     fontSize: 12,
@@ -365,7 +447,7 @@ class QuestPage extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            '$progress/$total',
+            '$progress/${achievement.requiredCount}',
             style: const TextStyle(
               fontWeight: FontWeight.bold,
             ),
@@ -374,7 +456,6 @@ class QuestPage extends StatelessWidget {
       ),
     );
   }
-
   String _formatDistance(double distance) {
     if (distance < 1000) {
       return '${distance.round()}m';
