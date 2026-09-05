@@ -16,6 +16,7 @@ import 'widgets/notification_settings_page.dart';
 import 'widgets/app_settings_page.dart';
 import 'models/seichi.dart';
 import 'models/achievement.dart';
+import 'models/event.dart';
 import 'services/achievement_service.dart';
 import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
@@ -123,7 +124,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // 現在表示・獲得対象としているイベント。
   String? _currentEventId;
   String? _currentEventName;
-  List<Map<String, dynamic>> _events = [];
+  List<Event> _events = [];
   List<Achievement> _eventAchievements = [];
 
   bool _isLoading = true;
@@ -201,18 +202,23 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     try {
       final data = await supabase.Supabase.instance.client
           .from('events')
-          .select('id, name, description, slug')
+          .select(
+            'id, slug, name, description, is_active, '
+            'icon_url, cover_image_url, start_at, end_at, updated_at',
+          )
           .eq('is_active', true)
           .order('created_at');
 
-      final events = List<Map<String, dynamic>>.from(data);
+      final events = List<Map<String, dynamic>>.from(data)
+          .map(Event.fromMap)
+          .toList(growable: false);
 
       _events = events;
 
-      Map<String, dynamic>? currentEvent;
+      Event? currentEvent;
 
       for (final event in events) {
-        if (event['slug']?.toString() == 'jomo-karuta-gunma') {
+        if (event.slug == 'jomo-karuta-gunma') {
           currentEvent = event;
           break;
         }
@@ -222,8 +228,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         throw Exception('現在のイベントが見つかりません。');
       }
 
-      _currentEventId = currentEvent['id']?.toString();
-      _currentEventName = currentEvent['name']?.toString();
+      _currentEventId = currentEvent.id;
+      _currentEventName = currentEvent.name;
 
       if (_currentEventId == null || _currentEventId!.isEmpty) {
         throw Exception('現在のイベントIDが取得できません。');
@@ -297,7 +303,6 @@ Future<void> _initialize() async {
     await _loadCurrentEvent();
     await _loadEventAchievements();
     await _loadSavedStamps();
-    await _ensureCloudUser();
     await _historyService.syncPending();
     await _loadCloudHistory();
     await _loadSeichi();
@@ -357,6 +362,9 @@ Future<void> _initialize() async {
     _manualNextSeichiId = null;
 
     await _saveStamps();
+
+    _updateNextDestination();
+    await _checkStampDistance();
 
     if (!mounted) {
       return;
@@ -1127,6 +1135,10 @@ Future<void> _moveCameraToCurrentLocation() async {
       final collected =
           _collectedIds.contains(seichi.id);
 
+      debugPrint(
+        '[MARKER] ${seichi.name} id=${seichi.id} collected=$collected',
+      );
+
       markers.add(
         Marker(
           markerId: MarkerId(seichi.id),
@@ -1181,6 +1193,8 @@ Future<void> _moveCameraToCurrentLocation() async {
 
     final collected =
         _collectedIds.contains(seichi.id);
+
+
 
     showModalBottomSheet<void>(
       context: context,
@@ -1449,13 +1463,12 @@ Future<void> _moveCameraToCurrentLocation() async {
   // ============================================================
 
   Future<void> _selectEvent(
-    Map<String, dynamic> event,
+    Event event,
   ) async {
-    final eventId = event['id']?.toString();
-    final eventName =
-        event['name']?.toString() ?? '名称未設定';
+    final eventId = event.id;
+    final eventName = event.name;
 
-    if (eventId == null || eventId.isEmpty) {
+    if (eventId.isEmpty) {
       throw Exception('選択したイベントのIDが取得できません。');
     }
 
@@ -1543,12 +1556,11 @@ Future<void> _moveCameraToCurrentLocation() async {
               ..._events.map(
                 (event) {
                   final eventId =
-                      event['id']?.toString();
+                      event.id;
                   final eventName =
-                      event['name']?.toString() ??
-                          '名称未設定';
+                      event.name;
                   final description =
-                      event['description']?.toString() ?? '';
+                      event.description;
                   final isCurrent =
                       eventId == _currentEventId;
 
@@ -1599,6 +1611,9 @@ Future<void> _moveCameraToCurrentLocation() async {
             builder: (_) => const ProfilePage(),
           ),
         );
+
+        _updateNextDestination();
+        await _checkStampDistance();
       },
       onShowNotifications: () async {
         await Navigator.of(context).push(

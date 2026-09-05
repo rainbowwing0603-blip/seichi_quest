@@ -8,7 +8,7 @@ class AchievementService {
     List<Achievement> achievements,
     int collectedCount,
   ) {
-    final count = collectedCount.clamp(0, 44);
+    final count = collectedCount;
 
     return achievements
         .where((achievement) => count >= achievement.requiredCount)
@@ -20,7 +20,7 @@ class AchievementService {
     List<Achievement> achievements,
     int collectedCount,
   ) {
-    final count = collectedCount.clamp(0, 44);
+    final count = collectedCount;
 
     for (final achievement in achievements) {
       if (count < achievement.requiredCount) {

@@ -549,21 +549,6 @@ class CollectionPage extends StatelessWidget {
                     FontWeight.bold,
               ),
             ),
-            const SizedBox(
-              height: 8,
-            ),
-            Text(
-              isCollectedFilter
-                  ? '聖地へ向かってスタンプを集めよう！'
-                  : 'すべての札を制覇しました。',
-              textAlign:
-                  TextAlign.center,
-              style:
-                  const TextStyle(
-                color: Colors.grey,
-                height: 1.5,
-              ),
-            ),
           ],
         ),
       ),
