@@ -61,7 +61,14 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _isLoading = false;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[PROFILE] load failed unexpectedly: $error',
+      );
+      debugPrint(
+        '[PROFILE] load stackTrace: $stackTrace',
+      );
+
       if (!mounted) {
         return;
       }
@@ -117,6 +124,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
       Navigator.of(context).pop(true);
     } on supabase.PostgrestException catch (error) {
+      debugPrint(
+        '[PROFILE] save failed: code=${error.code}, '
+        'message=${error.message}, '
+        'details=${error.details}, '
+        'hint=${error.hint}',
+      );
+
       if (!mounted) {
         return;
       }
@@ -133,7 +147,14 @@ class _ProfilePageState extends State<ProfilePage> {
         _isSaving = false;
         _errorMessage = message;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[PROFILE] save failed unexpectedly: $error',
+      );
+      debugPrint(
+        '[PROFILE] stackTrace: $stackTrace',
+      );
+
       if (!mounted) {
         return;
       }

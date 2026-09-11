@@ -1,5 +1,6 @@
 class Seichi {
   final String id;
+  final String? placeId;
   final String card;
   final String reading;
   final String name;
@@ -12,6 +13,7 @@ class Seichi {
 
   const Seichi({
     required this.id,
+    required this.placeId,
     required this.card,
     required this.reading,
     required this.name,
@@ -26,6 +28,7 @@ class Seichi {
   factory Seichi.fromMap(Map<String, dynamic> map) {
     return Seichi(
       id: map['id']?.toString() ?? '',
+      placeId: map['place_id']?.toString(),
       card: map['card']?.toString() ?? '',
       reading: map['reading']?.toString() ?? '',
       name: map['name']?.toString() ?? '名称未設定',

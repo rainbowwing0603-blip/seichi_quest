@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 class RankingPage extends StatefulWidget {
+  final String eventId;
+  final int? myRank;
   final int myCount;
   final int total;
 
   const RankingPage({
     super.key,
+    required this.eventId,
+    required this.myRank,
     required this.myCount,
     required this.total,
   });
@@ -21,8 +25,7 @@ class _RankingPageState extends State<RankingPage> {
 
   List<_RankingEntry> _ranking = [];
 
-  supabase.SupabaseClient get _client =>
-      supabase.Supabase.instance.client;
+  supabase.SupabaseClient get _client => supabase.Supabase.instance.client;
 
   @override
   void initState() {
@@ -30,20 +33,26 @@ class _RankingPageState extends State<RankingPage> {
     _loadRanking();
   }
 
+  @override
+  void didUpdateWidget(covariant RankingPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.eventId != widget.eventId) {
+      _refreshRanking();
+    }
+  }
+
   Future<void> _loadRanking() async {
     try {
       final data = await _client.rpc(
         'get_public_ranking',
-        params: {
-          'p_limit': 50,
-        },
+        params: {'p_event_id': widget.eventId, 'p_limit': 50},
       );
 
       final rows = (data as List)
           .map(
-            (item) => _RankingEntry.fromMap(
-              Map<String, dynamic>.from(item as Map),
-            ),
+            (item) =>
+                _RankingEntry.fromMap(Map<String, dynamic>.from(item as Map)),
           )
           .toList();
 
@@ -103,10 +112,18 @@ class _RankingPageState extends State<RankingPage> {
                 ),
                 child: Column(
                   children: [
-                    const Text(
-                      'あなたの記録',
+                    const Text('あなたの記録', style: TextStyle(color: Colors.grey)),
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.myRank == null
+                          ? 'ランキング未参加'
+                          : '現在 ${widget.myRank}位',
                       style: TextStyle(
-                        color: Colors.grey,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: widget.myRank == null
+                            ? Colors.grey
+                            : Colors.deepPurple,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -118,22 +135,14 @@ class _RankingPageState extends State<RankingPage> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      '聖地獲得数',
-                      style: TextStyle(
-                        fontSize: 14,
-                      ),
-                    ),
+                    const Text('聖地獲得数', style: TextStyle(fontSize: 14)),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
               const Text(
                 'オンラインランキング',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               _buildRankingContent(),
@@ -153,9 +162,7 @@ class _RankingPageState extends State<RankingPage> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
         ),
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -169,17 +176,12 @@ class _RankingPageState extends State<RankingPage> {
         ),
         child: Column(
           children: [
-            const Icon(
-              Icons.cloud_off,
-              size: 32,
-            ),
+            const Icon(Icons.cloud_off, size: 32),
             const SizedBox(height: 8),
             Text(
               _errorMessage!,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13,
-              ),
+              style: const TextStyle(fontSize: 13),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -202,24 +204,14 @@ class _RankingPageState extends State<RankingPage> {
         ),
         child: const Column(
           children: [
-            Icon(
-              Icons.leaderboard_outlined,
-              size: 40,
-              color: Colors.grey,
-            ),
+            Icon(Icons.leaderboard_outlined, size: 40, color: Colors.grey),
             SizedBox(height: 10),
-            Text(
-              'まだランキング参加者がいません。',
-              textAlign: TextAlign.center,
-            ),
+            Text('まだランキング参加者がいません。', textAlign: TextAlign.center),
             SizedBox(height: 4),
             Text(
-              'プロフィールで表示名を設定すると参加できます。',
+              '表示名を設定し、聖地を1つ以上獲得すると参加できます。',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
@@ -244,17 +236,12 @@ class _RankingPageState extends State<RankingPage> {
           ),
           child: const Row(
             children: [
-              Icon(
-                Icons.info_outline,
-                size: 20,
-              ),
+              Icon(Icons.info_outline, size: 20),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  '表示名を設定したユーザーのみランキングに表示されます。',
-                  style: TextStyle(
-                    fontSize: 13,
-                  ),
+                  '表示名を設定し、聖地を1つ以上獲得したユーザーのみランキングに表示されます。',
+                  style: TextStyle(fontSize: 13),
                 ),
               ),
             ],
@@ -284,14 +271,9 @@ class _RankingPageState extends State<RankingPage> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 14,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: isMe
-            ? Colors.deepPurple.withValues(alpha: 0.10)
-            : Colors.white,
+        color: isMe ? Colors.deepPurple.withValues(alpha: 0.10) : Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: isMe
             ? Border.all(
@@ -302,21 +284,13 @@ class _RankingPageState extends State<RankingPage> {
       ),
       child: Row(
         children: [
-          Text(
-            rankIcon,
-            style: const TextStyle(
-              fontSize: 26,
-            ),
-          ),
+          Text(rankIcon, style: const TextStyle(fontSize: 26)),
           const SizedBox(width: 12),
           SizedBox(
             width: 28,
             child: Text(
               '$rank',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 10),
@@ -327,9 +301,7 @@ class _RankingPageState extends State<RankingPage> {
                   child: Text(
                     name,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
                 if (isMe) ...[
@@ -357,10 +329,7 @@ class _RankingPageState extends State<RankingPage> {
           ),
           Text(
             '$count',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 17,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
           ),
         ],
       ),
@@ -373,12 +342,7 @@ class _RankingPageState extends State<RankingPage> {
     required IconData icon,
   }) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        8,
-        12,
-        8,
-        18,
-      ),
+      padding: const EdgeInsets.fromLTRB(8, 12, 8, 18),
       child: Row(
         children: [
           Container(
@@ -386,18 +350,11 @@ class _RankingPageState extends State<RankingPage> {
             height: 50,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF6A35C8),
-                  Color(0xFF8B5CF6),
-                ],
+                colors: [Color(0xFF6A35C8), Color(0xFF8B5CF6)],
               ),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 27,
-            ),
+            child: Icon(icon, color: Colors.white, size: 27),
           ),
           const SizedBox(width: 14),
           Column(
@@ -412,10 +369,7 @@ class _RankingPageState extends State<RankingPage> {
               ),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                ),
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
             ],
           ),
@@ -438,14 +392,11 @@ class _RankingEntry {
     required this.isMe,
   });
 
-  factory _RankingEntry.fromMap(
-    Map<String, dynamic> map,
-  ) {
+  factory _RankingEntry.fromMap(Map<String, dynamic> map) {
     return _RankingEntry(
       rank: (map['rank'] as num?)?.toInt() ?? 0,
       displayName: map['display_name']?.toString() ?? '',
-      collectedCount:
-          (map['collected_count'] as num?)?.toInt() ?? 0,
+      collectedCount: (map['collected_count'] as num?)?.toInt() ?? 0,
       isMe: map['is_me'] == true,
     );
   }

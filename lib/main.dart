@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+
 import 'collection_history_service.dart';
 import 'widgets/banner_ad_widget.dart';
 import 'widgets/collection_page.dart';
@@ -12,6 +13,7 @@ import 'widgets/ranking_page.dart';
 import 'widgets/map_page.dart';
 import 'widgets/my_page.dart';
 import 'widgets/profile_page.dart';
+import 'widgets/account_page.dart';
 import 'widgets/notification_settings_page.dart';
 import 'widgets/app_settings_page.dart';
 import 'models/seichi.dart';
@@ -20,6 +22,7 @@ import 'models/event.dart';
 import 'services/achievement_service.dart';
 import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
@@ -29,8 +32,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 const supabaseUrl = 'https://wxlvhpmolrtcwryaazfb.supabase.co';
 
-const supabasePublishableKey =
-    'sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w';
+const supabasePublishableKey = 'sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w';
 
 // ============================================================
 // アプリ起動
@@ -55,17 +57,12 @@ Future<void> main() async {
 // 聖地データ
 // ============================================================
 
-
-
 // ============================================================
 // アプリ本体
 // ============================================================
 
 class SeichiQuestApp extends StatelessWidget {
-  const SeichiQuestApp({
-    super.key,
-    this.home,
-  });
+  const SeichiQuestApp({super.key, this.home});
 
   final Widget? home;
 
@@ -95,14 +92,12 @@ class SeichiMapPage extends StatefulWidget {
   const SeichiMapPage({super.key});
 
   @override
-  State<SeichiMapPage> createState() =>
-      _SeichiMapPageState();
+  State<SeichiMapPage> createState() => _SeichiMapPageState();
 }
 
 class _SeichiMapPageState extends State<SeichiMapPage>
     with SingleTickerProviderStateMixin {
-  static const AchievementService _achievementService =
-      AchievementService();
+  static const AchievementService _achievementService = AchievementService();
 
   GoogleMapController? _mapController;
 
@@ -116,14 +111,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   List<Seichi> _seichiList = [];
   final Set<String> _collectedIds = {};
+  final Map<String, Set<String>> _collectionEventNamesByCard = {};
 
   SharedPreferences? _preferences;
 
-  final CollectionHistoryService _historyService =
-      CollectionHistoryService();
+  final CollectionHistoryService _historyService = CollectionHistoryService();
+
   // 現在表示・獲得対象としているイベント。
   String? _currentEventId;
   String? _currentEventName;
+  String? _displayName;
+  int? _myEventRank;
   List<Event> _events = [];
   List<Achievement> _eventAchievements = [];
 
@@ -159,20 +157,56 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // 初期位置
   // ------------------------------------------------------------
 
-  static const LatLng _defaultCenter = LatLng(
-    36.3910,
-    139.0600,
-  );
+  static const LatLng _defaultCenter = LatLng(36.3910, 139.0600);
 
   // 上毛かるたの札順。
   // Supabase側の登録順に依存せず、スタンプ帳を必ず札順で表示する。
   static const List<String> _jomoKarutaOrder = [
-    'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く',
-    'け', 'こ', 'さ', 'し', 'す', 'せ', 'そ', 'た',
-    'ち', 'つ', 'て', 'と', 'な', 'に', 'ぬ', 'ね',
-    'の', 'は', 'ひ', 'ふ', 'へ', 'ほ', 'ま', 'み',
-    'む', 'め', 'も', 'や', 'ゆ', 'よ', 'ら', 'り',
-    'る', 'れ', 'ろ', 'わ', 'を',
+    'あ',
+    'い',
+    'う',
+    'え',
+    'お',
+    'か',
+    'き',
+    'く',
+    'け',
+    'こ',
+    'さ',
+    'し',
+    'す',
+    'せ',
+    'そ',
+    'た',
+    'ち',
+    'つ',
+    'て',
+    'と',
+    'な',
+    'に',
+    'ぬ',
+    'ね',
+    'の',
+    'は',
+    'ひ',
+    'ふ',
+    'へ',
+    'ほ',
+    'ま',
+    'み',
+    'む',
+    'め',
+    'も',
+    'や',
+    'ゆ',
+    'よ',
+    'ら',
+    'り',
+    'る',
+    'れ',
+    'ろ',
+    'わ',
+    'を',
   ];
 
   int _cardOrderIndex(String card) {
@@ -190,9 +224,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     _sonarController = AnimationController(
       vsync: this,
-      duration: const Duration(
-        milliseconds: 1800,
-      ),
+      duration: const Duration(milliseconds: 1800),
     )..repeat();
 
     _initialize();
@@ -239,12 +271,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       rethrow;
     }
   }
-Future<void> _loadEventAchievements() async {
-    if (_currentEventId == null ||
-        _currentEventId!.isEmpty) {
-      throw Exception(
-        'イベントIDが未取得のため、チャレンジを読み込めません。',
-      );
+
+  Future<void> _loadEventAchievements() async {
+    if (_currentEventId == null || _currentEventId!.isEmpty) {
+      throw Exception('イベントIDが未取得のため、チャレンジを読み込めません。');
     }
 
     final data = await supabase.Supabase.instance.client
@@ -257,8 +287,7 @@ Future<void> _loadEventAchievements() async {
         .eq('event_id', _currentEventId!)
         .order('sort_order');
 
-    final rows =
-        List<Map<String, dynamic>>.from(data);
+    final rows = List<Map<String, dynamic>>.from(data);
 
     final achievements = <Achievement>[];
 
@@ -275,20 +304,15 @@ Future<void> _loadEventAchievements() async {
         continue;
       }
 
-      final requiredCount =
-          raw['required_count'] is int
-              ? raw['required_count'] as int
-              : int.tryParse(
-                    raw['required_count']?.toString() ?? '',
-                  ) ??
-                  0;
+      final requiredCount = raw['required_count'] is int
+          ? raw['required_count'] as int
+          : int.tryParse(raw['required_count']?.toString() ?? '') ?? 0;
 
       achievements.add(
         Achievement(
           id: id,
           title: raw['title']?.toString() ?? '',
-          description:
-              raw['description']?.toString() ?? '',
+          description: raw['description']?.toString() ?? '',
           icon: raw['icon']?.toString() ?? '',
           requiredCount: requiredCount,
         ),
@@ -298,15 +322,56 @@ Future<void> _loadEventAchievements() async {
     _eventAchievements = achievements;
   }
 
-Future<void> _initialize() async {
+  Future<void> _initialize() async {
     await _ensureCloudUser();
+    await _loadDisplayName();
     await _loadCurrentEvent();
     await _loadEventAchievements();
     await _loadSavedStamps();
-    await _historyService.syncPending();
-    await _loadCloudHistory();
+
+    final syncedRows = await _historyService.syncPendingPlaceVisits();
+
     await _loadSeichi();
+    await _applyCollectedRows(syncedRows);
+    await _loadCloudHistory();
+    await _loadMyEventRank();
     await _initializeLocation();
+  }
+
+  Future<void> _loadDisplayName() async {
+    final client = supabase.Supabase.instance.client;
+    final user = client.auth.currentUser;
+
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          _displayName = null;
+        });
+      }
+      return;
+    }
+
+    try {
+      final data = await client
+          .from('profiles')
+          .select('display_name')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (!mounted) {
+        return;
+      }
+
+      final displayName = data?['display_name']?.toString().trim();
+
+      setState(() {
+        _displayName = displayName == null || displayName.isEmpty
+            ? null
+            : displayName;
+      });
+    } catch (error) {
+      debugPrint('[PROFILE] display name load failed: $error');
+    }
   }
 
   Future<void> _ensureCloudUser() async {
@@ -322,9 +387,7 @@ Future<void> _initialize() async {
       return;
     }
 
-    debugPrint(
-      '[AUTH] no current user. Starting anonymous sign-in...',
-    );
+    debugPrint('[AUTH] no current user. Starting anonymous sign-in...');
 
     try {
       final response = await client.auth.signInAnonymously();
@@ -347,6 +410,41 @@ Future<void> _initialize() async {
       debugPrint('[AUTH] anonymous sign-in failed: $error');
     }
   }
+
+  Future<void> _loadMyEventRank() async {
+    final eventId = _currentEventId;
+
+    if (eventId == null || eventId.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _myEventRank = null;
+        });
+      }
+      return;
+    }
+
+    try {
+      final data = await supabase.Supabase.instance.client.rpc(
+        'get_my_event_rank',
+        params: {'p_event_id': eventId},
+      );
+
+      final rows = List<Map<String, dynamic>>.from(data as List);
+
+      final rank = rows.isEmpty ? null : (rows.first['rank'] as num?)?.toInt();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _myEventRank = rank;
+      });
+    } catch (error) {
+      debugPrint('[RANKING] my event rank load failed: $error');
+    }
+  }
+
   Future<void> _resetCurrentEventCollectionHistory() async {
     final eventId = _currentEventId;
 
@@ -354,17 +452,17 @@ Future<void> _initialize() async {
       throw Exception('現在のイベントIDが取得できません。');
     }
 
-    await _historyService.resetEventCollectionHistory(
-      eventId: eventId,
-    );
+    await _historyService.resetEventCollectionHistory(eventId: eventId);
 
     _collectedIds.clear();
     _manualNextSeichiId = null;
 
     await _saveStamps();
+    await _loadCollectionEventNames();
 
     _updateNextDestination();
     await _checkStampDistance();
+    await _loadMyEventRank();
 
     if (!mounted) {
       return;
@@ -389,57 +487,162 @@ Future<void> _initialize() async {
     } catch (_) {
       // DB取得失敗時は端末キャッシュをそのまま使用する。
     }
+
+    await _loadCollectionEventNames();
+  }
+
+  Future<void> _loadCollectionEventNames() async {
+    try {
+      final history = await _historyService.loadCollectionDisplayHistory();
+
+      final next = <String, Set<String>>{};
+
+      for (final item in history) {
+        final card = item['card']?.toString();
+        final eventName = item['event_name']?.toString();
+
+        if (card == null ||
+            card.isEmpty ||
+            eventName == null ||
+            eventName.isEmpty) {
+          continue;
+        }
+
+        next.putIfAbsent(card, () => <String>{}).add(eventName);
+      }
+
+      _collectionEventNamesByCard
+        ..clear()
+        ..addAll(next);
+    } catch (_) {
+      // 表示用履歴の取得失敗時は、既に保持している情報を維持する。
+    }
   }
 
   // ============================================================
   // 保存済みスタンプ
   // ============================================================
 
+  String _stampStorageKey({
+    required String userId,
+    required String eventId,
+  }) {
+    return 'collected_seichi_ids_v2_${userId}_$eventId';
+  }
+
+  Future<void> _migrateLegacyStampCache({
+    required SharedPreferences preferences,
+    required String userId,
+    required String currentEventId,
+  }) async {
+    const legacyGlobalKey = 'collected_seichi_ids';
+    const legacyEventPrefix = 'collected_seichi_ids_';
+    const scopedPrefix = 'collected_seichi_ids_v2_';
+
+    final keys = preferences.getKeys().toList();
+
+    for (final key in keys) {
+      if (!key.startsWith(legacyEventPrefix) ||
+          key.startsWith(scopedPrefix)) {
+        continue;
+      }
+
+      final eventId = key.substring(legacyEventPrefix.length);
+
+      if (eventId.isEmpty) {
+        continue;
+      }
+
+      final legacyIds = preferences.getStringList(key);
+      final scopedKey = _stampStorageKey(
+        userId: userId,
+        eventId: eventId,
+      );
+      final scopedIds = preferences.getStringList(scopedKey) ?? <String>[];
+
+      final mergedIds = <String>{
+        ...scopedIds,
+        ...?legacyIds,
+      }.toList();
+
+      await preferences.setStringList(scopedKey, mergedIds);
+      await preferences.remove(key);
+    }
+
+    final legacyGlobalIds =
+        preferences.getStringList(legacyGlobalKey);
+
+    if (legacyGlobalIds != null) {
+      final scopedKey = _stampStorageKey(
+        userId: userId,
+        eventId: currentEventId,
+      );
+      final scopedIds =
+          preferences.getStringList(scopedKey) ?? <String>[];
+
+      final mergedIds = <String>{
+        ...scopedIds,
+        ...legacyGlobalIds,
+      }.toList();
+
+      await preferences.setStringList(scopedKey, mergedIds);
+      await preferences.remove(legacyGlobalKey);
+    }
+  }
+
   Future<void> _loadSavedStamps() async {
-    _preferences =
-        await SharedPreferences.getInstance();
+    _preferences = await SharedPreferences.getInstance();
 
     if (_currentEventId == null || _currentEventId!.isEmpty) {
       throw Exception('イベントIDが未取得のため、獲得スタンプを読み込めません。');
     }
 
-    final eventKey =
-        'collected_seichi_ids_${_currentEventId!}';
+    final user = supabase.Supabase.instance.client.auth.currentUser;
 
-    var savedIds =
-        _preferences?.getStringList(eventKey);
-
-    // 旧形式の保存データがある場合は、
-    // 現在のイベント専用キーへ一度だけ移行する。
-    if (savedIds == null) {
-      final legacyIds =
-          _preferences?.getStringList(
-                'collected_seichi_ids',
-              );
-
-      if (legacyIds != null) {
-        savedIds = legacyIds;
-
-        await _preferences?.setStringList(
-          eventKey,
-          legacyIds,
-        );
-      }
+    if (user == null) {
+      throw Exception('ユーザーIDが未取得のため、獲得スタンプを読み込めません。');
     }
+
+    final preferences = _preferences!;
+    final eventId = _currentEventId!;
+
+    await _migrateLegacyStampCache(
+      preferences: preferences,
+      userId: user.id,
+      currentEventId: eventId,
+    );
+
+    final eventKey = _stampStorageKey(
+      userId: user.id,
+      eventId: eventId,
+    );
+
+    final savedIds = preferences.getStringList(eventKey);
 
     _collectedIds
       ..clear()
-      ..addAll(savedIds ?? []);
+      ..addAll(savedIds ?? <String>[]);
   }
-Future<void> _saveStamps() async {
+
+  Future<void> _saveStamps() async {
     if (_currentEventId == null || _currentEventId!.isEmpty) {
       throw Exception('イベントIDが未取得のため、獲得スタンプを保存できません。');
     }
 
-    final eventKey =
-        'collected_seichi_ids_${_currentEventId!}';
+    final user = supabase.Supabase.instance.client.auth.currentUser;
 
-    await _preferences?.setStringList(
+    if (user == null) {
+      throw Exception('ユーザーIDが未取得のため、獲得スタンプを保存できません。');
+    }
+
+    _preferences ??= await SharedPreferences.getInstance();
+
+    final eventKey = _stampStorageKey(
+      userId: user.id,
+      eventId: _currentEventId!,
+    );
+
+    await _preferences!.setStringList(
       eventKey,
       _collectedIds.toList(),
     );
@@ -450,10 +653,7 @@ Future<void> _saveStamps() async {
   // ============================================================
 
   bool _isAutoNextDestinationEnabled() {
-    return _preferences?.getBool(
-          'setting_auto_next_destination',
-        ) ??
-        true;
+    return _preferences?.getBool('setting_auto_next_destination') ?? true;
   }
 
   // ============================================================
@@ -465,20 +665,16 @@ Future<void> _saveStamps() async {
       return 0;
     }
 
-    final validIds = _seichiList
-        .map((seichi) => seichi.id)
-        .toSet();
+    final validIds = _seichiList.map((seichi) => seichi.id).toSet();
 
-    return _collectedIds
-        .where(validIds.contains)
-        .length;
+    return _collectedIds.where(validIds.contains).length;
   }
 
   // ============================================================
   // Supabaseから聖地取得
   // ============================================================
 
-Future<void> _loadSeichi() async {
+  Future<void> _loadSeichi() async {
     try {
       if (mounted) {
         setState(() {
@@ -491,7 +687,7 @@ Future<void> _loadSeichi() async {
           .from('seichi')
           .select(
             'id, card, reading, name, latitude, longitude, '
-            'stamp_radius_meters, description, icon, is_active',
+            'stamp_radius_meters, description, icon, is_active, place_id',
           )
           .eq('is_active', true)
           .eq('event_id', _currentEventId!);
@@ -506,19 +702,16 @@ Future<void> _loadSeichi() async {
           )
           .toList();
 
-      list.sort(
-        (a, b) {
-          final orderCompare =
-              _cardOrderIndex(a.card)
-                  .compareTo(_cardOrderIndex(b.card));
+      list.sort((a, b) {
+        final orderCompare = _cardOrderIndex(a.card)
+            .compareTo(_cardOrderIndex(b.card));
 
-          if (orderCompare != 0) {
-            return orderCompare;
-          }
+        if (orderCompare != 0) {
+          return orderCompare;
+        }
 
-          return a.card.compareTo(b.card);
-        },
-      );
+        return a.card.compareTo(b.card);
+      });
 
       if (!mounted) {
         return;
@@ -539,8 +732,7 @@ Future<void> _loadSeichi() async {
       }
 
       setState(() {
-        _errorMessage =
-            '聖地データを取得できませんでした。\n$e';
+        _errorMessage = '聖地データを取得できませんでした。\n$e';
         _isLoading = false;
       });
     }
@@ -560,8 +752,7 @@ Future<void> _loadSeichi() async {
     });
 
     try {
-      final serviceEnabled =
-          await Geolocator.isLocationServiceEnabled();
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
         if (!mounted) {
@@ -578,32 +769,26 @@ Future<void> _loadSeichi() async {
         return;
       }
 
-      LocationPermission permission =
-          await Geolocator.checkPermission();
+      LocationPermission permission = await Geolocator.checkPermission();
 
-      if (permission ==
-          LocationPermission.denied) {
-        permission =
-            await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
       }
 
-      if (permission ==
-          LocationPermission.denied) {
+      if (permission == LocationPermission.denied) {
         if (!mounted) {
           return;
         }
 
         setState(() {
           _isLoadingLocation = false;
-          _errorMessage =
-              '位置情報の利用が許可されていません。';
+          _errorMessage = '位置情報の利用が許可されていません。';
         });
 
         return;
       }
 
-      if (permission ==
-          LocationPermission.deniedForever) {
+      if (permission == LocationPermission.deniedForever) {
         if (!mounted) {
           return;
         }
@@ -618,8 +803,7 @@ Future<void> _loadSeichi() async {
         return;
       }
 
-      final position =
-          await Geolocator.getCurrentPosition(
+      final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
         ),
@@ -639,7 +823,6 @@ Future<void> _loadSeichi() async {
       await _moveCameraToCurrentLocation();
 
       _startLocationStream();
-
     } catch (e) {
       if (!mounted) {
         return;
@@ -647,8 +830,7 @@ Future<void> _loadSeichi() async {
 
       setState(() {
         _isLoadingLocation = false;
-        _errorMessage =
-            '現在地を取得できませんでした。\n$e';
+        _errorMessage = '現在地を取得できませんでした。\n$e';
       });
     }
   }
@@ -666,32 +848,29 @@ Future<void> _loadSeichi() async {
     );
 
     _positionSubscription =
-        Geolocator.getPositionStream(
-      locationSettings: locationSettings,
-    ).listen(
-      (position) {
-        if (!mounted) {
-          return;
-        }
+        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+          (position) {
+            if (!mounted) {
+              return;
+            }
 
-        setState(() {
-          _currentPosition = position;
-        });
+            setState(() {
+              _currentPosition = position;
+            });
 
-        _updateNextDestination();
-        _checkStampDistance();
-      },
-      onError: (error) {
-        if (!mounted) {
-          return;
-        }
+            _updateNextDestination();
+            _checkStampDistance();
+          },
+          onError: (error) {
+            if (!mounted) {
+              return;
+            }
 
-        setState(() {
-          _errorMessage =
-              '位置情報の監視でエラーが発生しました。\n$error';
-        });
-      },
-    );
+            setState(() {
+              _errorMessage = '位置情報の監視でエラーが発生しました。\n$error';
+            });
+          },
+        );
   }
 
   // ============================================================
@@ -699,16 +878,14 @@ Future<void> _loadSeichi() async {
   // ============================================================
 
   void _updateNextDestination() {
-    final result = const NextDestinationService()
-        .findNextDestination(
+    final result = const NextDestinationService().findNextDestination(
       position: _currentPosition,
       seichiList: _seichiList,
       collectedIds: _collectedIds,
       manualNextSeichiId: _manualNextSeichiId,
     );
 
-    if (result.seichi == null &&
-        _manualNextSeichiId != null) {
+    if (result.seichi == null && _manualNextSeichiId != null) {
       _manualNextSeichiId = null;
     }
 
@@ -736,9 +913,7 @@ Future<void> _loadSeichi() async {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          '${seichi.card} ${seichi.name} を次の目的地に設定しました。',
-        ),
+        content: Text('${seichi.card} ${seichi.name} を次の目的地に設定しました。'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -755,8 +930,7 @@ Future<void> _loadSeichi() async {
 
     final position = _currentPosition;
 
-    if (position == null ||
-        _seichiList.isEmpty) {
+    if (position == null || _seichiList.isEmpty) {
       return;
     }
     // GPS位置が短時間で現実的でない距離まで跳んだ場合は、
@@ -777,16 +951,14 @@ Future<void> _loadSeichi() async {
           1000.0;
 
       if (elapsedSeconds > 0) {
-        final movedDistance =
-            Geolocator.distanceBetween(
+        final movedDistance = Geolocator.distanceBetween(
           previousPosition.latitude,
           previousPosition.longitude,
           position.latitude,
           position.longitude,
         );
 
-        final calculatedSpeed =
-            movedDistance / elapsedSeconds;
+        final calculatedSpeed = movedDistance / elapsedSeconds;
 
         if (calculatedSpeed > maxPlausibleSpeedMps) {
           return;
@@ -804,7 +976,6 @@ Future<void> _loadSeichi() async {
       'seichiCount=${_seichiList.length}',
     );
 
-
     // GPS精度が極端に悪い場合は誤獲得を防ぐため判定しない。
     // 聖地ごとの到達半径が広い場合は、それに応じて許容する。
     bool hasSufficientAccuracy(Seichi seichi) {
@@ -817,6 +988,7 @@ Future<void> _loadSeichi() async {
 
       return position.accuracy <= requiredAccuracy;
     }
+
     Seichi? nearestSeichi;
     double nearestDistance = double.infinity;
 
@@ -825,8 +997,7 @@ Future<void> _loadSeichi() async {
         continue;
       }
 
-      final distance =
-          Geolocator.distanceBetween(
+      final distance = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
         seichi.latitude,
@@ -858,16 +1029,14 @@ Future<void> _loadSeichi() async {
       if (!hasSufficientAccuracy(seichi)) {
         continue;
       }
-      final distance =
-          Geolocator.distanceBetween(
+      final distance = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
         seichi.latitude,
         seichi.longitude,
       );
 
-      if (distance <=
-          seichi.stampRadiusMeters) {
+      if (distance <= seichi.stampRadiusMeters) {
         await _collectStamp(seichi);
         break;
       }
@@ -878,60 +1047,113 @@ Future<void> _loadSeichi() async {
   // スタンプ獲得
   // ============================================================
 
-  Future<void> _collectStamp(
-    Seichi seichi,
-  ) async {
-    if (_isCollecting ||
-        _collectedIds.contains(seichi.id)) {
+  Future<void> _collectStamp(Seichi seichi) async {
+    if (_isCollecting || _collectedIds.contains(seichi.id)) {
       return;
     }
 
-    debugPrint('[STAMP_COLLECT] name=${seichi.name}, card=${seichi.card}, id=${seichi.id}');
+    debugPrint(
+      '[STAMP_COLLECT] name=${seichi.name}, card=${seichi.card}, id=${seichi.id}',
+    );
     _isCollecting = true;
 
     try {
-      final previousCollectedCount = _getCollectedCount();
+      final position = _currentPosition;
+      final placeId = seichi.placeId;
 
-      _collectedIds.add(seichi.id);
-
-      final newCollectedCount = _getCollectedCount();
-
-      if (_manualNextSeichiId == seichi.id) {
-        _manualNextSeichiId = null;
+      if (position == null || placeId == null || placeId.isEmpty) {
+        return;
       }
 
-      await _saveStamps();
-      final previousAchievements =
-          _achievementService.getUnlockedAchievements(
-        _eventAchievements,
-        previousCollectedCount,
-      );
-
-      final newAchievements =
-          _achievementService.getUnlockedAchievements(
-        _eventAchievements,
-        newCollectedCount,
-      );
-
-      final newlyUnlockedAchievements = newAchievements
-          .where(
-            (achievement) => !previousAchievements.any(
-              (previous) => previous.id == achievement.id,
-            ),
-          )
-          .toList(growable: false);
-
-      // スタンプ獲得自体はローカル保存を正として即時成立させる。
-      // DB同期はオンラインならその場で行い、失敗時は端末キューに残す。
-      final position = _currentPosition;
       await _ensureCloudUser();
-      await _historyService.recordCollection(
-        eventId: _currentEventId!,
-        seichiId: seichi.id,
-        collectedAt: DateTime.now(),
-        latitude: position?.latitude,
-        longitude: position?.longitude,
+
+      final collectedRows = await _historyService.recordPlaceVisitAndCollect(
+        placeId: placeId,
+        visitedAt: DateTime.now(),
+        latitude: position.latitude,
+        longitude: position.longitude,
+        accuracyMeters: position.accuracy,
       );
+
+      await _applyCollectedRows(collectedRows);
+    } finally {
+      _isCollecting = false;
+    }
+  }
+
+  Future<void> _applyCollectedRows(
+    List<Map<String, dynamic>> collectedRows,
+  ) async {
+    final currentEventId = _currentEventId;
+
+    if (collectedRows.isEmpty || currentEventId == null) {
+      return;
+    }
+
+    final previousCollectedCount = _getCollectedCount();
+
+    final collectedCards = collectedRows
+        .where((row) => row['event_id']?.toString() == currentEventId)
+        .map((row) => row['card']?.toString())
+        .whereType<String>()
+        .where((card) => card.isNotEmpty)
+        .toSet();
+
+    if (collectedCards.isEmpty) {
+      return;
+    }
+
+    final newlyCollectedSeichi = _seichiList
+        .where(
+          (item) =>
+              collectedCards.contains(item.card) &&
+              !_collectedIds.contains(item.id),
+        )
+        .toList(growable: false);
+
+    if (newlyCollectedSeichi.isEmpty) {
+      return;
+    }
+
+    for (final item in newlyCollectedSeichi) {
+      _collectedIds.add(item.id);
+    }
+
+    if (_manualNextSeichiId != null &&
+        newlyCollectedSeichi.any((item) => item.id == _manualNextSeichiId)) {
+      _manualNextSeichiId = null;
+    }
+
+    await _saveStamps();
+    await _loadCollectionEventNames();
+    await _loadMyEventRank();
+
+    final newCollectedCount = _getCollectedCount();
+
+    final previousAchievements = _achievementService.getUnlockedAchievements(
+      _eventAchievements,
+      previousCollectedCount,
+    );
+
+    final newAchievements = _achievementService.getUnlockedAchievements(
+      _eventAchievements,
+      newCollectedCount,
+    );
+
+    final newlyUnlockedAchievements = newAchievements
+        .where(
+          (achievement) => !previousAchievements.any(
+            (previous) => previous.id == achievement.id,
+          ),
+        )
+        .toList(growable: false);
+
+    if (!mounted) {
+      return;
+    }
+
+    for (var i = 0; i < newlyCollectedSeichi.length; i++) {
+      final item = newlyCollectedSeichi[i];
 
       if (!mounted) {
         return;
@@ -939,42 +1161,39 @@ Future<void> _loadSeichi() async {
 
       setState(() {
         _justCollected = true;
-        _collectedName = seichi.name;
+        _collectedName = '${item.card} ${item.name}を獲得！';
       });
 
-      // スタンプ獲得通知
-      // 設定がONの場合のみ通知する。
-      // 通知に失敗してもスタンプ獲得自体は成立済み。
       if (_preferences?.getBool('setting_stamp_notification') ?? true) {
         try {
           await NotificationService.instance.showStampCollected(
-            seichiName: seichi.name,
+            seichiName: '${item.card} ${item.name}',
           );
         } catch (_) {
           // 通知失敗時もスタンプ獲得状態は維持する。
         }
       }
 
-      _updateNextDestination();
-      for (final achievement in newlyUnlockedAchievements) {
-        await _showAchievementUnlockDialog(achievement);
+      await Future<void>.delayed(const Duration(milliseconds: 2800));
+
+      if (!mounted) {
+        return;
       }
 
-      Future.delayed(
-        const Duration(milliseconds: 2800),
-        () {
-          if (!mounted) {
-            return;
-          }
+      setState(() {
+        _justCollected = false;
+        _collectedName = null;
+      });
 
-          setState(() {
-            _justCollected = false;
-            _collectedName = null;
-          });
-        },
-      );
-    } finally {
-      _isCollecting = false;
+      if (i < newlyCollectedSeichi.length - 1) {
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+      }
+    }
+
+    _updateNextDestination();
+
+    for (final achievement in newlyUnlockedAchievements) {
+      await _showAchievementUnlockDialog(achievement);
     }
   }
 
@@ -982,79 +1201,64 @@ Future<void> _loadSeichi() async {
   // カメラを現在地へ
   // ============================================================
 
-  Future<void> _showAchievementUnlockDialog(
-  Achievement achievement,
-) async {
-  if (!mounted) {
-    return;
-  }
+  Future<void> _showAchievementUnlockDialog(Achievement achievement) async {
+    if (!mounted) {
+      return;
+    }
 
-  await showDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (dialogContext) {
-      return AlertDialog(
-        title: const Text(
-          '🎉 実績解除！',
-          textAlign: TextAlign.center,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              achievement.icon,
-              style: const TextStyle(
-                fontSize: 56,
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('🎉 実績解除！', textAlign: TextAlign.center),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(achievement.icon, style: const TextStyle(fontSize: 56)),
+              const SizedBox(height: 12),
+              Text(
+                achievement.title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              achievement.title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 21,
-                fontWeight: FontWeight.bold,
+              const SizedBox(height: 10),
+              Text(
+                achievement.description,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.grey),
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              achievement.description,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.grey,
+            ],
+          ),
+          actions: [
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                },
+                child: const Text('OK'),
               ),
             ),
           ],
-        ),
-        actions: [
-          Center(
-            child: TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('OK'),
-            ),
-          ),
-        ],
-      );
-    },
-  );
-}
-Future<void> _moveCameraToCurrentLocation() async {
+        );
+      },
+    );
+  }
+
+  Future<void> _moveCameraToCurrentLocation() async {
     final position = _currentPosition;
 
-    if (position == null ||
-        _mapController == null) {
+    if (position == null || _mapController == null) {
       return;
     }
 
     await _mapController!.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
-          target: LatLng(
-            position.latitude,
-            position.longitude,
-          ),
+          target: LatLng(position.latitude, position.longitude),
           zoom: 13.5,
         ),
       ),
@@ -1068,18 +1272,14 @@ Future<void> _moveCameraToCurrentLocation() async {
   Future<void> _moveCameraToNextSeichi() async {
     final seichi = _nextSeichi;
 
-    if (seichi == null ||
-        _mapController == null) {
+    if (seichi == null || _mapController == null) {
       return;
     }
 
     await _mapController!.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
-          target: LatLng(
-            seichi.latitude,
-            seichi.longitude,
-          ),
+          target: LatLng(seichi.latitude, seichi.longitude),
           zoom: 16.0,
         ),
       ),
@@ -1090,9 +1290,7 @@ Future<void> _moveCameraToCurrentLocation() async {
   // 特定聖地へ移動
   // ============================================================
 
-  Future<void> _moveCameraToSeichi(
-    Seichi seichi,
-  ) async {
+  Future<void> _moveCameraToSeichi(Seichi seichi) async {
     if (_mapController == null) {
       return;
     }
@@ -1103,9 +1301,7 @@ Future<void> _moveCameraToCurrentLocation() async {
       });
     }
 
-    await Future.delayed(
-      const Duration(milliseconds: 100),
-    );
+    await Future.delayed(const Duration(milliseconds: 100));
 
     if (_mapController == null) {
       return;
@@ -1114,10 +1310,7 @@ Future<void> _moveCameraToCurrentLocation() async {
     await _mapController!.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
-          target: LatLng(
-            seichi.latitude,
-            seichi.longitude,
-          ),
+          target: LatLng(seichi.latitude, seichi.longitude),
           zoom: 17,
         ),
       ),
@@ -1132,8 +1325,7 @@ Future<void> _moveCameraToCurrentLocation() async {
     final markers = <Marker>{};
 
     for (final seichi in _seichiList) {
-      final collected =
-          _collectedIds.contains(seichi.id);
+      final collected = _collectedIds.contains(seichi.id);
 
       debugPrint(
         '[MARKER] ${seichi.name} id=${seichi.id} collected=$collected',
@@ -1142,23 +1334,16 @@ Future<void> _moveCameraToCurrentLocation() async {
       markers.add(
         Marker(
           markerId: MarkerId(seichi.id),
-          position: LatLng(
-            seichi.latitude,
-            seichi.longitude,
-          ),
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(
-            collected
-                ? BitmapDescriptor.hueGreen
-                : BitmapDescriptor.hueViolet,
+          position: LatLng(seichi.latitude, seichi.longitude),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            collected ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueViolet,
           ),
           infoWindow: InfoWindow(
-            title:
-                '${seichi.icon} ${seichi.card} ${seichi.name}',
+            title: '${seichi.icon} ${seichi.card} ${seichi.name}',
             snippet: collected
                 ? '🏆 スタンプ獲得済み'
                 : '${seichi.reading} ・ '
-                    '到達半径 ${seichi.stampRadiusMeters}m',
+                      '到達半径 ${seichi.stampRadiusMeters}m',
           ),
           onTap: () {
             _showSeichiDetails(seichi);
@@ -1174,16 +1359,13 @@ Future<void> _moveCameraToCurrentLocation() async {
   // 聖地詳細
   // ============================================================
 
-  void _showSeichiDetails(
-    Seichi seichi,
-  ) {
+  void _showSeichiDetails(Seichi seichi) {
     final position = _currentPosition;
 
     double? distance;
 
     if (position != null) {
-      distance =
-          Geolocator.distanceBetween(
+      distance = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
         seichi.latitude,
@@ -1191,10 +1373,7 @@ Future<void> _moveCameraToCurrentLocation() async {
       );
     }
 
-    final collected =
-        _collectedIds.contains(seichi.id);
-
-
+    final collected = _collectedIds.contains(seichi.id);
 
     showModalBottomSheet<void>(
       context: context,
@@ -1203,16 +1382,10 @@ Future<void> _moveCameraToCurrentLocation() async {
       builder: (context) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              24,
-              4,
-              24,
-              24,
-            ),
+            padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
@@ -1220,95 +1393,63 @@ Future<void> _moveCameraToCurrentLocation() async {
                       radius: 28,
                       child: Text(
                         seichi.icon,
-                        style:
-                            const TextStyle(
-                          fontSize: 24,
-                        ),
+                        style: const TextStyle(fontSize: 24),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             seichi.card,
                             style: TextStyle(
-                              color:
-                                  Theme.of(context)
-                                      .colorScheme
-                                      .primary,
-                              fontWeight:
-                                  FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
                             seichi.name,
-                            style:
-                                const TextStyle(
+                            style: const TextStyle(
                               fontSize: 21,
-                              fontWeight:
-                                  FontWeight.bold,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                       ),
                     ),
                     if (collected)
-                      const Icon(
-                        Icons.verified,
-                        color: Colors.green,
-                        size: 30,
-                      ),
+                      const Icon(Icons.verified, color: Colors.green, size: 30),
                   ],
                 ),
                 const SizedBox(height: 16),
                 if (seichi.reading.isNotEmpty)
                   Text(
                     seichi.reading,
-                    style:
-                        const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                 const SizedBox(height: 8),
                 Text(
                   seichi.description.isEmpty
                       ? '説明は登録されていません。'
                       : seichi.description,
-                  style:
-                      const TextStyle(
-                    fontSize: 15,
-                    height: 1.5,
-                  ),
+                  style: const TextStyle(fontSize: 15, height: 1.5),
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    const Icon(
-                      Icons.radar,
-                      size: 20,
-                    ),
+                    const Icon(Icons.radar, size: 20),
                     const SizedBox(width: 8),
-                    Text(
-                      '到達判定 ${seichi.stampRadiusMeters}m',
-                    ),
+                    Text('到達判定 ${seichi.stampRadiusMeters}m'),
                   ],
                 ),
                 if (distance != null) ...[
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.near_me,
-                        size: 20,
-                      ),
+                      const Icon(Icons.near_me, size: 20),
                       const SizedBox(width: 8),
-                      Text(
-                        '現在地から ${_formatDistance(distance)}',
-                      ),
+                      Text('現在地から ${_formatDistance(distance)}'),
                     ],
                   ),
                 ],
@@ -1318,16 +1459,10 @@ Future<void> _moveCameraToCurrentLocation() async {
                   child: FilledButton.icon(
                     onPressed: () async {
                       Navigator.pop(context);
-                      await _moveCameraToSeichi(
-                        seichi,
-                      );
+                      await _moveCameraToSeichi(seichi);
                     },
-                    icon: const Icon(
-                      Icons.navigation,
-                    ),
-                    label: const Text(
-                      'この聖地を地図で見る',
-                    ),
+                    icon: const Icon(Icons.navigation),
+                    label: const Text('この聖地を地図で見る'),
                   ),
                 ),
                 if (!collected) ...[
@@ -1339,12 +1474,8 @@ Future<void> _moveCameraToCurrentLocation() async {
                         Navigator.pop(context);
                         _setNextDestination(seichi);
                       },
-                      icon: const Icon(
-                        Icons.flag_rounded,
-                      ),
-                      label: const Text(
-                        '次の目的地にする',
-                      ),
+                      icon: const Icon(Icons.flag_rounded),
+                      label: const Text('次の目的地にする'),
                     ),
                   ),
                 ],
@@ -1360,9 +1491,7 @@ Future<void> _moveCameraToCurrentLocation() async {
   // 距離表示
   // ============================================================
 
-  String _formatDistance(
-    double distance,
-  ) {
+  String _formatDistance(double distance) {
     if (distance < 1000) {
       return '${distance.round()}m';
     }
@@ -1452,8 +1581,17 @@ Future<void> _moveCameraToCurrentLocation() async {
       eventAchievements: _eventAchievements,
     );
   }
+
   Widget _buildRankingPage() {
+    final eventId = _currentEventId;
+
+    if (eventId == null || eventId.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return RankingPage(
+      eventId: eventId,
+      myRank: _myEventRank,
       myCount: _getCollectedCount(),
       total: _seichiList.length,
     );
@@ -1462,9 +1600,7 @@ Future<void> _moveCameraToCurrentLocation() async {
   // マイページ
   // ============================================================
 
-  Future<void> _selectEvent(
-    Event event,
-  ) async {
+  Future<void> _selectEvent(Event event) async {
     final eventId = event.id;
     final eventName = event.name;
 
@@ -1489,12 +1625,18 @@ Future<void> _moveCameraToCurrentLocation() async {
 
       _collectedIds.clear();
       _eventAchievements.clear();
+      _myEventRank = null;
       _manualNextSeichiId = null;
 
       await _loadEventAchievements();
       await _loadSavedStamps();
-      await _loadCloudHistory();
+
+      final syncedRows = await _historyService.syncPendingPlaceVisits();
+
       await _loadSeichi();
+      await _applyCollectedRows(syncedRows);
+      await _loadCloudHistory();
+      await _loadMyEventRank();
 
       _updateNextDestination();
 
@@ -1502,31 +1644,24 @@ Future<void> _moveCameraToCurrentLocation() async {
         setState(() {});
       }
 
-      debugPrint(
-        '[EVENT] selected: id=, name=',
-      );
+      debugPrint('[EVENT] selected: id=, name=');
     } catch (e) {
-      debugPrint(
-        '[EVENT] select error: ',
-      );
+      debugPrint('[EVENT] select error: ');
 
       if (mounted) {
         setState(() {
-          _errorMessage =
-              'クエストの切り替えに失敗しました。';
+          _errorMessage = 'クエストの切り替えに失敗しました。';
         });
       }
 
       rethrow;
     }
   }
+
   Future<void> _showEventSelector() async {
     if (_events.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('選択できるクエストがありません。'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('選択できるクエストがありません。')));
       return;
     }
 
@@ -1538,88 +1673,109 @@ Future<void> _moveCameraToCurrentLocation() async {
         return SafeArea(
           child: ListView(
             shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(
-              24,
-              8,
-              24,
-              24,
-            ),
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
             children: [
               const Text(
                 'クエストを選択',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              ..._events.map(
-                (event) {
-                  final eventId =
-                      event.id;
-                  final eventName =
-                      event.name;
-                  final description =
-                      event.description;
-                  final isCurrent =
-                      eventId == _currentEventId;
+              ..._events.map((event) {
+                final eventId = event.id;
+                final eventName = event.name;
+                final description = event.description;
+                final isCurrent = eventId == _currentEventId;
 
-                  return ListTile(
-                    contentPadding:
-                        const EdgeInsets.symmetric(
-                      vertical: 4,
-                    ),
-                    leading: Icon(
-                      isCurrent
-                          ? Icons.check_circle
-                          : Icons.explore_outlined,
-                    ),
-                    title: Text(eventName),
-                    subtitle: description.isEmpty
-                        ? null
-                        : Text(description),
-                    trailing: isCurrent
-                        ? const Icon(Icons.check)
-                        : null,
-                    onTap: () async {
-                      Navigator.of(sheetContext).pop();
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                  leading: Icon(
+                    isCurrent ? Icons.check_circle : Icons.explore_outlined,
+                  ),
+                  title: Text(eventName),
+                  subtitle: description.isEmpty ? null : Text(description),
+                  trailing: isCurrent ? const Icon(Icons.check) : null,
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
 
-                      try {
-                        await _selectEvent(event);
-                      } catch (_) {
-                        // _selectEvent() 内でエラー表示済み
-                      }
-                    },
-                  );
-                },
-              ),
+                    try {
+                      await _selectEvent(event);
+                    } catch (_) {
+                      // _selectEvent() 内でエラー表示済み
+                    }
+                  },
+                );
+              }),
             ],
           ),
         );
       },
     );
   }
+
   Widget _buildMyPage() {
     return MyPage(
+      displayName: _displayName,
+      myRank: _myEventRank,
+      eventAchievements: _eventAchievements,
       count: _getCollectedCount(),
       total: _seichiList.length,
       currentEventName: _currentEventName,
       onSelectEvent: _showEventSelector,
+      onShowRanking: () {
+        setState(() {
+          _selectedTab = 3;
+        });
+      },
+      onShowAchievements: () {
+        setState(() {
+          _selectedTab = 1;
+        });
+      },
       onShowProfile: () async {
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const ProfilePage(),
-          ),
-        );
+        await Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const ProfilePage()));
 
+        await _loadDisplayName();
+        await _loadMyEventRank();
         _updateNextDestination();
         await _checkStampDistance();
       },
+      onShowAccount: () async {
+        final accountChanged = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => const AccountPage(),
+          ),
+        );
+
+        if (accountChanged != true) {
+          return;
+        }
+
+        await _ensureCloudUser();
+
+        _manualNextSeichiId = null;
+
+        await _loadDisplayName();
+        await _loadEventAchievements();
+        await _loadSavedStamps();
+
+        final syncedRows =
+            await _historyService.syncPendingPlaceVisits();
+
+        await _applyCollectedRows(syncedRows);
+        await _loadCloudHistory();
+        await _loadCollectionEventNames();
+        await _loadMyEventRank();
+
+        _updateNextDestination();
+
+        if (mounted) {
+          setState(() {});
+        }
+      },
       onShowNotifications: () async {
         await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const NotificationSettingsPage(),
-          ),
+          MaterialPageRoute(builder: (_) => const NotificationSettingsPage()),
         );
       },
       onShowAbout: _showAbout,
@@ -1627,8 +1783,9 @@ Future<void> _moveCameraToCurrentLocation() async {
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => AppSettingsPage(
-  onResetEventCollectionHistory: _resetCurrentEventCollectionHistory,
-),
+              onResetEventCollectionHistory:
+                  _resetCurrentEventCollectionHistory,
+            ),
           ),
         );
       },
@@ -1638,7 +1795,6 @@ Future<void> _moveCameraToCurrentLocation() async {
   // ページヘッダー
   // ============================================================
 
-
   // ============================================================
   // アプリ情報
   // ============================================================
@@ -1646,16 +1802,11 @@ Future<void> _moveCameraToCurrentLocation() async {
   void _showAbout() {
     showAboutDialog(
       context: context,
-      applicationName:
-          '聖地クエスト',
-      applicationVersion:
-          '1.0.0',
-      applicationLegalese:
-          '上毛かるた × 群馬',
+      applicationName: '聖地クエスト',
+      applicationVersion: '1.0.0',
+      applicationLegalese: '上毛かるた × 群馬',
       children: const [
-        SizedBox(
-          height: 12,
-        ),
+        SizedBox(height: 12),
         Text(
           '群馬県内の聖地を巡りながら、'
           '上毛かるたの世界を楽しむ聖地巡礼アプリです。',
@@ -1680,6 +1831,7 @@ Future<void> _moveCameraToCurrentLocation() async {
         return CollectionPage(
           seichiList: _seichiList,
           collectedIds: _collectedIds,
+          eventNamesByCard: _collectionEventNamesByCard,
           collectionFilter: _collectionFilter,
           onFilterChanged: (value) {
             setState(() {
@@ -1708,29 +1860,15 @@ Future<void> _moveCameraToCurrentLocation() async {
   Widget _buildLoading() {
     return Container(
       color: Colors.white,
-      child:
-          const Center(
+      child: const Center(
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: 42,
-              height: 42,
-              child:
-                  CircularProgressIndicator(),
-            ),
-            SizedBox(
-              height: 20,
-            ),
+            SizedBox(width: 42, height: 42, child: CircularProgressIndicator()),
+            SizedBox(height: 20),
             Text(
               '聖地クエストを起動中…',
-              style:
-                  TextStyle(
-                fontSize: 16,
-                fontWeight:
-                    FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -1743,19 +1881,13 @@ Future<void> _moveCameraToCurrentLocation() async {
   // ============================================================
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        body:
-            _buildLoading(),
-      );
+      return Scaffold(body: _buildLoading());
     }
 
     return Scaffold(
-      body:
-          _buildCurrentPage(),
+      body: _buildCurrentPage(),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1768,11 +1900,31 @@ Future<void> _moveCameraToCurrentLocation() async {
               });
             },
             destinations: const [
-              NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'マップ'),
-              NavigationDestination(icon: Icon(Icons.flag_outlined), selectedIcon: Icon(Icons.flag), label: 'クエスト'),
-              NavigationDestination(icon: Icon(Icons.workspace_premium_outlined), selectedIcon: Icon(Icons.workspace_premium), label: 'スタンプ'),
-              NavigationDestination(icon: Icon(Icons.leaderboard_outlined), selectedIcon: Icon(Icons.leaderboard), label: 'ランキング'),
-              NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'マイページ'),
+              NavigationDestination(
+                icon: Icon(Icons.map_outlined),
+                selectedIcon: Icon(Icons.map),
+                label: 'マップ',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.flag_outlined),
+                selectedIcon: Icon(Icons.flag),
+                label: 'クエスト',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.workspace_premium_outlined),
+                selectedIcon: Icon(Icons.workspace_premium),
+                label: 'スタンプ',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.leaderboard_outlined),
+                selectedIcon: Icon(Icons.leaderboard),
+                label: 'ランキング',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'マイページ',
+              ),
             ],
           ),
         ],
@@ -1782,8 +1934,7 @@ Future<void> _moveCameraToCurrentLocation() async {
 
   @override
   void dispose() {
-    _positionSubscription
-        ?.cancel();
+    _positionSubscription?.cancel();
 
     _sonarController.dispose();
 
@@ -1796,8 +1947,6 @@ Future<void> _moveCameraToCurrentLocation() async {
 // ============================================================
 // スタンプ円形リング
 // ============================================================
-
-
 
 // ============================================================
 // ソナー描画

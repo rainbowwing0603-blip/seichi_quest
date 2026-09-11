@@ -8,6 +8,7 @@ class CollectionPage extends StatelessWidget {
     super.key,
     required this.seichiList,
     required this.collectedIds,
+    required this.eventNamesByCard,
     required this.collectionFilter,
     required this.onFilterChanged,
     required this.onMoveToSeichi,
@@ -16,6 +17,7 @@ class CollectionPage extends StatelessWidget {
 
   final List<Seichi> seichiList;
   final Set<String> collectedIds;
+  final Map<String, Set<String>> eventNamesByCard;
   final int collectionFilter;
   final ValueChanged<int> onFilterChanged;
   final Future<void> Function(Seichi seichi)
@@ -881,6 +883,10 @@ class CollectionPage extends StatelessWidget {
     Seichi seichi,
     bool collected,
   ) {
+    final eventNames =
+        eventNamesByCard[seichi.card]?.toList() ?? <String>[];
+    eventNames.sort();
+
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -981,6 +987,39 @@ class CollectionPage extends StatelessWidget {
                 const SizedBox(
                   height: 18,
                 ),
+                if (collected && eventNames.isNotEmpty) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(13),
+                    decoration: BoxDecoration(
+                      color: Colors.deepPurple.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '獲得イベント',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        for (final eventName in eventNames)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 3),
+                            child: Text(
+                              '・$eventName',
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 if (collected)
                   Container(
                     width:
