@@ -14,6 +14,7 @@ import 'widgets/map_page.dart';
 import 'widgets/my_page.dart';
 import 'widgets/profile_page.dart';
 import 'widgets/account_page.dart';
+import 'widgets/adventure_log_page.dart';
 import 'widgets/notification_settings_page.dart';
 import 'widgets/app_settings_page.dart';
 import 'models/seichi.dart';
@@ -1730,6 +1731,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         setState(() {
           _selectedTab = 1;
         });
+      },
+      onShowAdventureLog: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const AdventureLogPage(),
+          ),
+        );
       },
       onShowProfile: () async {
         await Navigator.of(context)

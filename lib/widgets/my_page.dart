@@ -15,6 +15,7 @@ class MyPage extends StatelessWidget {
   final VoidCallback onSelectEvent;
   final VoidCallback onShowAchievements;
   final VoidCallback onShowRanking;
+  final VoidCallback onShowAdventureLog;
   final VoidCallback onShowProfile;
   final VoidCallback onShowAccount;
   final VoidCallback onShowNotifications;
@@ -32,6 +33,7 @@ class MyPage extends StatelessWidget {
     required this.onSelectEvent,
     required this.onShowAchievements,
     required this.onShowRanking,
+    required this.onShowAdventureLog,
     required this.onShowProfile,
     required this.onShowAccount,
     required this.onShowNotifications,
@@ -115,6 +117,12 @@ class MyPage extends StatelessWidget {
               child: _buildRankingSummary(),
             ),
             const SizedBox(height: 14),
+            _buildSettingsTile(
+              icon: Icons.history_outlined,
+              title: '冒険ログ',
+              subtitle: 'これまでに獲得した札の履歴',
+              onTap: onShowAdventureLog,
+            ),
             _buildSettingsTile(
               icon: Icons.explore_outlined,
               title: '現在のクエスト',
