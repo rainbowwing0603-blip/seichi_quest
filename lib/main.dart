@@ -124,6 +124,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   String? _currentEventId;
   String? _currentEventName;
   String? _displayName;
+  String? _avatarKey;
   int? _myEventRank;
   List<Event> _events = [];
   List<Achievement> _eventAchievements = [];
@@ -357,7 +358,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     try {
       final data = await client
           .from('profiles')
-          .select('display_name')
+          .select('display_name, avatar_key')
           .eq('id', user.id)
           .maybeSingle();
 
@@ -367,10 +368,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       final displayName = data?['display_name']?.toString().trim();
 
+      final avatarKey =
+          data?['avatar_key']?.toString().trim();
+
       setState(() {
         _displayName = displayName == null || displayName.isEmpty
             ? null
             : displayName;
+
+        _avatarKey = avatarKey == null || avatarKey.isEmpty
+            ? null
+            : avatarKey;
       });
     } catch (error) {
       debugPrint('[PROFILE] display name load failed: $error');
@@ -1718,6 +1726,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Widget _buildMyPage() {
     return MyPage(
       displayName: _displayName,
+      avatarKey: _avatarKey,
       myRank: _myEventRank,
       eventAchievements: _eventAchievements,
       count: _getCollectedCount(),

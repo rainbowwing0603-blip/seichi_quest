@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../models/achievement.dart';
 import '../services/achievement_service.dart';
+import 'profile_avatar.dart';
 
 class MyPage extends StatelessWidget {
   static const AchievementService _achievementService = AchievementService();
 
   final String? displayName;
+  final String? avatarKey;
   final int? myRank;
   final List<Achievement> eventAchievements;
   final int count;
@@ -27,6 +29,7 @@ class MyPage extends StatelessWidget {
   const MyPage({
     super.key,
     required this.displayName,
+    required this.avatarKey,
     required this.myRank,
     required this.eventAchievements,
     required this.count,
@@ -53,23 +56,10 @@ class MyPage extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 12),
-            Container(
-              width: 94,
-              height: 94,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF6A35C8), Color(0xFF9B72E8)],
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.deepPurple.withValues(alpha: 0.25),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.person, color: Colors.white, size: 48),
+            ProfileAvatar(
+              avatarKey: avatarKey,
+              size: 94,
+              iconSize: 48,
             ),
             const SizedBox(height: 14),
             Text(
