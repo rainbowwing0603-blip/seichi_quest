@@ -50,3 +50,11 @@ app.*.map.json
 node_modules/
 supabase/remote_public_schema.sql
 *.before-*
+# Local development / diagnostic files
+.vscode/
+devtools_options.yaml
+flutter_*.png
+
+# Supabase temporary inspection files
+supabase/temp_*.sql
+supabase/remote_public_schema_check.sql
