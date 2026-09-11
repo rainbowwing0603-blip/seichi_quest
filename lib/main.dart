@@ -15,6 +15,7 @@ import 'widgets/my_page.dart';
 import 'widgets/profile_page.dart';
 import 'widgets/account_page.dart';
 import 'widgets/adventure_log_page.dart';
+import 'widgets/event_detail_page.dart';
 import 'widgets/notification_settings_page.dart';
 import 'widgets/app_settings_page.dart';
 import 'models/seichi.dart';
@@ -1721,6 +1722,39 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       count: _getCollectedCount(),
       total: _seichiList.length,
       currentEventName: _currentEventName,
+      onShowCurrentEvent: () async {
+        Event? currentEvent;
+
+        for (final event in _events) {
+          if (event.id == _currentEventId) {
+            currentEvent = event;
+            break;
+          }
+        }
+
+        if (currentEvent == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('現在のクエスト情報を取得できません。'),
+            ),
+          );
+          return;
+        }
+
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => EventDetailPage(
+              event: currentEvent!,
+              collectedCount: _getCollectedCount(),
+              totalCount: _seichiList.length,
+              onSelectAnotherEvent: () async {
+                Navigator.of(context).pop();
+                await _showEventSelector();
+              },
+            ),
+          ),
+        );
+      },
       onSelectEvent: _showEventSelector,
       onShowRanking: () {
         setState(() {

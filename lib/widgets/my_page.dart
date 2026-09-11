@@ -12,6 +12,7 @@ class MyPage extends StatelessWidget {
   final int count;
   final int total;
   final String? currentEventName;
+  final VoidCallback onShowCurrentEvent;
   final VoidCallback onSelectEvent;
   final VoidCallback onShowAchievements;
   final VoidCallback onShowRanking;
@@ -30,6 +31,7 @@ class MyPage extends StatelessWidget {
     required this.count,
     required this.total,
     required this.currentEventName,
+    required this.onShowCurrentEvent,
     required this.onSelectEvent,
     required this.onShowAchievements,
     required this.onShowRanking,
@@ -127,7 +129,7 @@ class MyPage extends StatelessWidget {
               icon: Icons.explore_outlined,
               title: '現在のクエスト',
               subtitle: currentEventName ?? 'クエストを選択',
-              onTap: onSelectEvent,
+              onTap: onShowCurrentEvent,
             ),
             _buildSettingsTile(
               icon: Icons.person_outline,
