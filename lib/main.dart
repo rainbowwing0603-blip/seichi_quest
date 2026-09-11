@@ -16,6 +16,7 @@ import 'widgets/profile_page.dart';
 import 'widgets/account_page.dart';
 import 'widgets/adventure_log_page.dart';
 import 'widgets/event_detail_page.dart';
+import 'widgets/sync_status_page.dart';
 import 'widgets/notification_settings_page.dart';
 import 'widgets/app_settings_page.dart';
 import 'models/seichi.dart';
@@ -1770,6 +1771,33 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => const AdventureLogPage(),
+          ),
+        );
+      },
+      onShowSyncStatus: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => SyncStatusPage(
+              loadPendingCount:
+                  _historyService.pendingPlaceVisitCount,
+              syncNow: () async {
+                final syncedRows =
+                    await _historyService.syncPendingPlaceVisits();
+
+                await _applyCollectedRows(syncedRows);
+                await _loadCloudHistory();
+                await _loadCollectionEventNames();
+                await _loadMyEventRank();
+
+                _updateNextDestination();
+
+                if (mounted) {
+                  setState(() {});
+                }
+
+                return _historyService.pendingPlaceVisitCount();
+              },
+            ),
           ),
         );
       },

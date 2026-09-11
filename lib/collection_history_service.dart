@@ -150,6 +150,24 @@ class CollectionHistoryService {
       return <Map<String, dynamic>>[];
     }
   }
+  /// このユーザーの端末に残っている未同期の訪問件数を返す。
+  Future<int> pendingPlaceVisitCount() async {
+    final user = _client.auth.currentUser;
+
+    if (user == null) {
+      return 0;
+    }
+
+    final prefs = await _prefs;
+    final queueKey = await _resolveUserScopedStringKey(
+      prefs,
+      _placeVisitQueueKey,
+      user.id,
+    );
+
+    return _readJsonList(prefs, queueKey).length;
+  }
+
   /// 保留中の物理地点訪問を、元の訪問情報のまま再送する。
   Future<List<Map<String, dynamic>>> syncPendingPlaceVisits() async {
     final user = _client.auth.currentUser;
