@@ -17,6 +17,7 @@ import 'widgets/account_page.dart';
 import 'widgets/adventure_log_page.dart';
 import 'widgets/event_detail_page.dart';
 import 'widgets/sync_status_page.dart';
+import 'widgets/participating_events_page.dart';
 import 'widgets/notification_settings_page.dart';
 import 'widgets/app_settings_page.dart';
 import 'models/seichi.dart';
@@ -311,6 +312,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         await _saveCurrentEventPreference(_currentEventId!);
       }
 
+      await _ensureEventParticipation(_currentEventId!);
+
       debugPrint(
         '[EVENT] current event restored: id=$_currentEventId, name=$_currentEventName',
       );
@@ -344,6 +347,65 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     } catch (error) {
       debugPrint(
         '[EVENT] preference save failed: $error',
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> _ensureEventParticipation(String eventId) async {
+    final client = supabase.Supabase.instance.client;
+    final user = client.auth.currentUser;
+
+    if (user == null || eventId.isEmpty) {
+      return;
+    }
+
+    try {
+      final existing = await client
+          .from('user_event_participations')
+          .select('is_active')
+          .eq('user_id', user.id)
+          .eq('event_id', eventId)
+          .maybeSingle();
+
+      if (existing == null) {
+        final now = DateTime.now().toUtc().toIso8601String();
+
+        await client.from('user_event_participations').insert({
+          'user_id': user.id,
+          'event_id': eventId,
+          'joined_at': now,
+          'is_active': true,
+          'left_at': null,
+          'updated_at': now,
+        });
+
+        debugPrint(
+          '[EVENT] participation created: eventId=$eventId',
+        );
+        return;
+      }
+
+      if (existing['is_active'] == true) {
+        return;
+      }
+
+      await client
+          .from('user_event_participations')
+          .update({
+            'is_active': true,
+            'left_at': null,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('user_id', user.id)
+          .eq('event_id', eventId);
+
+      debugPrint(
+        '[EVENT] participation reactivated: eventId=$eventId',
+      );
+    } catch (error) {
+      debugPrint(
+        '[EVENT] participation ensure failed: $error',
       );
       rethrow;
     }
@@ -1739,6 +1801,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       await _loadCloudHistory();
       await _loadMyEventRank();
       await _saveCurrentEventPreference(eventId);
+      await _ensureEventParticipation(eventId);
 
       _updateNextDestination();
 
@@ -1823,6 +1886,46 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       count: _getCollectedCount(),
       total: _seichiList.length,
       currentEventName: _currentEventName,
+      onShowParticipatingEvents: () async {
+        final selectedEventId =
+            await Navigator.of(context).push<String>(
+          MaterialPageRoute(
+            builder: (_) => ParticipatingEventsPage(
+              currentEventId: _currentEventId,
+            ),
+          ),
+        );
+
+        if (selectedEventId == null ||
+            selectedEventId.isEmpty ||
+            selectedEventId == _currentEventId) {
+          return;
+        }
+
+        Event? selectedEvent;
+
+        for (final event in _events) {
+          if (event.id == selectedEventId) {
+            selectedEvent = event;
+            break;
+          }
+        }
+
+        if (selectedEvent == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  '選択したクエスト情報を取得できません。',
+                ),
+              ),
+            );
+          }
+          return;
+        }
+
+        await _selectEvent(selectedEvent);
+      },
       onShowCurrentEvent: () async {
         Event? currentEvent;
 
