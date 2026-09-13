@@ -133,6 +133,138 @@ class _ParticipatingEventsPageState
     }
   }
 
+  Future<void> _confirmLeaveEvent(
+    _ParticipatingEvent event,
+  ) async {
+    if (event.id == widget.currentEventId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            '選択中のクエストからは参加解除できません。',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: const Text('参加をやめますか？'),
+              content: Text(
+                '「${event.name}」への参加をやめます。\n'
+                '獲得済みの記録は削除されません。',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(false);
+                  },
+                  child: const Text('キャンセル'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(true);
+                  },
+                  child: const Text('参加をやめる'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+
+    if (!confirmed || !mounted) {
+      return;
+    }
+
+    await _leaveEvent(event);
+  }
+
+  Future<void> _leaveEvent(
+    _ParticipatingEvent event,
+  ) async {
+    final user = _client.auth.currentUser;
+
+    if (user == null) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'ログイン情報を取得できませんでした。',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (event.id == widget.currentEventId) {
+      return;
+    }
+
+    try {
+      final now =
+          DateTime.now().toUtc().toIso8601String();
+
+      await _client
+          .from('user_event_participations')
+          .update({
+            'is_active': false,
+            'left_at': now,
+            'updated_at': now,
+          })
+          .eq('user_id', user.id)
+          .eq('event_id', event.id);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _events = _events
+            .where(
+              (item) => item.id != event.id,
+            )
+            .toList(growable: false);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '「${event.name}」への参加をやめました。',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[EVENT] leave participation failed: $error',
+      );
+      debugPrint(
+        '[EVENT] leave participation stackTrace: $stackTrace',
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            '参加状態を更新できませんでした。',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   String _formatJoinedAt(DateTime? date) {
     if (date == null) {
       return '参加日不明';
@@ -449,8 +581,28 @@ class _ParticipatingEventsPageState
                 Icons.check_circle,
                 color: Colors.deepPurple,
               )
-            : const Icon(
-                Icons.chevron_right,
+            : PopupMenuButton<String>(
+                tooltip: 'クエスト操作',
+                onSelected: (value) async {
+                  if (value == 'leave') {
+                    await _confirmLeaveEvent(event);
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem<String>(
+                    value: 'leave',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.logout_outlined,
+                          size: 20,
+                        ),
+                        SizedBox(width: 10),
+                        Text('参加をやめる'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
         onTap: isCurrent
             ? null
