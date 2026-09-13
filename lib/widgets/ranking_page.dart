@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
+import 'profile_avatar.dart';
+
 class RankingPage extends StatefulWidget {
   final String eventId;
+  final String? displayName;
+  final Future<bool> Function() onShowProfile;
   final int? myRank;
   final int myCount;
   final int total;
@@ -10,6 +14,8 @@ class RankingPage extends StatefulWidget {
   const RankingPage({
     super.key,
     required this.eventId,
+    required this.displayName,
+    required this.onShowProfile,
     required this.myRank,
     required this.myCount,
     required this.total,
@@ -24,8 +30,10 @@ class _RankingPageState extends State<RankingPage> {
   String? _errorMessage;
 
   List<_RankingEntry> _ranking = [];
+  int _participantCount = 0;
 
-  supabase.SupabaseClient get _client => supabase.Supabase.instance.client;
+  supabase.SupabaseClient get _client =>
+      supabase.Supabase.instance.client;
 
   @override
   void initState() {
@@ -46,15 +54,25 @@ class _RankingPageState extends State<RankingPage> {
     try {
       final data = await _client.rpc(
         'get_public_ranking',
-        params: {'p_event_id': widget.eventId, 'p_limit': 50},
+        params: {
+          'p_event_id': widget.eventId,
+          'p_limit': 50,
+        },
       );
 
       final rows = (data as List)
           .map(
-            (item) =>
-                _RankingEntry.fromMap(Map<String, dynamic>.from(item as Map)),
+            (item) => _RankingEntry.fromMap(
+              Map<String, dynamic>.from(
+                item as Map,
+              ),
+            ),
           )
           .toList();
+
+      final participantCount = rows.isEmpty
+          ? 0
+          : rows.first.participantCount;
 
       if (!mounted) {
         return;
@@ -62,17 +80,23 @@ class _RankingPageState extends State<RankingPage> {
 
       setState(() {
         _ranking = rows;
+        _participantCount = participantCount;
         _isLoading = false;
         _errorMessage = null;
       });
-    } catch (_) {
+    } catch (error) {
+      debugPrint(
+        '[RANKING] load failed: $error',
+      );
+
       if (!mounted) {
         return;
       }
 
       setState(() {
         _isLoading = false;
-        _errorMessage = 'ランキングを取得できませんでした。';
+        _errorMessage =
+            'ランキングを取得できませんでした。';
       });
     }
   }
@@ -92,59 +116,72 @@ class _RankingPageState extends State<RankingPage> {
       child: RefreshIndicator(
         onRefresh: _refreshRanking,
         child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
+          physics:
+              const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               _buildPageHeader(
                 title: 'ランキング',
-                subtitle: '聖地巡礼の記録',
+                subtitle:
+                    _participantCount > 0
+                        ? '参加者 $_participantCount人'
+                        : '聖地巡礼の記録',
                 icon: Icons.leaderboard,
               ),
               const SizedBox(height: 4),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Column(
-                  children: [
-                    const Text('あなたの記録', style: TextStyle(color: Colors.grey)),
-                    const SizedBox(height: 6),
-                    Text(
-                      widget.myRank == null
-                          ? 'ランキング未参加'
-                          : '現在 ${widget.myRank}位',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: widget.myRank == null
-                            ? Colors.grey
-                            : Colors.deepPurple,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${widget.myCount} / ${widget.total}',
-                      style: const TextStyle(
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text('聖地獲得数', style: TextStyle(fontSize: 14)),
-                  ],
-                ),
-              ),
+
+              _buildMyRecord(),
+
               const SizedBox(height: 20),
-              const Text(
-                'オンラインランキング',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'オンラインランキング',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  if (_participantCount > 0)
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple
+                            .withValues(
+                          alpha: 0.08,
+                        ),
+                        borderRadius:
+                            BorderRadius.circular(
+                          999,
+                        ),
+                      ),
+                      child: Text(
+                        '$_participantCount人参加',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight:
+                              FontWeight.w600,
+                          color:
+                              Colors.deepPurple,
+                        ),
+                      ),
+                    ),
+                ],
               ),
+
               const SizedBox(height: 12),
+
               _buildRankingContent(),
             ],
           ),
@@ -153,41 +190,180 @@ class _RankingPageState extends State<RankingPage> {
     );
   }
 
+  Widget _buildMyRecord() {
+    final hasDisplayName =
+        widget.displayName != null &&
+        widget.displayName!.trim().isNotEmpty;
+
+    String statusText;
+    String? guidanceText;
+
+    if (widget.myRank != null) {
+      statusText = '現在 ${widget.myRank}位';
+    } else if (!hasDisplayName) {
+      statusText = 'ランキング未参加';
+      guidanceText = '表示名を設定するとランキングに参加できます。';
+    } else if (widget.myCount == 0) {
+      statusText = 'ランキング未参加';
+      guidanceText = '聖地を1つ獲得するとランキングに参加できます。';
+    } else {
+      statusText = '順位を取得できませんでした';
+      guidanceText = 'ランキング情報を更新してください。';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'あなたの記録',
+            style: TextStyle(
+              color: Colors.grey,
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            statusText,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: widget.myRank == null
+                  ? Colors.grey
+                  : Colors.deepPurple,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Text(
+            '${widget.myCount} / ${widget.total}',
+            style: const TextStyle(
+              fontSize: 42,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 4),
+
+          const Text(
+            '聖地獲得数',
+            style: TextStyle(
+              fontSize: 14,
+            ),
+          ),
+
+          if (guidanceText != null) ...[
+            const SizedBox(height: 14),
+            Text(
+              guidanceText,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+
+          if (!hasDisplayName) ...[
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: () async {
+                final changed =
+                    await widget.onShowProfile();
+
+                if (!mounted || !changed) {
+                  return;
+                }
+
+                await _refreshRanking();
+              },
+              icon: const Icon(Icons.person_add_alt_1_outlined),
+              label: const Text('プロフィールを設定'),
+            ),
+          ],
+
+          if (_participantCount > 0) ...[
+            const SizedBox(height: 12),
+            Text(
+              widget.myRank == null
+                  ? '現在 $_participantCount人が参加中'
+                  : '$_participantCount人中 ${widget.myRank}位',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildRankingContent() {
     if (_isLoading) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(32),
+        padding:
+            const EdgeInsets.all(32),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius:
+              BorderRadius.circular(18),
         ),
-        child: const Center(child: CircularProgressIndicator()),
+        child: const Center(
+          child:
+              CircularProgressIndicator(),
+        ),
       );
     }
 
     if (_errorMessage != null) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding:
+            const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(18),
+          color: Colors.red.withValues(
+            alpha: 0.07,
+          ),
+          borderRadius:
+              BorderRadius.circular(18),
         ),
         child: Column(
           children: [
-            const Icon(Icons.cloud_off, size: 32),
+            const Icon(
+              Icons.cloud_off,
+              size: 32,
+            ),
             const SizedBox(height: 8),
             Text(
               _errorMessage!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13),
+              textAlign:
+                  TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+              ),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
-              onPressed: _refreshRanking,
-              icon: const Icon(Icons.refresh),
-              label: const Text('再読み込み'),
+              onPressed:
+                  _refreshRanking,
+              icon: const Icon(
+                Icons.refresh,
+              ),
+              label:
+                  const Text(
+                '再読み込み',
+              ),
             ),
           ],
         ),
@@ -197,21 +373,36 @@ class _RankingPageState extends State<RankingPage> {
     if (_ranking.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(24),
+        padding:
+            const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius:
+              BorderRadius.circular(18),
         ),
         child: const Column(
           children: [
-            Icon(Icons.leaderboard_outlined, size: 40, color: Colors.grey),
+            Icon(
+              Icons
+                  .leaderboard_outlined,
+              size: 40,
+              color: Colors.grey,
+            ),
             SizedBox(height: 10),
-            Text('まだランキング参加者がいません。', textAlign: TextAlign.center),
+            Text(
+              'まだランキング参加者がいません。',
+              textAlign:
+                  TextAlign.center,
+            ),
             SizedBox(height: 4),
             Text(
               '表示名を設定し、聖地を1つ以上獲得すると参加できます。',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+              textAlign:
+                  TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
+              ),
             ),
           ],
         ),
@@ -220,28 +411,41 @@ class _RankingPageState extends State<RankingPage> {
 
     return Column(
       children: [
-        for (final entry in _ranking)
+        for (final entry
+            in _ranking)
           _buildRankingRow(
-            rank: entry.rank,
-            name: entry.displayName,
-            count: entry.collectedCount,
-            isMe: entry.isMe,
+            entry: entry,
           ),
+
         const SizedBox(height: 10),
+
         Container(
-          padding: const EdgeInsets.all(14),
+          padding:
+              const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.deepPurple.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(18),
+            color:
+                Colors.deepPurple
+                    .withValues(
+              alpha: 0.07,
+            ),
+            borderRadius:
+                BorderRadius.circular(
+              18,
+            ),
           ),
           child: const Row(
             children: [
-              Icon(Icons.info_outline, size: 20),
+              Icon(
+                Icons.info_outline,
+                size: 20,
+              ),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
                   '表示名を設定し、聖地を1つ以上獲得したユーザーのみランキングに表示されます。',
-                  style: TextStyle(fontSize: 13),
+                  style: TextStyle(
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ],
@@ -252,84 +456,165 @@ class _RankingPageState extends State<RankingPage> {
   }
 
   Widget _buildRankingRow({
-    required int rank,
-    required String name,
-    required int count,
-    required bool isMe,
+    required _RankingEntry entry,
   }) {
-    String rankIcon;
+    String rankLabel;
 
-    if (rank == 1) {
-      rankIcon = '🥇';
-    } else if (rank == 2) {
-      rankIcon = '🥈';
-    } else if (rank == 3) {
-      rankIcon = '🥉';
+    if (entry.rank == 1) {
+      rankLabel = '🥇';
+    } else if (entry.rank == 2) {
+      rankLabel = '🥈';
+    } else if (entry.rank == 3) {
+      rankLabel = '🥉';
     } else {
-      rankIcon = '🏅';
+      rankLabel = '${entry.rank}';
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      margin:
+          const EdgeInsets.only(
+        bottom: 10,
+      ),
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 12,
+      ),
       decoration: BoxDecoration(
-        color: isMe ? Colors.deepPurple.withValues(alpha: 0.10) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: isMe
+        color: entry.isMe
+            ? Colors.deepPurple
+                .withValues(
+                alpha: 0.10,
+              )
+            : Colors.white,
+        borderRadius:
+            BorderRadius.circular(18),
+        border: entry.isMe
             ? Border.all(
-                color: Colors.deepPurple.withValues(alpha: 0.35),
+                color:
+                    Colors.deepPurple
+                        .withValues(
+                  alpha: 0.35,
+                ),
                 width: 1.5,
               )
             : null,
       ),
       child: Row(
         children: [
-          Text(rankIcon, style: const TextStyle(fontSize: 26)),
-          const SizedBox(width: 12),
           SizedBox(
-            width: 28,
+            width: 38,
             child: Text(
-              '$rank',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              rankLabel,
+              textAlign:
+                  TextAlign.center,
+              style: TextStyle(
+                fontSize:
+                    entry.rank <= 3
+                        ? 25
+                        : 17,
+                fontWeight:
+                    FontWeight.bold,
+              ),
             ),
           ),
+
           const SizedBox(width: 10),
+
+          ProfileAvatar(
+            avatarKey:
+                entry.avatarKey,
+            size: 44,
+            iconSize: 21,
+          ),
+
+          const SizedBox(width: 12),
+
           Expanded(
-            child: Row(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
-                Flexible(
-                  child: Text(
-                    name,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-                if (isMe) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.deepPurple.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Text(
-                      'あなた',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        entry.displayName,
+                        overflow:
+                            TextOverflow
+                                .ellipsis,
+                        style:
+                            const TextStyle(
+                          fontWeight:
+                              FontWeight
+                                  .w600,
+                        ),
                       ),
                     ),
+                    if (entry
+                        .isMe) ...[
+                      const SizedBox(
+                        width: 8,
+                      ),
+                      Container(
+                        padding:
+                            const EdgeInsets
+                                .symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration:
+                            BoxDecoration(
+                          color:
+                              Colors.deepPurple
+                                  .withValues(
+                            alpha:
+                                0.12,
+                          ),
+                          borderRadius:
+                              BorderRadius
+                                  .circular(
+                            10,
+                          ),
+                        ),
+                        child:
+                            const Text(
+                          'あなた',
+                          style:
+                              TextStyle(
+                            fontSize: 11,
+                            fontWeight:
+                                FontWeight
+                                    .bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${entry.collectedCount}聖地獲得',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color:
+                        Colors.grey
+                            .shade600,
                   ),
-                ],
+                ),
               ],
             ),
           ),
+
+          const SizedBox(width: 8),
+
           Text(
-            '$count',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+            '${entry.collectedCount}',
+            style: const TextStyle(
+              fontWeight:
+                  FontWeight.bold,
+              fontSize: 18,
+            ),
           ),
         ],
       ),
@@ -342,36 +627,64 @@ class _RankingPageState extends State<RankingPage> {
     required IconData icon,
   }) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 12, 8, 18),
+      padding:
+          const EdgeInsets.fromLTRB(
+        8,
+        12,
+        8,
+        18,
+      ),
       child: Row(
         children: [
           Container(
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF6A35C8), Color(0xFF8B5CF6)],
+              gradient:
+                  const LinearGradient(
+                colors: [
+                  Color(0xFF6A35C8),
+                  Color(0xFF8B5CF6),
+                ],
               ),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius:
+                  BorderRadius.circular(
+                16,
+              ),
             ),
-            child: Icon(icon, color: Colors.white, size: 27),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 27,
+            ),
           ),
+
           const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold,
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style:
+                      const TextStyle(
+                    fontSize: 25,
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
                 ),
-              ),
-              Text(
-                subtitle,
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
+                Text(
+                  subtitle,
+                  style:
+                      const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -382,22 +695,47 @@ class _RankingPageState extends State<RankingPage> {
 class _RankingEntry {
   final int rank;
   final String displayName;
+  final String? avatarKey;
   final int collectedCount;
+  final int participantCount;
   final bool isMe;
 
   const _RankingEntry({
     required this.rank,
     required this.displayName,
+    required this.avatarKey,
     required this.collectedCount,
+    required this.participantCount,
     required this.isMe,
   });
 
-  factory _RankingEntry.fromMap(Map<String, dynamic> map) {
+  factory _RankingEntry.fromMap(
+    Map<String, dynamic> map,
+  ) {
     return _RankingEntry(
-      rank: (map['rank'] as num?)?.toInt() ?? 0,
-      displayName: map['display_name']?.toString() ?? '',
-      collectedCount: (map['collected_count'] as num?)?.toInt() ?? 0,
-      isMe: map['is_me'] == true,
+      rank:
+          (map['rank'] as num?)
+                  ?.toInt() ??
+              0,
+      displayName:
+          map['display_name']
+                  ?.toString() ??
+              '',
+      avatarKey:
+          map['avatar_key']
+              ?.toString(),
+      collectedCount:
+          (map['collected_count']
+                      as num?)
+                  ?.toInt() ??
+              0,
+      participantCount:
+          (map['participant_count']
+                      as num?)
+                  ?.toInt() ??
+              0,
+      isMe:
+          map['is_me'] == true,
     );
   }
 }

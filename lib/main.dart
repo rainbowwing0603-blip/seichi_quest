@@ -1602,6 +1602,23 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     return RankingPage(
       eventId: eventId,
+      displayName: _displayName,
+      onShowProfile: () async {
+        final changed = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => const ProfilePage(),
+          ),
+        );
+
+        if (changed != true) {
+          return false;
+        }
+
+        await _loadDisplayName();
+        await _loadMyEventRank();
+
+        return true;
+      },
       myRank: _myEventRank,
       myCount: _getCollectedCount(),
       total: _seichiList.length,
