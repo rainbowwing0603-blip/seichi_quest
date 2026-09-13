@@ -1825,8 +1825,54 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _showEventSelector() async {
     if (_events.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('選択できるクエストがありません。')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            '選択できるクエストがありません。',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final client =
+        supabase.Supabase.instance.client;
+    final user = client.auth.currentUser;
+
+    Map<String, bool>? participationStates;
+
+    if (user != null) {
+      try {
+        final data = await client
+            .from('user_event_participations')
+            .select('event_id, is_active')
+            .eq('user_id', user.id);
+
+        final rows =
+            List<Map<String, dynamic>>.from(data);
+
+        participationStates = <String, bool>{};
+
+        for (final row in rows) {
+          final eventId =
+              row['event_id']?.toString();
+
+          if (eventId == null ||
+              eventId.isEmpty) {
+            continue;
+          }
+
+          participationStates[eventId] =
+              row['is_active'] == true;
+        }
+      } catch (error) {
+        debugPrint(
+          '[EVENT] participation status load failed: $error',
+        );
+      }
+    }
+
+    if (!mounted) {
       return;
     }
 
@@ -1838,36 +1884,173 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         return SafeArea(
           child: ListView(
             shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+            padding: const EdgeInsets.fromLTRB(
+              24,
+              8,
+              24,
+              24,
+            ),
             children: [
               const Text(
                 'クエストを選択',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '参加状態を確認しながらクエストを切り替えられます。',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                ),
               ),
               const SizedBox(height: 16),
               ..._events.map((event) {
                 final eventId = event.id;
                 final eventName = event.name;
-                final description = event.description;
-                final isCurrent = eventId == _currentEventId;
+                final description =
+                    event.description;
+                final isCurrent =
+                    eventId == _currentEventId;
+
+                String statusLabel;
+                IconData statusIcon;
+                Color statusColor;
+
+                if (isCurrent) {
+                  statusLabel = '選択中';
+                  statusIcon =
+                      Icons.check_circle;
+                  statusColor =
+                      Colors.deepPurple;
+                } else if (
+                    participationStates == null) {
+                  statusLabel = '状態不明';
+                  statusIcon =
+                      Icons.help_outline;
+                  statusColor = Colors.grey;
+                } else if (
+                    participationStates[eventId] ==
+                        true) {
+                  statusLabel = '参加中';
+                  statusIcon =
+                      Icons.flag_outlined;
+                  statusColor = Colors.green;
+                } else if (
+                    participationStates
+                        .containsKey(eventId)) {
+                  statusLabel = '過去に参加';
+                  statusIcon =
+                      Icons.history_outlined;
+                  statusColor = Colors.orange;
+                } else {
+                  statusLabel = '未参加';
+                  statusIcon =
+                      Icons.add_circle_outline;
+                  statusColor = Colors.grey;
+                }
 
                 return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                  leading: Icon(
-                    isCurrent ? Icons.check_circle : Icons.explore_outlined,
+                  contentPadding:
+                      const EdgeInsets.symmetric(
+                    vertical: 5,
                   ),
-                  title: Text(eventName),
-                  subtitle: description.isEmpty ? null : Text(description),
-                  trailing: isCurrent ? const Icon(Icons.check) : null,
-                  onTap: () async {
-                    Navigator.of(sheetContext).pop();
+                  leading: Icon(
+                    isCurrent
+                        ? Icons.check_circle
+                        : Icons.explore_outlined,
+                    color: isCurrent
+                        ? Colors.deepPurple
+                        : null,
+                  ),
+                  title: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          eventName,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding:
+                            const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration:
+                            BoxDecoration(
+                          color: statusColor
+                              .withValues(
+                            alpha: 0.10,
+                          ),
+                          borderRadius:
+                              BorderRadius.circular(
+                            999,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize:
+                              MainAxisSize.min,
+                          children: [
+                            Icon(
+                              statusIcon,
+                              size: 13,
+                              color: statusColor,
+                            ),
+                            const SizedBox(
+                              width: 4,
+                            ),
+                            Text(
+                              statusLabel,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight:
+                                    FontWeight.w600,
+                                color:
+                                    statusColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  subtitle:
+                      description.isEmpty
+                          ? null
+                          : Text(
+                              description,
+                              maxLines: 2,
+                              overflow:
+                                  TextOverflow
+                                      .ellipsis,
+                            ),
+                  trailing: isCurrent
+                      ? const Icon(
+                          Icons.check,
+                          color:
+                              Colors.deepPurple,
+                        )
+                      : const Icon(
+                          Icons.chevron_right,
+                        ),
+                  onTap: isCurrent
+                      ? null
+                      : () async {
+                          Navigator.of(
+                            sheetContext,
+                          ).pop();
 
-                    try {
-                      await _selectEvent(event);
-                    } catch (_) {
-                      // _selectEvent() 内でエラー表示済み
-                    }
-                  },
+                          try {
+                            await _selectEvent(
+                              event,
+                            );
+                          } catch (_) {
+                            // _selectEvent() 内でエラー表示済み
+                          }
+                        },
                 );
               }),
             ],
