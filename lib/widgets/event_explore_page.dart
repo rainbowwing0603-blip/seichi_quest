@@ -30,6 +30,11 @@ class _EventExplorePageState
 
   Map<String, bool> _participationStates = {};
 
+  final TextEditingController _searchController =
+      TextEditingController();
+
+  String _searchQuery = '';
+
   supabase.SupabaseClient get _client =>
       supabase.Supabase.instance.client;
 
@@ -37,6 +42,12 @@ class _EventExplorePageState
   void initState() {
     super.initState();
     _loadParticipationStates();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadParticipationStates() async {
@@ -241,6 +252,19 @@ class _EventExplorePageState
   }
 
   Widget _buildBody() {
+    final query = _searchQuery.trim().toLowerCase();
+
+    final filteredEvents = query.isEmpty
+        ? widget.events
+        : widget.events.where((event) {
+            final name = event.name.toLowerCase();
+            final description =
+                event.description.toLowerCase();
+
+            return name.contains(query) ||
+                description.contains(query);
+          }).toList(growable: false);
+
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -319,7 +343,97 @@ class _EventExplorePageState
       children: [
         _buildHeader(),
         const SizedBox(height: 14),
-        for (final event in widget.events)
+        TextField(
+          controller: _searchController,
+          textInputAction: TextInputAction.search,
+          onChanged: (value) {
+            setState(() {
+              _searchQuery = value;
+            });
+          },
+          decoration: InputDecoration(
+            hintText: 'クエスト名・説明から検索',
+            prefixIcon: const Icon(
+              Icons.search,
+            ),
+            suffixIcon: _searchQuery.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: '検索をクリア',
+                    onPressed: () {
+                      _searchController.clear();
+
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    },
+                    icon: const Icon(
+                      Icons.close,
+                    ),
+                  ),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius:
+                  BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 4,
+          ),
+          child: Text(
+            _searchQuery.trim().isEmpty
+                ? '${filteredEvents.length}件のクエスト'
+                : '検索結果 ${filteredEvents.length}件',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (filteredEvents.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius:
+                  BorderRadius.circular(20),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.search_off,
+                  size: 48,
+                  color: Colors.grey.shade400,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '該当するクエストはありません',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '検索する言葉を変えてみてください。',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color:
+                        Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        for (final event in filteredEvents)
           _buildEventCard(event),
       ],
     );
