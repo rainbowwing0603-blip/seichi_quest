@@ -34,6 +34,7 @@ class _EventExplorePageState
       TextEditingController();
 
   String _searchQuery = '';
+  String _statusFilter = 'すべて';
 
   supabase.SupabaseClient get _client =>
       supabase.Supabase.instance.client;
@@ -254,16 +255,35 @@ class _EventExplorePageState
   Widget _buildBody() {
     final query = _searchQuery.trim().toLowerCase();
 
-    final filteredEvents = query.isEmpty
+    final searchedEvents = query.isEmpty
         ? widget.events
         : widget.events.where((event) {
-            final name = event.name.toLowerCase();
+            final name =
+                event.name.toLowerCase();
             final description =
                 event.description.toLowerCase();
 
             return name.contains(query) ||
                 description.contains(query);
           }).toList(growable: false);
+
+    final filteredEvents =
+        searchedEvents.where((event) {
+      if (_statusFilter == 'すべて') {
+        return true;
+      }
+
+      final participationLabel =
+          _participationLabel(event);
+
+      if (_statusFilter == '参加中') {
+        return participationLabel == '選択中' ||
+            participationLabel == '参加中';
+      }
+
+      return participationLabel ==
+          _statusFilter;
+    }).toList(growable: false);
 
     if (_isLoading) {
       return const Center(
@@ -380,6 +400,32 @@ class _EventExplorePageState
             ),
           ),
         ),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final filter in const [
+                'すべて',
+                '未参加',
+                '参加中',
+                '過去に参加',
+              ]) ...[
+                FilterChip(
+                  label: Text(filter),
+                  selected:
+                      _statusFilter == filter,
+                  onSelected: (_) {
+                    setState(() {
+                      _statusFilter = filter;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
         const SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.symmetric(
@@ -423,7 +469,7 @@ class _EventExplorePageState
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '検索する言葉を変えてみてください。',
+                  '検索条件やフィルターを変えてみてください。',
                   style: TextStyle(
                     fontSize: 13,
                     color:
