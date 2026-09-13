@@ -72,24 +72,7 @@ class _EventDetailPageState
   }
 
   String _eventStatusText() {
-    final now = DateTime.now();
-
-    final startAt =
-        widget.event.startAt?.toLocal();
-    final endAt =
-        widget.event.endAt?.toLocal();
-
-    if (startAt != null &&
-        now.isBefore(startAt)) {
-      return '開催前';
-    }
-
-    if (endAt != null &&
-        now.isAfter(endAt)) {
-      return '終了';
-    }
-
-    return '開催中';
+    return widget.event.eventStatusText();
   }
 
   Color _participationColor() {

@@ -35,6 +35,8 @@ class _EventExplorePageState
 
   String _searchQuery = '';
   String _statusFilter = 'すべて';
+  String _periodFilter = 'すべて';
+  String _sortOrder = '標準';
 
   supabase.SupabaseClient get _client =>
       supabase.Supabase.instance.client;
@@ -269,21 +271,107 @@ class _EventExplorePageState
 
     final filteredEvents =
         searchedEvents.where((event) {
-      if (_statusFilter == 'すべて') {
+      bool matchesParticipation = true;
+
+      if (_statusFilter != 'すべて') {
+        final participationLabel =
+            _participationLabel(event);
+
+        if (_statusFilter == '参加中') {
+          matchesParticipation =
+              participationLabel == '選択中' ||
+                  participationLabel == '参加中';
+        } else {
+          matchesParticipation =
+              participationLabel ==
+                  _statusFilter;
+        }
+      }
+
+      if (!matchesParticipation) {
+        return false;
+      }
+
+      if (_periodFilter == 'すべて') {
         return true;
       }
 
-      final participationLabel =
-          _participationLabel(event);
-
-      if (_statusFilter == '参加中') {
-        return participationLabel == '選択中' ||
-            participationLabel == '参加中';
-      }
-
-      return participationLabel ==
-          _statusFilter;
+      return event.eventStatusText() ==
+          _periodFilter;
     }).toList(growable: false);
+
+    final sortedEvents =
+        List<Event>.from(filteredEvents);
+
+    switch (_sortOrder) {
+      case '終了が近い順':
+        sortedEvents.sort((a, b) {
+          final aEnd = a.endAt;
+          final bEnd = b.endAt;
+
+          if (aEnd == null && bEnd == null) {
+            return a.name.compareTo(b.name);
+          }
+
+          if (aEnd == null) {
+            return 1;
+          }
+
+          if (bEnd == null) {
+            return -1;
+          }
+
+          final result =
+              aEnd.compareTo(bEnd);
+
+          if (result != 0) {
+            return result;
+          }
+
+          return a.name.compareTo(b.name);
+        });
+        break;
+
+      case '開始日が早い順':
+        sortedEvents.sort((a, b) {
+          final aStart = a.startAt;
+          final bStart = b.startAt;
+
+          if (aStart == null &&
+              bStart == null) {
+            return a.name.compareTo(b.name);
+          }
+
+          if (aStart == null) {
+            return 1;
+          }
+
+          if (bStart == null) {
+            return -1;
+          }
+
+          final result =
+              aStart.compareTo(bStart);
+
+          if (result != 0) {
+            return result;
+          }
+
+          return a.name.compareTo(b.name);
+        });
+        break;
+
+      case '名前順':
+        sortedEvents.sort(
+          (a, b) =>
+              a.name.compareTo(b.name),
+        );
+        break;
+
+      case '標準':
+      default:
+        break;
+    }
 
     if (_isLoading) {
       return const Center(
@@ -426,6 +514,98 @@ class _EventExplorePageState
             ],
           ),
         ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final filter in const [
+                'すべて',
+                '開催中',
+                '開催前',
+                '終了',
+              ]) ...[
+                FilterChip(
+                  label: Text(filter),
+                  selected:
+                      _periodFilter == filter,
+                  onSelected: (_) {
+                    setState(() {
+                      _periodFilter = filter;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Icon(
+              Icons.sort,
+              size: 18,
+              color: Colors.grey.shade600,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '並び替え',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                initialValue: _sortOrder,
+                isDense: true,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding:
+                      const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: '標準',
+                    child: Text('標準'),
+                  ),
+                  DropdownMenuItem(
+                    value: '終了が近い順',
+                    child: Text('終了が近い順'),
+                  ),
+                  DropdownMenuItem(
+                    value: '開始日が早い順',
+                    child: Text('開始日が早い順'),
+                  ),
+                  DropdownMenuItem(
+                    value: '名前順',
+                    child: Text('名前順'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+
+                  setState(() {
+                    _sortOrder = value;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.symmetric(
@@ -479,7 +659,7 @@ class _EventExplorePageState
               ],
             ),
           ),
-        for (final event in filteredEvents)
+        for (final event in sortedEvents)
           _buildEventCard(event),
       ],
     );

@@ -23,6 +23,25 @@ class Event {
     this.updatedAt,
   });
 
+  String eventStatusText({DateTime? now}) {
+    final current = now ?? DateTime.now();
+
+    final localStartAt = startAt?.toLocal();
+    final localEndAt = endAt?.toLocal();
+
+    if (localStartAt != null &&
+        current.isBefore(localStartAt)) {
+      return '開催前';
+    }
+
+    if (localEndAt != null &&
+        current.isAfter(localEndAt)) {
+      return '終了';
+    }
+
+    return '開催中';
+  }
+
   factory Event.fromMap(Map<String, dynamic> map) {
     return Event(
       id: map['id']?.toString() ?? '',
