@@ -236,7 +236,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _loadCurrentEvent() async {
     try {
-      final data = await supabase.Supabase.instance.client
+      final client = supabase.Supabase.instance.client;
+      final user = client.auth.currentUser;
+
+      final data = await client
           .from('events')
           .select(
             'id, slug, name, description, is_active, '
@@ -251,18 +254,50 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       _events = events;
 
+      if (events.isEmpty) {
+        throw Exception('有効なクエストがありません。');
+      }
+
+      String? savedEventId;
+
+      if (user != null) {
+        try {
+          final preference = await client
+              .from('user_event_preferences')
+              .select('current_event_id')
+              .eq('user_id', user.id)
+              .maybeSingle();
+
+          savedEventId =
+              preference?['current_event_id']?.toString();
+        } catch (error) {
+          debugPrint(
+            '[EVENT] preference load failed: $error',
+          );
+        }
+      }
+
       Event? currentEvent;
 
-      for (final event in events) {
-        if (event.slug == 'jomo-karuta-gunma') {
-          currentEvent = event;
-          break;
+      if (savedEventId != null && savedEventId.isNotEmpty) {
+        for (final event in events) {
+          if (event.id == savedEventId) {
+            currentEvent = event;
+            break;
+          }
         }
       }
 
       if (currentEvent == null) {
-        throw Exception('現在のイベントが見つかりません。');
+        for (final event in events) {
+          if (event.slug == 'jomo-karuta-gunma') {
+            currentEvent = event;
+            break;
+          }
+        }
       }
+
+      currentEvent ??= events.first;
 
       _currentEventId = currentEvent.id;
       _currentEventName = currentEvent.name;
@@ -270,8 +305,46 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       if (_currentEventId == null || _currentEventId!.isEmpty) {
         throw Exception('現在のイベントIDが取得できません。');
       }
+
+      if (user != null &&
+          savedEventId != _currentEventId) {
+        await _saveCurrentEventPreference(_currentEventId!);
+      }
+
+      debugPrint(
+        '[EVENT] current event restored: id=$_currentEventId, name=$_currentEventName',
+      );
     } catch (e) {
       debugPrint('現在のイベント取得エラー: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _saveCurrentEventPreference(String eventId) async {
+    final client = supabase.Supabase.instance.client;
+    final user = client.auth.currentUser;
+
+    if (user == null || eventId.isEmpty) {
+      return;
+    }
+
+    try {
+      await client.from('user_event_preferences').upsert(
+        {
+          'user_id': user.id,
+          'current_event_id': eventId,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        },
+        onConflict: 'user_id',
+      );
+
+      debugPrint(
+        '[EVENT] preference saved: eventId=$eventId',
+      );
+    } catch (error) {
+      debugPrint(
+        '[EVENT] preference save failed: $error',
+      );
       rethrow;
     }
   }
@@ -1665,6 +1738,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       await _applyCollectedRows(syncedRows);
       await _loadCloudHistory();
       await _loadMyEventRank();
+      await _saveCurrentEventPreference(eventId);
 
       _updateNextDestination();
 
