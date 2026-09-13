@@ -1828,7 +1828,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            '選択できるクエストがありません。',
+            '表示できるクエストがありません。',
           ),
         ),
       );
@@ -1892,7 +1892,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             ),
             children: [
               const Text(
-                'クエストを選択',
+                'クエスト一覧',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -1900,18 +1900,20 @@ class _SeichiMapPageState extends State<SeichiMapPage>
               ),
               const SizedBox(height: 6),
               Text(
-                '参加状態を確認しながらクエストを切り替えられます。',
+                '詳細を確認してから参加・選択できます。',
                 style: TextStyle(
                   fontSize: 13,
                   color: Colors.grey.shade600,
                 ),
               ),
               const SizedBox(height: 16),
+
               ..._events.map((event) {
                 final eventId = event.id;
                 final eventName = event.name;
                 final description =
                     event.description;
+
                 final isCurrent =
                     eventId == _currentEventId;
 
@@ -1930,26 +1932,54 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                   statusLabel = '状態不明';
                   statusIcon =
                       Icons.help_outline;
-                  statusColor = Colors.grey;
+                  statusColor =
+                      Colors.grey;
                 } else if (
                     participationStates[eventId] ==
                         true) {
                   statusLabel = '参加中';
                   statusIcon =
                       Icons.flag_outlined;
-                  statusColor = Colors.green;
+                  statusColor =
+                      Colors.green;
                 } else if (
                     participationStates
                         .containsKey(eventId)) {
                   statusLabel = '過去に参加';
                   statusIcon =
                       Icons.history_outlined;
-                  statusColor = Colors.orange;
+                  statusColor =
+                      Colors.orange;
                 } else {
                   statusLabel = '未参加';
                   statusIcon =
                       Icons.add_circle_outline;
-                  statusColor = Colors.grey;
+                  statusColor =
+                      Colors.grey;
+                }
+
+                String? primaryActionLabel;
+
+                if (!isCurrent) {
+                  switch (statusLabel) {
+                    case '参加中':
+                      primaryActionLabel =
+                          'このクエストを選ぶ';
+                      break;
+
+                    case '過去に参加':
+                      primaryActionLabel =
+                          '再参加して選ぶ';
+                      break;
+
+                    case '未参加':
+                      primaryActionLabel =
+                          '参加して選ぶ';
+                      break;
+
+                    default:
+                      primaryActionLabel = null;
+                  }
                 }
 
                 return ListTile(
@@ -2027,30 +2057,77 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                                   TextOverflow
                                       .ellipsis,
                             ),
-                  trailing: isCurrent
-                      ? const Icon(
-                          Icons.check,
-                          color:
-                              Colors.deepPurple,
-                        )
-                      : const Icon(
-                          Icons.chevron_right,
-                        ),
-                  onTap: isCurrent
-                      ? null
-                      : () async {
-                          Navigator.of(
-                            sheetContext,
-                          ).pop();
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                  ),
 
-                          try {
-                            await _selectEvent(
-                              event,
-                            );
-                          } catch (_) {
-                            // _selectEvent() 内でエラー表示済み
-                          }
-                        },
+                  // ------------------------------------------------
+                  // ここでは選択しない。
+                  // まず詳細画面を開く。
+                  // ------------------------------------------------
+                  onTap: () async {
+                    Navigator.of(
+                      sheetContext,
+                    ).pop();
+
+                    await Future<void>.delayed(
+                      Duration.zero,
+                    );
+
+                    if (!mounted) {
+                      return;
+                    }
+
+                    final changed =
+                        await Navigator.of(context)
+                            .push<bool>(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            EventDetailPage(
+                          event: event,
+
+                          participationLabel:
+                              statusLabel,
+
+                          collectedCount:
+                              isCurrent
+                                  ? _getCollectedCount()
+                                  : null,
+
+                          totalCount:
+                              isCurrent
+                                  ? _seichiList.length
+                                  : null,
+
+                          primaryActionLabel:
+                              primaryActionLabel,
+
+                          onPrimaryAction:
+                              primaryActionLabel ==
+                                      null
+                                  ? null
+                                  : () async {
+                                      await _selectEvent(
+                                        event,
+                                      );
+                                    },
+
+                          onSelectAnotherEvent:
+                              () async {
+                            Navigator.of(context)
+                                .pop();
+
+                            await _showEventSelector();
+                          },
+                        ),
+                      ),
+                    );
+
+                    if (changed == true &&
+                        mounted) {
+                      setState(() {});
+                    }
+                  },
                 );
               }),
             ],
