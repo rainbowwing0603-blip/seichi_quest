@@ -16,6 +16,7 @@ import 'widgets/profile_page.dart';
 import 'widgets/account_page.dart';
 import 'widgets/adventure_log_page.dart';
 import 'widgets/event_detail_page.dart';
+import 'widgets/event_explore_page.dart';
 import 'widgets/sync_status_page.dart';
 import 'widgets/participating_events_page.dart';
 import 'widgets/notification_settings_page.dart';
@@ -2146,6 +2147,51 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       count: _getCollectedCount(),
       total: _seichiList.length,
       currentEventName: _currentEventName,
+      onShowEventExplore: () async {
+        final selectedEventId =
+            await Navigator.of(context).push<String>(
+          MaterialPageRoute(
+            builder: (_) => EventExplorePage(
+              events: _events,
+              currentEventId: _currentEventId,
+              currentCollectedCount:
+                  _getCollectedCount(),
+              currentTotalCount:
+                  _seichiList.length,
+            ),
+          ),
+        );
+
+        if (selectedEventId == null ||
+            selectedEventId.isEmpty ||
+            selectedEventId == _currentEventId) {
+          return;
+        }
+
+        Event? selectedEvent;
+
+        for (final event in _events) {
+          if (event.id == selectedEventId) {
+            selectedEvent = event;
+            break;
+          }
+        }
+
+        if (selectedEvent == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  '選択したクエスト情報を取得できません。',
+                ),
+              ),
+            );
+          }
+          return;
+        }
+
+        await _selectEvent(selectedEvent);
+      },
       onShowParticipatingEvents: () async {
         final selectedEventId =
             await Navigator.of(context).push<String>(
