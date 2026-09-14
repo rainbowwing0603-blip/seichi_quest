@@ -2153,6 +2153,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           MaterialPageRoute(
             builder: (_) => EventExplorePage(
               events: _events,
+              currentPosition: _currentPosition,
               currentEventId: _currentEventId,
               currentCollectedCount:
                   _getCollectedCount(),

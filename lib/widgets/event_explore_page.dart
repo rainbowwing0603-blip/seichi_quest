@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../models/event.dart';
@@ -8,12 +9,14 @@ class EventExplorePage extends StatefulWidget {
   const EventExplorePage({
     super.key,
     required this.events,
+    required this.currentPosition,
     required this.currentEventId,
     required this.currentCollectedCount,
     required this.currentTotalCount,
   });
 
   final List<Event> events;
+  final Position? currentPosition;
   final String? currentEventId;
   final int currentCollectedCount;
   final int currentTotalCount;
@@ -30,6 +33,10 @@ class _EventExplorePageState
 
   Map<String, bool> _participationStates = {};
 
+  final Map<String, double> _nearestDistanceByEventId = {};
+
+  final Set<String> _favoriteEventIds = <String>{};
+
   final TextEditingController _searchController =
       TextEditingController();
 
@@ -38,6 +45,7 @@ class _EventExplorePageState
   String _periodFilter = 'すべて';
   String _prefectureFilter = 'すべて';
   String _sortOrder = '標準';
+  bool _favoriteOnly = false;
 
   supabase.SupabaseClient get _client =>
       supabase.Supabase.instance.client;
@@ -46,12 +54,219 @@ class _EventExplorePageState
   void initState() {
     super.initState();
     _loadParticipationStates();
+    _loadNearestEventDistances();
+    _loadFavoriteEvents();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadNearestEventDistances() async {
+    final position = widget.currentPosition;
+
+    if (position == null) {
+      return;
+    }
+
+    try {
+      final data = await _client
+          .from('event_contents')
+          .select(
+            'event_id, is_active, '
+            'places(latitude, longitude, is_active)',
+          )
+          .eq('is_active', true);
+
+      final rows =
+          List<Map<String, dynamic>>.from(data);
+
+      final distances = <String, double>{};
+
+      for (final row in rows) {
+        final eventId =
+            row['event_id']?.toString();
+
+        if (eventId == null ||
+            eventId.isEmpty) {
+          continue;
+        }
+
+        final placeData = row['places'];
+
+        if (placeData is! Map) {
+          continue;
+        }
+
+        final place =
+            Map<String, dynamic>.from(placeData);
+
+        if (place['is_active'] != true) {
+          continue;
+        }
+
+        final latitude =
+            (place['latitude'] as num?)?.toDouble();
+
+        final longitude =
+            (place['longitude'] as num?)?.toDouble();
+
+        if (latitude == null ||
+            longitude == null) {
+          continue;
+        }
+
+        final distance =
+            Geolocator.distanceBetween(
+          position.latitude,
+          position.longitude,
+          latitude,
+          longitude,
+        );
+
+        final current =
+            distances[eventId];
+
+        if (current == null ||
+            distance < current) {
+          distances[eventId] = distance;
+        }
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _nearestDistanceByEventId
+          ..clear()
+          ..addAll(distances);
+      });
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[EVENT] nearest distance load failed: $error',
+      );
+      debugPrint(
+        '[EVENT] nearest distance stackTrace: $stackTrace',
+      );
+    }
+  }
+
+  Future<void> _loadFavoriteEvents() async {
+    final user = _client.auth.currentUser;
+
+    if (user == null) {
+      return;
+    }
+
+    try {
+      final data = await _client
+          .from('user_event_favorites')
+          .select('event_id')
+          .eq('user_id', user.id);
+
+      final rows =
+          List<Map<String, dynamic>>.from(data);
+
+      final ids = <String>{};
+
+      for (final row in rows) {
+        final eventId =
+            row['event_id']?.toString();
+
+        if (eventId == null ||
+            eventId.isEmpty) {
+          continue;
+        }
+
+        ids.add(eventId);
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _favoriteEventIds
+          ..clear()
+          ..addAll(ids);
+      });
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[EVENT] favorite load failed: $error',
+      );
+      debugPrint(
+        '[EVENT] favorite load stackTrace: $stackTrace',
+      );
+    }
+  }
+
+  Future<void> _toggleFavorite(
+    Event event,
+  ) async {
+    final user = _client.auth.currentUser;
+
+    if (user == null) {
+      return;
+    }
+
+    final isFavorite =
+        _favoriteEventIds.contains(event.id);
+
+    try {
+      if (isFavorite) {
+        await _client
+            .from('user_event_favorites')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('event_id', event.id);
+      } else {
+        await _client
+            .from('user_event_favorites')
+            .insert({
+          'user_id': user.id,
+          'event_id': event.id,
+        });
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        if (isFavorite) {
+          _favoriteEventIds.remove(
+            event.id,
+          );
+        } else {
+          _favoriteEventIds.add(
+            event.id,
+          );
+        }
+      });
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[EVENT] favorite toggle failed: $error',
+      );
+      debugPrint(
+        '[EVENT] favorite toggle stackTrace: $stackTrace',
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            'お気に入りの更新に失敗しました。',
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _loadParticipationStates() async {
@@ -255,6 +470,245 @@ class _EventExplorePageState
     );
   }
 
+  Future<void> _showFilterSheet(
+    List<String> prefectureOptions,
+  ) async {
+    var temporaryStatus = _statusFilter;
+    var temporaryPeriod = _periodFilter;
+    var temporaryPrefecture =
+        _prefectureFilter;
+
+    var temporaryFavoriteOnly =
+        _favoriteOnly;
+
+    final applied =
+        await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor:
+          const Color(0xFFF7F5FB),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (
+            context,
+            setSheetState,
+          ) {
+            Widget buildSection({
+              required String title,
+              required List<String> options,
+              required String selected,
+              required ValueChanged<String>
+                  onSelected,
+            }) {
+              return Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight:
+                          FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final option
+                          in options)
+                        ChoiceChip(
+                          label:
+                              Text(option),
+                          selected:
+                              selected == option,
+                          onSelected: (_) {
+                            onSelected(option);
+                          },
+                        ),
+                    ],
+                  ),
+                ],
+              );
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding:
+                    EdgeInsets.fromLTRB(
+                  20,
+                  4,
+                  20,
+                  20 +
+                      MediaQuery.of(
+                        context,
+                      ).viewInsets.bottom,
+                ),
+                child: Column(
+                  mainAxisSize:
+                      MainAxisSize.min,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '絞り込み',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '条件を組み合わせてクエストを探せます。',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors
+                            .grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    buildSection(
+                      title: '参加状態',
+                      options: const [
+                        'すべて',
+                        '未参加',
+                        '参加中',
+                        '過去に参加',
+                      ],
+                      selected:
+                          temporaryStatus,
+                      onSelected: (value) {
+                        setSheetState(() {
+                          temporaryStatus =
+                              value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 22),
+                    buildSection(
+                      title: '開催状態',
+                      options: const [
+                        'すべて',
+                        '開催中',
+                        '開催前',
+                        '終了',
+                      ],
+                      selected:
+                          temporaryPeriod,
+                      onSelected: (value) {
+                        setSheetState(() {
+                          temporaryPeriod =
+                              value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 22),
+                    buildSection(
+                      title: '都道府県',
+                      options: <String>[
+                        'すべて',
+                        ...prefectureOptions,
+                      ],
+                      selected:
+                          temporaryPrefecture,
+                      onSelected: (value) {
+                        setSheetState(() {
+                          temporaryPrefecture =
+                              value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 22),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'お気に入りのみ',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        '★を付けたクエストだけ表示',
+                      ),
+                      value: temporaryFavoriteOnly,
+                      onChanged: (value) {
+                        setSheetState(() {
+                          temporaryFavoriteOnly = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 26),
+                    Row(
+                      children: [
+                        Expanded(
+                          child:
+                              OutlinedButton(
+                            onPressed: () {
+                              setSheetState(
+                                () {
+                                  temporaryStatus =
+                                      'すべて';
+                                  temporaryPeriod =
+                                      'すべて';
+                                  temporaryPrefecture =
+                                      'すべて';
+                                  temporaryFavoriteOnly = false;
+                                },
+                              );
+                            },
+                            child:
+                                const Text(
+                              'リセット',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(
+                          width: 12,
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child:
+                              FilledButton(
+                            onPressed: () {
+                              Navigator.of(
+                                sheetContext,
+                              ).pop(true);
+                            },
+                            child:
+                                const Text(
+                              'この条件で表示',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted || applied != true) {
+      return;
+    }
+
+    setState(() {
+      _statusFilter = temporaryStatus;
+      _periodFilter = temporaryPeriod;
+      _prefectureFilter =
+          temporaryPrefecture;
+      _favoriteOnly = temporaryFavoriteOnly;
+    });
+  }
+
   Widget _buildBody() {
     final query = _searchQuery.trim().toLowerCase();
 
@@ -331,6 +785,11 @@ class _EventExplorePageState
         }
       }
 
+      if (_favoriteOnly &&
+          !_favoriteEventIds.contains(event.id)) {
+        return false;
+      }
+
       return true;
     }).toList(growable: false);
 
@@ -338,6 +797,37 @@ class _EventExplorePageState
         List<Event>.from(filteredEvents);
 
     switch (_sortOrder) {
+      case '現在地から近い順':
+        sortedEvents.sort((a, b) {
+          final aDistance =
+              _nearestDistanceByEventId[a.id];
+          final bDistance =
+              _nearestDistanceByEventId[b.id];
+
+          if (aDistance == null &&
+              bDistance == null) {
+            return a.name.compareTo(b.name);
+          }
+
+          if (aDistance == null) {
+            return 1;
+          }
+
+          if (bDistance == null) {
+            return -1;
+          }
+
+          final result =
+              aDistance.compareTo(bDistance);
+
+          if (result != 0) {
+            return result;
+          }
+
+          return a.name.compareTo(b.name);
+        });
+        break;
+
       case '終了が近い順':
         sortedEvents.sort((a, b) {
           final aEnd = a.endAt;
@@ -523,162 +1013,138 @@ class _EventExplorePageState
           ),
         ),
         const SizedBox(height: 12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final filter in const [
-                'すべて',
-                '未参加',
-                '参加中',
-                '過去に参加',
-              ]) ...[
-                FilterChip(
-                  label: Text(filter),
-                  selected:
-                      _statusFilter == filter,
-                  onSelected: (_) {
-                    setState(() {
-                      _statusFilter = filter;
-                    });
-                  },
-                ),
-                const SizedBox(width: 8),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final filter in const [
-                'すべて',
-                '開催中',
-                '開催前',
-                '終了',
-              ]) ...[
-                FilterChip(
-                  label: Text(filter),
-                  selected:
-                      _periodFilter == filter,
-                  onSelected: (_) {
-                    setState(() {
-                      _periodFilter = filter;
-                    });
-                  },
-                ),
-                const SizedBox(width: 8),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 4,
-          ),
-          child: Text(
-            '都道府県',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade700,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final filter in <String>[
-                'すべて',
-                ...prefectureOptions,
-              ]) ...[
-                FilterChip(
-                  label: Text(filter),
-                  selected:
-                      _prefectureFilter ==
-                          filter,
-                  onSelected: (_) {
-                    setState(() {
-                      _prefectureFilter =
-                          filter;
-                    });
-                  },
-                ),
-                const SizedBox(width: 8),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Icon(
-              Icons.sort,
-              size: 18,
-              color: Colors.grey.shade600,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '並び替え',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _sortOrder,
-                isDense: true,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding:
-                      const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                items: const [
-                  DropdownMenuItem(
-                    value: '標準',
-                    child: Text('標準'),
-                  ),
-                  DropdownMenuItem(
-                    value: '終了が近い順',
-                    child: Text('終了が近い順'),
-                  ),
-                  DropdownMenuItem(
-                    value: '開始日が早い順',
-                    child: Text('開始日が早い順'),
-                  ),
-                  DropdownMenuItem(
-                    value: '名前順',
-                    child: Text('名前順'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
+        Builder(
+          builder: (context) {
+            final activeFilterCount = [
+              _statusFilter,
+              _periodFilter,
+              _prefectureFilter,
+            ].where(
+              (value) => value != 'すべて',
+).length + (_favoriteOnly ? 1 : 0);
 
-                  setState(() {
-                    _sortOrder = value;
-                  });
-                },
-              ),
-            ),
-          ],
+            return Row(
+              children: [
+                Expanded(
+                  child:
+                      OutlinedButton.icon(
+                    onPressed: () {
+                      _showFilterSheet(
+                        prefectureOptions,
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.tune,
+                      size: 19,
+                    ),
+                    label: Text(
+                      activeFilterCount == 0
+                          ? '絞り込み'
+                          : '絞り込み $activeFilterCount',
+                    ),
+                    style:
+                        OutlinedButton.styleFrom(
+                      minimumSize:
+                          const Size(
+                        0,
+                        48,
+                      ),
+                      backgroundColor:
+                          Colors.white,
+                      shape:
+                          RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(
+                          14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child:
+                      DropdownButtonFormField<
+                          String>(
+                    key: ValueKey(
+                      _sortOrder,
+                    ),
+                    initialValue:
+                        _sortOrder,
+                    isDense: true,
+                    decoration:
+                        InputDecoration(
+                      prefixIcon:
+                          const Icon(
+                        Icons.sort,
+                        size: 19,
+                      ),
+                      filled: true,
+                      fillColor:
+                          Colors.white,
+                      contentPadding:
+                          const EdgeInsets
+                              .symmetric(
+                        horizontal: 10,
+                        vertical: 13,
+                      ),
+                      border:
+                          OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                          14,
+                        ),
+                        borderSide:
+                            BorderSide.none,
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: '標準',
+                        child: Text('標準'),
+                      ),
+                      DropdownMenuItem(
+                        value:
+                            '現在地から近い順',
+                        child: Text(
+                          '近い順',
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value:
+                            '終了が近い順',
+                        child: Text(
+                          '終了順',
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value:
+                            '開始日が早い順',
+                        child: Text(
+                          '開始順',
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: '名前順',
+                        child:
+                            Text('名前順'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) {
+                        return;
+                      }
+
+                      setState(() {
+                        _sortOrder = value;
+                      });
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
         ),
         const SizedBox(height: 10),
         Padding(
@@ -810,6 +1276,12 @@ class _EventExplorePageState
 
     final description =
         event.description.trim();
+
+    final nearestDistance =
+        _nearestDistanceByEventId[event.id];
+
+    final isFavorite =
+        _favoriteEventIds.contains(event.id);
 
     return Container(
       margin:
@@ -943,34 +1415,47 @@ class _EventExplorePageState
                       ),
                     ],
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons
-                              .visibility_outlined,
-                          size: 15,
-                          color: Colors
-                              .grey.shade500,
-                        ),
-                        const SizedBox(
-                          width: 5,
-                        ),
-                        Text(
-                          '詳細を見る',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors
-                                .grey.shade600,
+                    if (nearestDistance != null) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.place_outlined,
+                            size: 15,
+                            color: Colors.grey.shade500,
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 5),
+                          Text(
+                            nearestDistance < 1000
+                                ? '最寄り ${nearestDistance.round()}m'
+                                : '最寄り ${(nearestDistance / 1000).toStringAsFixed(1)}km',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
               const SizedBox(width: 4),
-              const Icon(
-                Icons.chevron_right,
+              IconButton(
+                tooltip: isFavorite
+                    ? 'お気に入りから外す'
+                    : 'お気に入りに追加',
+                onPressed: () {
+                  _toggleFavorite(event);
+                },
+                icon: Icon(
+                  isFavorite
+                      ? Icons.star
+                      : Icons.star_border,
+                  color: isFavorite
+                      ? Colors.amber.shade700
+                      : Colors.grey.shade500,
+                ),
               ),
             ],
           ),
