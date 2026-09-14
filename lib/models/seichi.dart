@@ -10,6 +10,7 @@ class Seichi {
   final String description;
   final String icon;
   final bool isActive;
+  final String placeId;
 
   const Seichi({
     required this.id,
@@ -23,6 +24,7 @@ class Seichi {
     required this.description,
     required this.icon,
     required this.isActive,
+    required this.placeId,
   });
 
   factory Seichi.fromMap(Map<String, dynamic> map) {
@@ -41,6 +43,7 @@ class Seichi {
       description: map['description']?.toString() ?? '',
       icon: map['icon']?.toString() ?? '📍',
       isActive: map['is_active'] == true,
+      placeId: map['place_id']?.toString() ?? '',
     );
   }
 
