@@ -2110,6 +2110,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                                   ? _seichiList.length
                                   : null,
 
+                          currentNextSeichiId:
+                              isCurrent
+                                  ? _nextSeichi?.id
+                                  : null,
+
+                          onSetNextDestination:
+                              isCurrent
+                                  ? _setNextDestination
+                                  : null,
+
                           primaryActionLabel:
                               primaryActionLabel,
 
@@ -2196,6 +2206,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                   _getCollectedCount(),
               currentTotalCount:
                   _seichiList.length,
+              currentNextSeichiId:
+                  _nextSeichi?.id,
+              onSetNextDestination:
+                  _setNextDestination,
             ),
           ),
         );
@@ -2243,6 +2257,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                   _getCollectedCount(),
               currentTotalCount:
                   _seichiList.length,
+              currentNextSeichiId:
+                  _nextSeichi?.id,
+              onSetNextDestination:
+                  _setNextDestination,
             ),
           ),
         );
@@ -2342,6 +2360,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
               event: currentEvent!,
               collectedCount: _getCollectedCount(),
               totalCount: _seichiList.length,
+              currentNextSeichiId: _nextSeichi?.id,
+              onSetNextDestination: _setNextDestination,
               onSelectAnotherEvent: () async {
                 Navigator.of(context).pop();
                 await _showEventSelector();

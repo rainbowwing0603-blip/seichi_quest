@@ -14,6 +14,8 @@ class EventDetailPage extends StatefulWidget {
     this.primaryActionLabel,
     this.onPrimaryAction,
     this.onSelectAnotherEvent,
+    this.currentNextSeichiId,
+    this.onSetNextDestination,
   });
 
   final Event event;
@@ -28,6 +30,9 @@ class EventDetailPage extends StatefulWidget {
 
   final Future<void> Function()? onSelectAnotherEvent;
 
+  final String? currentNextSeichiId;
+  final ValueChanged<Seichi>? onSetNextDestination;
+
   @override
   State<EventDetailPage> createState() => _EventDetailPageState();
 }
@@ -39,6 +44,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
   String? _seichiErrorMessage;
 
   List<Seichi> _seichiList = [];
+
+  final Set<String> _collectedSeichiIds = <String>{};
+
+  String _galleryFilter = 'すべて';
 
   supabase.SupabaseClient get _client => supabase.Supabase.instance.client;
 
@@ -67,12 +76,43 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
       list.sort((a, b) => _cardOrder(a.card).compareTo(_cardOrder(b.card)));
 
+      final collectedIds = <String>{};
+      final user = _client.auth.currentUser;
+
+      if (user != null) {
+        try {
+          final historyData = await _client
+              .from('collection_history')
+              .select('seichi_id')
+              .eq('user_id', user.id)
+              .eq('event_id', widget.event.id);
+
+          for (final row in List<Map<String, dynamic>>.from(historyData)) {
+            final seichiId = row['seichi_id']?.toString() ?? '';
+
+            if (seichiId.isNotEmpty) {
+              collectedIds.add(seichiId);
+            }
+          }
+        } catch (error, stackTrace) {
+          debugPrint('[EVENT_DETAIL] collection history load failed: $error');
+          debugPrint(
+            '[EVENT_DETAIL] collection history stackTrace: $stackTrace',
+          );
+        }
+      }
+
       if (!mounted) {
         return;
       }
 
       setState(() {
         _seichiList = list;
+
+        _collectedSeichiIds
+          ..clear()
+          ..addAll(collectedIds);
+
         _isLoadingSeichi = false;
         _seichiErrorMessage = null;
       });
@@ -146,6 +186,23 @@ class _EventDetailPageState extends State<EventDetailPage> {
     }
 
     return index;
+  }
+
+  List<Seichi> get _filteredSeichiList {
+    switch (_galleryFilter) {
+      case '獲得済み':
+        return _seichiList
+            .where((seichi) => _collectedSeichiIds.contains(seichi.id))
+            .toList(growable: false);
+
+      case '未獲得':
+        return _seichiList
+            .where((seichi) => !_collectedSeichiIds.contains(seichi.id))
+            .toList(growable: false);
+
+      default:
+        return _seichiList;
+    }
   }
 
   String _formatDate(DateTime? value) {
@@ -326,6 +383,34 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ),
                 ],
                 const SizedBox(height: 18),
+                if (_collectedSeichiIds.contains(seichi.id)) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle, size: 17, color: Colors.green),
+                        SizedBox(width: 6),
+                        Text(
+                          '獲得済み',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+
                 Row(
                   children: [
                     Icon(
@@ -346,6 +431,34 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     ),
                   ],
                 ),
+
+                if (widget.onSetNextDestination != null &&
+                    !_collectedSeichiIds.contains(seichi.id)) ...[
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: FilledButton.icon(
+                      onPressed: widget.currentNextSeichiId == seichi.id
+                          ? null
+                          : () {
+                              widget.onSetNextDestination!(seichi);
+
+                              Navigator.of(sheetContext).pop();
+                            },
+                      icon: Icon(
+                        widget.currentNextSeichiId == seichi.id
+                            ? Icons.flag
+                            : Icons.navigation_outlined,
+                      ),
+                      label: Text(
+                        widget.currentNextSeichiId == seichi.id
+                            ? '次の目的地に設定済み'
+                            : '次の目的地に設定',
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -373,6 +486,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
       child: Image.network(
         imageUrl,
         fit: BoxFit.contain,
+        cacheWidth: 1200,
+        filterQuality: FilterQuality.medium,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) {
             return child;
@@ -418,6 +533,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Widget _buildCardGallery() {
+    final filteredList = _filteredSeichiList;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -438,7 +555,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ),
               if (!_isLoadingSeichi && _seichiList.isNotEmpty)
                 Text(
-                  '${_seichiList.length}札',
+                  '${filteredList.length} / ${_seichiList.length}札',
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
             ],
@@ -448,7 +565,31 @@ class _EventDetailPageState extends State<EventDetailPage> {
             '札をタップすると詳細を確認できます',
             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
+
+          if (!_isLoadingSeichi &&
+              _seichiErrorMessage == null &&
+              _seichiList.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final filter in const <String>['すべて', '獲得済み', '未獲得'])
+                  ChoiceChip(
+                    label: Text(filter),
+                    selected: _galleryFilter == filter,
+                    onSelected: (_) {
+                      setState(() {
+                        _galleryFilter = filter;
+                      });
+                    },
+                  ),
+              ],
+            ),
+          ],
+
           const SizedBox(height: 16),
+
           if (_isLoadingSeichi)
             const SizedBox(
               height: 120,
@@ -499,11 +640,24 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 textAlign: TextAlign.center,
               ),
             )
+          else if (filteredList.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text(
+                _galleryFilter == '獲得済み' ? '獲得済みの札はまだありません。' : '未獲得の札はありません。',
+                textAlign: TextAlign.center,
+              ),
+            )
           else
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: _seichiList.length,
+              itemCount: filteredList.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 crossAxisSpacing: 10,
@@ -511,9 +665,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 childAspectRatio: 0.74,
               ),
               itemBuilder: (context, index) {
-                final seichi = _seichiList[index];
-
-                return _buildGalleryCard(seichi);
+                return _buildGalleryCard(filteredList[index]);
               },
             ),
         ],
@@ -523,6 +675,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   Widget _buildGalleryCard(Seichi seichi) {
     final imageUrl = seichi.cardImageUrl;
+
+    final collected = _collectedSeichiIds.contains(seichi.id);
+
+    final isNext = widget.currentNextSeichiId == seichi.id;
 
     return Material(
       color: Colors.transparent,
@@ -535,25 +691,82 @@ class _EventDetailPageState extends State<EventDetailPage> {
           decoration: BoxDecoration(
             color: Colors.grey.shade50,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(
+              color: collected
+                  ? Colors.green.withValues(alpha: 0.55)
+                  : isNext
+                  ? Colors.deepPurple.withValues(alpha: 0.55)
+                  : Colors.grey.shade200,
+              width: collected || isNext ? 1.5 : 1,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(13),
-                  ),
-                  child: imageUrl != null && imageUrl.isNotEmpty
-                      ? Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildGalleryFallback(seichi);
-                          },
-                        )
-                      : _buildGalleryFallback(seichi),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(13),
+                      ),
+                      child: imageUrl != null && imageUrl.isNotEmpty
+                          ? Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              cacheWidth: 360,
+                              filterQuality: FilterQuality.low,
+                              errorBuilder: (context, error, stackTrace) {
+                                return _buildGalleryFallback(seichi);
+                              },
+                            )
+                          : _buildGalleryFallback(seichi),
+                    ),
+
+                    if (collected)
+                      Positioned(
+                        top: 7,
+                        right: 7,
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: const BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.check,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+
+                    if (isNext && !collected)
+                      Positioned(
+                        top: 7,
+                        left: 7,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.deepPurple,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Text(
+                            'NEXT',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               Padding(
@@ -565,15 +778,17 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       height: 26,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: Colors.deepPurple.withValues(alpha: 0.08),
+                        color: collected
+                            ? Colors.green.withValues(alpha: 0.10)
+                            : Colors.deepPurple.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         seichi.card,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: Colors.deepPurple,
+                          color: collected ? Colors.green : Colors.deepPurple,
                         ),
                       ),
                     ),
@@ -639,6 +854,33 @@ class _EventDetailPageState extends State<EventDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (widget.event.coverImageUrl != null &&
+                      widget.event.coverImageUrl!.isNotEmpty) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: Image.network(
+                          widget.event.coverImageUrl!,
+                          fit: BoxFit.cover,
+                          cacheWidth: 1200,
+                          filterQuality: FilterQuality.medium,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey.shade100,
+                              alignment: Alignment.center,
+                              child: Icon(
+                                Icons.image_not_supported_outlined,
+                                color: Colors.grey.shade400,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                  ],
+
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

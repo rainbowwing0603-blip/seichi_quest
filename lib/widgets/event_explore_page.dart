@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../models/event.dart';
+import '../models/seichi.dart';
 import 'event_detail_page.dart';
 
 class EventExplorePage extends StatefulWidget {
@@ -13,6 +14,8 @@ class EventExplorePage extends StatefulWidget {
     required this.currentEventId,
     required this.currentCollectedCount,
     required this.currentTotalCount,
+    this.currentNextSeichiId,
+    this.onSetNextDestination,
     this.initialFavoriteOnly = false,
   });
 
@@ -21,6 +24,8 @@ class EventExplorePage extends StatefulWidget {
   final String? currentEventId;
   final int currentCollectedCount;
   final int currentTotalCount;
+  final String? currentNextSeichiId;
+  final ValueChanged<Seichi>? onSetNextDestination;
   final bool initialFavoriteOnly;
 
   @override
@@ -437,6 +442,12 @@ class _EventExplorePageState
               : null,
           totalCount: isCurrent
               ? widget.currentTotalCount
+              : null,
+          currentNextSeichiId: isCurrent
+              ? widget.currentNextSeichiId
+              : null,
+          onSetNextDestination: isCurrent
+              ? widget.onSetNextDestination
               : null,
           primaryActionLabel: actionLabel,
           onPrimaryAction: actionLabel == null
