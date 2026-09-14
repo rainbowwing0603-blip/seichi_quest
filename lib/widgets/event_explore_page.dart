@@ -13,6 +13,7 @@ class EventExplorePage extends StatefulWidget {
     required this.currentEventId,
     required this.currentCollectedCount,
     required this.currentTotalCount,
+    this.initialFavoriteOnly = false,
   });
 
   final List<Event> events;
@@ -20,6 +21,7 @@ class EventExplorePage extends StatefulWidget {
   final String? currentEventId;
   final int currentCollectedCount;
   final int currentTotalCount;
+  final bool initialFavoriteOnly;
 
   @override
   State<EventExplorePage> createState() =>
@@ -53,6 +55,7 @@ class _EventExplorePageState
   @override
   void initState() {
     super.initState();
+    _favoriteOnly = widget.initialFavoriteOnly;
     _loadParticipationStates();
     _loadNearestEventDistances();
     _loadFavoriteEvents();
@@ -457,7 +460,9 @@ class _EventExplorePageState
       backgroundColor:
           const Color(0xFFF7F5FB),
       appBar: AppBar(
-        title: const Text('クエストを探す'),
+        title: Text(widget.initialFavoriteOnly
+            ? 'お気に入りクエスト'
+            : 'クエストを探す'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),

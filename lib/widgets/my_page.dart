@@ -17,6 +17,7 @@ class MyPage extends StatelessWidget {
   final VoidCallback onShowCurrentEvent;
   final VoidCallback onShowParticipatingEvents;
   final VoidCallback onShowEventExplore;
+  final VoidCallback onShowFavoriteEvents;
   final VoidCallback onSelectEvent;
   final VoidCallback onShowAchievements;
   final VoidCallback onShowRanking;
@@ -40,6 +41,7 @@ class MyPage extends StatelessWidget {
     required this.onShowCurrentEvent,
     required this.onShowParticipatingEvents,
     required this.onShowEventExplore,
+    required this.onShowFavoriteEvents,
     required this.onSelectEvent,
     required this.onShowAchievements,
     required this.onShowRanking,
@@ -54,129 +56,301 @@ class MyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final progress = total == 0
+        ? 0
+        : (count / total * 100).round();
+
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          28,
+        ),
         child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 12),
-            ProfileAvatar(
-              avatarKey: avatarKey,
-              size: 94,
-              iconSize: 48,
-            ),
-            const SizedBox(height: 14),
-            Text(
-              displayName ?? 'ゲストユーザー',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text('聖地クエスト冒険者', style: TextStyle(color: Colors.grey.shade600)),
+            _buildProfileHeader(progress),
             const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    icon: Icons.workspace_premium,
-                    value: '$count',
-                    label: '獲得聖地',
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildStatCard(
-                    icon: Icons.map,
-                    value: '$total',
-                    label: '登録聖地',
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildStatCard(
-                    icon: Icons.percent,
-                    value: total == 0
-                        ? '0%'
-                        : '${(count / total * 100).round()}%',
-                    label: '達成率',
-                  ),
-                ),
-              ],
+
+            _buildSectionTitle(
+              'クエスト',
+              Icons.explore_outlined,
             ),
-            const SizedBox(height: 24),
-            GestureDetector(
-              onTap: onShowAchievements,
-              behavior: HitTestBehavior.opaque,
-              child: _buildAchievementSummary(),
-            ),
-            const SizedBox(height: 14),
-            GestureDetector(
-              onTap: onShowRanking,
-              behavior: HitTestBehavior.opaque,
-              child: _buildRankingSummary(),
-            ),
-            const SizedBox(height: 14),
-            _buildSettingsTile(
-              icon: Icons.history_outlined,
-              title: '冒険ログ',
-              subtitle: 'これまでに獲得した札の履歴',
-              onTap: onShowAdventureLog,
-            ),
-            _buildSettingsTile(
-              icon: Icons.cloud_sync_outlined,
-              title: '同期状態',
-              subtitle: '保留中の訪問データを確認',
-              onTap: onShowSyncStatus,
-            ),
+            const SizedBox(height: 10),
             _buildSettingsTile(
               icon: Icons.explore_outlined,
               title: '現在のクエスト',
-              subtitle: currentEventName ?? 'クエストを選択',
+              subtitle:
+                  currentEventName ??
+                      'クエストを選択',
               onTap: onShowCurrentEvent,
             ),
             _buildSettingsTile(
               icon: Icons.travel_explore,
               title: 'クエストを探す',
-              subtitle: '新しいクエストを見つける',
+              subtitle:
+                  '新しいクエストを見つける',
               onTap: onShowEventExplore,
+            ),
+            _buildSettingsTile(
+              icon: Icons.star_outline,
+              title: 'お気に入りクエスト',
+              subtitle: '★を付けたクエストを見る',
+              onTap: onShowFavoriteEvents,
             ),
             _buildSettingsTile(
               icon: Icons.flag_outlined,
               title: '参加中クエスト',
-              subtitle: '参加しているクエストを確認・切替',
+              subtitle:
+                  '参加しているクエストを確認・切替',
               onTap: onShowParticipatingEvents,
             ),
+
+            const SizedBox(height: 18),
+
+            _buildSectionTitle(
+              '記録',
+              Icons.auto_graph_outlined,
+            ),
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: onShowAchievements,
+              behavior: HitTestBehavior.opaque,
+              child: _buildAchievementSummary(),
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: onShowRanking,
+              behavior: HitTestBehavior.opaque,
+              child: _buildRankingSummary(),
+            ),
+            const SizedBox(height: 12),
+            _buildSettingsTile(
+              icon: Icons.history_outlined,
+              title: '冒険ログ',
+              subtitle:
+                  'これまでに獲得した札の履歴',
+              onTap: onShowAdventureLog,
+            ),
+
+            const SizedBox(height: 18),
+
+            _buildSectionTitle(
+              '設定・管理',
+              Icons.tune,
+            ),
+            const SizedBox(height: 10),
             _buildSettingsTile(
               icon: Icons.person_outline,
               title: 'プロフィール',
-              subtitle: 'ユーザー情報を設定',
+              subtitle:
+                  'ユーザー情報を設定',
               onTap: onShowProfile,
             ),
             _buildSettingsTile(
               icon: Icons.manage_accounts_outlined,
               title: 'アカウント',
-              subtitle: 'データを引き継ぐ',
+              subtitle:
+                  'データを引き継ぐ',
               onTap: onShowAccount,
             ),
             _buildSettingsTile(
               icon: Icons.notifications_none,
               title: '通知設定',
-              subtitle: 'お知らせ・到達通知',
+              subtitle:
+                  'お知らせ・到達通知',
               onTap: onShowNotifications,
+            ),
+            _buildSettingsTile(
+              icon: Icons.cloud_sync_outlined,
+              title: '同期状態',
+              subtitle:
+                  '保留中の訪問データを確認',
+              onTap: onShowSyncStatus,
             ),
             _buildSettingsTile(
               icon: Icons.settings_outlined,
               title: 'アプリ設定',
-              subtitle: '各種設定',
+              subtitle:
+                  '各種設定',
               onTap: onShowSettings,
             ),
             _buildSettingsTile(
               icon: Icons.info_outline,
               title: '聖地クエストについて',
-              subtitle: 'アプリ情報',
+              subtitle:
+                  'アプリ情報',
               onTap: onShowAbout,
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader(
+    int progress,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius:
+            BorderRadius.circular(22),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              ProfileAvatar(
+                avatarKey: avatarKey,
+                size: 72,
+                iconSize: 38,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName ??
+                          'ゲストユーザー',
+                      style:
+                          const TextStyle(
+                        fontSize: 21,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '聖地クエスト冒険者',
+                      style: TextStyle(
+                        color:
+                            Colors.grey.shade600,
+                      ),
+                    ),
+                    if (myRank != null) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.leaderboard,
+                            size: 16,
+                            color: Colors.amber,
+                          ),
+                          const SizedBox(
+                            width: 5,
+                          ),
+                          Text(
+                            'ランキング $myRank位',
+                            style:
+                                const TextStyle(
+                              fontSize: 12,
+                              fontWeight:
+                                  FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _buildCompactStat(
+                  value: '$count',
+                  label: '獲得',
+                ),
+              ),
+              _buildStatDivider(),
+              Expanded(
+                child: _buildCompactStat(
+                  value: '$total',
+                  label: '登録',
+                ),
+              ),
+              _buildStatDivider(),
+              Expanded(
+                child: _buildCompactStat(
+                  value: '$progress%',
+                  label: '達成率',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactStat({
+    required String value,
+    required String label,
+  }) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatDivider() {
+    return Container(
+      width: 1,
+      height: 30,
+      color: Colors.grey.shade200,
+    );
+  }
+
+  Widget _buildSectionTitle(
+    String title,
+    IconData icon,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 4,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: Colors.deepPurple,
+          ),
+          const SizedBox(width: 7),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -360,32 +534,6 @@ class MyPage extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           const Icon(Icons.chevron_right, color: Colors.grey),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required String value,
-    required String label,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.deepPurple, size: 23),
-          const SizedBox(height: 7),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
         ],
       ),
     );
