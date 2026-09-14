@@ -139,6 +139,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Seichi? _nextSeichi;
   double? _nextDistance;
 
+  bool _focusNextDestinationOnMapOpen = false;
+
   // ユーザーが「次の目的地にする」で指定した聖地。
   // 未指定時は従来どおり、現在地から最も近い未獲得聖地を自動選択する。
   String? _manualNextSeichiId;
@@ -1703,6 +1705,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       onMapCreated: (controller) {
         _mapController = controller;
 
+        if (_focusNextDestinationOnMapOpen &&
+            _nextSeichi != null) {
+          _focusNextDestinationOnMapOpen = false;
+          _moveCameraToNextSeichi();
+          return;
+        }
+
         if (_currentPosition != null) {
           _moveCameraToCurrentLocation();
         }
@@ -2147,6 +2156,33 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       count: _getCollectedCount(),
       total: _seichiList.length,
       currentEventName: _currentEventName,
+      nextDestinationName: _nextSeichi?.name,
+      nextDestinationCard: _nextSeichi?.card,
+      nextDestinationIcon: _nextSeichi?.icon,
+      nextDestinationDistance: _nextDistance,
+      onShowNextDestination: () {
+        if (_nextSeichi == null) {
+          return;
+        }
+
+        _focusNextDestinationOnMapOpen = true;
+
+        setState(() {
+          _selectedTab = 0;
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) {
+            return;
+          }
+
+          if (_mapController != null &&
+              _focusNextDestinationOnMapOpen) {
+            _focusNextDestinationOnMapOpen = false;
+            _moveCameraToNextSeichi();
+          }
+        });
+      },
       onShowEventExplore: () async {
         final selectedEventId =
             await Navigator.of(context).push<String>(

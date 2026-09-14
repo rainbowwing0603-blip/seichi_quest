@@ -14,6 +14,11 @@ class MyPage extends StatelessWidget {
   final int count;
   final int total;
   final String? currentEventName;
+  final String? nextDestinationName;
+  final String? nextDestinationCard;
+  final String? nextDestinationIcon;
+  final double? nextDestinationDistance;
+  final VoidCallback onShowNextDestination;
   final VoidCallback onShowCurrentEvent;
   final VoidCallback onShowParticipatingEvents;
   final VoidCallback onShowEventExplore;
@@ -38,6 +43,11 @@ class MyPage extends StatelessWidget {
     required this.count,
     required this.total,
     required this.currentEventName,
+    required this.nextDestinationName,
+    required this.nextDestinationCard,
+    required this.nextDestinationIcon,
+    required this.nextDestinationDistance,
+    required this.onShowNextDestination,
     required this.onShowCurrentEvent,
     required this.onShowParticipatingEvents,
     required this.onShowEventExplore,
@@ -80,6 +90,8 @@ class MyPage extends StatelessWidget {
                 child: _buildProfileHeader(progress),
               ),
             ),
+            const SizedBox(height: 14),
+            _buildNextDestinationCard(),
             const SizedBox(height: 24),
 
             _buildSectionTitle(
@@ -368,6 +380,210 @@ class MyPage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNextDestinationCard() {
+    final destinationName =
+        nextDestinationName?.trim();
+
+    final hasDestination =
+        destinationName != null &&
+            destinationName.isNotEmpty;
+
+    if (!hasDestination) {
+      final isComplete =
+          total > 0 && count >= total;
+
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius:
+              BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: (isComplete
+                        ? Colors.amber
+                        : Colors.deepPurple)
+                    .withValues(alpha: 0.10),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isComplete
+                    ? Icons.emoji_events
+                    : Icons.explore_outlined,
+                color: isComplete
+                    ? Colors.amber.shade700
+                    : Colors.deepPurple,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isComplete
+                        ? 'このクエストを完全制覇！'
+                        : '次の目的地を準備中',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight:
+                          FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isComplete
+                        ? 'すべての聖地を獲得しました'
+                        : '位置情報を取得すると候補が表示されます',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color:
+                          Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final distance =
+        nextDestinationDistance;
+
+    String? distanceText;
+
+    if (distance != null) {
+      distanceText = distance < 1000
+          ? 'あと ${distance.round()}m'
+          : 'あと ${(distance / 1000).toStringAsFixed(1)}km';
+    }
+
+    final card =
+        nextDestinationCard?.trim();
+
+    final icon =
+        nextDestinationIcon?.trim();
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius:
+            BorderRadius.circular(20),
+        onTap: onShowNextDestination,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius:
+                BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple
+                      .withValues(alpha: 0.08),
+                  borderRadius:
+                      BorderRadius.circular(16),
+                ),
+                child: Text(
+                  icon == null ||
+                          icon.isEmpty
+                      ? '📍'
+                      : icon,
+                  style: const TextStyle(
+                    fontSize: 25,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '次の目的地',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight:
+                            FontWeight.w600,
+                        color:
+                            Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      card == null ||
+                              card.isEmpty
+                          ? destinationName
+                          : '$card $destinationName',
+                      maxLines: 1,
+                      overflow:
+                          TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
+                    if (distanceText !=
+                        null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        distanceText,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color:
+                              Colors.deepPurple,
+                          fontWeight:
+                              FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                mainAxisSize:
+                    MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.map_outlined,
+                    color: Colors.deepPurple,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '地図',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color:
+                          Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
