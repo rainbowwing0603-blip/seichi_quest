@@ -157,11 +157,65 @@ class MyPage extends StatelessWidget {
 
             const SizedBox(height: 18),
 
-            _buildSectionTitle(
-              '設定・管理',
-              Icons.tune,
+            _buildSettingsExpansion(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsExpansion() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius:
+            BorderRadius.circular(18),
+      ),
+      child: Theme(
+        data: ThemeData(
+          dividerColor: Colors.transparent,
+        ),
+        child: ExpansionTile(
+          tilePadding:
+              const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 4,
+          ),
+          childrenPadding:
+              const EdgeInsets.fromLTRB(
+            12,
+            0,
+            12,
+            12,
+          ),
+          leading: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.deepPurple
+                  .withValues(alpha: 0.08),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 10),
+            child: const Icon(
+              Icons.tune,
+              color: Colors.deepPurple,
+            ),
+          ),
+          title: const Text(
+            '設定・管理',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
+          ),
+          subtitle: Text(
+            'プロフィール・通知・アプリ設定など',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          children: [
             _buildSettingsTile(
               icon: Icons.person_outline,
               title: 'プロフィール',
