@@ -72,7 +72,14 @@ class MyPage extends StatelessWidget {
           crossAxisAlignment:
               CrossAxisAlignment.start,
           children: [
-            _buildProfileHeader(progress),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(22),
+                onTap: onShowProfile,
+                child: _buildProfileHeader(progress),
+              ),
+            ),
             const SizedBox(height: 24),
 
             _buildSectionTitle(
@@ -237,26 +244,36 @@ class MyPage extends StatelessWidget {
                     ),
                     if (myRank != null) ...[
                       const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.leaderboard,
-                            size: 16,
-                            color: Colors.amber,
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: onShowRanking,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 2,
                           ),
-                          const SizedBox(
-                            width: 5,
-                          ),
-                          Text(
-                            'ランキング $myRank位',
-                            style:
-                                const TextStyle(
-                              fontSize: 12,
-                              fontWeight:
-                                  FontWeight.w600,
+                          child:
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.leaderboard,
+                              size: 16,
+                              color: Colors.amber,
                             ),
-                          ),
-                        ],
+                            const SizedBox(
+                              width: 5,
+                            ),
+                            Text(
+                              'ランキング $myRank位',
+                              style:
+                                  const TextStyle(
+                                fontSize: 12,
+                                fontWeight:
+                                    FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        ),
                       ),
                     ],
                   ],
