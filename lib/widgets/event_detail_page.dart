@@ -49,12 +49,18 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   String _galleryFilter = 'すべて';
 
+  bool _isLoadingSocialStats = true;
+  int? _participantCount;
+  int? _favoriteCount;
+  bool _isFavorited = false;
+
   supabase.SupabaseClient get _client => supabase.Supabase.instance.client;
 
   @override
   void initState() {
     super.initState();
     _loadSeichiList();
+    _loadSocialStats();
   }
 
   Future<void> _loadSeichiList() async {
@@ -129,6 +135,61 @@ class _EventDetailPageState extends State<EventDetailPage> {
         _seichiErrorMessage = '札情報を読み込めませんでした。';
       });
     }
+  }
+
+  Future<void> _loadSocialStats() async {
+    try {
+      final data = await _client.rpc(
+        'get_event_social_stats',
+        params: {'p_event_id': widget.event.id},
+      );
+
+      final rows = data is List
+          ? List<Map<String, dynamic>>.from(data)
+          : <Map<String, dynamic>>[];
+
+      final row = rows.isNotEmpty ? rows.first : <String, dynamic>{};
+
+      final participantCount = _toIntOrZero(row['participant_count']);
+
+      final favoriteCount = _toIntOrZero(row['favorite_count']);
+
+      final isFavorited = row['is_favorited'] == true;
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _participantCount = participantCount;
+
+        _favoriteCount = favoriteCount;
+
+        _isFavorited = isFavorited;
+
+        _isLoadingSocialStats = false;
+      });
+    } catch (error, stackTrace) {
+      debugPrint('[EVENT_DETAIL] social stats load failed: $error');
+
+      debugPrint('[EVENT_DETAIL] social stats stackTrace: $stackTrace');
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoadingSocialStats = false;
+      });
+    }
+  }
+
+  int _toIntOrZero(dynamic value) {
+    if (value is num) {
+      return value.toInt();
+    }
+
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   int _cardOrder(String card) {
@@ -527,6 +588,109 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ),
           const SizedBox(height: 8),
           Text(seichi.icon, style: const TextStyle(fontSize: 34)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSocialStatsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'クエスト情報',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+
+          if (_isLoadingSocialStats)
+            const SizedBox(
+              height: 54,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSocialStatItem(
+                    icon: Icons.people_alt_outlined,
+                    label: '参加中',
+                    value: _participantCount == null
+                        ? '−'
+                        : '${_participantCount!}人',
+                    color: Colors.blue,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildSocialStatItem(
+                    icon: _isFavorited ? Icons.favorite : Icons.favorite_border,
+                    label: 'お気に入り',
+                    value: _favoriteCount == null ? '−' : '${_favoriteCount!}件',
+                    color: _isFavorited ? Colors.pink : Colors.deepPurple,
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSocialStatItem({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 21, color: color),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -980,6 +1144,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ),
             ),
 
+            const SizedBox(height: 14),
+
+            _buildSocialStatsCard(),
+
             if (_hasProgress) ...[
               const SizedBox(height: 14),
 
@@ -1030,6 +1198,28 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       child: LinearProgressIndicator(
                         value: _progress,
                         minHeight: 10,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      widget.totalCount != null &&
+                              widget.collectedCount != null &&
+                              widget.totalCount! > 0
+                          ? widget.collectedCount! >= widget.totalCount!
+                                ? '完全制覇！'
+                                : 'あと'
+                                      '${widget.totalCount! - widget.collectedCount!}'
+                                      '札で完全制覇'
+                          : '',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color:
+                            widget.collectedCount != null &&
+                                widget.totalCount != null &&
+                                widget.collectedCount! >= widget.totalCount!
+                            ? Colors.green
+                            : Colors.grey.shade700,
                       ),
                     ),
                   ],
