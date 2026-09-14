@@ -9,6 +9,7 @@ class Seichi {
   final int stampRadiusMeters;
   final String description;
   final String icon;
+  final String? cardImageUrl;
   final bool isActive;
 
   const Seichi({
@@ -22,6 +23,7 @@ class Seichi {
     required this.stampRadiusMeters,
     required this.description,
     required this.icon,
+    this.cardImageUrl,
     required this.isActive,
   });
 
@@ -40,8 +42,24 @@ class Seichi {
       ),
       description: map['description']?.toString() ?? '',
       icon: map['icon']?.toString() ?? '📍',
+      cardImageUrl: _toNullableString(
+        map['card_image_url'],
+      ),
       isActive: map['is_active'] == true,
     );
+  }
+
+  static String? _toNullableString(
+    dynamic value,
+  ) {
+    final text =
+        value?.toString().trim();
+
+    if (text == null || text.isEmpty) {
+      return null;
+    }
+
+    return text;
   }
 
   static double _toDouble(dynamic value) {

@@ -836,7 +836,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           .from('seichi')
           .select(
             'id, card, reading, name, latitude, longitude, '
-            'stamp_radius_meters, description, icon, is_active, place_id',
+            'stamp_radius_meters, description, icon, card_image_url, is_active, place_id',
           )
           .eq('is_active', true)
           .eq('event_id', _currentEventId!);
@@ -850,6 +850,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                 seichi.longitude != 0,
           )
           .toList();
+
 
       list.sort((a, b) {
         final orderCompare = _cardOrderIndex(a.card)
