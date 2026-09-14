@@ -3,6 +3,7 @@ class Event {
   final String slug;
   final String name;
   final String description;
+  final String? prefecture;
   final bool isActive;
   final String? iconUrl;
   final String? coverImageUrl;
@@ -15,6 +16,7 @@ class Event {
     required this.slug,
     required this.name,
     required this.description,
+    this.prefecture,
     required this.isActive,
     this.iconUrl,
     this.coverImageUrl,
@@ -48,6 +50,9 @@ class Event {
       slug: map['slug']?.toString() ?? '',
       name: map['name']?.toString() ?? '名称未設定',
       description: map['description']?.toString() ?? '',
+      prefecture: _toNullableString(
+        map['prefecture'],
+      ),
       isActive: map['is_active'] == true,
       iconUrl: _toNullableString(map['icon_url']),
       coverImageUrl: _toNullableString(

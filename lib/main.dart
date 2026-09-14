@@ -244,7 +244,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       final data = await client
           .from('events')
           .select(
-            'id, slug, name, description, is_active, '
+            'id, slug, name, description, prefecture, is_active, '
             'icon_url, cover_image_url, start_at, end_at, updated_at',
           )
           .eq('is_active', true)

@@ -36,6 +36,7 @@ class _EventExplorePageState
   String _searchQuery = '';
   String _statusFilter = 'すべて';
   String _periodFilter = 'すべて';
+  String _prefectureFilter = 'すべて';
   String _sortOrder = '標準';
 
   supabase.SupabaseClient get _client =>
@@ -257,6 +258,22 @@ class _EventExplorePageState
   Widget _buildBody() {
     final query = _searchQuery.trim().toLowerCase();
 
+    final prefectureOptions = widget.events
+        .map((event) {
+          final prefecture =
+              event.prefecture?.trim();
+
+          if (prefecture == null ||
+              prefecture.isEmpty) {
+            return '未設定';
+          }
+
+          return prefecture;
+        })
+        .toSet()
+        .toList(growable: false)
+      ..sort();
+
     final searchedEvents = query.isEmpty
         ? widget.events
         : widget.events.where((event) {
@@ -292,12 +309,29 @@ class _EventExplorePageState
         return false;
       }
 
-      if (_periodFilter == 'すべて') {
-        return true;
+      if (_periodFilter != 'すべて' &&
+          event.eventStatusText() !=
+              _periodFilter) {
+        return false;
       }
 
-      return event.eventStatusText() ==
-          _periodFilter;
+      if (_prefectureFilter != 'すべて') {
+        final prefecture =
+            event.prefecture?.trim();
+
+        final prefectureLabel =
+            prefecture == null ||
+                    prefecture.isEmpty
+                ? '未設定'
+                : prefecture;
+
+        if (prefectureLabel !=
+            _prefectureFilter) {
+          return false;
+        }
+      }
+
+      return true;
     }).toList(growable: false);
 
     final sortedEvents =
@@ -532,6 +566,46 @@ class _EventExplorePageState
                   onSelected: (_) {
                     setState(() {
                       _periodFilter = filter;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 4,
+          ),
+          child: Text(
+            '都道府県',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade700,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final filter in <String>[
+                'すべて',
+                ...prefectureOptions,
+              ]) ...[
+                FilterChip(
+                  label: Text(filter),
+                  selected:
+                      _prefectureFilter ==
+                          filter,
+                  onSelected: (_) {
+                    setState(() {
+                      _prefectureFilter =
+                          filter;
                     });
                   },
                 ),
