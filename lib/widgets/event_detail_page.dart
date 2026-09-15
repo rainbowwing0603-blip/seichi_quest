@@ -50,6 +50,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
   String _galleryFilter = 'すべて';
 
   bool _isLoadingSocialStats = true;
+  bool _isFavoriteUpdating = false;
   int? _participantCount;
   int? _favoriteCount;
   bool _isFavorited = false;
@@ -181,6 +182,70 @@ class _EventDetailPageState extends State<EventDetailPage> {
       setState(() {
         _isLoadingSocialStats = false;
       });
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (_isFavoriteUpdating) {
+      return;
+    }
+
+    final user = _client.auth.currentUser;
+
+    if (user == null) {
+      return;
+    }
+
+    final wasFavorited = _isFavorited;
+
+    setState(() {
+      _isFavoriteUpdating = true;
+    });
+
+    try {
+      if (wasFavorited) {
+        await _client
+            .from('user_event_favorites')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('event_id', widget.event.id);
+      } else {
+        await _client.from('user_event_favorites').insert({
+          'user_id': user.id,
+          'event_id': widget.event.id,
+        });
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isFavorited = !wasFavorited;
+
+        final currentCount = _favoriteCount ?? 0;
+
+        _favoriteCount = wasFavorited
+            ? (currentCount > 0 ? currentCount - 1 : 0)
+            : currentCount + 1;
+
+        _isFavoriteUpdating = false;
+      });
+    } catch (error, stackTrace) {
+      debugPrint('[EVENT_DETAIL] favorite toggle failed: $error');
+
+      debugPrint('[EVENT_DETAIL] favorite toggle stackTrace: $stackTrace');
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isFavoriteUpdating = false;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('お気に入りの更新に失敗しました。')));
     }
   }
 
@@ -635,6 +700,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     label: 'お気に入り',
                     value: _favoriteCount == null ? '−' : '${_favoriteCount!}件',
                     color: _isFavorited ? Colors.pink : Colors.deepPurple,
+                    onTap: _isFavoriteUpdating ? null : _toggleFavorite,
+                    isLoading: _isFavoriteUpdating,
                   ),
                 ),
               ],
@@ -649,49 +716,70 @@ class _EventDetailPageState extends State<EventDetailPage> {
     required String label,
     required String value,
     required Color color,
+    VoidCallback? onTap,
+    bool isLoading = false,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: 21, color: color),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(16),
           ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                  ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  maxLines: 1,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                child: isLoading
+                    ? SizedBox(
+                        width: 19,
+                        height: 19,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: color,
+                        ),
+                      )
+                    : Icon(icon, size: 21, color: color),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
