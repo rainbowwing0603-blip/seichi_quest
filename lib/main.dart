@@ -468,6 +468,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     await _loadSeichi();
     await _applyCollectedRows(syncedRows);
     await _loadCloudHistory();
+    await _loadManualNextDestination();
     await _loadMyEventRank();
     await _loadLevelProgress();
     await _initializeLocation();
@@ -623,6 +624,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _manualNextSeichiId = null;
     _activeRecommendedRoute.clear();
 
+    await _saveManualNextDestination();
     await _saveStamps();
     await _loadCollectionEventNames();
 
@@ -770,6 +772,84 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _collectedIds
       ..clear()
       ..addAll(savedIds ?? <String>[]);
+  }
+
+  String _manualNextDestinationStorageKey({
+    required String userId,
+    required String eventId,
+  }) {
+    return 'manual_next_seichi_id_v1_${userId}_$eventId';
+  }
+
+  Future<void> _saveManualNextDestination() async {
+    final eventId = _currentEventId;
+    final user = supabase.Supabase.instance.client.auth.currentUser;
+
+    if (eventId == null || eventId.isEmpty || user == null) {
+      return;
+    }
+
+    _preferences ??= await SharedPreferences.getInstance();
+
+    final key = _manualNextDestinationStorageKey(
+      userId: user.id,
+      eventId: eventId,
+    );
+
+    final seichiId = _manualNextSeichiId;
+
+    if (seichiId == null || seichiId.isEmpty) {
+      await _preferences!.remove(key);
+      debugPrint('[NEXT-PERSIST] cleared: event=$eventId');
+      return;
+    }
+
+    await _preferences!.setString(key, seichiId);
+
+    debugPrint('[NEXT-PERSIST] saved: event=$eventId seichi=$seichiId');
+  }
+
+  Future<void> _loadManualNextDestination() async {
+    final eventId = _currentEventId;
+    final user = supabase.Supabase.instance.client.auth.currentUser;
+
+    if (eventId == null || eventId.isEmpty || user == null) {
+      _manualNextSeichiId = null;
+      return;
+    }
+
+    _preferences ??= await SharedPreferences.getInstance();
+
+    final key = _manualNextDestinationStorageKey(
+      userId: user.id,
+      eventId: eventId,
+    );
+
+    final savedId = _preferences!.getString(key);
+
+    if (savedId == null || savedId.isEmpty) {
+      _manualNextSeichiId = null;
+      return;
+    }
+
+    final isValid = _seichiList.any(
+      (seichi) => seichi.id == savedId && !_collectedIds.contains(seichi.id),
+    );
+
+    if (!isValid) {
+      _manualNextSeichiId = null;
+      await _preferences!.remove(key);
+
+      debugPrint(
+        '[NEXT-PERSIST] invalid saved destination removed: '
+        'event=$eventId seichi=$savedId',
+      );
+      return;
+    }
+
+    _manualNextSeichiId = savedId;
+
+    debugPrint('[NEXT-PERSIST] restored: event=$eventId seichi=$savedId');
   }
 
   Future<void> _saveStamps() async {
@@ -1064,7 +1144,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     );
   }
 
-  void _setNextDestination(Seichi seichi) {
+  Future<void> _setNextDestination(Seichi seichi) async {
     if (_collectedIds.contains(seichi.id)) {
       return;
     }
@@ -1073,6 +1153,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _manualNextSeichiId = seichi.id;
       _nextSeichi = seichi;
     });
+
+    await _saveManualNextDestination();
+
+    if (!mounted) {
+      return;
+    }
 
     _updateNextDestination();
 
@@ -1401,6 +1487,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       'manual=$_manualNextSeichiId',
     );
 
+    await _saveManualNextDestination();
     await _saveStamps();
     await _loadCollectionEventNames();
     await _loadMyEventRank();
@@ -2184,6 +2271,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       await _loadSeichi();
       await _applyCollectedRows(syncedRows);
       await _loadCloudHistory();
+      await _loadManualNextDestination();
       await _loadMyEventRank();
       await _saveCurrentEventPreference(eventId);
       await _ensureEventParticipation(eventId);
@@ -2809,6 +2897,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
         await _applyCollectedRows(syncedRows);
         await _loadCloudHistory();
+        await _loadManualNextDestination();
         await _loadCollectionEventNames();
         await _loadMyEventRank();
 
