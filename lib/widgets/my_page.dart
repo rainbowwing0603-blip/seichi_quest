@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/achievement.dart';
 import '../services/achievement_service.dart';
+import '../services/level_service.dart';
 import 'profile_avatar.dart';
 
 class MyPage extends StatelessWidget {
@@ -10,6 +11,7 @@ class MyPage extends StatelessWidget {
   final String? displayName;
   final String? avatarKey;
   final int? myRank;
+  final LevelProgress? levelProgress;
   final List<Achievement> eventAchievements;
   final int count;
   final int total;
@@ -39,6 +41,7 @@ class MyPage extends StatelessWidget {
     required this.displayName,
     required this.avatarKey,
     required this.myRank,
+    required this.levelProgress,
     required this.eventAchievements,
     required this.count,
     required this.total,
@@ -66,21 +69,13 @@ class MyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = total == 0
-        ? 0
-        : (count / total * 100).round();
+    final progress = total == 0 ? 0 : (count / total * 100).round();
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          16,
-          16,
-          16,
-          28,
-        ),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Material(
               color: Colors.transparent,
@@ -94,24 +89,18 @@ class MyPage extends StatelessWidget {
             _buildNextDestinationCard(),
             const SizedBox(height: 24),
 
-            _buildSectionTitle(
-              'クエスト',
-              Icons.explore_outlined,
-            ),
+            _buildSectionTitle('クエスト', Icons.explore_outlined),
             const SizedBox(height: 10),
             _buildSettingsTile(
               icon: Icons.explore_outlined,
               title: '現在のクエスト',
-              subtitle:
-                  currentEventName ??
-                      'クエストを選択',
+              subtitle: currentEventName ?? 'クエストを選択',
               onTap: onShowCurrentEvent,
             ),
             _buildSettingsTile(
               icon: Icons.travel_explore,
               title: 'クエストを探す',
-              subtitle:
-                  '新しいクエストを見つける',
+              subtitle: '新しいクエストを見つける',
               onTap: onShowEventExplore,
             ),
             _buildSettingsTile(
@@ -123,17 +112,13 @@ class MyPage extends StatelessWidget {
             _buildSettingsTile(
               icon: Icons.flag_outlined,
               title: '参加中クエスト',
-              subtitle:
-                  '参加しているクエストを確認・切替',
+              subtitle: '参加しているクエストを確認・切替',
               onTap: onShowParticipatingEvents,
             ),
 
             const SizedBox(height: 18),
 
-            _buildSectionTitle(
-              '記録',
-              Icons.auto_graph_outlined,
-            ),
+            _buildSectionTitle('記録', Icons.auto_graph_outlined),
             const SizedBox(height: 10),
             GestureDetector(
               onTap: onShowAchievements,
@@ -150,8 +135,7 @@ class MyPage extends StatelessWidget {
             _buildSettingsTile(
               icon: Icons.history_outlined,
               title: '冒険ログ',
-              subtitle:
-                  'これまでに獲得した札の履歴',
+              subtitle: 'これまでに獲得した札の履歴',
               onTap: onShowAdventureLog,
             ),
 
@@ -165,97 +149,67 @@ class MyPage extends StatelessWidget {
   }
 
   Widget _buildSettingsExpansion() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(18),
-      ),
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
       child: Theme(
-        data: ThemeData(
-          dividerColor: Colors.transparent,
-        ),
+        data: ThemeData(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          tilePadding:
-              const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 4,
-          ),
-          childrenPadding:
-              const EdgeInsets.fromLTRB(
-            12,
-            0,
-            12,
-            12,
-          ),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           leading: Container(
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: Colors.deepPurple
-                  .withValues(alpha: 0.08),
+              color: Colors.deepPurple.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.tune,
-              color: Colors.deepPurple,
-            ),
+            child: const Icon(Icons.tune, color: Colors.deepPurple),
           ),
           title: const Text(
             '設定・管理',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
           ),
           subtitle: Text(
             'プロフィール・通知・アプリ設定など',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
           children: [
             _buildSettingsTile(
               icon: Icons.person_outline,
               title: 'プロフィール',
-              subtitle:
-                  'ユーザー情報を設定',
+              subtitle: 'ユーザー情報を設定',
               onTap: onShowProfile,
             ),
             _buildSettingsTile(
               icon: Icons.manage_accounts_outlined,
               title: 'アカウント',
-              subtitle:
-                  'データを引き継ぐ',
+              subtitle: 'データを引き継ぐ',
               onTap: onShowAccount,
             ),
             _buildSettingsTile(
               icon: Icons.notifications_none,
               title: '通知設定',
-              subtitle:
-                  'お知らせ・到達通知',
+              subtitle: 'お知らせ・到達通知',
               onTap: onShowNotifications,
             ),
             _buildSettingsTile(
               icon: Icons.cloud_sync_outlined,
               title: '同期状態',
-              subtitle:
-                  '保留中の訪問データを確認',
+              subtitle: '保留中の訪問データを確認',
               onTap: onShowSyncStatus,
             ),
             _buildSettingsTile(
               icon: Icons.settings_outlined,
               title: 'アプリ設定',
-              subtitle:
-                  '各種設定',
+              subtitle: '各種設定',
               onTap: onShowSettings,
             ),
             _buildSettingsTile(
               icon: Icons.info_outline,
               title: '聖地クエストについて',
-              subtitle:
-                  'アプリ情報',
+              subtitle: 'アプリ情報',
               onTap: onShowAbout,
             ),
           ],
@@ -264,16 +218,15 @@ class MyPage extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileHeader(
-    int progress,
-  ) {
+  Widget _buildProfileHeader(int progress) {
+    final level = levelProgress;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(22),
       ),
       child: Column(
         children: [
@@ -287,25 +240,20 @@ class MyPage extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      displayName ??
-                          'ゲストユーザー',
-                      style:
-                          const TextStyle(
+                      displayName ?? 'ゲストユーザー',
+                      style: const TextStyle(
                         fontSize: 21,
-                        fontWeight:
-                            FontWeight.bold,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '聖地クエスト冒険者',
                       style: TextStyle(
-                        color:
-                            Colors.grey.shade600,
+                        color: Colors.grey.shade600,
                       ),
                     ),
                     if (myRank != null) ...[
@@ -314,31 +262,24 @@ class MyPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                         onTap: onShowRanking,
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 2,
-                          ),
-                          child:
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.leaderboard,
-                              size: 16,
-                              color: Colors.amber,
-                            ),
-                            const SizedBox(
-                              width: 5,
-                            ),
-                            Text(
-                              'ランキング $myRank位',
-                              style:
-                                  const TextStyle(
-                                fontSize: 12,
-                                fontWeight:
-                                    FontWeight.w600,
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.leaderboard,
+                                size: 16,
+                                color: Colors.amber,
                               ),
-                            ),
-                          ],
-                        ),
+                              const SizedBox(width: 5),
+                              Text(
+                                'ランキング $myRank位',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -347,7 +288,80 @@ class MyPage extends StatelessWidget {
               ),
             ],
           ),
+
+          if (level != null) ...[
+            const SizedBox(height: 18),
+
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    'Lv.${level.level}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${level.totalXp} XP',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: level.progress,
+                minHeight: 9,
+                backgroundColor: Colors.grey.shade200,
+              ),
+            ),
+
+            const SizedBox(height: 7),
+
+            Row(
+              children: [
+                Text(
+                  '${level.xpIntoLevel} / '
+                  '${level.xpNeededForNextLevel} XP',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '次のLvまで '
+                  '${level.xpNeededForNextLevel - level.xpIntoLevel} XP',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ],
+
           const SizedBox(height: 20),
+
           Row(
             children: [
               Expanded(
@@ -376,62 +390,36 @@ class MyPage extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildCompactStat({
-    required String value,
-    required String label,
-  }) {
+  Widget _buildCompactStat({required String value, required String label}) {
     return Column(
       children: [
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
         ),
       ],
     );
   }
 
   Widget _buildStatDivider() {
-    return Container(
-      width: 1,
-      height: 30,
-      color: Colors.grey.shade200,
-    );
+    return Container(width: 1, height: 30, color: Colors.grey.shade200);
   }
 
-  Widget _buildSectionTitle(
-    String title,
-    IconData icon,
-  ) {
+  Widget _buildSectionTitle(String title, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 4,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 18,
-            color: Colors.deepPurple,
-          ),
+          Icon(icon, size: 18, color: Colors.deepPurple),
           const SizedBox(width: 7),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -439,24 +427,20 @@ class MyPage extends StatelessWidget {
   }
 
   Widget _buildNextDestinationCard() {
-    final destinationName =
-        nextDestinationName?.trim();
+    final destinationName = nextDestinationName?.trim();
 
     final hasDestination =
-        destinationName != null &&
-            destinationName.isNotEmpty;
+        destinationName != null && destinationName.isNotEmpty;
 
     if (!hasDestination) {
-      final isComplete =
-          total > 0 && count >= total;
+      final isComplete = total > 0 && count >= total;
 
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius:
-              BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
           children: [
@@ -464,47 +448,31 @@ class MyPage extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: (isComplete
-                        ? Colors.amber
-                        : Colors.deepPurple)
+                color: (isComplete ? Colors.amber : Colors.deepPurple)
                     .withValues(alpha: 0.10),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                isComplete
-                    ? Icons.emoji_events
-                    : Icons.explore_outlined,
-                color: isComplete
-                    ? Colors.amber.shade700
-                    : Colors.deepPurple,
+                isComplete ? Icons.emoji_events : Icons.explore_outlined,
+                color: isComplete ? Colors.amber.shade700 : Colors.deepPurple,
               ),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isComplete
-                        ? 'このクエストを完全制覇！'
-                        : '次の目的地を準備中',
+                    isComplete ? 'このクエストを完全制覇！' : '次の目的地を準備中',
                     style: const TextStyle(
                       fontSize: 16,
-                      fontWeight:
-                          FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isComplete
-                        ? 'すべての聖地を獲得しました'
-                        : '位置情報を取得すると候補が表示されます',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color:
-                          Colors.grey.shade600,
-                    ),
+                    isComplete ? 'すべての聖地を獲得しました' : '位置情報を取得すると候補が表示されます',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ],
               ),
@@ -514,8 +482,7 @@ class MyPage extends StatelessWidget {
       );
     }
 
-    final distance =
-        nextDestinationDistance;
+    final distance = nextDestinationDistance;
 
     String? distanceText;
 
@@ -525,25 +492,21 @@ class MyPage extends StatelessWidget {
           : 'あと ${(distance / 1000).toStringAsFixed(1)}km';
     }
 
-    final card =
-        nextDestinationCard?.trim();
+    final card = nextDestinationCard?.trim();
 
-    final icon =
-        nextDestinationIcon?.trim();
+    final icon = nextDestinationIcon?.trim();
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius:
-            BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20),
         onTap: onShowNextDestination,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius:
-                BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
             children: [
@@ -552,63 +515,47 @@ class MyPage extends StatelessWidget {
                 height: 50,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple
-                      .withValues(alpha: 0.08),
-                  borderRadius:
-                      BorderRadius.circular(16),
+                  color: Colors.deepPurple.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  icon == null ||
-                          icon.isEmpty
-                      ? '📍'
-                      : icon,
-                  style: const TextStyle(
-                    fontSize: 25,
-                  ),
+                  icon == null || icon.isEmpty ? '📍' : icon,
+                  style: const TextStyle(fontSize: 25),
                 ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '次の目的地',
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight:
-                            FontWeight.w600,
-                        color:
-                            Colors.grey.shade600,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade600,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      card == null ||
-                              card.isEmpty
+                      card == null || card.isEmpty
                           ? destinationName
                           : '$card $destinationName',
                       maxLines: 1,
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 16,
-                        fontWeight:
-                            FontWeight.bold,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (distanceText !=
-                        null) ...[
+                    if (distanceText != null) ...[
                       const SizedBox(height: 4),
                       Text(
                         distanceText,
                         style: const TextStyle(
                           fontSize: 12,
-                          color:
-                              Colors.deepPurple,
-                          fontWeight:
-                              FontWeight.w600,
+                          color: Colors.deepPurple,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -617,21 +564,13 @@ class MyPage extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Column(
-                mainAxisSize:
-                    MainAxisSize.min,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.map_outlined,
-                    color: Colors.deepPurple,
-                  ),
+                  const Icon(Icons.map_outlined, color: Colors.deepPurple),
                   const SizedBox(height: 2),
                   Text(
                     '地図',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color:
-                          Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
                   ),
                 ],
               ),

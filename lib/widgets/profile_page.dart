@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
+import '../collection_history_service.dart';
+import '../services/level_service.dart';
 import 'profile_avatar.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -33,6 +35,12 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _errorMessage;
   String? _ageGroup;
   String _avatarKey = 'adventurer';
+
+  final LevelService _levelService = const LevelService();
+  final CollectionHistoryService _historyService =
+      CollectionHistoryService();
+
+  LevelProgress? _levelProgress;
 
   supabase.SupabaseClient get _client =>
       supabase.Supabase.instance.client;
@@ -83,6 +91,19 @@ class _ProfilePageState extends State<ProfilePage> {
       final loadedAvatarKey =
           data?['avatar_key']?.toString();
 
+      final totalCollected =
+          await _historyService.loadTotalCollectionCount();
+
+      final totalXp =
+          _levelService.xpFromCollectedCount(totalCollected);
+
+      final levelProgress =
+          _levelService.progressFromXp(totalXp);
+
+      if (!mounted) {
+        return;
+      }
+
       setState(() {
         _ageGroup =
             _ageGroups.contains(loadedAgeGroup)
@@ -93,6 +114,8 @@ class _ProfilePageState extends State<ProfilePage> {
             profileAvatarOptionForKey(
               loadedAvatarKey,
             ).key;
+
+        _levelProgress = levelProgress;
 
         _isLoading = false;
       });
@@ -269,6 +292,11 @@ class _ProfilePageState extends State<ProfilePage> {
                           size: 96,
                         ),
                       ),
+                      const SizedBox(height: 20),
+
+                      if (_levelProgress != null)
+                        _buildLevelCard(_levelProgress!),
+
                       const SizedBox(height: 28),
 
                       _buildSection(
@@ -495,6 +523,102 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget _buildLevelCard(
+    LevelProgress progress,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6A35C8)
+                      .withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: Color(0xFF6A35C8),
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Lv.${progress.level}',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${progress.totalXp} XP',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress.progress,
+              minHeight: 10,
+              backgroundColor:
+                  const Color(0xFF6A35C8).withValues(alpha: 0.10),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(
+                Color(0xFF6A35C8),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '次のLv.まで',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ),
+              Text(
+                '${progress.xpIntoLevel} / '
+                '${progress.xpNeededForNextLevel} XP',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
   Widget _buildSection({
     required String title,
     required String description,

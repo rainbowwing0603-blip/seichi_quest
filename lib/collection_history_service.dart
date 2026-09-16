@@ -395,6 +395,15 @@ class CollectionHistoryService {
     return List<Map<String, dynamic>>.from(data);
   }
 
+  /// 現在のユーザーが全イベントで獲得したスタンプの累計数を返す。
+  ///
+  /// 同じ聖地でも別イベントで獲得した場合は、
+  /// それぞれ別の獲得実績として数える。
+  Future<int> loadTotalCollectionCount() async {
+    final history = await loadCollectionDisplayHistory();
+    return history.length;
+  }
+
   /// 指定イベントの獲得履歴をDBと端末からリセットする。
   ///
   /// DB側はSupabase RPCで現在のユーザー自身の履歴だけを削除し、

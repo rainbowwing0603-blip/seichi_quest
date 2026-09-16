@@ -25,6 +25,7 @@ import 'models/seichi.dart';
 import 'models/achievement.dart';
 import 'models/event.dart';
 import 'services/achievement_service.dart';
+import 'services/level_service.dart';
 import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
 
@@ -122,6 +123,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   final CollectionHistoryService _historyService = CollectionHistoryService();
 
+  static const LevelService _levelService = LevelService();
+  LevelProgress? _levelProgress;
+
   // 現在表示・獲得対象としているイベント。
   String? _currentEventId;
   String? _currentEventName;
@@ -140,10 +144,15 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   double? _nextDistance;
 
   bool _focusNextDestinationOnMapOpen = false;
+  Seichi? _pendingMapSeichi;
 
   // ユーザーが「次の目的地にする」で指定した聖地。
   // 未指定時は従来どおり、現在地から最も近い未獲得聖地を自動選択する。
   String? _manualNextSeichiId;
+
+  // おすすめ巡回ルート開始中の未完了ルート。
+  // 先頭要素が現在のNEXT目的地になる。
+  final List<Seichi> _activeRecommendedRoute = <Seichi>[];
 
   bool _justCollected = false;
   String? _collectedName;
@@ -272,12 +281,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
               .eq('user_id', user.id)
               .maybeSingle();
 
-          savedEventId =
-              preference?['current_event_id']?.toString();
+          savedEventId = preference?['current_event_id']?.toString();
         } catch (error) {
-          debugPrint(
-            '[EVENT] preference load failed: $error',
-          );
+          debugPrint('[EVENT] preference load failed: $error');
         }
       }
 
@@ -310,8 +316,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         throw Exception('現在のイベントIDが取得できません。');
       }
 
-      if (user != null &&
-          savedEventId != _currentEventId) {
+      if (user != null && savedEventId != _currentEventId) {
         await _saveCurrentEventPreference(_currentEventId!);
       }
 
@@ -335,22 +340,15 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     try {
-      await client.from('user_event_preferences').upsert(
-        {
-          'user_id': user.id,
-          'current_event_id': eventId,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        onConflict: 'user_id',
-      );
+      await client.from('user_event_preferences').upsert({
+        'user_id': user.id,
+        'current_event_id': eventId,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }, onConflict: 'user_id');
 
-      debugPrint(
-        '[EVENT] preference saved: eventId=$eventId',
-      );
+      debugPrint('[EVENT] preference saved: eventId=$eventId');
     } catch (error) {
-      debugPrint(
-        '[EVENT] preference save failed: $error',
-      );
+      debugPrint('[EVENT] preference save failed: $error');
       rethrow;
     }
   }
@@ -383,9 +381,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           'updated_at': now,
         });
 
-        debugPrint(
-          '[EVENT] participation created: eventId=$eventId',
-        );
+        debugPrint('[EVENT] participation created: eventId=$eventId');
         return;
       }
 
@@ -403,13 +399,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           .eq('user_id', user.id)
           .eq('event_id', eventId);
 
-      debugPrint(
-        '[EVENT] participation reactivated: eventId=$eventId',
-      );
+      debugPrint('[EVENT] participation reactivated: eventId=$eventId');
     } catch (error) {
-      debugPrint(
-        '[EVENT] participation ensure failed: $error',
-      );
+      debugPrint('[EVENT] participation ensure failed: $error');
       rethrow;
     }
   }
@@ -477,7 +469,34 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     await _applyCollectedRows(syncedRows);
     await _loadCloudHistory();
     await _loadMyEventRank();
+    await _loadLevelProgress();
     await _initializeLocation();
+  }
+
+  Future<void> _loadLevelProgress() async {
+    try {
+      final totalCollected = await _historyService.loadTotalCollectionCount();
+
+      final totalXp = _levelService.xpFromCollectedCount(totalCollected);
+
+      final levelProgress = _levelService.progressFromXp(totalXp);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _levelProgress = levelProgress;
+      });
+
+      debugPrint(
+        '[LEVEL] collected=$totalCollected '
+        'xp=${levelProgress.totalXp} '
+        'level=${levelProgress.level}',
+      );
+    } catch (error) {
+      debugPrint('[LEVEL] load failed: $error');
+    }
   }
 
   Future<void> _loadDisplayName() async {
@@ -506,17 +525,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       final displayName = data?['display_name']?.toString().trim();
 
-      final avatarKey =
-          data?['avatar_key']?.toString().trim();
+      final avatarKey = data?['avatar_key']?.toString().trim();
 
       setState(() {
         _displayName = displayName == null || displayName.isEmpty
             ? null
             : displayName;
 
-        _avatarKey = avatarKey == null || avatarKey.isEmpty
-            ? null
-            : avatarKey;
+        _avatarKey = avatarKey == null || avatarKey.isEmpty ? null : avatarKey;
       });
     } catch (error) {
       debugPrint('[PROFILE] display name load failed: $error');
@@ -605,6 +621,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     _collectedIds.clear();
     _manualNextSeichiId = null;
+    _activeRecommendedRoute.clear();
 
     await _saveStamps();
     await _loadCollectionEventNames();
@@ -672,10 +689,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // 保存済みスタンプ
   // ============================================================
 
-  String _stampStorageKey({
-    required String userId,
-    required String eventId,
-  }) {
+  String _stampStorageKey({required String userId, required String eventId}) {
     return 'collected_seichi_ids_v2_${userId}_$eventId';
   }
 
@@ -691,8 +705,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     final keys = preferences.getKeys().toList();
 
     for (final key in keys) {
-      if (!key.startsWith(legacyEventPrefix) ||
-          key.startsWith(scopedPrefix)) {
+      if (!key.startsWith(legacyEventPrefix) || key.startsWith(scopedPrefix)) {
         continue;
       }
 
@@ -703,36 +716,25 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       }
 
       final legacyIds = preferences.getStringList(key);
-      final scopedKey = _stampStorageKey(
-        userId: userId,
-        eventId: eventId,
-      );
+      final scopedKey = _stampStorageKey(userId: userId, eventId: eventId);
       final scopedIds = preferences.getStringList(scopedKey) ?? <String>[];
 
-      final mergedIds = <String>{
-        ...scopedIds,
-        ...?legacyIds,
-      }.toList();
+      final mergedIds = <String>{...scopedIds, ...?legacyIds}.toList();
 
       await preferences.setStringList(scopedKey, mergedIds);
       await preferences.remove(key);
     }
 
-    final legacyGlobalIds =
-        preferences.getStringList(legacyGlobalKey);
+    final legacyGlobalIds = preferences.getStringList(legacyGlobalKey);
 
     if (legacyGlobalIds != null) {
       final scopedKey = _stampStorageKey(
         userId: userId,
         eventId: currentEventId,
       );
-      final scopedIds =
-          preferences.getStringList(scopedKey) ?? <String>[];
+      final scopedIds = preferences.getStringList(scopedKey) ?? <String>[];
 
-      final mergedIds = <String>{
-        ...scopedIds,
-        ...legacyGlobalIds,
-      }.toList();
+      final mergedIds = <String>{...scopedIds, ...legacyGlobalIds}.toList();
 
       await preferences.setStringList(scopedKey, mergedIds);
       await preferences.remove(legacyGlobalKey);
@@ -761,10 +763,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       currentEventId: eventId,
     );
 
-    final eventKey = _stampStorageKey(
-      userId: user.id,
-      eventId: eventId,
-    );
+    final eventKey = _stampStorageKey(userId: user.id, eventId: eventId);
 
     final savedIds = preferences.getStringList(eventKey);
 
@@ -791,10 +790,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       eventId: _currentEventId!,
     );
 
-    await _preferences!.setStringList(
-      eventKey,
-      _collectedIds.toList(),
-    );
+    await _preferences!.setStringList(eventKey, _collectedIds.toList());
   }
 
   // ============================================================
@@ -850,7 +846,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                 seichi.longitude != 0,
           )
           .toList();
-
 
       list.sort((a, b) {
         final orderCompare = _cardOrderIndex(a.card)
@@ -1028,11 +1023,24 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   void _updateNextDestination() {
+    debugPrint(
+      '[ROUTE-NEXT] UPDATE START '
+      'manual=$_manualNextSeichiId '
+      'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+      'collected=${_collectedIds.length}',
+    );
+
     final result = const NextDestinationService().findNextDestination(
       position: _currentPosition,
       seichiList: _seichiList,
       collectedIds: _collectedIds,
       manualNextSeichiId: _manualNextSeichiId,
+    );
+
+    debugPrint(
+      '[ROUTE-NEXT] SERVICE RESULT '
+      'next=${result.seichi == null ? null : '${result.seichi!.card}:${result.seichi!.name}:${result.seichi!.id}'} '
+      'distance=${result.distance}',
     );
 
     if (result.seichi == null && _manualNextSeichiId != null) {
@@ -1047,6 +1055,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _nextSeichi = result.seichi;
       _nextDistance = result.distance;
     });
+
+    debugPrint(
+      '[ROUTE-NEXT] UPDATE END '
+      'next=${_nextSeichi == null ? null : '${_nextSeichi!.card}:${_nextSeichi!.name}:${_nextSeichi!.id}'} '
+      'manual=$_manualNextSeichiId '
+      'distance=$_nextDistance',
+    );
   }
 
   void _setNextDestination(Seichi seichi) {
@@ -1064,6 +1079,94 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${seichi.card} ${seichi.name} を次の目的地に設定しました。'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _testRecommendedRouteNext() async {
+    if (_activeRecommendedRoute.isEmpty) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('テストできる巡回ルートが開始されていません。'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final previousSeichi = _activeRecommendedRoute.first;
+
+    _activeRecommendedRoute.removeAt(0);
+
+    if (_activeRecommendedRoute.isEmpty) {
+      _manualNextSeichiId = null;
+      _updateNextDestination();
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'テスト: ${previousSeichi.card} ${previousSeichi.name} の次で巡回ルート終了です。',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final nextSeichi = _activeRecommendedRoute.first;
+    _manualNextSeichiId = nextSeichi.id;
+    _updateNextDestination();
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'テスト: ${previousSeichi.card} ${previousSeichi.name} → '
+          '${nextSeichi.card} ${nextSeichi.name}',
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _startRecommendedRoute(List<Seichi> route) {
+    if (route.isEmpty) {
+      return;
+    }
+
+    final firstSeichi = route.first;
+
+    _activeRecommendedRoute
+      ..clear()
+      ..addAll(route);
+
+    if (_collectedIds.contains(firstSeichi.id)) {
+      return;
+    }
+
+    _manualNextSeichiId = firstSeichi.id;
+    _updateNextDestination();
+
+    _moveCameraToSeichi(firstSeichi);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '巡回ルートを開始しました。最初の目的地は '
+          '${firstSeichi.card} ${firstSeichi.name} です。',
+        ),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -1225,15 +1328,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         accuracyMeters: position.accuracy,
       );
 
-      await _applyCollectedRows(collectedRows);
+      await _applyCollectedRows(collectedRows, showLevelUp: true);
     } finally {
       _isCollecting = false;
     }
   }
 
   Future<void> _applyCollectedRows(
-    List<Map<String, dynamic>> collectedRows,
-  ) async {
+    List<Map<String, dynamic>> collectedRows, {
+    bool showLevelUp = false,
+  }) async {
     final currentEventId = _currentEventId;
 
     if (collectedRows.isEmpty || currentEventId == null) {
@@ -1269,16 +1373,56 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _collectedIds.add(item.id);
     }
 
-    if (_manualNextSeichiId != null &&
+    debugPrint(
+      '[ROUTE-NEXT] COLLECTED '
+      'new=${newlyCollectedSeichi.map((item) => '${item.card}:${item.name}:${item.id}').toList()} '
+      'activeBefore=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+      'manualBefore=$_manualNextSeichiId',
+    );
+
+    if (_activeRecommendedRoute.isNotEmpty) {
+      _activeRecommendedRoute.removeWhere(
+        (item) => _collectedIds.contains(item.id),
+      );
+
+      if (_activeRecommendedRoute.isNotEmpty) {
+        _manualNextSeichiId = _activeRecommendedRoute.first.id;
+      } else {
+        _manualNextSeichiId = null;
+      }
+    } else if (_manualNextSeichiId != null &&
         newlyCollectedSeichi.any((item) => item.id == _manualNextSeichiId)) {
       _manualNextSeichiId = null;
     }
+
+    debugPrint(
+      '[ROUTE-NEXT] AFTER ROUTE ADVANCE '
+      'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+      'manual=$_manualNextSeichiId',
+    );
 
     await _saveStamps();
     await _loadCollectionEventNames();
     await _loadMyEventRank();
 
+    final previousLevel = _levelProgress?.level;
+
+    await _loadLevelProgress();
+
+    final newLevel = _levelProgress?.level;
+
+    final didLevelUp =
+        showLevelUp &&
+        previousLevel != null &&
+        newLevel != null &&
+        newLevel > previousLevel;
+
     final newCollectedCount = _getCollectedCount();
+
+    final didCompleteQuest =
+        _seichiList.isNotEmpty &&
+        previousCollectedCount < _seichiList.length &&
+        newCollectedCount >= _seichiList.length;
 
     final previousAchievements = _achievementService.getUnlockedAchievements(
       _eventAchievements,
@@ -1342,14 +1486,105 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     _updateNextDestination();
 
+    if (didLevelUp) {
+      await _showLevelUpDialog(
+        previousLevel: previousLevel,
+        newLevel: newLevel,
+      );
+    }
+
     for (final achievement in newlyUnlockedAchievements) {
       await _showAchievementUnlockDialog(achievement);
+    }
+
+    if (didCompleteQuest) {
+      await _showQuestCompleteDialog(totalCount: _seichiList.length);
     }
   }
 
   // ============================================================
   // カメラを現在地へ
   // ============================================================
+
+  Future<void> _showLevelUpDialog({
+    required int previousLevel,
+    required int newLevel,
+  }) async {
+    if (!mounted || newLevel <= previousLevel) {
+      return;
+    }
+
+    final progress = _levelProgress;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 82,
+                  height: 82,
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome,
+                    size: 46,
+                    color: Colors.deepPurple,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'LEVEL UP!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 25,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepPurple,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Lv.$previousLevel  →  Lv.$newLevel',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (progress != null)
+                  Text(
+                    '累計 ${progress.totalXp} XP',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  ),
+                const SizedBox(height: 22),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                    },
+                    child: const Text('冒険を続ける'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> _showAchievementUnlockDialog(Achievement achievement) async {
     if (!mounted) {
@@ -1398,6 +1633,128 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     );
   }
 
+  Future<void> _showQuestCompleteDialog({required int totalCount}) async {
+    if (!mounted || totalCount <= 0) {
+      return;
+    }
+
+    final eventName = _currentEventName?.trim();
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 82,
+                  height: 82,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.emoji_events_rounded,
+                    size: 48,
+                    color: Colors.amber,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'QUEST COMPLETE',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                    color: Colors.deepPurple,
+                  ),
+                ),
+                if (eventName != null && eventName.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    eventName,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 22),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 18,
+                    horizontal: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        '$totalCount / $totalCount',
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.deepPurple,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      const Text(
+                        '全スポット制覇！',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'すべてのスポットを巡り、'
+                  'スタンプを集めました。',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    height: 1.5,
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                    },
+                    icon: const Icon(Icons.check_circle_outline_rounded),
+                    label: const Text(
+                      'コンプリート！',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _moveCameraToCurrentLocation() async {
     final position = _currentPosition;
 
@@ -1441,23 +1798,30 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   Future<void> _moveCameraToSeichi(Seichi seichi) async {
-    if (_mapController == null) {
-      return;
-    }
+    _pendingMapSeichi = seichi;
 
-    if (mounted) {
+    // 別タブからマップへ戻る場合、現在の controller は
+    // 破棄される旧Mapに属している可能性がある。
+    // 選択地点は pending のまま保持し、新しいMapの
+    // onMapCreated でカメラ移動する。
+    if (mounted && _selectedTab != 0) {
+      _mapController = null;
+
       setState(() {
         _selectedTab = 0;
       });
-    }
 
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    if (_mapController == null) {
       return;
     }
 
-    await _mapController!.animateCamera(
+    final controller = _mapController;
+
+    // Map生成待ちの場合は pending を残す。
+    if (controller == null) {
+      return;
+    }
+
+    await controller.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
           target: LatLng(seichi.latitude, seichi.longitude),
@@ -1465,6 +1829,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         ),
       ),
     );
+
+    // この地点への移動が完了した場合だけ pending を解除。
+    if (_pendingMapSeichi?.id == seichi.id) {
+      _pendingMapSeichi = null;
+    }
   }
 
   // ============================================================
@@ -1706,8 +2075,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       onMapCreated: (controller) {
         _mapController = controller;
 
-        if (_focusNextDestinationOnMapOpen &&
-            _nextSeichi != null) {
+        if (_pendingMapSeichi != null) {
+          final seichi = _pendingMapSeichi!;
+          _pendingMapSeichi = null;
+          _moveCameraToSeichi(seichi);
+          return;
+        }
+
+        if (_focusNextDestinationOnMapOpen && _nextSeichi != null) {
           _focusNextDestinationOnMapOpen = false;
           _moveCameraToNextSeichi();
           return;
@@ -1750,11 +2125,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       eventId: eventId,
       displayName: _displayName,
       onShowProfile: () async {
-        final changed = await Navigator.of(context).push<bool>(
-          MaterialPageRoute(
-            builder: (_) => const ProfilePage(),
-          ),
-        );
+        final changed = await Navigator.of(context)
+            .push<bool>(MaterialPageRoute(builder: (_) => const ProfilePage()));
 
         if (changed != true) {
           return false;
@@ -1766,6 +2138,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         return true;
       },
       myRank: _myEventRank,
+
       myCount: _getCollectedCount(),
       total: _seichiList.length,
     );
@@ -1801,6 +2174,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _eventAchievements.clear();
       _myEventRank = null;
       _manualNextSeichiId = null;
+      _activeRecommendedRoute.clear();
 
       await _loadEventAchievements();
       await _loadSavedStamps();
@@ -1836,18 +2210,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _showEventSelector() async {
     if (_events.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            '表示できるクエストがありません。',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('表示できるクエストがありません。')));
       return;
     }
 
-    final client =
-        supabase.Supabase.instance.client;
+    final client = supabase.Supabase.instance.client;
     final user = client.auth.currentUser;
 
     Map<String, bool>? participationStates;
@@ -1859,27 +2227,21 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             .select('event_id, is_active')
             .eq('user_id', user.id);
 
-        final rows =
-            List<Map<String, dynamic>>.from(data);
+        final rows = List<Map<String, dynamic>>.from(data);
 
         participationStates = <String, bool>{};
 
         for (final row in rows) {
-          final eventId =
-              row['event_id']?.toString();
+          final eventId = row['event_id']?.toString();
 
-          if (eventId == null ||
-              eventId.isEmpty) {
+          if (eventId == null || eventId.isEmpty) {
             continue;
           }
 
-          participationStates[eventId] =
-              row['is_active'] == true;
+          participationStates[eventId] = row['is_active'] == true;
         }
       } catch (error) {
-        debugPrint(
-          '[EVENT] participation status load failed: $error',
-        );
+        debugPrint('[EVENT] participation status load failed: $error');
       }
     }
 
@@ -1895,38 +2257,25 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         return SafeArea(
           child: ListView(
             shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(
-              24,
-              8,
-              24,
-              24,
-            ),
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
             children: [
               const Text(
                 'クエスト一覧',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 6),
               Text(
                 '詳細を確認してから参加・選択できます。',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 16),
 
               ..._events.map((event) {
                 final eventId = event.id;
                 final eventName = event.name;
-                final description =
-                    event.description;
+                final description = event.description;
 
-                final isCurrent =
-                    eventId == _currentEventId;
+                final isCurrent = eventId == _currentEventId;
 
                 String statusLabel;
                 IconData statusIcon;
@@ -1934,39 +2283,24 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
                 if (isCurrent) {
                   statusLabel = '選択中';
-                  statusIcon =
-                      Icons.check_circle;
-                  statusColor =
-                      Colors.deepPurple;
-                } else if (
-                    participationStates == null) {
+                  statusIcon = Icons.check_circle;
+                  statusColor = Colors.deepPurple;
+                } else if (participationStates == null) {
                   statusLabel = '状態不明';
-                  statusIcon =
-                      Icons.help_outline;
-                  statusColor =
-                      Colors.grey;
-                } else if (
-                    participationStates[eventId] ==
-                        true) {
+                  statusIcon = Icons.help_outline;
+                  statusColor = Colors.grey;
+                } else if (participationStates[eventId] == true) {
                   statusLabel = '参加中';
-                  statusIcon =
-                      Icons.flag_outlined;
-                  statusColor =
-                      Colors.green;
-                } else if (
-                    participationStates
-                        .containsKey(eventId)) {
+                  statusIcon = Icons.flag_outlined;
+                  statusColor = Colors.green;
+                } else if (participationStates.containsKey(eventId)) {
                   statusLabel = '過去に参加';
-                  statusIcon =
-                      Icons.history_outlined;
-                  statusColor =
-                      Colors.orange;
+                  statusIcon = Icons.history_outlined;
+                  statusColor = Colors.orange;
                 } else {
                   statusLabel = '未参加';
-                  statusIcon =
-                      Icons.add_circle_outline;
-                  statusColor =
-                      Colors.grey;
+                  statusIcon = Icons.add_circle_outline;
+                  statusColor = Colors.grey;
                 }
 
                 String? primaryActionLabel;
@@ -1974,18 +2308,15 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                 if (!isCurrent) {
                   switch (statusLabel) {
                     case '参加中':
-                      primaryActionLabel =
-                          'このクエストを選ぶ';
+                      primaryActionLabel = 'このクエストを選ぶ';
                       break;
 
                     case '過去に参加':
-                      primaryActionLabel =
-                          '再参加して選ぶ';
+                      primaryActionLabel = '再参加して選ぶ';
                       break;
 
                     case '未参加':
-                      primaryActionLabel =
-                          '参加して選ぶ';
+                      primaryActionLabel = '参加して選ぶ';
                       break;
 
                     default:
@@ -1994,63 +2325,35 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                 }
 
                 return ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(
-                    vertical: 5,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 5),
                   leading: Icon(
-                    isCurrent
-                        ? Icons.check_circle
-                        : Icons.explore_outlined,
-                    color: isCurrent
-                        ? Colors.deepPurple
-                        : null,
+                    isCurrent ? Icons.check_circle : Icons.explore_outlined,
+                    color: isCurrent ? Colors.deepPurple : null,
                   ),
                   title: Row(
                     children: [
-                      Expanded(
-                        child: Text(
-                          eventName,
-                        ),
-                      ),
+                      Expanded(child: Text(eventName)),
                       const SizedBox(width: 8),
                       Container(
-                        padding:
-                            const EdgeInsets.symmetric(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: 8,
                           vertical: 4,
                         ),
-                        decoration:
-                            BoxDecoration(
-                          color: statusColor
-                              .withValues(
-                            alpha: 0.10,
-                          ),
-                          borderRadius:
-                              BorderRadius.circular(
-                            999,
-                          ),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(999),
                         ),
                         child: Row(
-                          mainAxisSize:
-                              MainAxisSize.min,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              statusIcon,
-                              size: 13,
-                              color: statusColor,
-                            ),
-                            const SizedBox(
-                              width: 4,
-                            ),
+                            Icon(statusIcon, size: 13, color: statusColor),
+                            const SizedBox(width: 4),
                             Text(
                               statusLabel,
                               style: TextStyle(
                                 fontSize: 11,
-                                fontWeight:
-                                    FontWeight.w600,
-                                color:
-                                    statusColor,
+                                fontWeight: FontWeight.w600,
+                                color: statusColor,
                               ),
                             ),
                           ],
@@ -2058,85 +2361,128 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                       ),
                     ],
                   ),
-                  subtitle:
-                      description.isEmpty
-                          ? null
-                          : Text(
-                              description,
-                              maxLines: 2,
-                              overflow:
-                                  TextOverflow
-                                      .ellipsis,
-                            ),
-                  trailing: const Icon(
-                    Icons.chevron_right,
-                  ),
+                  subtitle: description.isEmpty
+                      ? null
+                      : Text(
+                          description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                  trailing: const Icon(Icons.chevron_right),
 
                   // ------------------------------------------------
                   // ここでは選択しない。
                   // まず詳細画面を開く。
                   // ------------------------------------------------
                   onTap: () async {
-                    Navigator.of(
-                      sheetContext,
-                    ).pop();
+                    Navigator.of(sheetContext).pop();
 
-                    await Future<void>.delayed(
-                      Duration.zero,
-                    );
+                    await Future<void>.delayed(Duration.zero);
 
                     if (!mounted) {
                       return;
                     }
 
-                    final changed =
-                        await Navigator.of(context)
-                            .push<bool>(
+                    final changed = await Navigator.of(context).push<bool>(
                       MaterialPageRoute(
-                        builder: (_) =>
-                            EventDetailPage(
+                        builder: (_) => EventDetailPage(
                           event: event,
+                          currentPosition: _currentPosition,
 
-                          participationLabel:
-                              statusLabel,
+                          participationLabel: statusLabel,
 
-                          collectedCount:
-                              isCurrent
-                                  ? _getCollectedCount()
-                                  : null,
+                          collectedCount: isCurrent
+                              ? _getCollectedCount()
+                              : null,
 
-                          totalCount:
-                              isCurrent
-                                  ? _seichiList.length
-                                  : null,
+                          totalCount: isCurrent ? _seichiList.length : null,
 
-                          currentNextSeichiId:
-                              isCurrent
-                                  ? _nextSeichi?.id
-                                  : null,
+                          currentNextSeichiId: isCurrent
+                              ? _nextSeichi?.id
+                              : null,
 
-                          onSetNextDestination:
-                              isCurrent
-                                  ? _setNextDestination
-                                  : null,
+                          onSetNextDestination: isCurrent
+                              ? _setNextDestination
+                              : null,
+                          onStartRecommendedRoute: (route) async {
+                            if (route.isEmpty) {
+                              return;
+                            }
 
-                          primaryActionLabel:
-                              primaryActionLabel,
+                            final routeSeichiIds = route
+                                .map((seichi) => seichi.id)
+                                .toList(growable: false);
 
-                          onPrimaryAction:
-                              primaryActionLabel ==
-                                      null
-                                  ? null
-                                  : () async {
-                                      await _selectEvent(
-                                        event,
-                                      );
-                                    },
+                            if (!isCurrent) {
+                              await _selectEvent(event);
+                            }
 
-                          onSelectAnotherEvent:
-                              () async {
-                            Navigator.of(context)
-                                .pop();
+                            if (!mounted) {
+                              return;
+                            }
+
+                            final seichiById = <String, Seichi>{
+                              for (final seichi in _seichiList)
+                                seichi.id: seichi,
+                            };
+
+                            final selectedRoute = <Seichi>[];
+
+                            for (final seichiId in routeSeichiIds) {
+                              final seichi = seichiById[seichiId];
+
+                              if (seichi == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('巡回ルートの目的地を取得できませんでした。'),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              selectedRoute.add(seichi);
+                            }
+
+                            if (selectedRoute.isEmpty) {
+                              return;
+                            }
+
+                            Navigator.of(context).pop();
+
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (!mounted) {
+                                return;
+                              }
+
+                              _startRecommendedRoute(selectedRoute);
+                            });
+                          },
+                          onShowOnMap: isCurrent
+                              ? (seichi) {
+                                  Navigator.of(context).pop();
+
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    if (!mounted) {
+                                      return;
+                                    }
+
+                                    _moveCameraToSeichi(seichi);
+                                  });
+                                }
+                              : null,
+
+                          primaryActionLabel: primaryActionLabel,
+
+                          onPrimaryAction: primaryActionLabel == null
+                              ? null
+                              : () async {
+                                  await _selectEvent(event);
+                                },
+
+                          onSelectAnotherEvent: () async {
+                            Navigator.of(context).pop();
 
                             await _showEventSelector();
                           },
@@ -2144,8 +2490,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                       ),
                     );
 
-                    if (changed == true &&
-                        mounted) {
+                    if (changed == true && mounted) {
                       setState(() {});
                     }
                   },
@@ -2163,6 +2508,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       displayName: _displayName,
       avatarKey: _avatarKey,
       myRank: _myEventRank,
+      levelProgress: _levelProgress,
       eventAchievements: _eventAchievements,
       count: _getCollectedCount(),
       total: _seichiList.length,
@@ -2187,38 +2533,45 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             return;
           }
 
-          if (_mapController != null &&
-              _focusNextDestinationOnMapOpen) {
+          if (_mapController != null && _focusNextDestinationOnMapOpen) {
             _focusNextDestinationOnMapOpen = false;
             _moveCameraToNextSeichi();
           }
         });
       },
       onShowEventExplore: () async {
-        final selectedEventId =
-            await Navigator.of(context).push<String>(
+        final result = await Navigator.of(context).push<Object?>(
           MaterialPageRoute(
             builder: (_) => EventExplorePage(
               events: _events,
               currentPosition: _currentPosition,
               currentEventId: _currentEventId,
-              currentCollectedCount:
-                  _getCollectedCount(),
-              currentTotalCount:
-                  _seichiList.length,
-              currentNextSeichiId:
-                  _nextSeichi?.id,
-              onSetNextDestination:
-                  _setNextDestination,
+              currentCollectedCount: _getCollectedCount(),
+              currentTotalCount: _seichiList.length,
+              currentNextSeichiId: _nextSeichi?.id,
+              onSetNextDestination: _setNextDestination,
+              onShowOnMap: (seichi) {
+                Navigator.of(context).pop(seichi);
+              },
+              onStartRecommendedRoute: _startRecommendedRoute,
             ),
           ),
         );
 
-        if (selectedEventId == null ||
-            selectedEventId.isEmpty ||
-            selectedEventId == _currentEventId) {
+        if (result == null) {
           return;
         }
+
+        if (result is Seichi) {
+          await _moveCameraToSeichi(result);
+          return;
+        }
+
+        if (result is! String || result.isEmpty || result == _currentEventId) {
+          return;
+        }
+
+        final selectedEventId = result;
 
         Event? selectedEvent;
 
@@ -2232,11 +2585,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         if (selectedEvent == null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  '選択したクエスト情報を取得できません。',
-                ),
-              ),
+              const SnackBar(content: Text('選択したクエスト情報を取得できません。')),
             );
           }
           return;
@@ -2245,31 +2594,39 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         await _selectEvent(selectedEvent);
       },
       onShowFavoriteEvents: () async {
-        final selectedEventId =
-            await Navigator.of(context).push<String>(
+        final result = await Navigator.of(context).push<Object?>(
           MaterialPageRoute(
             builder: (_) => EventExplorePage(
               events: _events,
               currentPosition: _currentPosition,
               initialFavoriteOnly: true,
               currentEventId: _currentEventId,
-              currentCollectedCount:
-                  _getCollectedCount(),
-              currentTotalCount:
-                  _seichiList.length,
-              currentNextSeichiId:
-                  _nextSeichi?.id,
-              onSetNextDestination:
-                  _setNextDestination,
+              currentCollectedCount: _getCollectedCount(),
+              currentTotalCount: _seichiList.length,
+              currentNextSeichiId: _nextSeichi?.id,
+              onSetNextDestination: _setNextDestination,
+              onShowOnMap: (seichi) {
+                Navigator.of(context).pop(seichi);
+              },
+              onStartRecommendedRoute: _startRecommendedRoute,
             ),
           ),
         );
 
-        if (selectedEventId == null ||
-            selectedEventId.isEmpty ||
-            selectedEventId == _currentEventId) {
+        if (result == null) {
           return;
         }
+
+        if (result is Seichi) {
+          await _moveCameraToSeichi(result);
+          return;
+        }
+
+        if (result is! String || result.isEmpty || result == _currentEventId) {
+          return;
+        }
+
+        final selectedEventId = result;
 
         Event? selectedEvent;
 
@@ -2283,11 +2640,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         if (selectedEvent == null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  '選択したクエスト情報を取得できません。',
-                ),
-              ),
+              const SnackBar(content: Text('選択したクエスト情報を取得できません。')),
             );
           }
           return;
@@ -2296,12 +2649,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         await _selectEvent(selectedEvent);
       },
       onShowParticipatingEvents: () async {
-        final selectedEventId =
-            await Navigator.of(context).push<String>(
+        final selectedEventId = await Navigator.of(context).push<String>(
           MaterialPageRoute(
-            builder: (_) => ParticipatingEventsPage(
-              currentEventId: _currentEventId,
-            ),
+            builder: (_) =>
+                ParticipatingEventsPage(currentEventId: _currentEventId),
           ),
         );
 
@@ -2323,11 +2674,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         if (selectedEvent == null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  '選択したクエスト情報を取得できません。',
-                ),
-              ),
+              const SnackBar(content: Text('選択したクエスト情報を取得できません。')),
             );
           }
           return;
@@ -2346,11 +2693,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         }
 
         if (currentEvent == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('現在のクエスト情報を取得できません。'),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('現在のクエスト情報を取得できません。')));
           return;
         }
 
@@ -2358,10 +2703,33 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           MaterialPageRoute(
             builder: (_) => EventDetailPage(
               event: currentEvent!,
+              currentPosition: _currentPosition,
               collectedCount: _getCollectedCount(),
               totalCount: _seichiList.length,
               currentNextSeichiId: _nextSeichi?.id,
               onSetNextDestination: _setNextDestination,
+              onStartRecommendedRoute: (route) {
+                Navigator.of(context).pop();
+
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) {
+                    return;
+                  }
+
+                  _startRecommendedRoute(route);
+                });
+              },
+              onShowOnMap: (seichi) {
+                Navigator.of(context).pop();
+
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) {
+                    return;
+                  }
+
+                  _moveCameraToSeichi(seichi);
+                });
+              },
               onSelectAnotherEvent: () async {
                 Navigator.of(context).pop();
                 await _showEventSelector();
@@ -2382,21 +2750,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         });
       },
       onShowAdventureLog: () async {
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const AdventureLogPage(),
-          ),
-        );
+        await Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const AdventureLogPage()));
       },
       onShowSyncStatus: () async {
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => SyncStatusPage(
-              loadPendingCount:
-                  _historyService.pendingPlaceVisitCount,
+              loadPendingCount: _historyService.pendingPlaceVisitCount,
               syncNow: () async {
-                final syncedRows =
-                    await _historyService.syncPendingPlaceVisits();
+                final syncedRows = await _historyService
+                    .syncPendingPlaceVisits();
 
                 await _applyCollectedRows(syncedRows);
                 await _loadCloudHistory();
@@ -2425,11 +2789,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         await _checkStampDistance();
       },
       onShowAccount: () async {
-        final accountChanged = await Navigator.of(context).push<bool>(
-          MaterialPageRoute(
-            builder: (_) => const AccountPage(),
-          ),
-        );
+        final accountChanged = await Navigator.of(context)
+            .push<bool>(MaterialPageRoute(builder: (_) => const AccountPage()));
 
         if (accountChanged != true) {
           return;
@@ -2438,13 +2799,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         await _ensureCloudUser();
 
         _manualNextSeichiId = null;
+        _activeRecommendedRoute.clear();
 
         await _loadDisplayName();
         await _loadEventAchievements();
         await _loadSavedStamps();
 
-        final syncedRows =
-            await _historyService.syncPendingPlaceVisits();
+        final syncedRows = await _historyService.syncPendingPlaceVisits();
 
         await _applyCollectedRows(syncedRows);
         await _loadCloudHistory();
@@ -2469,6 +2830,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             builder: (_) => AppSettingsPage(
               onResetEventCollectionHistory:
                   _resetCurrentEventCollectionHistory,
+              onTestQuestComplete: () async {
+                await _showQuestCompleteDialog(totalCount: _seichiList.length);
+              },
+              onTestRecommendedRouteNext: _testRecommendedRouteNext,
             ),
           ),
         );
@@ -2572,6 +2937,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     return Scaffold(
       body: _buildCurrentPage(),
+
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

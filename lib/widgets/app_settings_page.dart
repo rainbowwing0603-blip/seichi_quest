@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppSettingsPage extends StatefulWidget {
   const AppSettingsPage({
     super.key,
     required this.onResetEventCollectionHistory,
+    required this.onTestQuestComplete,
+    required this.onTestRecommendedRouteNext,
   });
 
   final Future<void> Function() onResetEventCollectionHistory;
+  final Future<void> Function() onTestQuestComplete;
+  final Future<void> Function() onTestRecommendedRouteNext;
 
   @override
   State<AppSettingsPage> createState() => _AppSettingsPageState();
@@ -15,8 +20,7 @@ class AppSettingsPage extends StatefulWidget {
 
 class _AppSettingsPageState extends State<AppSettingsPage> {
   static const String _stampEffectKey = 'setting_stamp_effect';
-  static const String _autoNextDestinationKey =
-      'setting_auto_next_destination';
+  static const String _autoNextDestinationKey = 'setting_auto_next_destination';
 
   bool _stampEffect = true;
   bool _autoNextDestination = true;
@@ -37,8 +41,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
 
     setState(() {
       _stampEffect = prefs.getBool(_stampEffectKey) ?? true;
-      _autoNextDestination =
-          prefs.getBool(_autoNextDestinationKey) ?? true;
+      _autoNextDestination = prefs.getBool(_autoNextDestinationKey) ?? true;
       _loading = false;
     });
   }
@@ -72,13 +75,9 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('アプリ設定'),
-      ),
+      appBar: AppBar(title: const Text('アプリ設定')),
       body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -101,6 +100,12 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
                 _buildSectionTitle('データ'),
                 _buildResetHistoryTile(),
                 const SizedBox(height: 24),
+                if (kDebugMode) ...[
+                  _buildSectionTitle('開発用'),
+                  _buildQuestCompleteTestTile(),
+                  _buildRecommendedRouteNextTestTile(),
+                  const SizedBox(height: 24),
+                ],
                 _buildSectionTitle('情報'),
                 _buildInfoTile(
                   icon: Icons.info_outline,
@@ -112,6 +117,89 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
     );
   }
 
+  Widget _buildQuestCompleteTestTile() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 6,
+          ),
+          leading: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.deepPurple.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.emoji_events_outlined,
+              color: Colors.deepPurple,
+            ),
+          ),
+          title: const Text(
+            'QUEST COMPLETE演出をテスト',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          subtitle: const Text(
+            '獲得履歴を変更せず、完全制覇時の演出だけを表示します',
+            style: TextStyle(fontSize: 12),
+          ),
+          trailing: const Icon(Icons.play_arrow_rounded),
+          onTap: () async {
+            await widget.onTestQuestComplete();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecommendedRouteNextTestTile() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 6,
+          ),
+          leading: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.deepPurple.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.route_rounded, color: Colors.deepPurple),
+          ),
+          title: const Text(
+            '巡回ルートのNEXT進行をテスト',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          subtitle: const Text(
+            '獲得履歴を変更せず、巡回ルートのNEXTだけを1地点進めます',
+            style: TextStyle(fontSize: 12),
+          ),
+          trailing: const Icon(Icons.skip_next_rounded),
+          onTap: () async {
+            await widget.onTestRecommendedRouteNext();
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildResetHistoryTile() {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -119,37 +207,33 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 6,
-        ),
-        leading: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: Colors.red.withValues(alpha: 0.08),
-            shape: BoxShape.circle,
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 6,
           ),
-          child: const Icon(
-            Icons.delete_outline,
-            color: Colors.red,
+          leading: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.delete_outline, color: Colors.red),
           ),
-        ),
-        title: const Text(
-          '獲得履歴をリセット',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
+          title: const Text(
+            '獲得履歴をリセット',
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
-        ),
-        subtitle: const Text(
-          '現在のイベントで獲得した聖地をすべて未獲得に戻します',
-          style: TextStyle(
-            fontSize: 12,
+          subtitle: const Text(
+            '現在のイベントで獲得した聖地をすべて未獲得に戻します',
+            style: TextStyle(fontSize: 12),
           ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _confirmResetEventCollectionHistory,
         ),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: _confirmResetEventCollectionHistory,
       ),
     );
   }
@@ -189,30 +273,21 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('獲得履歴をリセットしました。'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('獲得履歴をリセットしました。')));
     } catch (error) {
       if (!mounted) {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('リセットに失敗しました: $error'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('リセットに失敗しました: $error')));
     }
   }
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(
-        left: 4,
-        bottom: 8,
-      ),
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         title,
         style: TextStyle(
@@ -237,38 +312,31 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: SwitchListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 4,
-        ),
-        secondary: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: Colors.deepPurple.withValues(alpha: 0.08),
-            shape: BoxShape.circle,
+      child: Material(
+        color: Colors.transparent,
+        child: SwitchListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 4,
           ),
-          child: Icon(
-            icon,
-            color: Colors.deepPurple,
+          secondary: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.deepPurple.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: Colors.deepPurple),
           ),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
+          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+          value: value,
+          onChanged: onChanged,
+          activeThumbColor: Colors.deepPurple,
         ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 12,
-          ),
-        ),
-        value: value,
-        onChanged: onChanged,
-        activeThumbColor: Colors.deepPurple,
       ),
     );
   }
@@ -283,21 +351,16 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 4,
-        ),
-        leading: Icon(
-          icon,
-          color: Colors.deepPurple,
-        ),
-        title: Text(title),
-        trailing: Text(
-          value,
-          style: TextStyle(
-            color: Colors.grey.shade600,
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 4,
           ),
+          leading: Icon(icon, color: Colors.deepPurple),
+          title: Text(title),
+          trailing: Text(value, style: TextStyle(color: Colors.grey.shade600)),
         ),
       ),
     );

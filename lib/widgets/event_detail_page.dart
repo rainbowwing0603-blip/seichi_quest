@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../models/event.dart';
@@ -8,6 +10,7 @@ class EventDetailPage extends StatefulWidget {
   const EventDetailPage({
     super.key,
     required this.event,
+    this.currentPosition,
     this.collectedCount,
     this.totalCount,
     this.participationLabel = '選択中',
@@ -16,9 +19,12 @@ class EventDetailPage extends StatefulWidget {
     this.onSelectAnotherEvent,
     this.currentNextSeichiId,
     this.onSetNextDestination,
+    this.onShowOnMap,
+    this.onStartRecommendedRoute,
   });
 
   final Event event;
+  final Position? currentPosition;
 
   final int? collectedCount;
   final int? totalCount;
@@ -32,6 +38,8 @@ class EventDetailPage extends StatefulWidget {
 
   final String? currentNextSeichiId;
   final ValueChanged<Seichi>? onSetNextDestination;
+  final ValueChanged<Seichi>? onShowOnMap;
+  final ValueChanged<List<Seichi>>? onStartRecommendedRoute;
 
   @override
   State<EventDetailPage> createState() => _EventDetailPageState();
@@ -314,6 +322,60 @@ class _EventDetailPageState extends State<EventDetailPage> {
     return index;
   }
 
+  Seichi? get _nearestUncollectedSeichi {
+    final position = widget.currentPosition;
+
+    if (position == null) {
+      return null;
+    }
+
+    Seichi? nearest;
+    double? nearestDistance;
+
+    for (final seichi in _seichiList) {
+      if (_collectedSeichiIds.contains(seichi.id)) {
+        continue;
+      }
+
+      if (seichi.latitude == 0.0 && seichi.longitude == 0.0) {
+        continue;
+      }
+
+      final distance = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        seichi.latitude,
+        seichi.longitude,
+      );
+
+      if (nearestDistance == null || distance < nearestDistance) {
+        nearest = seichi;
+        nearestDistance = distance;
+      }
+    }
+
+    return nearest;
+  }
+
+  double? _distanceFromCurrentPosition(Seichi seichi) {
+    final position = widget.currentPosition;
+
+    if (position == null) {
+      return null;
+    }
+
+    if (seichi.latitude == 0.0 && seichi.longitude == 0.0) {
+      return null;
+    }
+
+    return Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      seichi.latitude,
+      seichi.longitude,
+    );
+  }
+
   List<Seichi> get _filteredSeichiList {
     switch (_galleryFilter) {
       case '獲得済み':
@@ -558,9 +620,26 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ],
                 ),
 
+                if (widget.onShowOnMap != null) ...[
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(sheetContext).pop();
+
+                        widget.onShowOnMap!(seichi);
+                      },
+                      icon: const Icon(Icons.map_outlined),
+                      label: const Text('この地点を地図で見る'),
+                    ),
+                  ),
+                ],
+
                 if (widget.onSetNextDestination != null &&
                     !_collectedSeichiIds.contains(seichi.id)) ...[
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -780,6 +859,600 @@ class _EventDetailPageState extends State<EventDetailPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildNearestUncollectedCard() {
+    final seichi = _nearestUncollectedSeichi;
+
+    if (seichi == null) {
+      return const SizedBox.shrink();
+    }
+
+    final distance = _distanceFromCurrentPosition(seichi);
+
+    final isNext = widget.currentNextSeichiId == seichi.id;
+
+    String? distanceText;
+
+    if (distance != null) {
+      distanceText = distance < 1000
+          ? '${distance.round()}m'
+          : '${(distance / 1000).toStringAsFixed(1)}km';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isNext
+              ? Colors.deepPurple.withValues(alpha: 0.35)
+              : Colors.grey.shade200,
+          width: isNext ? 1.5 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.near_me_outlined,
+                  color: Colors.deepPurple,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '最寄りの未獲得地点',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      '現在地から一番近いスポット',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+              if (isNext)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.withValues(alpha: 0.09),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Text(
+                    'NEXT',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  seichi.card,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepPurple,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      seichi.name,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (distanceText != null) ...[
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.place_outlined,
+                            size: 15,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '現在地から $distanceText',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: widget.onSetNextDestination == null || isNext
+                  ? null
+                  : () {
+                      widget.onSetNextDestination!(seichi);
+
+                      if (!mounted) {
+                        return;
+                      }
+
+                      setState(() {});
+                    },
+              icon: Icon(
+                isNext ? Icons.check_circle_outline : Icons.navigation_outlined,
+              ),
+              label: Text(isNext ? '次の目的地に設定済み' : '次の目的地に設定'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Seichi> _buildRecommendedRoute() {
+    final position = widget.currentPosition;
+
+    if (position == null) {
+      return const <Seichi>[];
+    }
+
+    final remaining = _seichiList
+        .where(
+          (seichi) =>
+              !_collectedSeichiIds.contains(seichi.id) &&
+              !(seichi.latitude == 0.0 && seichi.longitude == 0.0),
+        )
+        .toList();
+
+    if (remaining.isEmpty) {
+      return const <Seichi>[];
+    }
+
+    final route = <Seichi>[];
+
+    var currentLatitude = position.latitude;
+    var currentLongitude = position.longitude;
+
+    while (remaining.isNotEmpty) {
+      Seichi? nearest;
+      double? nearestDistance;
+
+      for (final seichi in remaining) {
+        final distance = Geolocator.distanceBetween(
+          currentLatitude,
+          currentLongitude,
+          seichi.latitude,
+          seichi.longitude,
+        );
+
+        if (nearestDistance == null || distance < nearestDistance) {
+          nearest = seichi;
+          nearestDistance = distance;
+        }
+      }
+
+      if (nearest == null) {
+        break;
+      }
+
+      route.add(nearest);
+      remaining.remove(nearest);
+
+      currentLatitude = nearest.latitude;
+      currentLongitude = nearest.longitude;
+    }
+
+    return route;
+  }
+
+  String _formatRouteDistance(double distance) {
+    if (distance < 1000) {
+      return '${distance.round()}m';
+    }
+
+    return '${(distance / 1000).toStringAsFixed(1)}km';
+  }
+
+  void _showRecommendedRoute() {
+    final route = _buildRecommendedRoute();
+
+    if (route.isEmpty) {
+      return;
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.75,
+            minChildSize: 0.45,
+            maxChildSize: 0.92,
+            builder: (context, scrollController) {
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.deepPurple.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.route_outlined,
+                            color: Colors.deepPurple,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'おすすめ巡回ルート',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                '未獲得地点を近い順につないだルート',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                      itemCount: route.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final seichi = route[index];
+
+                        double distance;
+
+                        if (index == 0) {
+                          final position = widget.currentPosition!;
+
+                          distance = Geolocator.distanceBetween(
+                            position.latitude,
+                            position.longitude,
+                            seichi.latitude,
+                            seichi.longitude,
+                          );
+                        } else {
+                          final previous = route[index - 1];
+
+                          distance = Geolocator.distanceBetween(
+                            previous.latitude,
+                            previous.longitude,
+                            seichi.latitude,
+                            seichi.longitude,
+                          );
+                        }
+
+                        final isNext = widget.currentNextSeichiId == seichi.id;
+
+                        return Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () {
+                              _showSeichiDetail(seichi);
+                            },
+                            child: Ink(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: isNext
+                                    ? Colors.deepPurple.withValues(alpha: 0.06)
+                                    : Colors.grey.withValues(alpha: 0.04),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isNext
+                                      ? Colors.deepPurple.withValues(
+                                          alpha: 0.30,
+                                        )
+                                      : Colors.grey.shade200,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 38,
+                                    height: 38,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: Colors.deepPurple.withValues(
+                                        alpha: 0.09,
+                                      ),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      '${index + 1}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.deepPurple,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      seichi.card,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.deepPurple,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          seichi.name,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          index == 0
+                                              ? '現在地から ${_formatRouteDistance(distance)}'
+                                              : '前の地点から ${_formatRouteDistance(distance)}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (isNext)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 8),
+                                      child: Icon(
+                                        Icons.navigation_rounded,
+                                        size: 20,
+                                        color: Colors.deepPurple,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  if (widget.onStartRecommendedRoute != null) ...[
+                    const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            Navigator.of(sheetContext).pop();
+
+                            widget.onStartRecommendedRoute!(
+                              List<Seichi>.unmodifiable(route),
+                            );
+                          },
+                          icon: const Icon(Icons.flag_rounded),
+                          label: const Text('このルートでスタート'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRecommendedRouteCard() {
+    final route = _buildRecommendedRoute();
+
+    if (route.length < 2) {
+      return const SizedBox.shrink();
+    }
+
+    double totalDistance = 0;
+
+    final position = widget.currentPosition!;
+
+    totalDistance += Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      route.first.latitude,
+      route.first.longitude,
+    );
+
+    for (var i = 1; i < route.length; i++) {
+      totalDistance += Geolocator.distanceBetween(
+        route[i - 1].latitude,
+        route[i - 1].longitude,
+        route[i].latitude,
+        route[i].longitude,
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.route_outlined,
+                  color: Colors.deepPurple,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'おすすめ巡回ルート',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      '未獲得地点を効率よく巡る順番',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '残り ${route.length}地点',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                '直線距離 約${_formatRouteDistance(totalDistance)}',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _showRecommendedRoute,
+              icon: const Icon(Icons.route_outlined),
+              label: const Text('巡回する順番を見る'),
+            ),
+          ),
+          if (widget.onStartRecommendedRoute != null) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  widget.onStartRecommendedRoute!(
+                    List<Seichi>.unmodifiable(route),
+                  );
+                },
+                icon: const Icon(Icons.flag_rounded),
+                label: const Text('このルートでスタート'),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -1081,6 +1754,54 @@ class _EventDetailPageState extends State<EventDetailPage> {
     );
   }
 
+  Future<void> _shareEvent(BuildContext shareButtonContext) async {
+    final eventName = widget.event.name.trim();
+    final prefecture = widget.event.prefecture?.trim();
+    final slug = widget.event.slug.trim();
+
+    final buffer = StringBuffer()
+      ..writeln('聖地クエスト')
+      ..writeln()
+      ..writeln('「$eventName」に挑戦しよう！');
+
+    if (prefecture != null && prefecture.isNotEmpty) {
+      buffer.writeln('エリア: $prefecture');
+    }
+
+    if (slug.isNotEmpty) {
+      buffer.writeln('クエスト: $slug');
+    }
+
+    buffer
+      ..writeln()
+      ..write('聖地を巡って、スタンプを集めよう！');
+
+    final renderBox = shareButtonContext.findRenderObject() as RenderBox?;
+
+    final sharePositionOrigin = renderBox != null && renderBox.hasSize
+        ? renderBox.localToGlobal(Offset.zero) & renderBox.size
+        : null;
+
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          text: buffer.toString(),
+          subject: eventName,
+          sharePositionOrigin: sharePositionOrigin,
+        ),
+      );
+    } catch (error) {
+      debugPrint('[SHARE] event share failed: $error');
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('クエストを共有できませんでした。')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final participationColor = _participationColor();
@@ -1091,6 +1812,17 @@ class _EventDetailPageState extends State<EventDetailPage> {
         title: const Text('クエスト詳細'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          Builder(
+            builder: (shareButtonContext) {
+              return IconButton(
+                tooltip: 'クエストを共有',
+                icon: const Icon(Icons.share_outlined),
+                onPressed: () => _shareEvent(shareButtonContext),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: ListView(
@@ -1194,6 +1926,36 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 ],
               ),
             ),
+
+            if (widget.primaryActionLabel != null &&
+                widget.onPrimaryAction != null) ...[
+              const SizedBox(height: 20),
+
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton.icon(
+                  onPressed: _isActionRunning ? null : _runPrimaryAction,
+                  icon: _isActionRunning
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.play_arrow_rounded),
+                  label: Text(
+                    widget.primaryActionLabel!,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
 
             const SizedBox(height: 14),
 
@@ -1317,37 +2079,15 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
             const SizedBox(height: 14),
 
+            _buildNearestUncollectedCard(),
+
+            const SizedBox(height: 14),
+
+            _buildRecommendedRouteCard(),
+
+            const SizedBox(height: 14),
+
             _buildCardGallery(),
-
-            if (widget.primaryActionLabel != null &&
-                widget.onPrimaryAction != null) ...[
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: FilledButton.icon(
-                  onPressed: _isActionRunning ? null : _runPrimaryAction,
-                  icon: _isActionRunning
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.play_arrow_rounded),
-                  label: Text(
-                    widget.primaryActionLabel!,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
 
             if (widget.onSelectAnotherEvent != null) ...[
               const SizedBox(height: 12),
