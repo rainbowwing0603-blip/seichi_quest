@@ -28,14 +28,13 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Debug / ProfileはGoogle公式テスト用AdMob App ID
+        manifestPlaceholders["adMobAppId"] =
+            "ca-app-pub-3940256099942544~3347511713"
     }
 
     buildTypes {
-        debug {
-            // DebugはGoogle公式テスト用AdMob App ID
-            manifestPlaceholders["adMobAppId"] =
-                "ca-app-pub-3940256099942544~3347511713"
-        }
 
         release {
             // Releaseは聖地クエスト本番用AdMob App ID
