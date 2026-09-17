@@ -8,6 +8,134 @@ import '../painters/sonar_painter.dart';
 import 'stamp_animation.dart';
 
 class MapPage extends StatelessWidget {
+  static const String _nightMapStyle = r'''
+[
+  {
+    "elementType": "geometry",
+    "stylers": [
+      { "color": "#242f3e" }
+    ]
+  },
+  {
+    "elementType": "labels.text.fill",
+    "stylers": [
+      { "color": "#746855" }
+    ]
+  },
+  {
+    "elementType": "labels.text.stroke",
+    "stylers": [
+      { "color": "#242f3e" }
+    ]
+  },
+  {
+    "featureType": "administrative.locality",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      { "color": "#d59563" }
+    ]
+  },
+  {
+    "featureType": "poi",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      { "color": "#d59563" }
+    ]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "geometry",
+    "stylers": [
+      { "color": "#263c3f" }
+    ]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      { "color": "#6b9a76" }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "geometry",
+    "stylers": [
+      { "color": "#38414e" }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "geometry.stroke",
+    "stylers": [
+      { "color": "#212a37" }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      { "color": "#9ca5b3" }
+    ]
+  },
+  {
+    "featureType": "road.highway",
+    "elementType": "geometry",
+    "stylers": [
+      { "color": "#746855" }
+    ]
+  },
+  {
+    "featureType": "road.highway",
+    "elementType": "geometry.stroke",
+    "stylers": [
+      { "color": "#1f2835" }
+    ]
+  },
+  {
+    "featureType": "road.highway",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      { "color": "#f3d19c" }
+    ]
+  },
+  {
+    "featureType": "transit",
+    "elementType": "geometry",
+    "stylers": [
+      { "color": "#2f3948" }
+    ]
+  },
+  {
+    "featureType": "transit.station",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      { "color": "#d59563" }
+    ]
+  },
+  {
+    "featureType": "water",
+    "elementType": "geometry",
+    "stylers": [
+      { "color": "#17263c" }
+    ]
+  },
+  {
+    "featureType": "water",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      { "color": "#515c6d" }
+    ]
+  },
+  {
+    "featureType": "water",
+    "elementType": "labels.text.stroke",
+    "stylers": [
+      { "color": "#17263c" }
+    ]
+  }
+]
+''';
+
   final GoogleMapController? mapController;
   final Position? currentPosition;
   final RealWorldState? realWorldState;
@@ -499,6 +627,12 @@ class MapPage extends StatelessWidget {
               ),
               style:
                   OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF4F3B78),
+                backgroundColor: Colors.white.withValues(alpha: 0.88),
+                side: BorderSide(
+                  color: const Color(0xFF6F55A0).withValues(alpha: 0.45),
+                  width: 1.2,
+                ),
                 minimumSize:
                     const Size.fromHeight(
                   52,
@@ -545,6 +679,70 @@ class MapPage extends StatelessWidget {
     );
   }
 
+  Widget _buildEnvironmentOverlay() {
+    final state = realWorldState;
+
+    if (state == null) {
+      return const SizedBox.shrink();
+    }
+
+    final color = switch (state.dayPhase) {
+      DayPhase.morning => const Color(0xFFFFB86B),
+      DayPhase.daytime => Colors.transparent,
+      DayPhase.evening => const Color(0xFFFF8A65),
+      DayPhase.night => const Color(0xFF17365D),
+    };
+
+    final opacity = switch (state.dayPhase) {
+      DayPhase.morning => 0.035,
+      DayPhase.daytime => 0.0,
+      DayPhase.evening => 0.055,
+      DayPhase.night => 0.0,
+    };
+
+    if (opacity == 0.0) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: ColoredBox(
+          color: color.withValues(alpha: opacity),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSeasonOverlay() {
+    final state = realWorldState;
+
+    if (state == null) {
+      return const SizedBox.shrink();
+    }
+
+    final color = switch (state.season) {
+      Season.spring => const Color(0xFFFFB7C5),
+      Season.summer => const Color(0xFF55CFA3),
+      Season.autumn => const Color(0xFFD98A3A),
+      Season.winter => const Color(0xFFB7D9F2),
+    };
+
+    final opacity = switch (state.season) {
+      Season.spring => 0.025,
+      Season.summer => 0.025,
+      Season.autumn => 0.05,
+      Season.winter => 0.04,
+    };
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: ColoredBox(
+          color: color.withValues(alpha: opacity),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMap() {
     LatLng initialTarget =
         defaultCenter;
@@ -563,6 +761,9 @@ class MapPage extends StatelessWidget {
         zoom: 10.5,
       ),
       mapType: MapType.normal,
+      style: realWorldState?.dayPhase == DayPhase.night
+          ? _nightMapStyle
+          : null,
       myLocationEnabled:
           currentPosition != null,
       myLocationButtonEnabled: false,
@@ -580,6 +781,8 @@ class MapPage extends StatelessWidget {
     return Stack(
       children: [
         _buildMap(),
+        _buildEnvironmentOverlay(),
+        _buildSeasonOverlay(),
         _buildNextDestinationCard(),
         _buildWeatherHud(),
         _buildCollectionBadge(),
