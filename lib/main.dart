@@ -2400,6 +2400,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     return MapPage(
       mapController: _mapController,
       currentPosition: _currentPosition,
+      realWorldState: _realWorldState,
       nextSeichi: _nextSeichi,
       nextDistance: _nextDistance,
       collectedIds: _collectedIds,

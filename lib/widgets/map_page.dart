@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../models/real_world_state.dart';
 import '../models/seichi.dart';
 import '../painters/sonar_painter.dart';
 import 'stamp_animation.dart';
@@ -9,6 +10,7 @@ import 'stamp_animation.dart';
 class MapPage extends StatelessWidget {
   final GoogleMapController? mapController;
   final Position? currentPosition;
+  final RealWorldState? realWorldState;
   final Seichi? nextSeichi;
   final double? nextDistance;
   final Set<String> collectedIds;
@@ -33,6 +35,7 @@ class MapPage extends StatelessWidget {
     super.key,
     required this.mapController,
     required this.currentPosition,
+    required this.realWorldState,
     required this.nextSeichi,
     required this.nextDistance,
     required this.collectedIds,
@@ -328,6 +331,83 @@ class MapPage extends StatelessWidget {
     );
   }
 
+  Widget _buildWeatherHud() {
+    final state = realWorldState;
+
+    if (state == null) {
+      return const SizedBox.shrink();
+    }
+
+    final weatherIcon = switch (state.weather) {
+      WeatherCondition.clear => Icons.wb_sunny_rounded,
+      WeatherCondition.partlyCloudy => Icons.wb_cloudy_rounded,
+      WeatherCondition.cloudy => Icons.cloud_rounded,
+      WeatherCondition.rain => Icons.water_drop_rounded,
+      WeatherCondition.heavyRain => Icons.thunderstorm_rounded,
+      WeatherCondition.snow => Icons.ac_unit_rounded,
+      WeatherCondition.fog => Icons.blur_on_rounded,
+      WeatherCondition.thunderstorm => Icons.thunderstorm_rounded,
+      WeatherCondition.unknown => Icons.cloud_outlined,
+    };
+
+    final seasonLabel = switch (state.season) {
+      Season.spring => '春',
+      Season.summer => '夏',
+      Season.autumn => '秋',
+      Season.winter => '冬',
+    };
+
+    final dayPhaseLabel = switch (state.dayPhase) {
+      DayPhase.morning => '朝',
+      DayPhase.daytime => '昼',
+      DayPhase.evening => '夕',
+      DayPhase.night => '夜',
+    };
+
+    final temperature = state.temperatureCelsius;
+    final temperatureLabel =
+        temperature == null ? '--°' : '${temperature.round()}°';
+
+    return Positioned(
+      top: 145,
+      left: 14,
+      child: Material(
+        elevation: 5,
+        borderRadius: BorderRadius.circular(18),
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 9,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                weatherIcon,
+                size: 19,
+                color: const Color(0xFF176B87),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '$temperatureLabel  $seasonLabel・$dayPhaseLabel',
+                style: const TextStyle(
+                  color: Color(0xFF102A43),
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCollectionBadge() {
     return Positioned(
       top: 145,
@@ -501,6 +581,7 @@ class MapPage extends StatelessWidget {
       children: [
         _buildMap(),
         _buildNextDestinationCard(),
+        _buildWeatherHud(),
         _buildCollectionBadge(),
         _buildLocationButton(),
         _buildNextButton(),
