@@ -686,17 +686,36 @@ class MapPage extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    if (state.dayPhase == DayPhase.evening) {
+      return Positioned.fill(
+        child: IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xFF725A9A).withValues(alpha: 0.08),
+                  const Color(0xFFFF8A65).withValues(alpha: 0.10),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final color = switch (state.dayPhase) {
       DayPhase.morning => const Color(0xFFFFB86B),
       DayPhase.daytime => Colors.transparent,
-      DayPhase.evening => const Color(0xFFFF8A65),
+      DayPhase.evening => Colors.transparent,
       DayPhase.night => const Color(0xFF17365D),
     };
 
     final opacity = switch (state.dayPhase) {
-      DayPhase.morning => 0.035,
+      DayPhase.morning => 0.065,
       DayPhase.daytime => 0.0,
-      DayPhase.evening => 0.055,
+      DayPhase.evening => 0.0,
       DayPhase.night => 0.0,
     };
 
