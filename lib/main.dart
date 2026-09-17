@@ -1354,15 +1354,19 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    final firstSeichi = route.first;
+    final remainingRoute = route
+        .where((seichi) => !_collectedIds.contains(seichi.id))
+        .toList(growable: false);
+
+    if (remainingRoute.isEmpty) {
+      return;
+    }
+
+    final firstSeichi = remainingRoute.first;
 
     _activeRecommendedRoute
       ..clear()
-      ..addAll(route);
-
-    if (_collectedIds.contains(firstSeichi.id)) {
-      return;
-    }
+      ..addAll(remainingRoute);
 
     _manualNextSeichiId = firstSeichi.id;
     _updateNextDestination();
