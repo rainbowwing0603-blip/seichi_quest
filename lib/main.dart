@@ -470,6 +470,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     await _applyCollectedRows(syncedRows);
     await _loadCloudHistory();
     await _loadManualNextDestination();
+    await _loadRecommendedRoute();
+
+    if (_activeRecommendedRoute.isNotEmpty) {
+      _manualNextSeichiId = _activeRecommendedRoute.first.id;
+    }
     await _loadMyEventRank();
     await _loadLevelProgress();
     await _initializeLocation();
@@ -626,6 +631,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _activeRecommendedRoute.clear();
 
     await _saveManualNextDestination();
+    await _saveRecommendedRoute();
     await _saveStamps();
     await _loadCollectionEventNames();
 
@@ -851,6 +857,110 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _manualNextSeichiId = savedId;
 
     debugPrint('[NEXT-PERSIST] restored: event=$eventId seichi=$savedId');
+  }
+
+  String _recommendedRouteStorageKey({
+    required String userId,
+    required String eventId,
+  }) {
+    return 'recommended_route_ids_v1_${userId}_$eventId';
+  }
+
+  Future<void> _saveRecommendedRoute() async {
+    final eventId = _currentEventId;
+    final user = supabase.Supabase.instance.client.auth.currentUser;
+
+    if (eventId == null || eventId.isEmpty || user == null) {
+      return;
+    }
+
+    _preferences ??= await SharedPreferences.getInstance();
+
+    final key = _recommendedRouteStorageKey(userId: user.id, eventId: eventId);
+
+    final routeIds = _activeRecommendedRoute
+        .where((seichi) => !_collectedIds.contains(seichi.id))
+        .map((seichi) => seichi.id)
+        .toList(growable: false);
+
+    if (routeIds.isEmpty) {
+      await _preferences!.remove(key);
+
+      debugPrint('[ROUTE-PERSIST] cleared: event=$eventId');
+      return;
+    }
+
+    await _preferences!.setStringList(key, routeIds);
+
+    debugPrint('[ROUTE-PERSIST] saved: event=$eventId ids=$routeIds');
+  }
+
+  void _saveRecommendedRouteInBackground() {
+    _saveRecommendedRoute().catchError((Object error) {
+      debugPrint('[ROUTE-PERSIST] save failed: $error');
+    });
+  }
+
+  Future<void> _loadRecommendedRoute() async {
+    final eventId = _currentEventId;
+    final user = supabase.Supabase.instance.client.auth.currentUser;
+
+    _activeRecommendedRoute.clear();
+
+    if (eventId == null || eventId.isEmpty || user == null) {
+      return;
+    }
+
+    _preferences ??= await SharedPreferences.getInstance();
+
+    final key = _recommendedRouteStorageKey(userId: user.id, eventId: eventId);
+
+    final savedIds = _preferences!.getStringList(key);
+
+    if (savedIds == null || savedIds.isEmpty) {
+      return;
+    }
+
+    final seichiById = <String, Seichi>{
+      for (final seichi in _seichiList) seichi.id: seichi,
+    };
+
+    final restoredRoute = <Seichi>[];
+
+    for (final id in savedIds) {
+      final seichi = seichiById[id];
+
+      if (seichi == null || _collectedIds.contains(id)) {
+        continue;
+      }
+
+      restoredRoute.add(seichi);
+    }
+
+    if (restoredRoute.isEmpty) {
+      await _preferences!.remove(key);
+
+      debugPrint(
+        '[ROUTE-PERSIST] invalid or completed route removed: '
+        'event=$eventId',
+      );
+      return;
+    }
+
+    _activeRecommendedRoute.addAll(restoredRoute);
+
+    if (restoredRoute.length != savedIds.length) {
+      await _preferences!.setStringList(
+        key,
+        restoredRoute.map((item) => item.id).toList(growable: false),
+      );
+    }
+
+    debugPrint(
+      '[ROUTE-PERSIST] loaded: '
+      'event=$eventId '
+      'ids=${_activeRecommendedRoute.map((item) => item.id).toList()}',
+    );
   }
 
   Future<void> _saveStamps() async {
@@ -1190,6 +1300,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     _activeRecommendedRoute.removeAt(0);
 
+    await _saveRecommendedRoute();
+
     if (_activeRecommendedRoute.isEmpty) {
       _manualNextSeichiId = null;
       _updateNextDestination();
@@ -1245,6 +1357,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     _manualNextSeichiId = firstSeichi.id;
     _updateNextDestination();
+
+    _saveRecommendedRouteInBackground();
 
     _moveCameraToSeichi(firstSeichi);
 
@@ -1489,6 +1603,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     );
 
     await _saveManualNextDestination();
+    await _saveRecommendedRoute();
     await _saveStamps();
     await _loadCollectionEventNames();
     await _loadMyEventRank();
@@ -2313,6 +2428,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       await _applyCollectedRows(syncedRows);
       await _loadCloudHistory();
       await _loadManualNextDestination();
+      await _loadRecommendedRoute();
+
+      if (_activeRecommendedRoute.isNotEmpty) {
+        _manualNextSeichiId = _activeRecommendedRoute.first.id;
+      }
       await _loadMyEventRank();
       await _saveCurrentEventPreference(eventId);
       await _ensureEventParticipation(eventId);
@@ -2939,6 +3059,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         await _applyCollectedRows(syncedRows);
         await _loadCloudHistory();
         await _loadManualNextDestination();
+        await _loadRecommendedRoute();
+
+        if (_activeRecommendedRoute.isNotEmpty) {
+          _manualNextSeichiId = _activeRecommendedRoute.first.id;
+        }
         await _loadCollectionEventNames();
         await _loadMyEventRank();
 
