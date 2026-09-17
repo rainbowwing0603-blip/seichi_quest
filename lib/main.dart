@@ -28,6 +28,7 @@ import 'services/achievement_service.dart';
 import 'services/level_service.dart';
 import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
+import 'services/external_navigation_service.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
@@ -1863,6 +1864,45 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // 次の聖地へ
   // ============================================================
 
+  Future<void> _startNavigationToNextSeichi() async {
+    final seichi = _nextSeichi;
+
+    if (seichi == null) {
+      return;
+    }
+
+    try {
+      final launched = await const ExternalNavigationService().openDirections(
+        latitude: seichi.latitude,
+        longitude: seichi.longitude,
+      );
+
+      if (launched || !mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ナビを起動できませんでした。'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (error) {
+      debugPrint('[NAVIGATION] launch failed: $error');
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ナビを起動できませんでした。'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   Future<void> _moveCameraToNextSeichi() async {
     final seichi = _nextSeichi;
 
@@ -2159,6 +2199,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       markers: _buildMarkers(),
       onMoveToCurrentLocation: _moveCameraToCurrentLocation,
       onMoveToNextSeichi: _moveCameraToNextSeichi,
+      onStartNavigation: _startNavigationToNextSeichi,
       onMapCreated: (controller) {
         _mapController = controller;
 

@@ -25,6 +25,7 @@ class MapPage extends StatelessWidget {
 
   final VoidCallback onMoveToCurrentLocation;
   final VoidCallback onMoveToNextSeichi;
+  final VoidCallback onStartNavigation;
   final ValueChanged<GoogleMapController> onMapCreated;
   final VoidCallback onDismissError;
 
@@ -46,6 +47,7 @@ class MapPage extends StatelessWidget {
     required this.markers,
     required this.onMoveToCurrentLocation,
     required this.onMoveToNextSeichi,
+    required this.onStartNavigation,
     required this.onMapCreated,
     required this.onDismissError,
   });
@@ -403,29 +405,62 @@ class MapPage extends StatelessWidget {
       left: 16,
       right: 16,
       bottom: 88,
-      child: FilledButton.icon(
-        onPressed:
-            onMoveToNextSeichi,
-        icon: const Icon(
-          Icons.navigation_rounded,
-        ),
-        label: Text(
-          '次の聖地へ  ${nextSeichi!.card}',
-        ),
-        style:
-            FilledButton.styleFrom(
-          minimumSize:
-              const Size.fromHeight(
-            52,
-          ),
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(
-              18,
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed:
+                  onMoveToNextSeichi,
+              icon: const Icon(
+                Icons.map_rounded,
+              ),
+              label: const Text(
+                '地図で見る',
+              ),
+              style:
+                  OutlinedButton.styleFrom(
+                minimumSize:
+                    const Size.fromHeight(
+                  52,
+                ),
+                shape:
+                    RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(
+                    18,
+                  ),
+                ),
+              ),
             ),
           ),
-        ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: FilledButton.icon(
+              onPressed:
+                  onStartNavigation,
+              icon: const Icon(
+                Icons.directions_rounded,
+              ),
+              label: const Text(
+                'ナビ開始',
+              ),
+              style:
+                  FilledButton.styleFrom(
+                minimumSize:
+                    const Size.fromHeight(
+                  52,
+                ),
+                shape:
+                    RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(
+                    18,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
