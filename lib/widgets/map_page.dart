@@ -6,6 +6,7 @@ import '../models/real_world_state.dart';
 import '../models/seichi.dart';
 import '../painters/sonar_painter.dart';
 import 'stamp_animation.dart';
+import 'weather_effect_overlay.dart';
 
 class MapPage extends StatelessWidget {
   static const String _nightMapStyle = r'''
@@ -802,6 +803,11 @@ class MapPage extends StatelessWidget {
         _buildMap(),
         _buildEnvironmentOverlay(),
         _buildSeasonOverlay(),
+        if (realWorldState != null)
+          WeatherEffectOverlay(
+            weather: realWorldState!.weather,
+            dayPhase: realWorldState!.dayPhase,
+          ),
         _buildNextDestinationCard(),
         _buildWeatherHud(),
         _buildCollectionBadge(),
