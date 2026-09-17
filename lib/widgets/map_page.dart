@@ -215,25 +215,818 @@ class MapPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTopCard({
-    required Widget child,
-  }) {
-    return Material(
-      elevation: 8,
-      borderRadius:
-          BorderRadius.circular(20),
-      child: Container(
-        padding:
-            const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color:
-              Colors.white.withValues(
-            alpha: 0.96,
-          ),
-          borderRadius:
-              BorderRadius.circular(20),
+  Widget _buildQuestHud() {
+    final seichi = nextSeichi;
+    final distance = nextDistance;
+    final state = realWorldState;
+
+    final weatherIcon = switch (state?.weather) {
+      WeatherCondition.clear => Icons.wb_sunny_rounded,
+      WeatherCondition.partlyCloudy => Icons.wb_cloudy_rounded,
+      WeatherCondition.cloudy => Icons.cloud_rounded,
+      WeatherCondition.rain => Icons.water_drop_rounded,
+      WeatherCondition.heavyRain => Icons.thunderstorm_rounded,
+      WeatherCondition.snow => Icons.ac_unit_rounded,
+      WeatherCondition.fog => Icons.blur_on_rounded,
+      WeatherCondition.thunderstorm => Icons.thunderstorm_rounded,
+      WeatherCondition.unknown => Icons.cloud_outlined,
+      null => Icons.cloud_outlined,
+    };
+
+    final seasonLabel = switch (state?.season) {
+      Season.spring => '春',
+      Season.summer => '夏',
+      Season.autumn => '秋',
+      Season.winter => '冬',
+      null => '--',
+    };
+
+    final dayPhaseLabel = switch (state?.dayPhase) {
+      DayPhase.morning => '朝',
+      DayPhase.daytime => '昼',
+      DayPhase.evening => '夕',
+      DayPhase.night => '夜',
+      null => '--',
+    };
+
+    final temperature = state?.temperatureCelsius;
+    final temperatureLabel =
+        temperature == null ? '--°' : '${temperature.round()}°';
+
+    final intensity = _sonarIntensity();
+
+    const primary = Color(0xFF5968E8);
+    const primaryDeep = Color(0xFF403A9F);
+    const cyan = Color(0xFF25A9C7);
+    const ink = Color(0xFF102A43);
+    const mutedInk = Color(0xFF60758A);
+
+    return Positioned(
+      top: 14,
+      left: 14,
+      right: 14,
+      child: SafeArea(
+        bottom: false,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: 18,
+              right: 18,
+              bottom: -7,
+              child: Container(
+                height: 32,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(26),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primary.withValues(alpha: 0.15),
+                      blurRadius: 23,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(27),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xDDFBFDFF),
+                    Color(0xD8F4F8FF),
+                    Color(0xD8EEECFF),
+                  ],
+                  stops: [0.0, 0.55, 1.0],
+                ),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.72),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: ink.withValues(alpha: 0.12),
+                    blurRadius: 22,
+                    offset: const Offset(0, 9),
+                  ),
+                  BoxShadow(
+                    color: primary.withValues(alpha: 0.10),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(26),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: -65,
+                      right: -42,
+                      child: Container(
+                        width: 175,
+                        height: 175,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              primary.withValues(alpha: 0.18),
+                              primary.withValues(alpha: 0.00),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: -52,
+                      bottom: -75,
+                      child: Container(
+                        width: 150,
+                        height: 150,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              cyan.withValues(alpha: 0.13),
+                              cyan.withValues(alpha: 0.00),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      left: 32,
+                      right: 32,
+                      child: Container(
+                        height: 2,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.white.withValues(alpha: 0.0),
+                              Colors.white,
+                              Colors.white.withValues(alpha: 0.0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 13, 16, 16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.fromLTRB(
+                                  7,
+                                  6,
+                                  11,
+                                  6,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xBFE2F8FC),
+                                      Color(0xBFF3FCFF),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(15),
+                                  border: Border.all(
+                                    color: cyan.withValues(alpha: 0.22),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: cyan.withValues(alpha: 0.14),
+                                      blurRadius: 9,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                    BoxShadow(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.85,
+                                      ),
+                                      blurRadius: 2,
+                                      offset: const Offset(-1, -1),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 27,
+                                      height: 27,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: const LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            Color(0xFF42C8DC),
+                                            Color(0xFF167B9B),
+                                          ],
+                                        ),
+                                        border: Border.all(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.8,
+                                          ),
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: cyan.withValues(alpha: 0.32),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Icon(
+                                        weatherIcon,
+                                        size: 15,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 7),
+                                    Text(
+                                      '$temperatureLabel  $seasonLabel・$dayPhaseLabel',
+                                      style: const TextStyle(
+                                        color: Color(0xFF174B5E),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.fromLTRB(
+                                  7,
+                                  6,
+                                  11,
+                                  6,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xBFECE8FF),
+                                      Color(0xBFFAF8FF),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(15),
+                                  border: Border.all(
+                                    color: primary.withValues(alpha: 0.20),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          primary.withValues(alpha: 0.15),
+                                      blurRadius: 9,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                    BoxShadow(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.85,
+                                      ),
+                                      blurRadius: 2,
+                                      offset: const Offset(-1, -1),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 27,
+                                      height: 27,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: const LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            Color(0xFF8173F5),
+                                            Color(0xFF493BA7),
+                                          ],
+                                        ),
+                                        border: Border.all(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.8,
+                                          ),
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color:
+                                                primary.withValues(alpha: 0.32),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.workspace_premium_rounded,
+                                        size: 15,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 7),
+                                    Text(
+                                      '$collectedCount / $total',
+                                      style: const TextStyle(
+                                        color: Color(0xFF3B3476),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 13),
+                          Container(
+                            height: 1,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  primary.withValues(alpha: 0.02),
+                                  primary.withValues(alpha: 0.20),
+                                  cyan.withValues(alpha: 0.16),
+                                  primary.withValues(alpha: 0.02),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          if (seichi == null)
+                            Row(
+                              children: [
+                                Container(
+                                  width: 58,
+                                  height: 58,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(19),
+                                    gradient: const LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Color(0xFF7C89FA),
+                                        Color(0xFF5968E8),
+                                        Color(0xFF403A9F),
+                                      ],
+                                    ),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.75,
+                                      ),
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color:
+                                            primary.withValues(alpha: 0.32),
+                                        blurRadius: 14,
+                                        offset: const Offset(0, 7),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.explore_rounded,
+                                    color: Colors.white,
+                                    size: 29,
+                                  ),
+                                ),
+                                const SizedBox(width: 13),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 4,
+                                            height: 15,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              gradient: const LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [
+                                                  cyan,
+                                                  primary,
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 7),
+                                          const Text(
+                                            'NEXT QUEST',
+                                            style: TextStyle(
+                                              color: Color(0xFF596E82),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: 1.7,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        collectedCount >= total && total > 0
+                                            ? '群馬の聖地を完全制覇！'
+                                            : '次の聖地を探しています…',
+                                        style: const TextStyle(
+                                          color: ink,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            )
+                          else ...[
+                            Row(
+                              children: [
+                                SizedBox(
+                                  width: 66,
+                                  height: 66,
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      Container(
+                                        width: 64,
+                                        height: 64,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: RadialGradient(
+                                            colors: [
+                                              primary.withValues(alpha: 0.27),
+                                              primary.withValues(alpha: 0.03),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      AnimatedBuilder(
+                                        animation: sonarController,
+                                        builder: (context, child) {
+                                          return SizedBox(
+                                            width: 64,
+                                            height: 64,
+                                            child: CustomPaint(
+                                              painter: SonarPainter(
+                                                progress:
+                                                    sonarController.value,
+                                                intensity: intensity,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: const LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [
+                                              Colors.white,
+                                              Color(0xFFE9E9FF),
+                                            ],
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 2,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: primary.withValues(
+                                                alpha: 0.34,
+                                              ),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 5),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            seichi.icon,
+                                            style: const TextStyle(
+                                              fontSize: 25,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 4,
+                                            height: 15,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              gradient: const LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [
+                                                  cyan,
+                                                  primary,
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 7),
+                                          const Text(
+                                            'NEXT QUEST',
+                                            style: TextStyle(
+                                              color: Color(0xFF596E82),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: 1.7,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        '${seichi.card}  ${seichi.name}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: ink,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: -0.2,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.near_me_rounded,
+                                            size: 13,
+                                            color: primary,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Flexible(
+                                            child: Text(
+                                              distance == null
+                                                  ? '距離を計算中…'
+                                                  : '現在地から ${_formatDistance(distance)}',
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: mutedInk,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 9),
+                                Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(17),
+                                    onTap: onMoveToNextSeichi,
+                                    child: Container(
+                                      width: 49,
+                                      height: 49,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(17),
+                                        gradient: const LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            Color(0xFF8994FF),
+                                            Color(0xFF5968E8),
+                                            Color(0xFF403A9F),
+                                          ],
+                                          stops: [0.0, 0.50, 1.0],
+                                        ),
+                                        border: Border.all(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.72,
+                                          ),
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: primaryDeep.withValues(
+                                              alpha: 0.38,
+                                            ),
+                                            blurRadius: 13,
+                                            offset: const Offset(0, 7),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Positioned(
+                                            top: 5,
+                                            left: 10,
+                                            right: 10,
+                                            child: Container(
+                                              height: 1,
+                                              color: Colors.white.withValues(
+                                                alpha: 0.60,
+                                              ),
+                                            ),
+                                          ),
+                                          const Icon(
+                                            Icons.arrow_forward_rounded,
+                                            color: Colors.white,
+                                            size: 24,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 13),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final progress =
+                                          intensity.clamp(0.0, 1.0);
+                                      final progressWidth =
+                                          constraints.maxWidth * progress;
+
+                                      return Container(
+                                        height: 11,
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Color(0xFFDCE1EB),
+                                              Color(0xFFEEF1F6),
+                                            ],
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                          border: Border.all(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.75,
+                                            ),
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: ink.withValues(
+                                                alpha: 0.10,
+                                              ),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Stack(
+                                          clipBehavior: Clip.none,
+                                          children: [
+                                            AnimatedContainer(
+                                              duration: const Duration(
+                                                milliseconds: 350,
+                                              ),
+                                              width: progressWidth,
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                                gradient:
+                                                    const LinearGradient(
+                                                  colors: [
+                                                    cyan,
+                                                    primary,
+                                                    primaryDeep,
+                                                  ],
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color:
+                                                        primary.withValues(
+                                                      alpha: 0.38,
+                                                    ),
+                                                    blurRadius: 8,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            if (progress > 0.02)
+                                              Positioned(
+                                                left: (progressWidth - 8)
+                                                    .clamp(
+                                                      0.0,
+                                                      constraints.maxWidth -
+                                                          16,
+                                                    ),
+                                                top: -3,
+                                                child: Container(
+                                                  width: 16,
+                                                  height: 16,
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    gradient:
+                                                        const RadialGradient(
+                                                      colors: [
+                                                        Colors.white,
+                                                        Color(0xFFE8E9FF),
+                                                      ],
+                                                    ),
+                                                    border: Border.all(
+                                                      color: primary,
+                                                      width: 3,
+                                                    ),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: primary
+                                                            .withValues(
+                                                          alpha: 0.48,
+                                                        ),
+                                                        blurRadius: 9,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 9,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFFFFFFFF),
+                                        Color(0xFFF3F2FF),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(11),
+                                    border: Border.all(
+                                      color:
+                                          primary.withValues(alpha: 0.14),
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color:
+                                            primary.withValues(alpha: 0.08),
+                                        blurRadius: 5,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    '到達 ${seichi.stampRadiusMeters}m',
+                                    style: const TextStyle(
+                                      color: mutedInk,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-        child: child,
       ),
     );
   }
@@ -288,297 +1081,8 @@ class MapPage extends StatelessWidget {
     );
   }
 
-  Widget _buildNextDestinationCard() {
-    final seichi = nextSeichi;
-    final distance = nextDistance;
 
-    if (seichi == null) {
-      return Positioned(
-        top: 14,
-        left: 14,
-        right: 14,
-        child: _buildTopCard(
-          child: Row(
-            children: [
-              const Icon(
-                Icons.emoji_events,
-                size: 30,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  collectedCount >= total &&
-                          total > 0
-                      ? 'すべての聖地を制覇しました！'
-                      : '次の聖地を探しています…',
-                  style:
-                      const TextStyle(
-                    fontWeight:
-                        FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
 
-    final intensity =
-        _sonarIntensity();
-
-    return Positioned(
-      top: 14,
-      left: 14,
-      right: 14,
-      child: _buildTopCard(
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                AnimatedBuilder(
-                  animation:
-                      sonarController,
-                  builder:
-                      (context, child) {
-                    return SizedBox(
-                      width: 50,
-                      height: 50,
-                      child: CustomPaint(
-                        painter:
-                            SonarPainter(
-                          progress:
-                              sonarController
-                                  .value,
-                          intensity:
-                              intensity,
-                        ),
-                        child:
-                            Center(
-                          child: Text(
-                            seichi.icon,
-                            style:
-                                const TextStyle(
-                              fontSize: 23,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'NEXT DESTINATION',
-                        style: TextStyle(
-                          fontSize: 10,
-                          letterSpacing:
-                              1.5,
-                          fontWeight:
-                              FontWeight.bold,
-                          color:
-                              Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 3,
-                      ),
-                      Text(
-                        '${seichi.card}  ${seichi.name}',
-                        maxLines: 1,
-                        overflow:
-                            TextOverflow.ellipsis,
-                        style:
-                            const TextStyle(
-                          fontSize: 18,
-                          fontWeight:
-                              FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  tooltip: '目的地へ',
-                  onPressed:
-                      onMoveToNextSeichi,
-                  icon: const Icon(
-                    Icons.navigation_rounded,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    distance == null
-                        ? '距離を計算中…'
-                        : '現在地から ${_formatDistance(distance)}',
-                    style:
-                        const TextStyle(
-                      fontSize: 15,
-                      fontWeight:
-                          FontWeight.w600,
-                    ),
-                  ),
-                ),
-                Text(
-                  '到達 ${seichi.stampRadiusMeters}m',
-                  style:
-                      const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-              child:
-                  LinearProgressIndicator(
-                value: intensity,
-                minHeight: 6,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWeatherHud() {
-    final state = realWorldState;
-
-    if (state == null) {
-      return const SizedBox.shrink();
-    }
-
-    final weatherIcon = switch (state.weather) {
-      WeatherCondition.clear => Icons.wb_sunny_rounded,
-      WeatherCondition.partlyCloudy => Icons.wb_cloudy_rounded,
-      WeatherCondition.cloudy => Icons.cloud_rounded,
-      WeatherCondition.rain => Icons.water_drop_rounded,
-      WeatherCondition.heavyRain => Icons.thunderstorm_rounded,
-      WeatherCondition.snow => Icons.ac_unit_rounded,
-      WeatherCondition.fog => Icons.blur_on_rounded,
-      WeatherCondition.thunderstorm => Icons.thunderstorm_rounded,
-      WeatherCondition.unknown => Icons.cloud_outlined,
-    };
-
-    final seasonLabel = switch (state.season) {
-      Season.spring => '春',
-      Season.summer => '夏',
-      Season.autumn => '秋',
-      Season.winter => '冬',
-    };
-
-    final dayPhaseLabel = switch (state.dayPhase) {
-      DayPhase.morning => '朝',
-      DayPhase.daytime => '昼',
-      DayPhase.evening => '夕',
-      DayPhase.night => '夜',
-    };
-
-    final temperature = state.temperatureCelsius;
-    final temperatureLabel =
-        temperature == null ? '--°' : '${temperature.round()}°';
-
-    return Positioned(
-      top: 145,
-      left: 14,
-      child: Material(
-        elevation: 5,
-        borderRadius: BorderRadius.circular(18),
-        color: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 9,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                weatherIcon,
-                size: 19,
-                color: const Color(0xFF176B87),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '$temperatureLabel  $seasonLabel・$dayPhaseLabel',
-                style: const TextStyle(
-                  color: Color(0xFF102A43),
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCollectionBadge() {
-    return Positioned(
-      top: 145,
-      right: 14,
-      child: Material(
-        elevation: 5,
-        borderRadius:
-            BorderRadius.circular(18),
-        child: Container(
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 9,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius:
-                BorderRadius.circular(18),
-          ),
-          child: Row(
-            mainAxisSize:
-                MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.workspace_premium,
-                size: 19,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '$collectedCount / $total',
-                style:
-                    const TextStyle(
-                  fontWeight:
-                      FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildLocationButton() {
     return Positioned(
@@ -808,9 +1312,7 @@ class MapPage extends StatelessWidget {
             weather: realWorldState!.weather,
             dayPhase: realWorldState!.dayPhase,
           ),
-        _buildNextDestinationCard(),
-        _buildWeatherHud(),
-        _buildCollectionBadge(),
+        _buildQuestHud(),
         _buildLocationButton(),
         _buildNextButton(),
         _buildErrorCard(),
