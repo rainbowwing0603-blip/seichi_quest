@@ -155,6 +155,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // 先頭要素が現在のNEXT目的地になる。
   final List<Seichi> _activeRecommendedRoute = <Seichi>[];
 
+  // 現在のユーザー・イベントについて、
+  // おすすめルートの永続化状態を読み込み済みかどうか。
+  bool _isRecommendedRouteLoaded = false;
+
   bool _justCollected = false;
   String? _collectedName;
 
@@ -905,6 +909,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     final eventId = _currentEventId;
     final user = supabase.Supabase.instance.client.auth.currentUser;
 
+    _isRecommendedRouteLoaded = false;
     _activeRecommendedRoute.clear();
 
     if (eventId == null || eventId.isEmpty || user == null) {
@@ -918,6 +923,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     final savedIds = _preferences!.getStringList(key);
 
     if (savedIds == null || savedIds.isEmpty) {
+      _isRecommendedRouteLoaded = true;
       return;
     }
 
@@ -944,6 +950,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         '[ROUTE-PERSIST] invalid or completed route removed: '
         'event=$eventId',
       );
+      _isRecommendedRouteLoaded = true;
       return;
     }
 
@@ -955,6 +962,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         restoredRoute.map((item) => item.id).toList(growable: false),
       );
     }
+
+    _isRecommendedRouteLoaded = true;
 
     debugPrint(
       '[ROUTE-PERSIST] loaded: '
@@ -1603,7 +1612,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     );
 
     await _saveManualNextDestination();
-    await _saveRecommendedRoute();
+    if (_isRecommendedRouteLoaded) {
+      await _saveRecommendedRoute();
+    } else {
+      debugPrint('[ROUTE-PERSIST] save skipped: route state not loaded yet');
+    }
     await _saveStamps();
     await _loadCollectionEventNames();
     await _loadMyEventRank();
@@ -2418,6 +2431,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _myEventRank = null;
       _manualNextSeichiId = null;
       _activeRecommendedRoute.clear();
+      _isRecommendedRouteLoaded = false;
 
       await _loadEventAchievements();
       await _loadSavedStamps();
@@ -3049,6 +3063,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
         _manualNextSeichiId = null;
         _activeRecommendedRoute.clear();
+        _isRecommendedRouteLoaded = false;
 
         await _loadDisplayName();
         await _loadEventAchievements();
