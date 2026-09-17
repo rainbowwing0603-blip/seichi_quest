@@ -28,7 +28,9 @@ import 'services/achievement_service.dart';
 import 'services/level_service.dart';
 import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
+import 'models/real_world_state.dart';
 import 'services/external_navigation_service.dart';
+import 'services/weather_service.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
@@ -115,6 +117,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // スタンプ判定に使用した直前のGPS位置。
   // GPSの急跳びによる誤獲得を防ぐために使用する。
   Position? _lastStampCheckPosition;
+
+  final WeatherService _weatherService = WeatherService();
+  RealWorldState? _realWorldState;
+  DateTime? _lastWeatherFetchAt;
+  Position? _lastWeatherFetchPosition;
+  bool _isWeatherFetchInProgress = false;
 
   List<Seichi> _seichiList = [];
   final Set<String> _collectedIds = {};
@@ -1164,6 +1172,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       });
 
       _updateNextDestination();
+      await _updateWeatherIfNeeded(position, force: true);
 
       await _moveCameraToCurrentLocation();
 
@@ -1183,6 +1192,79 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
   // 現在地監視
   // ============================================================
+
+  Future<void> _updateWeatherIfNeeded(
+    Position position, {
+    bool force = false,
+  }) async {
+    const refreshInterval = Duration(minutes: 15);
+    const refreshDistanceMeters = 5000.0;
+
+    if (_isWeatherFetchInProgress) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final lastFetchAt = _lastWeatherFetchAt;
+    final lastPosition = _lastWeatherFetchPosition;
+
+    var shouldFetch = force || lastFetchAt == null || lastPosition == null;
+
+    if (!shouldFetch && now.difference(lastFetchAt) >= refreshInterval) {
+      shouldFetch = true;
+    }
+
+    if (!shouldFetch && lastPosition != null) {
+      final distance = Geolocator.distanceBetween(
+        lastPosition.latitude,
+        lastPosition.longitude,
+        position.latitude,
+        position.longitude,
+      );
+
+      if (distance >= refreshDistanceMeters) {
+        shouldFetch = true;
+      }
+    }
+
+    if (!shouldFetch) {
+      return;
+    }
+
+    _isWeatherFetchInProgress = true;
+
+    try {
+      final state = await _weatherService.fetchCurrentWeather(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _realWorldState = state;
+        _lastWeatherFetchAt = DateTime.now();
+        _lastWeatherFetchPosition = position;
+      });
+
+      final currentState = _realWorldState;
+
+      debugPrint(
+        '[WEATHER] '
+        'weather=${currentState?.weather.name}, '
+        'temperature=${currentState?.temperatureCelsius}, '
+        'season=${currentState?.season.name}, '
+        'dayPhase=${currentState?.dayPhase.name}, '
+        'observedAt=${currentState?.observedAt}',
+      );
+    } catch (error) {
+      debugPrint('[WEATHER] fetch failed: $error');
+    } finally {
+      _isWeatherFetchInProgress = false;
+    }
+  }
 
   void _startLocationStream() {
     _positionSubscription?.cancel();
@@ -1204,6 +1286,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             });
 
             _updateNextDestination();
+            _updateWeatherIfNeeded(position);
             _checkStampDistance();
           },
           onError: (error) {
