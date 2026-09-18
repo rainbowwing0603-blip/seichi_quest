@@ -6,6 +6,7 @@ import '../models/event.dart';
 import '../models/seichi.dart';
 import 'event_detail_page.dart';
 import 'quest_ui.dart';
+import '../services/app_logger.dart';
 
 class EventExplorePage extends StatefulWidget {
   const EventExplorePage({
@@ -158,8 +159,8 @@ class _EventExplorePageState extends State<EventExplorePage> {
           ..addAll(placeNames);
       });
     } catch (error, stackTrace) {
-      debugPrint('[EVENT] nearest distance load failed: $error');
-      debugPrint('[EVENT] nearest distance stackTrace: $stackTrace');
+      appDebugPrint('[EVENT] nearest distance load failed: $error');
+      appDebugPrint('[EVENT] nearest distance stackTrace: $stackTrace');
     }
   }
 
@@ -200,8 +201,8 @@ class _EventExplorePageState extends State<EventExplorePage> {
           ..addAll(ids);
       });
     } catch (error, stackTrace) {
-      debugPrint('[EVENT] favorite load failed: $error');
-      debugPrint('[EVENT] favorite load stackTrace: $stackTrace');
+      appDebugPrint('[EVENT] favorite load failed: $error');
+      appDebugPrint('[EVENT] favorite load stackTrace: $stackTrace');
     }
   }
 
@@ -240,8 +241,8 @@ class _EventExplorePageState extends State<EventExplorePage> {
         }
       });
     } catch (error, stackTrace) {
-      debugPrint('[EVENT] favorite toggle failed: $error');
-      debugPrint('[EVENT] favorite toggle stackTrace: $stackTrace');
+      appDebugPrint('[EVENT] favorite toggle failed: $error');
+      appDebugPrint('[EVENT] favorite toggle stackTrace: $stackTrace');
 
       if (!mounted) {
         return;
@@ -297,8 +298,8 @@ class _EventExplorePageState extends State<EventExplorePage> {
         _isLoading = false;
       });
     } catch (error, stackTrace) {
-      debugPrint('[EVENT] explore participation load failed: $error');
-      debugPrint('[EVENT] explore participation stackTrace: $stackTrace');
+      appDebugPrint('[EVENT] explore participation load failed: $error');
+      appDebugPrint('[EVENT] explore participation stackTrace: $stackTrace');
 
       if (!mounted) {
         return;

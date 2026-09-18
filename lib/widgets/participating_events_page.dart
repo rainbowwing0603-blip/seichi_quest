@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import 'quest_ui.dart';
+import '../services/app_logger.dart';
 
 class ParticipatingEventsPage extends StatefulWidget {
   const ParticipatingEventsPage({super.key, required this.currentEventId});
@@ -101,8 +102,8 @@ class _ParticipatingEventsPageState extends State<ParticipatingEventsPage> {
         _isLoading = false;
       });
     } catch (error, stackTrace) {
-      debugPrint('[EVENT] participating events load failed: $error');
-      debugPrint('[EVENT] participating events stackTrace: $stackTrace');
+      appDebugPrint('[EVENT] participating events load failed: $error');
+      appDebugPrint('[EVENT] participating events stackTrace: $stackTrace');
 
       if (!mounted) {
         return;
@@ -209,8 +210,8 @@ class _ParticipatingEventsPageState extends State<ParticipatingEventsPage> {
         ),
       );
     } catch (error, stackTrace) {
-      debugPrint('[EVENT] leave participation failed: $error');
-      debugPrint('[EVENT] leave participation stackTrace: $stackTrace');
+      appDebugPrint('[EVENT] leave participation failed: $error');
+      appDebugPrint('[EVENT] leave participation stackTrace: $stackTrace');
 
       if (!mounted) {
         return;

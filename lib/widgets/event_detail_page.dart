@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import '../models/event.dart';
 import '../models/seichi.dart';
 import 'quest_ui.dart';
+import '../services/app_logger.dart';
 
 class EventDetailPage extends StatefulWidget {
   const EventDetailPage({
@@ -111,8 +112,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
             }
           }
         } catch (error, stackTrace) {
-          debugPrint('[EVENT_DETAIL] collection history load failed: $error');
-          debugPrint(
+          appDebugPrint(
+            '[EVENT_DETAIL] collection history load failed: $error',
+          );
+          appDebugPrint(
             '[EVENT_DETAIL] collection history stackTrace: $stackTrace',
           );
         }
@@ -133,8 +136,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
         _seichiErrorMessage = null;
       });
     } catch (error, stackTrace) {
-      debugPrint('[EVENT_DETAIL] seichi load failed: $error');
-      debugPrint('[EVENT_DETAIL] seichi load stackTrace: $stackTrace');
+      appDebugPrint('[EVENT_DETAIL] seichi load failed: $error');
+      appDebugPrint('[EVENT_DETAIL] seichi load stackTrace: $stackTrace');
 
       if (!mounted) {
         return;
@@ -180,9 +183,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
         _isLoadingSocialStats = false;
       });
     } catch (error, stackTrace) {
-      debugPrint('[EVENT_DETAIL] social stats load failed: $error');
+      appDebugPrint('[EVENT_DETAIL] social stats load failed: $error');
 
-      debugPrint('[EVENT_DETAIL] social stats stackTrace: $stackTrace');
+      appDebugPrint('[EVENT_DETAIL] social stats stackTrace: $stackTrace');
 
       if (!mounted) {
         return;
@@ -241,9 +244,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
         _isFavoriteUpdating = false;
       });
     } catch (error, stackTrace) {
-      debugPrint('[EVENT_DETAIL] favorite toggle failed: $error');
+      appDebugPrint('[EVENT_DETAIL] favorite toggle failed: $error');
 
-      debugPrint('[EVENT_DETAIL] favorite toggle stackTrace: $stackTrace');
+      appDebugPrint('[EVENT_DETAIL] favorite toggle stackTrace: $stackTrace');
 
       if (!mounted) {
         return;
@@ -1882,7 +1885,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
         ),
       );
     } catch (error) {
-      debugPrint('[SHARE] event share failed: $error');
+      appDebugPrint('[SHARE] event share failed: $error');
 
       if (!mounted) {
         return;

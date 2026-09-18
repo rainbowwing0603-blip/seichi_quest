@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'services/app_logger.dart';
 
 /// 獲得履歴を「端末先行 + Supabase同期」で扱うサービス。
 ///
@@ -11,10 +12,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Supabase に upsert する。ネットワーク障害でスタンプ獲得そのものを
 /// 失敗扱いにしないことを最優先にする。
 class CollectionHistoryService {
-  CollectionHistoryService({
-    SupabaseClient? client,
-    this._preferences,
-  }) : _client = client ?? Supabase.instance.client;
+  CollectionHistoryService({SupabaseClient? client, this._preferences})
+    : _client = client ?? Supabase.instance.client;
 
   static const _placeVisitQueueKey = 'pending_place_visits_v1';
   static const _historyKey = 'collection_history_cache_v1';
@@ -49,7 +48,6 @@ class CollectionHistoryService {
   bool _isPermanentServerRejection(Object error) {
     return error is PostgrestException && error.code == 'P0001';
   }
-
 
   /// 物理地点への訪問をサーバーへ記録し、新規獲得した履歴だけを返す。
   ///
@@ -90,19 +88,19 @@ class CollectionHistoryService {
       );
     } catch (error) {
       if (_isPermanentServerRejection(error)) {
-        debugPrint(
+        appDebugPrint(
           '[HISTORY] place visit rejected by server; not queued: $error',
         );
         return <Map<String, dynamic>>[];
       }
 
-      debugPrint(
+      appDebugPrint(
         '[HISTORY] place visit RPC failed; queued for retry: $error',
       );
 
       final user = _client.auth.currentUser;
       if (user == null) {
-        debugPrint(
+        appDebugPrint(
           '[HISTORY] place visit not queued because authenticated user is unavailable',
         );
         return <Map<String, dynamic>>[];
@@ -129,27 +127,20 @@ class CollectionHistoryService {
           return false;
         }
 
-        return visitedAt
-                .toUtc()
-                .difference(pendingVisitedAt.toUtc())
-                .abs() <
+        return visitedAt.toUtc().difference(pendingVisitedAt.toUtc()).abs() <
             const Duration(minutes: 10);
       });
 
       if (!exists) {
         queue.add(visit);
-        await prefs.setString(
-          queueKey,
-          jsonEncode(queue),
-        );
-        debugPrint(
-          '[HISTORY] pending place visit queued: count=',
-        );
+        await prefs.setString(queueKey, jsonEncode(queue));
+        appDebugPrint('[HISTORY] pending place visit queued: count=');
       }
 
       return <Map<String, dynamic>>[];
     }
   }
+
   /// このユーザーの端末に残っている未同期の訪問件数を返す。
   Future<int> pendingPlaceVisitCount() async {
     final user = _client.auth.currentUser;
@@ -183,9 +174,7 @@ class CollectionHistoryService {
     );
     final queue = _readJsonList(prefs, queueKey);
 
-    debugPrint(
-      '[HISTORY] pending place visit sync start: count=',
-    );
+    appDebugPrint('[HISTORY] pending place visit sync start: count=');
 
     if (queue.isEmpty) {
       return <Map<String, dynamic>>[];
@@ -204,8 +193,7 @@ class CollectionHistoryService {
         final clientVisitId = visit['client_visit_id']?.toString();
         final latitude = (visit['latitude'] as num?)?.toDouble();
         final longitude = (visit['longitude'] as num?)?.toDouble();
-        final accuracyMeters =
-            (visit['accuracy_meters'] as num?)?.toDouble();
+        final accuracyMeters = (visit['accuracy_meters'] as num?)?.toDouble();
         final source = visit['source']?.toString() ?? 'gps';
 
         final rawMetadata = visit['metadata'];
@@ -220,9 +208,7 @@ class CollectionHistoryService {
             clientVisitId.isEmpty ||
             latitude == null ||
             longitude == null) {
-          debugPrint(
-            '[HISTORY] invalid pending place visit; kept in queue',
-          );
+          appDebugPrint('[HISTORY] invalid pending place visit; kept in queue');
           remaining.add(visit);
           continue;
         }
@@ -241,25 +227,20 @@ class CollectionHistoryService {
         collectedRows.addAll(result);
       } catch (error) {
         if (_isPermanentServerRejection(error)) {
-          debugPrint(
+          appDebugPrint(
             '[HISTORY] pending place visit rejected by server; dropped: $error',
           );
           continue;
         }
 
-        debugPrint(
-          '[HISTORY] pending place visit sync failed: $error',
-        );
+        appDebugPrint('[HISTORY] pending place visit sync failed: $error');
         remaining.add(visit);
       }
     }
 
-    await prefs.setString(
-      queueKey,
-      jsonEncode(remaining),
-    );
+    await prefs.setString(queueKey, jsonEncode(remaining));
 
-    debugPrint(
+    appDebugPrint(
       '[HISTORY] pending place visit sync complete: remaining=, collected=',
     );
 
@@ -286,7 +267,6 @@ class CollectionHistoryService {
     final local = allLocal
         .where((item) => item['event_id']?.toString() == eventId)
         .toList();
-
 
     try {
       final data = await _client
@@ -357,12 +337,8 @@ class CollectionHistoryService {
 
       final updatedCache = updatedAllLocal.values.toList()
         ..sort((a, b) {
-          final aDate = DateTime.tryParse(
-            a['collected_at']?.toString() ?? '',
-          );
-          final bDate = DateTime.tryParse(
-            b['collected_at']?.toString() ?? '',
-          );
+          final aDate = DateTime.tryParse(a['collected_at']?.toString() ?? '');
+          final bDate = DateTime.tryParse(b['collected_at']?.toString() ?? '');
 
           if (aDate == null && bDate == null) return 0;
           if (aDate == null) return 1;
@@ -371,10 +347,7 @@ class CollectionHistoryService {
           return bDate.compareTo(aDate);
         });
 
-      await prefs.setString(
-        historyKey,
-        jsonEncode(updatedCache),
-      );
+      await prefs.setString(historyKey, jsonEncode(updatedCache));
       return result;
     } catch (_) {
       return local;
@@ -388,9 +361,7 @@ class CollectionHistoryService {
       return [];
     }
 
-    final data = await _client.rpc(
-      'get_my_collection_history',
-    );
+    final data = await _client.rpc('get_my_collection_history');
 
     return List<Map<String, dynamic>>.from(data);
   }
@@ -408,9 +379,7 @@ class CollectionHistoryService {
   ///
   /// DB側はSupabase RPCで現在のユーザー自身の履歴だけを削除し、
   /// 端末側では指定イベントのキャッシュと保留キューだけを削除する。
-  Future<void> resetEventCollectionHistory({
-    required String eventId,
-  }) async {
+  Future<void> resetEventCollectionHistory({required String eventId}) async {
     final user = _client.auth.currentUser;
     if (user == null) {
       throw Exception('認証されたユーザーが必要です。');
@@ -418,9 +387,7 @@ class CollectionHistoryService {
 
     await _client.rpc(
       'reset_event_collection_history',
-      params: {
-        'p_event_id': eventId,
-      },
+      params: {'p_event_id': eventId},
     );
 
     final prefs = await _prefs;
@@ -433,16 +400,9 @@ class CollectionHistoryService {
 
     final allLocal = _readJsonList(prefs, historyKey);
     final remainingLocal = allLocal
-        .where(
-          (item) =>
-              item['event_id']?.toString() != eventId,
-        )
+        .where((item) => item['event_id']?.toString() != eventId)
         .toList();
-    await prefs.setString(
-      historyKey,
-      jsonEncode(remainingLocal),
-    );
-
+    await prefs.setString(historyKey, jsonEncode(remainingLocal));
   }
 
   Future<List<Map<String, dynamic>>> _callRecordPlaceVisitAndCollect({
@@ -478,6 +438,7 @@ class CollectionHistoryService {
         .map((item) => Map<String, dynamic>.from(item))
         .toList();
   }
+
   String _newUuidV4() {
     final random = Random.secure();
     final bytes = List<int>.generate(16, (_) => random.nextInt(256));
@@ -495,6 +456,7 @@ class CollectionHistoryService {
         '${hex.substring(16, 20)}-'
         '${hex.substring(20, 32)}';
   }
+
   List<Map<String, dynamic>> _readJsonList(
     SharedPreferences prefs,
     String key,

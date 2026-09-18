@@ -5,6 +5,7 @@ import '../collection_history_service.dart';
 import '../services/level_service.dart';
 import 'profile_avatar.dart';
 import 'quest_ui.dart';
+import '../services/app_logger.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -102,8 +103,8 @@ class _ProfilePageState extends State<ProfilePage> {
         _isLoading = false;
       });
     } catch (error, stackTrace) {
-      debugPrint('[PROFILE] load failed unexpectedly: $error');
-      debugPrint('[PROFILE] load stackTrace: $stackTrace');
+      appDebugPrint('[PROFILE] load failed unexpectedly: $error');
+      appDebugPrint('[PROFILE] load stackTrace: $stackTrace');
 
       if (!mounted) {
         return;
@@ -159,7 +160,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       Navigator.of(context).pop(true);
     } on supabase.PostgrestException catch (error) {
-      debugPrint(
+      appDebugPrint(
         '[PROFILE] save failed: '
         'code=${error.code}, '
         'message=${error.message}, '
@@ -184,8 +185,8 @@ class _ProfilePageState extends State<ProfilePage> {
         _errorMessage = message;
       });
     } catch (error, stackTrace) {
-      debugPrint('[PROFILE] save failed unexpectedly: $error');
-      debugPrint('[PROFILE] stackTrace: $stackTrace');
+      appDebugPrint('[PROFILE] save failed unexpectedly: $error');
+      appDebugPrint('[PROFILE] stackTrace: $stackTrace');
 
       if (!mounted) {
         return;

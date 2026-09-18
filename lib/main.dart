@@ -38,6 +38,8 @@ import 'services/weather_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
+import 'services/app_logger.dart';
+
 // ============================================================
 // Supabase
 // ============================================================
@@ -299,7 +301,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
           savedEventId = preference?['current_event_id']?.toString();
         } catch (error) {
-          debugPrint('[EVENT] preference load failed: $error');
+          appDebugPrint('[EVENT] preference load failed: $error');
         }
       }
 
@@ -338,11 +340,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       await _ensureEventParticipation(_currentEventId!);
 
-      debugPrint(
+      appDebugPrint(
         '[EVENT] current event restored: id=$_currentEventId, name=$_currentEventName',
       );
     } catch (e) {
-      debugPrint('現在のイベント取得エラー: $e');
+      appDebugPrint('現在のイベント取得エラー: $e');
       rethrow;
     }
   }
@@ -362,9 +364,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       }, onConflict: 'user_id');
 
-      debugPrint('[EVENT] preference saved: eventId=$eventId');
+      appDebugPrint('[EVENT] preference saved: eventId=$eventId');
     } catch (error) {
-      debugPrint('[EVENT] preference save failed: $error');
+      appDebugPrint('[EVENT] preference save failed: $error');
       rethrow;
     }
   }
@@ -397,7 +399,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           'updated_at': now,
         });
 
-        debugPrint('[EVENT] participation created: eventId=$eventId');
+        appDebugPrint('[EVENT] participation created: eventId=$eventId');
         return;
       }
 
@@ -415,9 +417,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           .eq('user_id', user.id)
           .eq('event_id', eventId);
 
-      debugPrint('[EVENT] participation reactivated: eventId=$eventId');
+      appDebugPrint('[EVENT] participation reactivated: eventId=$eventId');
     } catch (error) {
-      debugPrint('[EVENT] participation ensure failed: $error');
+      appDebugPrint('[EVENT] participation ensure failed: $error');
       rethrow;
     }
   }
@@ -511,13 +513,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _levelProgress = levelProgress;
       });
 
-      debugPrint(
+      appDebugPrint(
         '[LEVEL] collected=$totalCollected '
         'xp=${levelProgress.totalXp} '
         'level=${levelProgress.level}',
       );
     } catch (error) {
-      debugPrint('[LEVEL] load failed: $error');
+      appDebugPrint('[LEVEL] load failed: $error');
     }
   }
 
@@ -557,7 +559,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _avatarKey = avatarKey == null || avatarKey.isEmpty ? null : avatarKey;
       });
     } catch (error) {
-      debugPrint('[PROFILE] display name load failed: $error');
+      appDebugPrint('[PROFILE] display name load failed: $error');
     }
   }
 
@@ -567,34 +569,34 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     final existingUser = client.auth.currentUser;
 
     if (existingUser != null) {
-      debugPrint(
+      appDebugPrint(
         '[AUTH] existing user: ${existingUser.id}, '
         'anonymous=${existingUser.isAnonymous}',
       );
       return;
     }
 
-    debugPrint('[AUTH] no current user. Starting anonymous sign-in...');
+    appDebugPrint('[AUTH] no current user. Starting anonymous sign-in...');
 
     try {
       final response = await client.auth.signInAnonymously();
       final user = response.user;
 
       if (user != null) {
-        debugPrint(
+        appDebugPrint(
           '[AUTH] anonymous sign-in success: ${user.id}, '
           'anonymous=${user.isAnonymous}',
         );
       } else {
-        debugPrint('[AUTH] anonymous sign-in returned null user');
+        appDebugPrint('[AUTH] anonymous sign-in returned null user');
       }
     } on supabase.AuthException catch (error) {
-      debugPrint(
+      appDebugPrint(
         '[AUTH] anonymous sign-in failed: '
         'code=${error.statusCode}, message=${error.message}',
       );
     } catch (error) {
-      debugPrint('[AUTH] anonymous sign-in failed: $error');
+      appDebugPrint('[AUTH] anonymous sign-in failed: $error');
     }
   }
 
@@ -628,7 +630,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _myEventRank = rank;
       });
     } catch (error) {
-      debugPrint('[RANKING] my event rank load failed: $error');
+      appDebugPrint('[RANKING] my event rank load failed: $error');
     }
   }
 
@@ -822,13 +824,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     if (seichiId == null || seichiId.isEmpty) {
       await _preferences!.remove(key);
-      debugPrint('[NEXT-PERSIST] cleared: event=$eventId');
+      appDebugPrint('[NEXT-PERSIST] cleared: event=$eventId');
       return;
     }
 
     await _preferences!.setString(key, seichiId);
 
-    debugPrint('[NEXT-PERSIST] saved: event=$eventId seichi=$seichiId');
+    appDebugPrint('[NEXT-PERSIST] saved: event=$eventId seichi=$seichiId');
   }
 
   Future<void> _loadManualNextDestination() async {
@@ -862,7 +864,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _manualNextSeichiId = null;
       await _preferences!.remove(key);
 
-      debugPrint(
+      appDebugPrint(
         '[NEXT-PERSIST] invalid saved destination removed: '
         'event=$eventId seichi=$savedId',
       );
@@ -871,7 +873,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     _manualNextSeichiId = savedId;
 
-    debugPrint('[NEXT-PERSIST] restored: event=$eventId seichi=$savedId');
+    appDebugPrint('[NEXT-PERSIST] restored: event=$eventId seichi=$savedId');
   }
 
   String _recommendedRouteStorageKey({
@@ -901,18 +903,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (routeIds.isEmpty) {
       await _preferences!.remove(key);
 
-      debugPrint('[ROUTE-PERSIST] cleared: event=$eventId');
+      appDebugPrint('[ROUTE-PERSIST] cleared: event=$eventId');
       return;
     }
 
     await _preferences!.setStringList(key, routeIds);
 
-    debugPrint('[ROUTE-PERSIST] saved: event=$eventId ids=$routeIds');
+    appDebugPrint('[ROUTE-PERSIST] saved: event=$eventId ids=$routeIds');
   }
 
   void _saveRecommendedRouteInBackground() {
     _saveRecommendedRoute().catchError((Object error) {
-      debugPrint('[ROUTE-PERSIST] save failed: $error');
+      appDebugPrint('[ROUTE-PERSIST] save failed: $error');
     });
   }
 
@@ -957,7 +959,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (restoredRoute.isEmpty) {
       await _preferences!.remove(key);
 
-      debugPrint(
+      appDebugPrint(
         '[ROUTE-PERSIST] invalid or completed route removed: '
         'event=$eventId',
       );
@@ -976,7 +978,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     _isRecommendedRouteLoaded = true;
 
-    debugPrint(
+    appDebugPrint(
       '[ROUTE-PERSIST] loaded: '
       'event=$eventId '
       'ids=${_activeRecommendedRoute.map((item) => item.id).toList()}',
@@ -1254,7 +1256,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       final currentState = _realWorldState;
 
-      debugPrint(
+      appDebugPrint(
         '[WEATHER] '
         'weather=${currentState?.weather.name}, '
         'temperature=${currentState?.temperatureCelsius}, '
@@ -1263,7 +1265,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         'observedAt=${currentState?.observedAt}',
       );
     } catch (error) {
-      debugPrint('[WEATHER] fetch failed: $error');
+      appDebugPrint('[WEATHER] fetch failed: $error');
     } finally {
       _isWeatherFetchInProgress = false;
     }
@@ -1309,7 +1311,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   void _updateNextDestination() {
-    debugPrint(
+    appDebugPrint(
       '[ROUTE-NEXT] UPDATE START '
       'manual=$_manualNextSeichiId '
       'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
@@ -1323,7 +1325,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       manualNextSeichiId: _manualNextSeichiId,
     );
 
-    debugPrint(
+    appDebugPrint(
       '[ROUTE-NEXT] SERVICE RESULT '
       'next=${result.seichi == null ? null : '${result.seichi!.card}:${result.seichi!.name}:${result.seichi!.id}'} '
       'distance=${result.distance}',
@@ -1342,7 +1344,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _nextDistance = result.distance;
     });
 
-    debugPrint(
+    appDebugPrint(
       '[ROUTE-NEXT] UPDATE END '
       'next=${_nextSeichi == null ? null : '${_nextSeichi!.card}:${_nextSeichi!.name}:${_nextSeichi!.id}'} '
       'manual=$_manualNextSeichiId '
@@ -1520,7 +1522,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     _lastStampCheckPosition = position;
-    debugPrint(
+    appDebugPrint(
       '[STAMP_GPS] '
       'lat=${position.latitude}, '
       'lon=${position.longitude}, '
@@ -1564,7 +1566,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     if (nearestSeichi != null) {
-      debugPrint(
+      appDebugPrint(
         '[STAMP_DISTANCE] '
         'name=${nearestSeichi.name}, '
         'card=${nearestSeichi.card}, '
@@ -1605,7 +1607,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    debugPrint(
+    appDebugPrint(
       '[STAMP_COLLECT] name=${seichi.name}, card=${seichi.card}, id=${seichi.id}',
     );
     _isCollecting = true;
@@ -1673,7 +1675,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _collectedIds.add(item.id);
     }
 
-    debugPrint(
+    appDebugPrint(
       '[ROUTE-NEXT] COLLECTED '
       'new=${newlyCollectedSeichi.map((item) => '${item.card}:${item.name}:${item.id}').toList()} '
       'activeBefore=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
@@ -1695,7 +1697,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _manualNextSeichiId = null;
     }
 
-    debugPrint(
+    appDebugPrint(
       '[ROUTE-NEXT] AFTER ROUTE ADVANCE '
       'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
       'manual=$_manualNextSeichiId',
@@ -1705,7 +1707,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (_isRecommendedRouteLoaded) {
       await _saveRecommendedRoute();
     } else {
-      debugPrint('[ROUTE-PERSIST] save skipped: route state not loaded yet');
+      appDebugPrint('[ROUTE-PERSIST] save skipped: route state not loaded yet');
     }
     await _saveStamps();
     await _loadCollectionEventNames();
@@ -2106,7 +2108,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         ),
       );
     } catch (error) {
-      debugPrint('[NAVIGATION] launch failed: $error');
+      appDebugPrint('[NAVIGATION] launch failed: $error');
 
       if (!mounted) {
         return;
@@ -2191,7 +2193,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     for (final seichi in _seichiList) {
       final collected = _collectedIds.contains(seichi.id);
 
-      debugPrint(
+      appDebugPrint(
         '[MARKER] ${seichi.name} id=${seichi.id} collected=$collected',
       );
 
@@ -2548,9 +2550,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         setState(() {});
       }
 
-      debugPrint('[EVENT] selected: id=, name=');
+      appDebugPrint('[EVENT] selected: id=, name=');
     } catch (e) {
-      debugPrint('[EVENT] select error: ');
+      appDebugPrint('[EVENT] select error: ');
 
       if (mounted) {
         setState(() {
@@ -2595,7 +2597,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           participationStates[eventId] = row['is_active'] == true;
         }
       } catch (error) {
-        debugPrint('[EVENT] participation status load failed: $error');
+        appDebugPrint('[EVENT] participation status load failed: $error');
       }
     }
 
