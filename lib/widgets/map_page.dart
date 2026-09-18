@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -6,6 +8,7 @@ import '../models/real_world_state.dart';
 import '../models/seichi.dart';
 import '../painters/sonar_painter.dart';
 import 'stamp_animation.dart';
+import 'quest_ui.dart';
 import 'weather_effect_overlay.dart';
 
 class MapPage extends StatelessWidget {
@@ -199,20 +202,15 @@ class MapPage extends StatelessWidget {
       return 0.15;
     }
 
-    final radius =
-        nextSeichi?.stampRadiusMeters ?? 200;
+    final radius = nextSeichi?.stampRadiusMeters ?? 200;
 
     if (distance <= radius) {
       return 1.0;
     }
 
-    final normalized =
-        1.0 - (distance / 2000.0);
+    final normalized = 1.0 - (distance / 2000.0);
 
-    return normalized.clamp(
-      0.1,
-      1.0,
-    );
+    return normalized.clamp(0.1, 1.0);
   }
 
   Widget _buildQuestHud() {
@@ -250,8 +248,9 @@ class MapPage extends StatelessWidget {
     };
 
     final temperature = state?.temperatureCelsius;
-    final temperatureLabel =
-        temperature == null ? '--°' : '${temperature.round()}°';
+    final temperatureLabel = temperature == null
+        ? '--°'
+        : '${temperature.round()}°';
 
     final intensity = _sonarIntensity();
 
@@ -381,12 +380,7 @@ class MapPage extends StatelessWidget {
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.fromLTRB(
-                                  7,
-                                  6,
-                                  11,
-                                  6,
-                                ),
+                                padding: const EdgeInsets.fromLTRB(7, 6, 11, 6),
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     begin: Alignment.topLeft,
@@ -464,12 +458,7 @@ class MapPage extends StatelessWidget {
                               ),
                               const Spacer(),
                               Container(
-                                padding: const EdgeInsets.fromLTRB(
-                                  7,
-                                  6,
-                                  11,
-                                  6,
-                                ),
+                                padding: const EdgeInsets.fromLTRB(7, 6, 11, 6),
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     begin: Alignment.topLeft,
@@ -485,8 +474,7 @@ class MapPage extends StatelessWidget {
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color:
-                                          primary.withValues(alpha: 0.15),
+                                      color: primary.withValues(alpha: 0.15),
                                       blurRadius: 9,
                                       offset: const Offset(0, 4),
                                     ),
@@ -522,8 +510,9 @@ class MapPage extends StatelessWidget {
                                         ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color:
-                                                primary.withValues(alpha: 0.32),
+                                            color: primary.withValues(
+                                              alpha: 0.32,
+                                            ),
                                             blurRadius: 8,
                                             offset: const Offset(0, 4),
                                           ),
@@ -588,8 +577,7 @@ class MapPage extends StatelessWidget {
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color:
-                                            primary.withValues(alpha: 0.32),
+                                        color: primary.withValues(alpha: 0.32),
                                         blurRadius: 14,
                                         offset: const Offset(0, 7),
                                       ),
@@ -618,10 +606,7 @@ class MapPage extends StatelessWidget {
                                               gradient: const LinearGradient(
                                                 begin: Alignment.topCenter,
                                                 end: Alignment.bottomCenter,
-                                                colors: [
-                                                  cyan,
-                                                  primary,
-                                                ],
+                                                colors: [cyan, primary],
                                               ),
                                             ),
                                           ),
@@ -683,8 +668,7 @@ class MapPage extends StatelessWidget {
                                             height: 64,
                                             child: CustomPaint(
                                               painter: SonarPainter(
-                                                progress:
-                                                    sonarController.value,
+                                                progress: sonarController.value,
                                                 intensity: intensity,
                                               ),
                                             ),
@@ -747,10 +731,7 @@ class MapPage extends StatelessWidget {
                                               gradient: const LinearGradient(
                                                 begin: Alignment.topCenter,
                                                 end: Alignment.bottomCenter,
-                                                colors: [
-                                                  cyan,
-                                                  primary,
-                                                ],
+                                                colors: [cyan, primary],
                                               ),
                                             ),
                                           ),
@@ -873,8 +854,10 @@ class MapPage extends StatelessWidget {
                                 Expanded(
                                   child: LayoutBuilder(
                                     builder: (context, constraints) {
-                                      final progress =
-                                          intensity.clamp(0.0, 1.0);
+                                      final progress = intensity.clamp(
+                                        0.0,
+                                        1.0,
+                                      );
                                       final progressWidth =
                                           constraints.maxWidth * progress;
 
@@ -889,8 +872,9 @@ class MapPage extends StatelessWidget {
                                               Color(0xFFEEF1F6),
                                             ],
                                           ),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
                                           border: Border.all(
                                             color: Colors.white.withValues(
                                               alpha: 0.75,
@@ -917,8 +901,7 @@ class MapPage extends StatelessWidget {
                                               decoration: BoxDecoration(
                                                 borderRadius:
                                                     BorderRadius.circular(20),
-                                                gradient:
-                                                    const LinearGradient(
+                                                gradient: const LinearGradient(
                                                   colors: [
                                                     cyan,
                                                     primary,
@@ -927,8 +910,7 @@ class MapPage extends StatelessWidget {
                                                 ),
                                                 boxShadow: [
                                                   BoxShadow(
-                                                    color:
-                                                        primary.withValues(
+                                                    color: primary.withValues(
                                                       alpha: 0.38,
                                                     ),
                                                     blurRadius: 8,
@@ -938,12 +920,10 @@ class MapPage extends StatelessWidget {
                                             ),
                                             if (progress > 0.02)
                                               Positioned(
-                                                left: (progressWidth - 8)
-                                                    .clamp(
-                                                      0.0,
-                                                      constraints.maxWidth -
-                                                          16,
-                                                    ),
+                                                left: (progressWidth - 8).clamp(
+                                                  0.0,
+                                                  constraints.maxWidth - 16,
+                                                ),
                                                 top: -3,
                                                 child: Container(
                                                   width: 16,
@@ -952,11 +932,11 @@ class MapPage extends StatelessWidget {
                                                     shape: BoxShape.circle,
                                                     gradient:
                                                         const RadialGradient(
-                                                      colors: [
-                                                        Colors.white,
-                                                        Color(0xFFE8E9FF),
-                                                      ],
-                                                    ),
+                                                          colors: [
+                                                            Colors.white,
+                                                            Color(0xFFE8E9FF),
+                                                          ],
+                                                        ),
                                                     border: Border.all(
                                                       color: primary,
                                                       width: 3,
@@ -965,8 +945,8 @@ class MapPage extends StatelessWidget {
                                                       BoxShadow(
                                                         color: primary
                                                             .withValues(
-                                                          alpha: 0.48,
-                                                        ),
+                                                              alpha: 0.48,
+                                                            ),
                                                         blurRadius: 9,
                                                       ),
                                                     ],
@@ -994,13 +974,11 @@ class MapPage extends StatelessWidget {
                                     ),
                                     borderRadius: BorderRadius.circular(11),
                                     border: Border.all(
-                                      color:
-                                          primary.withValues(alpha: 0.14),
+                                      color: primary.withValues(alpha: 0.14),
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color:
-                                            primary.withValues(alpha: 0.08),
+                                        color: primary.withValues(alpha: 0.08),
                                         blurRadius: 5,
                                         offset: const Offset(0, 2),
                                       ),
@@ -1042,15 +1020,12 @@ class MapPage extends StatelessWidget {
       bottom: 95,
       child: Material(
         elevation: 8,
-        borderRadius:
-            BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18),
         child: Container(
-          padding:
-              const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius:
-                BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(18),
           ),
           child: Row(
             children: [
@@ -1063,16 +1038,12 @@ class MapPage extends StatelessWidget {
               Expanded(
                 child: Text(
                   errorMessage!,
-                  style:
-                      const TextStyle(
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(fontSize: 13),
                 ),
               ),
               IconButton(
                 onPressed: onDismissError,
-                icon:
-                    const Icon(Icons.close),
+                icon: const Icon(Icons.close),
               ),
             ],
           ),
@@ -1081,30 +1052,57 @@ class MapPage extends StatelessWidget {
     );
   }
 
-
-
-
   Widget _buildLocationButton() {
     return Positioned(
       right: 14,
-      bottom: 165,
-      child: FloatingActionButton(
-        heroTag: 'currentLocation',
-        elevation: 6,
-        onPressed:
-            onMoveToCurrentLocation,
-        child: isLoadingLocation
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child:
-                    CircularProgressIndicator(
-                  strokeWidth: 2,
+      bottom: 223,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: isLoadingLocation ? null : onMoveToCurrentLocation,
+              borderRadius: BorderRadius.circular(22),
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: const Color(0xB82B3448),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.88),
+                    width: 1.4,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x42000000),
+                      blurRadius: 12,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
                 ),
-              )
-            : const Icon(
-                Icons.my_location,
+                child: isLoadingLocation
+                    ? const Center(
+                        child: SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            color: Colors.white,
+                          ),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.my_location_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
               ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1117,36 +1115,59 @@ class MapPage extends StatelessWidget {
     return Positioned(
       left: 16,
       right: 16,
-      bottom: 88,
+      bottom: 158,
       child: Row(
         children: [
           Expanded(
-            child: OutlinedButton.icon(
-              onPressed:
-                  onMoveToNextSeichi,
-              icon: const Icon(
-                Icons.map_rounded,
-              ),
-              label: const Text(
-                '地図で見る',
-              ),
-              style:
-                  OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF4F3B78),
-                backgroundColor: Colors.white.withValues(alpha: 0.88),
-                side: BorderSide(
-                  color: const Color(0xFF6F55A0).withValues(alpha: 0.45),
-                  width: 1.2,
-                ),
-                minimumSize:
-                    const Size.fromHeight(
-                  52,
-                ),
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                    18,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(19),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onMoveToNextSeichi,
+                    borderRadius: BorderRadius.circular(19),
+                    child: Container(
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: const Color(0xB82B3448),
+                        borderRadius: BorderRadius.circular(19),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.84),
+                          width: 1.3,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x42000000),
+                            blurRadius: 12,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.map_rounded,
+                            color: Colors.white,
+                            size: 21,
+                          ),
+                          SizedBox(width: 7),
+                          Text(
+                            '地図で見る',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              shadows: [
+                                Shadow(color: Color(0x99000000), blurRadius: 4),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1154,26 +1175,63 @@ class MapPage extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: FilledButton.icon(
-              onPressed:
-                  onStartNavigation,
-              icon: const Icon(
-                Icons.directions_rounded,
-              ),
-              label: const Text(
-                'ナビ開始',
-              ),
-              style:
-                  FilledButton.styleFrom(
-                minimumSize:
-                    const Size.fromHeight(
-                  52,
-                ),
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                    18,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(19),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onStartNavigation,
+                    borderRadius: BorderRadius.circular(19),
+                    child: Container(
+                      height: 54,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            QuestUiTokens.primary.withValues(alpha: 0.82),
+                            QuestUiTokens.primaryDeep.withValues(alpha: 0.78),
+                            QuestUiTokens.cyan.withValues(alpha: 0.68),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(19),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.86),
+                          width: 1.3,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x42000000),
+                            blurRadius: 12,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.directions_rounded,
+                            color: Colors.white,
+                            size: 21,
+                          ),
+                          SizedBox(width: 7),
+                          Text(
+                            'ナビ開始',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              shadows: [
+                                Shadow(color: Color(0x99000000), blurRadius: 4),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1230,9 +1288,7 @@ class MapPage extends StatelessWidget {
 
     return Positioned.fill(
       child: IgnorePointer(
-        child: ColoredBox(
-          color: color.withValues(alpha: opacity),
-        ),
+        child: ColoredBox(color: color.withValues(alpha: opacity)),
       ),
     );
   }
@@ -1260,16 +1316,13 @@ class MapPage extends StatelessWidget {
 
     return Positioned.fill(
       child: IgnorePointer(
-        child: ColoredBox(
-          color: color.withValues(alpha: opacity),
-        ),
+        child: ColoredBox(color: color.withValues(alpha: opacity)),
       ),
     );
   }
 
   Widget _buildMap() {
-    LatLng initialTarget =
-        defaultCenter;
+    LatLng initialTarget = defaultCenter;
 
     if (currentPosition != null) {
       initialTarget = LatLng(
@@ -1279,17 +1332,10 @@ class MapPage extends StatelessWidget {
     }
 
     return GoogleMap(
-      initialCameraPosition:
-          CameraPosition(
-        target: initialTarget,
-        zoom: 10.5,
-      ),
+      initialCameraPosition: CameraPosition(target: initialTarget, zoom: 10.5),
       mapType: MapType.normal,
-      style: realWorldState?.dayPhase == DayPhase.night
-          ? _nightMapStyle
-          : null,
-      myLocationEnabled:
-          currentPosition != null,
+      style: realWorldState?.dayPhase == DayPhase.night ? _nightMapStyle : null,
+      myLocationEnabled: currentPosition != null,
       myLocationButtonEnabled: false,
       compassEnabled: true,
       zoomControlsEnabled: false,

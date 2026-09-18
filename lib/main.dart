@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -21,6 +23,7 @@ import 'widgets/sync_status_page.dart';
 import 'widgets/participating_events_page.dart';
 import 'widgets/notification_settings_page.dart';
 import 'widgets/app_settings_page.dart';
+import 'widgets/quest_ui.dart';
 import 'models/seichi.dart';
 import 'models/achievement.dart';
 import 'models/event.dart';
@@ -3294,46 +3297,117 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     return Scaffold(
+      extendBody: true,
       body: _buildCurrentPage(),
 
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const BannerAdWidget(),
-          NavigationBar(
-            selectedIndex: _selectedTab,
-            onDestinationSelected: (index) {
-              setState(() {
-                _selectedTab = index;
-              });
-            },
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.map_outlined),
-                selectedIcon: Icon(Icons.map),
-                label: 'マップ',
+          ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: QuestUiTokens.ink.withValues(alpha: 0.46),
+                  border: Border(
+                    top: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.42),
+                      width: 1.0,
+                    ),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: QuestUiTokens.ink.withValues(alpha: 0.055),
+                      blurRadius: 18,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: NavigationBarTheme(
+                  data: NavigationBarThemeData(
+                    height: 72,
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    indicatorColor: Colors.white.withValues(alpha: 0.18),
+                    indicatorShape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        QuestUiTokens.controlRadius,
+                      ),
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.42),
+                        width: 0.9,
+                      ),
+                    ),
+                    iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((
+                      states,
+                    ) {
+                      final selected = states.contains(WidgetState.selected);
+
+                      return IconThemeData(
+                        size: selected ? 27 : 24,
+                        color: selected
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.72),
+                      );
+                    }),
+                    labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((
+                      states,
+                    ) {
+                      final selected = states.contains(WidgetState.selected);
+
+                      return TextStyle(
+                        fontSize: selected ? 11.5 : 10.5,
+                        fontWeight: selected
+                            ? FontWeight.w900
+                            : FontWeight.w700,
+                        color: selected
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.72),
+                        shadows: const [
+                          Shadow(color: Color(0x66000000), blurRadius: 3),
+                        ],
+                      );
+                    }),
+                  ),
+                  child: NavigationBar(
+                    selectedIndex: _selectedTab,
+                    onDestinationSelected: (index) {
+                      setState(() {
+                        _selectedTab = index;
+                      });
+                    },
+                    destinations: const [
+                      NavigationDestination(
+                        icon: Icon(Icons.map_outlined),
+                        selectedIcon: Icon(Icons.map_rounded),
+                        label: 'マップ',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.flag_outlined),
+                        selectedIcon: Icon(Icons.flag_rounded),
+                        label: 'クエスト',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.workspace_premium_outlined),
+                        selectedIcon: Icon(Icons.workspace_premium_rounded),
+                        label: 'スタンプ',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.leaderboard_outlined),
+                        selectedIcon: Icon(Icons.leaderboard_rounded),
+                        label: 'ランキング',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.person_outline),
+                        selectedIcon: Icon(Icons.person_rounded),
+                        label: 'マイページ',
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              NavigationDestination(
-                icon: Icon(Icons.flag_outlined),
-                selectedIcon: Icon(Icons.flag),
-                label: 'クエスト',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.workspace_premium_outlined),
-                selectedIcon: Icon(Icons.workspace_premium),
-                label: 'スタンプ',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.leaderboard_outlined),
-                selectedIcon: Icon(Icons.leaderboard),
-                label: 'ランキング',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
-                label: 'マイページ',
-              ),
-            ],
+            ),
           ),
         ],
       ),
