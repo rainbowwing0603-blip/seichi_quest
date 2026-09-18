@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import 'profile_avatar.dart';
+import 'quest_ui.dart';
 
 class RankingPage extends StatefulWidget {
   final String eventId;
@@ -32,8 +33,7 @@ class _RankingPageState extends State<RankingPage> {
   List<_RankingEntry> _ranking = [];
   int _participantCount = 0;
 
-  supabase.SupabaseClient get _client =>
-      supabase.Supabase.instance.client;
+  supabase.SupabaseClient get _client => supabase.Supabase.instance.client;
 
   @override
   void initState() {
@@ -54,25 +54,17 @@ class _RankingPageState extends State<RankingPage> {
     try {
       final data = await _client.rpc(
         'get_public_ranking',
-        params: {
-          'p_event_id': widget.eventId,
-          'p_limit': 50,
-        },
+        params: {'p_event_id': widget.eventId, 'p_limit': 50},
       );
 
       final rows = (data as List)
           .map(
-            (item) => _RankingEntry.fromMap(
-              Map<String, dynamic>.from(
-                item as Map,
-              ),
-            ),
+            (item) =>
+                _RankingEntry.fromMap(Map<String, dynamic>.from(item as Map)),
           )
           .toList();
 
-      final participantCount = rows.isEmpty
-          ? 0
-          : rows.first.participantCount;
+      final participantCount = rows.isEmpty ? 0 : rows.first.participantCount;
 
       if (!mounted) {
         return;
@@ -85,9 +77,7 @@ class _RankingPageState extends State<RankingPage> {
         _errorMessage = null;
       });
     } catch (error) {
-      debugPrint(
-        '[RANKING] load failed: $error',
-      );
+      debugPrint('[RANKING] load failed: $error');
 
       if (!mounted) {
         return;
@@ -95,8 +85,7 @@ class _RankingPageState extends State<RankingPage> {
 
       setState(() {
         _isLoading = false;
-        _errorMessage =
-            'ランキングを取得できませんでした。';
+        _errorMessage = 'ランキングを取得できませんでした。';
       });
     }
   }
@@ -115,73 +104,72 @@ class _RankingPageState extends State<RankingPage> {
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: _refreshRanking,
+        color: QuestUiTokens.primary,
         child: SingleChildScrollView(
-          physics:
-              const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildPageHeader(
                 title: 'ランキング',
-                subtitle:
-                    _participantCount > 0
-                        ? '参加者 $_participantCount人'
-                        : '聖地巡礼の記録',
-                icon: Icons.leaderboard,
+                subtitle: _participantCount > 0
+                    ? '参加者 $_participantCount人'
+                    : '聖地巡礼の記録',
+                icon: Icons.leaderboard_rounded,
               ),
-              const SizedBox(height: 4),
-
+              const SizedBox(height: 8),
               _buildMyRecord(),
-
-              const SizedBox(height: 20),
-
+              const SizedBox(height: 24),
               Row(
                 children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: QuestUiTokens.primary.withValues(alpha: 0.09),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: const Icon(
+                      Icons.emoji_events_outlined,
+                      size: 18,
+                      color: QuestUiTokens.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
                   const Expanded(
-                    child: Text(
-                      'オンラインランキング',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'RANKING',
+                          style: TextStyle(
+                            fontSize: 9,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.w900,
+                            color: QuestUiTokens.mutedInk,
+                          ),
+                        ),
+                        SizedBox(height: 1),
+                        Text(
+                          'オンラインランキング',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: QuestUiTokens.ink,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   if (_participantCount > 0)
-                    Container(
-                      padding:
-                          const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurple
-                            .withValues(
-                          alpha: 0.08,
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(
-                          999,
-                        ),
-                      ),
-                      child: Text(
-                        '$_participantCount人参加',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight:
-                              FontWeight.w600,
-                          color:
-                              Colors.deepPurple,
-                        ),
-                      ),
+                    QuestStatusChip(
+                      label: '$_participantCount人参加',
+                      icon: Icons.groups_2_outlined,
                     ),
                 ],
               ),
-
               const SizedBox(height: 12),
-
               _buildRankingContent(),
             ],
           ),
@@ -192,8 +180,7 @@ class _RankingPageState extends State<RankingPage> {
 
   Widget _buildMyRecord() {
     final hasDisplayName =
-        widget.displayName != null &&
-        widget.displayName!.trim().isNotEmpty;
+        widget.displayName != null && widget.displayName!.trim().isNotEmpty;
 
     String statusText;
     String? guidanceText;
@@ -211,74 +198,128 @@ class _RankingPageState extends State<RankingPage> {
       guidanceText = 'ランキング情報を更新してください。';
     }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-      ),
+    final progress = widget.total <= 0
+        ? 0.0
+        : (widget.myCount / widget.total).clamp(0.0, 1.0);
+
+    return QuestGlassCard(
+      padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'あなたの記録',
-            style: TextStyle(
-              color: Colors.grey,
+          Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: QuestUiTokens.primaryGradient,
+                  borderRadius: BorderRadius.circular(17),
+                  boxShadow: [
+                    BoxShadow(
+                      color: QuestUiTokens.primary.withValues(alpha: 0.18),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.military_tech_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'YOUR RECORD',
+                      style: TextStyle(
+                        fontSize: 9,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.mutedInk,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      statusText,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: widget.myRank == null
+                            ? QuestUiTokens.mutedInk
+                            : QuestUiTokens.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (widget.myRank != null)
+                QuestStatusChip(
+                  label: '${widget.myRank}位',
+                  icon: Icons.emoji_events_rounded,
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${widget.myCount}',
+                style: const TextStyle(
+                  fontSize: 42,
+                  height: 0.95,
+                  fontWeight: FontWeight.w900,
+                  color: QuestUiTokens.ink,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 5, bottom: 4),
+                child: Text(
+                  '/ ${widget.total} 聖地',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: QuestUiTokens.mutedInk,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 13),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: QuestUiTokens.primary.withValues(alpha: 0.08),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                QuestUiTokens.primary,
+              ),
             ),
           ),
-
-          const SizedBox(height: 6),
-
-          Text(
-            statusText,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: widget.myRank == null
-                  ? Colors.grey
-                  : Colors.deepPurple,
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          Text(
-            '${widget.myCount} / ${widget.total}',
-            style: const TextStyle(
-              fontSize: 42,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 4),
-
-          const Text(
-            '聖地獲得数',
-            style: TextStyle(
-              fontSize: 14,
-            ),
-          ),
-
           if (guidanceText != null) ...[
             const SizedBox(height: 14),
             Text(
               guidanceText,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
+              style: const TextStyle(
+                fontSize: 12,
                 height: 1.5,
-                color: Colors.grey.shade600,
+                color: QuestUiTokens.mutedInk,
               ),
             ),
           ],
-
           if (!hasDisplayName) ...[
-            const SizedBox(height: 14),
-            FilledButton.icon(
+            const SizedBox(height: 16),
+            QuestPrimaryButton(
+              label: 'プロフィールを設定',
+              icon: Icons.person_add_alt_1_outlined,
               onPressed: () async {
-                final changed =
-                    await widget.onShowProfile();
+                final changed = await widget.onShowProfile();
 
                 if (!mounted || !changed) {
                   return;
@@ -286,21 +327,29 @@ class _RankingPageState extends State<RankingPage> {
 
                 await _refreshRanking();
               },
-              icon: const Icon(Icons.person_add_alt_1_outlined),
-              label: const Text('プロフィールを設定'),
             ),
           ],
-
           if (_participantCount > 0) ...[
-            const SizedBox(height: 12),
-            Text(
-              widget.myRank == null
-                  ? '現在 $_participantCount人が参加中'
-                  : '$_participantCount人中 ${widget.myRank}位',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade600,
-              ),
+            const SizedBox(height: 13),
+            Row(
+              children: [
+                const Icon(
+                  Icons.groups_2_outlined,
+                  size: 16,
+                  color: QuestUiTokens.mutedInk,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  widget.myRank == null
+                      ? '現在 $_participantCount人が参加中'
+                      : '$_participantCount人中 ${widget.myRank}位',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: QuestUiTokens.mutedInk,
+                  ),
+                ),
+              ],
             ),
           ],
         ],
@@ -310,59 +359,48 @@ class _RankingPageState extends State<RankingPage> {
 
   Widget _buildRankingContent() {
     if (_isLoading) {
-      return Container(
-        width: double.infinity,
-        padding:
-            const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius:
-              BorderRadius.circular(18),
-        ),
-        child: const Center(
-          child:
-              CircularProgressIndicator(),
+      return const QuestGlassCard(
+        padding: EdgeInsets.symmetric(vertical: 42),
+        child: Center(
+          child: CircularProgressIndicator(color: QuestUiTokens.primary),
         ),
       );
     }
 
     if (_errorMessage != null) {
-      return Container(
-        width: double.infinity,
-        padding:
-            const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.red.withValues(
-            alpha: 0.07,
-          ),
-          borderRadius:
-              BorderRadius.circular(18),
-        ),
+      return QuestGlassCard(
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const Icon(
-              Icons.cloud_off,
-              size: 32,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _errorMessage!,
-              textAlign:
-                  TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13,
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(17),
+              ),
+              child: const Icon(
+                Icons.cloud_off_rounded,
+                size: 27,
+                color: Colors.redAccent,
               ),
             ),
             const SizedBox(height: 12),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, color: QuestUiTokens.ink),
+            ),
+            const SizedBox(height: 14),
             OutlinedButton.icon(
-              onPressed:
-                  _refreshRanking,
-              icon: const Icon(
-                Icons.refresh,
-              ),
-              label:
-                  const Text(
-                '再読み込み',
+              onPressed: _refreshRanking,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('再読み込み'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: QuestUiTokens.primary,
+                side: BorderSide(
+                  color: QuestUiTokens.primary.withValues(alpha: 0.25),
+                ),
               ),
             ),
           ],
@@ -371,37 +409,32 @@ class _RankingPageState extends State<RankingPage> {
     }
 
     if (_ranking.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding:
-            const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius:
-              BorderRadius.circular(18),
-        ),
-        child: const Column(
+      return const QuestGlassCard(
+        padding: EdgeInsets.symmetric(horizontal: 22, vertical: 30),
+        child: Column(
           children: [
             Icon(
-              Icons
-                  .leaderboard_outlined,
-              size: 40,
-              color: Colors.grey,
+              Icons.leaderboard_outlined,
+              size: 42,
+              color: QuestUiTokens.mutedInk,
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 12),
             Text(
               'まだランキング参加者がいません。',
-              textAlign:
-                  TextAlign.center,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                color: QuestUiTokens.ink,
+              ),
             ),
-            SizedBox(height: 4),
+            SizedBox(height: 5),
             Text(
               '表示名を設定し、聖地を1つ以上獲得すると参加できます。',
-              textAlign:
-                  TextAlign.center,
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
+                fontSize: 11,
+                height: 1.45,
+                color: QuestUiTokens.mutedInk,
               ),
             ),
           ],
@@ -411,40 +444,33 @@ class _RankingPageState extends State<RankingPage> {
 
     return Column(
       children: [
-        for (final entry
-            in _ranking)
-          _buildRankingRow(
-            entry: entry,
-          ),
-
-        const SizedBox(height: 10),
-
+        for (final entry in _ranking) _buildRankingRow(entry: entry),
+        const SizedBox(height: 4),
         Container(
-          padding:
-              const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color:
-                Colors.deepPurple
-                    .withValues(
-              alpha: 0.07,
-            ),
-            borderRadius:
-                BorderRadius.circular(
-              18,
+            color: QuestUiTokens.primary.withValues(alpha: 0.055),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: QuestUiTokens.primary.withValues(alpha: 0.08),
             ),
           ),
           child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
-                Icons.info_outline,
-                size: 20,
+                Icons.info_outline_rounded,
+                size: 18,
+                color: QuestUiTokens.primary,
               ),
-              SizedBox(width: 10),
+              SizedBox(width: 9),
               Expanded(
                 child: Text(
                   '表示名を設定し、聖地を1つ以上獲得したユーザーのみランキングに表示されます。',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 11,
+                    height: 1.45,
+                    color: QuestUiTokens.mutedInk,
                   ),
                 ),
               ),
@@ -455,9 +481,7 @@ class _RankingPageState extends State<RankingPage> {
     );
   }
 
-  Widget _buildRankingRow({
-    required _RankingEntry entry,
-  }) {
+  Widget _buildRankingRow({required _RankingEntry entry}) {
     String rankLabel;
 
     if (entry.rank == 1) {
@@ -470,150 +494,106 @@ class _RankingPageState extends State<RankingPage> {
       rankLabel = '${entry.rank}';
     }
 
+    final isTopThree = entry.rank >= 1 && entry.rank <= 3;
+
     return Container(
-      margin:
-          const EdgeInsets.only(
-        bottom: 10,
-      ),
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 12,
-      ),
+      margin: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
       decoration: BoxDecoration(
-        color: entry.isMe
-            ? Colors.deepPurple
-                .withValues(
-                alpha: 0.10,
-              )
-            : Colors.white,
-        borderRadius:
-            BorderRadius.circular(18),
-        border: entry.isMe
-            ? Border.all(
-                color:
-                    Colors.deepPurple
-                        .withValues(
-                  alpha: 0.35,
-                ),
-                width: 1.5,
-              )
-            : null,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: entry.isMe
+              ? [
+                  QuestUiTokens.primary.withValues(alpha: 0.13),
+                  QuestUiTokens.cyan.withValues(alpha: 0.06),
+                ]
+              : [
+                  Colors.white.withValues(alpha: 0.82),
+                  Colors.white.withValues(alpha: 0.58),
+                ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: entry.isMe
+              ? QuestUiTokens.primary.withValues(alpha: 0.28)
+              : QuestUiTokens.primary.withValues(alpha: 0.06),
+          width: entry.isMe ? 1.3 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: QuestUiTokens.ink.withValues(alpha: 0.035),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 38,
+          Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: isTopThree
+                  ? Colors.amber.withValues(alpha: 0.10)
+                  : QuestUiTokens.primary.withValues(alpha: 0.055),
+              borderRadius: BorderRadius.circular(13),
+            ),
             child: Text(
               rankLabel,
-              textAlign:
-                  TextAlign.center,
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize:
-                    entry.rank <= 3
-                        ? 25
-                        : 17,
-                fontWeight:
-                    FontWeight.bold,
+                fontSize: isTopThree ? 23 : 15,
+                fontWeight: FontWeight.w900,
+                color: QuestUiTokens.ink,
               ),
             ),
           ),
-
           const SizedBox(width: 10),
-
-          ProfileAvatar(
-            avatarKey:
-                entry.avatarKey,
-            size: 44,
-            iconSize: 21,
-          ),
-
-          const SizedBox(width: 12),
-
+          ProfileAvatar(avatarKey: entry.avatarKey, size: 42, iconSize: 20),
+          const SizedBox(width: 11),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Flexible(
                       child: Text(
                         entry.displayName,
-                        overflow:
-                            TextOverflow
-                                .ellipsis,
-                        style:
-                            const TextStyle(
-                          fontWeight:
-                              FontWeight
-                                  .w600,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: QuestUiTokens.ink,
                         ),
                       ),
                     ),
-                    if (entry
-                        .isMe) ...[
-                      const SizedBox(
-                        width: 8,
-                      ),
-                      Container(
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration:
-                            BoxDecoration(
-                          color:
-                              Colors.deepPurple
-                                  .withValues(
-                            alpha:
-                                0.12,
-                          ),
-                          borderRadius:
-                              BorderRadius
-                                  .circular(
-                            10,
-                          ),
-                        ),
-                        child:
-                            const Text(
-                          'あなた',
-                          style:
-                              TextStyle(
-                            fontSize: 11,
-                            fontWeight:
-                                FontWeight
-                                    .bold,
-                          ),
-                        ),
-                      ),
+                    if (entry.isMe) ...[
+                      const SizedBox(width: 7),
+                      QuestStatusChip(label: 'あなた', icon: Icons.person_rounded),
                     ],
                   ],
                 ),
                 const SizedBox(height: 3),
                 Text(
                   '${entry.collectedCount}聖地獲得',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color:
-                        Colors.grey
-                            .shade600,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: QuestUiTokens.mutedInk,
                   ),
                 ),
               ],
             ),
           ),
-
-          const SizedBox(width: 8),
-
+          const SizedBox(width: 7),
           Text(
             '${entry.collectedCount}',
             style: const TextStyle(
-              fontWeight:
-                  FontWeight.bold,
+              fontWeight: FontWeight.w900,
               fontSize: 18,
+              color: QuestUiTokens.ink,
             ),
           ),
         ],
@@ -627,60 +607,55 @@ class _RankingPageState extends State<RankingPage> {
     required IconData icon,
   }) {
     return Padding(
-      padding:
-          const EdgeInsets.fromLTRB(
-        8,
-        12,
-        8,
-        18,
-      ),
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 16),
       child: Row(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              gradient:
-                  const LinearGradient(
-                colors: [
-                  Color(0xFF6A35C8),
-                  Color(0xFF8B5CF6),
-                ],
-              ),
-              borderRadius:
-                  BorderRadius.circular(
-                16,
-              ),
+              gradient: QuestUiTokens.primaryGradient,
+              borderRadius: BorderRadius.circular(17),
+              boxShadow: [
+                BoxShadow(
+                  color: QuestUiTokens.primary.withValues(alpha: 0.18),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 27,
-            ),
+            child: Icon(icon, color: Colors.white, size: 27),
           ),
-
           const SizedBox(width: 14),
-
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style:
-                      const TextStyle(
-                    fontSize: 25,
-                    fontWeight:
-                        FontWeight.bold,
+                const Text(
+                  'SEICHI QUEST',
+                  style: TextStyle(
+                    fontSize: 9,
+                    letterSpacing: 1.3,
+                    fontWeight: FontWeight.w900,
+                    color: QuestUiTokens.mutedInk,
                   ),
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    height: 1.05,
+                    fontWeight: FontWeight.w900,
+                    color: QuestUiTokens.ink,
+                  ),
+                ),
+                const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style:
-                      const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: QuestUiTokens.mutedInk,
                   ),
                 ),
               ],
@@ -709,33 +684,14 @@ class _RankingEntry {
     required this.isMe,
   });
 
-  factory _RankingEntry.fromMap(
-    Map<String, dynamic> map,
-  ) {
+  factory _RankingEntry.fromMap(Map<String, dynamic> map) {
     return _RankingEntry(
-      rank:
-          (map['rank'] as num?)
-                  ?.toInt() ??
-              0,
-      displayName:
-          map['display_name']
-                  ?.toString() ??
-              '',
-      avatarKey:
-          map['avatar_key']
-              ?.toString(),
-      collectedCount:
-          (map['collected_count']
-                      as num?)
-                  ?.toInt() ??
-              0,
-      participantCount:
-          (map['participant_count']
-                      as num?)
-                  ?.toInt() ??
-              0,
-      isMe:
-          map['is_me'] == true,
+      rank: (map['rank'] as num?)?.toInt() ?? 0,
+      displayName: map['display_name']?.toString() ?? '',
+      avatarKey: map['avatar_key']?.toString(),
+      collectedCount: (map['collected_count'] as num?)?.toInt() ?? 0,
+      participantCount: (map['participant_count'] as num?)?.toInt() ?? 0,
+      isMe: map['is_me'] == true,
     );
   }
 }

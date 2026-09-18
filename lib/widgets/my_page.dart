@@ -4,6 +4,7 @@ import '../models/achievement.dart';
 import '../services/achievement_service.dart';
 import '../services/level_service.dart';
 import 'profile_avatar.dart';
+import 'quest_ui.dart';
 
 class MyPage extends StatelessWidget {
   static const AchievementService _achievementService = AchievementService();
@@ -149,68 +150,114 @@ class MyPage extends StatelessWidget {
   }
 
   Widget _buildSettingsExpansion() {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
-      clipBehavior: Clip.antiAlias,
+    return QuestGlassCard(
+      padding: EdgeInsets.zero,
       child: Theme(
-        data: ThemeData(dividerColor: Colors.transparent),
+        data: ThemeData(
+          dividerColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+        ),
         child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 17, vertical: 5),
+          childrenPadding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
           leading: Container(
-            width: 42,
-            height: 42,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: Colors.deepPurple.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
+              gradient: QuestUiTokens.primaryGradient,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: QuestUiTokens.primary.withValues(alpha: 0.16),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
-            child: const Icon(Icons.tune, color: Colors.deepPurple),
+            child: const Icon(
+              Icons.tune_rounded,
+              color: Colors.white,
+              size: 21,
+            ),
           ),
-          title: const Text(
-            '設定・管理',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+          title: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'SETTINGS',
+                style: TextStyle(
+                  fontSize: 9,
+                  letterSpacing: 1.15,
+                  fontWeight: FontWeight.w900,
+                  color: QuestUiTokens.mutedInk,
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                '設定・管理',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: QuestUiTokens.ink,
+                ),
+              ),
+            ],
           ),
-          subtitle: Text(
-            'プロフィール・通知・アプリ設定など',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          subtitle: const Padding(
+            padding: EdgeInsets.only(top: 3),
+            child: Text(
+              'プロフィール・通知・アプリ設定など',
+              style: TextStyle(fontSize: 11, color: QuestUiTokens.mutedInk),
+            ),
           ),
+          iconColor: QuestUiTokens.primary,
+          collapsedIconColor: QuestUiTokens.mutedInk,
+          shape: const Border(),
+          collapsedShape: const Border(),
           children: [
+            const SizedBox(height: 2),
             _buildSettingsTile(
-              icon: Icons.person_outline,
+              icon: Icons.person_outline_rounded,
               title: 'プロフィール',
               subtitle: 'ユーザー情報を設定',
               onTap: onShowProfile,
+              compact: true,
             ),
             _buildSettingsTile(
               icon: Icons.manage_accounts_outlined,
               title: 'アカウント',
               subtitle: 'データを引き継ぐ',
               onTap: onShowAccount,
+              compact: true,
             ),
             _buildSettingsTile(
-              icon: Icons.notifications_none,
+              icon: Icons.notifications_none_rounded,
               title: '通知設定',
               subtitle: 'お知らせ・到達通知',
               onTap: onShowNotifications,
+              compact: true,
             ),
             _buildSettingsTile(
               icon: Icons.cloud_sync_outlined,
               title: '同期状態',
               subtitle: '保留中の訪問データを確認',
               onTap: onShowSyncStatus,
+              compact: true,
             ),
             _buildSettingsTile(
               icon: Icons.settings_outlined,
               title: 'アプリ設定',
               subtitle: '各種設定',
               onTap: onShowSettings,
+              compact: true,
             ),
             _buildSettingsTile(
-              icon: Icons.info_outline,
+              icon: Icons.info_outline_rounded,
               title: '聖地クエストについて',
               subtitle: 'アプリ情報',
               onTap: onShowAbout,
+              compact: true,
             ),
           ],
         ),
@@ -221,21 +268,37 @@ class MyPage extends StatelessWidget {
   Widget _buildProfileHeader(int progress) {
     final level = levelProgress;
 
-    return Container(
-      width: double.infinity,
+    return QuestGlassCard(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-      ),
       child: Column(
         children: [
           Row(
             children: [
-              ProfileAvatar(
-                avatarKey: avatarKey,
-                size: 72,
-                iconSize: 38,
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: QuestUiTokens.primaryGradient,
+                  boxShadow: [
+                    BoxShadow(
+                      color: QuestUiTokens.primary.withValues(alpha: 0.18),
+                      blurRadius: 18,
+                      offset: const Offset(0, 7),
+                    ),
+                  ],
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: ProfileAvatar(
+                    avatarKey: avatarKey,
+                    size: 66,
+                    iconSize: 35,
+                  ),
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -244,38 +307,57 @@ class MyPage extends StatelessWidget {
                   children: [
                     Text(
                       displayName ?? 'ゲストユーザー',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 21,
-                        fontWeight: FontWeight.bold,
+                        height: 1.1,
+                        fontWeight: FontWeight.w800,
+                        color: QuestUiTokens.ink,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '聖地クエスト冒険者',
+                    const SizedBox(height: 5),
+                    const Text(
+                      'SEICHI QUEST ADVENTURER',
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        fontSize: 9,
+                        letterSpacing: 1.3,
+                        fontWeight: FontWeight.w800,
+                        color: QuestUiTokens.mutedInk,
                       ),
                     ),
                     if (myRank != null) ...[
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       InkWell(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(999),
                         onTap: onShowRanking,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: 0.11),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: Colors.amber.withValues(alpha: 0.24),
+                            ),
+                          ),
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               const Icon(
-                                Icons.leaderboard,
-                                size: 16,
+                                Icons.leaderboard_rounded,
+                                size: 14,
                                 color: Colors.amber,
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                'ランキング $myRank位',
+                                'RANK  $myRank位',
                                 style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: QuestUiTokens.ink,
                                 ),
                               ),
                             ],
@@ -286,140 +368,202 @@ class MyPage extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: QuestUiTokens.mutedInk,
+              ),
             ],
           ),
-
           if (level != null) ...[
-            const SizedBox(height: 18),
-
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+              decoration: BoxDecoration(
+                color: QuestUiTokens.primary.withValues(alpha: 0.055),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: QuestUiTokens.primary.withValues(alpha: 0.10),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: QuestUiTokens.primaryGradient,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'Lv.${level.level}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'EXPERIENCE',
+                        style: TextStyle(
+                          fontSize: 9,
+                          letterSpacing: 1.1,
+                          fontWeight: FontWeight.w800,
+                          color: QuestUiTokens.mutedInk,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${level.totalXp} XP',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: QuestUiTokens.ink,
+                        ),
+                      ),
+                    ],
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    'Lv.${level.level}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
+                  const SizedBox(height: 11),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: level.progress,
+                      minHeight: 8,
+                      backgroundColor: QuestUiTokens.primary.withValues(
+                        alpha: 0.09,
+                      ),
                     ),
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  '${level.totalXp} XP',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade700,
+                  const SizedBox(height: 7),
+                  Row(
+                    children: [
+                      Text(
+                        '${level.xpIntoLevel} / '
+                        '${level.xpNeededForNextLevel} XP',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: QuestUiTokens.mutedInk,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'NEXT  '
+                        '${level.xpNeededForNextLevel - level.xpIntoLevel} XP',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: QuestUiTokens.mutedInk,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 10),
-
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: level.progress,
-                minHeight: 9,
-                backgroundColor: Colors.grey.shade200,
+                ],
               ),
-            ),
-
-            const SizedBox(height: 7),
-
-            Row(
-              children: [
-                Text(
-                  '${level.xpIntoLevel} / '
-                  '${level.xpNeededForNextLevel} XP',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '次のLvまで '
-                  '${level.xpNeededForNextLevel - level.xpIntoLevel} XP',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
             ),
           ],
-
-          const SizedBox(height: 20),
-
-          Row(
-            children: [
-              Expanded(
-                child: _buildCompactStat(
-                  value: '$count',
-                  label: '獲得',
-                ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.46),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(
+                color: QuestUiTokens.primary.withValues(alpha: 0.07),
               ),
-              _buildStatDivider(),
-              Expanded(
-                child: _buildCompactStat(
-                  value: '$total',
-                  label: '登録',
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildCompactStat(value: '$count', label: '獲得'),
                 ),
-              ),
-              _buildStatDivider(),
-              Expanded(
-                child: _buildCompactStat(
-                  value: '$progress%',
-                  label: '達成率',
+                _buildStatDivider(),
+                Expanded(
+                  child: _buildCompactStat(value: '$total', label: '登録'),
                 ),
-              ),
-            ],
+                _buildStatDivider(),
+                Expanded(
+                  child: _buildCompactStat(value: '$progress%', label: '達成率'),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
+
   Widget _buildCompactStat({required String value, required String label}) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           value,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontSize: 20,
+            height: 1,
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.ink,
+          ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 5),
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          style: const TextStyle(
+            fontSize: 10,
+            letterSpacing: 0.5,
+            fontWeight: FontWeight.w700,
+            color: QuestUiTokens.mutedInk,
+          ),
         ),
       ],
     );
   }
 
   Widget _buildStatDivider() {
-    return Container(width: 1, height: 30, color: Colors.grey.shade200);
+    return Container(
+      width: 1,
+      height: 30,
+      color: QuestUiTokens.primary.withValues(alpha: 0.10),
+    );
   }
 
   Widget _buildSectionTitle(String title, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 3),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.deepPurple),
-          const SizedBox(width: 7),
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: QuestUiTokens.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 16, color: QuestUiTokens.primary),
+          ),
+          const SizedBox(width: 9),
           Text(
             title,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: QuestUiTokens.ink,
+            ),
+          ),
+          const Spacer(),
+          Container(
+            width: 26,
+            height: 2,
+            decoration: BoxDecoration(
+              gradient: QuestUiTokens.primaryGradient,
+              borderRadius: BorderRadius.circular(999),
+            ),
           ),
         ],
       ),
@@ -428,33 +572,31 @@ class MyPage extends StatelessWidget {
 
   Widget _buildNextDestinationCard() {
     final destinationName = nextDestinationName?.trim();
-
     final hasDestination =
         destinationName != null && destinationName.isNotEmpty;
 
     if (!hasDestination) {
       final isComplete = total > 0 && count >= total;
 
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-        ),
+      return QuestGlassCard(
+        padding: const EdgeInsets.all(17),
         child: Row(
           children: [
             Container(
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: (isComplete ? Colors.amber : Colors.deepPurple)
+                color: (isComplete ? Colors.amber : QuestUiTokens.primary)
                     .withValues(alpha: 0.10),
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(15),
               ),
               child: Icon(
-                isComplete ? Icons.emoji_events : Icons.explore_outlined,
-                color: isComplete ? Colors.amber.shade700 : Colors.deepPurple,
+                isComplete
+                    ? Icons.emoji_events_rounded
+                    : Icons.explore_outlined,
+                color: isComplete
+                    ? Colors.amber.shade700
+                    : QuestUiTokens.primary,
               ),
             ),
             const SizedBox(width: 14),
@@ -462,17 +604,31 @@ class MyPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    isComplete ? 'このクエストを完全制覇！' : '次の目的地を準備中',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  const Text(
+                    'NEXT DESTINATION',
+                    style: TextStyle(
+                      fontSize: 9,
+                      letterSpacing: 1.25,
+                      fontWeight: FontWeight.w900,
+                      color: QuestUiTokens.mutedInk,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
+                    isComplete ? 'このクエストを完全制覇！' : '次の目的地を準備中',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: QuestUiTokens.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
                     isComplete ? 'すべての聖地を獲得しました' : '位置情報を取得すると候補が表示されます',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: QuestUiTokens.mutedInk,
+                    ),
                   ),
                 ],
               ),
@@ -493,88 +649,106 @@ class MyPage extends StatelessWidget {
     }
 
     final card = nextDestinationCard?.trim();
-
     final icon = nextDestinationIcon?.trim();
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         onTap: onShowNextDestination,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  icon == null || icon.isEmpty ? '📍' : icon,
-                  style: const TextStyle(fontSize: 25),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '次の目的地',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      card == null || card.isEmpty
-                          ? destinationName
-                          : '$card $destinationName',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (distanceText != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        distanceText,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.deepPurple,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.map_outlined, color: Colors.deepPurple),
-                  const SizedBox(height: 2),
-                  Text(
-                    '地図',
-                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-                  ),
+        child: QuestGlassCard(
+          padding: EdgeInsets.zero,
+          child: Container(
+            padding: const EdgeInsets.all(17),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  QuestUiTokens.primary.withValues(alpha: 0.08),
+                  Colors.white.withValues(alpha: 0.20),
                 ],
               ),
-            ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    gradient: QuestUiTokens.primaryGradient,
+                    borderRadius: BorderRadius.circular(17),
+                    boxShadow: [
+                      BoxShadow(
+                        color: QuestUiTokens.primary.withValues(alpha: 0.20),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    icon == null || icon.isEmpty ? '📍' : icon,
+                    style: const TextStyle(fontSize: 26),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'NEXT DESTINATION',
+                        style: TextStyle(
+                          fontSize: 9,
+                          letterSpacing: 1.25,
+                          fontWeight: FontWeight.w900,
+                          color: QuestUiTokens.mutedInk,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        card == null || card.isEmpty
+                            ? destinationName
+                            : '$card  $destinationName',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: QuestUiTokens.ink,
+                        ),
+                      ),
+                      if (distanceText != null) ...[
+                        const SizedBox(height: 5),
+                        QuestStatusChip(
+                          label: distanceText,
+                          icon: Icons.near_me_rounded,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.72),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: QuestUiTokens.primary.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.map_outlined,
+                    size: 20,
+                    color: QuestUiTokens.primary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -592,84 +766,138 @@ class MyPage extends StatelessWidget {
       count,
     );
 
-    return Container(
-      width: double.infinity,
+    return QuestGlassCard(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
+                  gradient: QuestUiTokens.primaryGradient,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: QuestUiTokens.primary.withValues(alpha: 0.16),
+                      blurRadius: 14,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
                 child: const Icon(
                   Icons.emoji_events_outlined,
-                  color: Colors.deepPurple,
+                  color: Colors.white,
+                  size: 22,
                 ),
               ),
               const SizedBox(width: 12),
               const Expanded(
-                child: Text(
-                  '実績',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ACHIEVEMENTS',
+                      style: TextStyle(
+                        fontSize: 9,
+                        letterSpacing: 1.15,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.mutedInk,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      '実績',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.ink,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                '${unlocked.length}/${eventAchievements.length}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
-                ),
+              QuestStatusChip(
+                label: '${unlocked.length}/${eventAchievements.length}',
+                icon: Icons.check_circle_outline_rounded,
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: QuestUiTokens.mutedInk,
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 15),
           if (eventAchievements.isEmpty) ...[
-            Text(
+            const Text(
               'このクエストには実績がありません。',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 12, color: QuestUiTokens.mutedInk),
             ),
           ] else if (next == null) ...[
-            const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.green),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'すべての実績を達成しました！',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    size: 20,
+                    color: Colors.green,
                   ),
-                ),
-              ],
+                  SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      'すべての実績を達成しました！',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: QuestUiTokens.ink,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ] else ...[
             Row(
               children: [
-                Text(next.icon, style: const TextStyle(fontSize: 28)),
-                const SizedBox(width: 10),
+                Container(
+                  width: 42,
+                  height: 42,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: QuestUiTokens.primary.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Text(next.icon, style: const TextStyle(fontSize: 23)),
+                ),
+                const SizedBox(width: 11),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        '次の実績',
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                        'NEXT ACHIEVEMENT',
+                        style: TextStyle(
+                          fontSize: 9,
+                          letterSpacing: 0.9,
+                          fontWeight: FontWeight.w800,
+                          color: QuestUiTokens.mutedInk,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         next.title,
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: QuestUiTokens.ink,
                         ),
                       ),
                     ],
@@ -677,22 +905,30 @@ class MyPage extends StatelessWidget {
                 ),
                 Text(
                   '${count.clamp(0, next.requiredCount)}/${next.requiredCount}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: QuestUiTokens.primary,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 11),
             ClipRRect(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(999),
               child: LinearProgressIndicator(
                 value: _achievementService.getProgress(next, count),
                 minHeight: 7,
+                backgroundColor: QuestUiTokens.primary.withValues(alpha: 0.08),
               ),
             ),
             const SizedBox(height: 8),
             Text(
               next.description,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: const TextStyle(
+                fontSize: 11,
+                color: QuestUiTokens.mutedInk,
+              ),
             ),
           ],
         ],
@@ -718,23 +954,23 @@ class MyPage extends StatelessWidget {
       statusText = '順位を取得できませんでした';
     }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
+    return QuestGlassCard(
+      padding: const EdgeInsets.all(17),
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
+              color: Colors.amber.withValues(alpha: 0.11),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.20)),
             ),
-            child: const Icon(Icons.leaderboard, color: Colors.amber),
+            child: const Icon(
+              Icons.leaderboard_rounded,
+              color: Colors.amber,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -742,24 +978,48 @@ class MyPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
+                  'RANKING',
+                  style: TextStyle(
+                    fontSize: 9,
+                    letterSpacing: 1.15,
+                    fontWeight: FontWeight.w900,
+                    color: QuestUiTokens.mutedInk,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
                   'ランキング',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: QuestUiTokens.ink,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   statusText,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: QuestUiTokens.mutedInk,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Text(
             rankLabel,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: QuestUiTokens.ink,
+            ),
           ),
-          const SizedBox(width: 4),
-          const Icon(Icons.chevron_right, color: Colors.grey),
+          const SizedBox(width: 3),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: QuestUiTokens.mutedInk,
+          ),
         ],
       ),
     );
@@ -770,37 +1030,112 @@ class MyPage extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    bool compact = false,
   }) {
+    final radius = compact ? 14.0 : 18.0;
+    final iconSize = compact ? 38.0 : 44.0;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: EdgeInsets.only(bottom: compact ? 7 : 9),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: compact ? 0.58 : 0.82),
+            QuestUiTokens.primary.withValues(alpha: compact ? 0.025 : 0.045),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(
+          color: QuestUiTokens.primary.withValues(alpha: compact ? 0.07 : 0.09),
+        ),
+        boxShadow: compact
+            ? null
+            : [
+                BoxShadow(
+                  color: QuestUiTokens.ink.withValues(alpha: 0.035),
+                  blurRadius: 12,
+                  offset: const Offset(0, 5),
+                ),
+              ],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 4,
-          ),
-          leading: Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: Colors.deepPurple.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: Colors.deepPurple),
-          ),
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-          trailing: const Icon(Icons.chevron_right),
+        borderRadius: BorderRadius.circular(radius),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(radius),
           onTap: onTap,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 12 : 14,
+              vertical: compact ? 9 : 12,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: iconSize,
+                  height: iconSize,
+                  decoration: BoxDecoration(
+                    color: QuestUiTokens.primary.withValues(
+                      alpha: compact ? 0.065 : 0.085,
+                    ),
+                    borderRadius: BorderRadius.circular(compact ? 12 : 14),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: compact ? 19 : 21,
+                    color: QuestUiTokens.primary,
+                  ),
+                ),
+                SizedBox(width: compact ? 11 : 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: compact ? 13 : 14,
+                          fontWeight: compact
+                              ? FontWeight.w700
+                              : FontWeight.w800,
+                          color: QuestUiTokens.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        maxLines: compact ? 1 : 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: compact ? 10 : 11,
+                          height: 1.25,
+                          color: QuestUiTokens.mutedInk,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: compact ? 27 : 30,
+                  height: compact ? 27 : 30,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.62),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    size: compact ? 18 : 20,
+                    color: QuestUiTokens.mutedInk,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

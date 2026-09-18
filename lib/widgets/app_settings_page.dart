@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'quest_ui.dart';
+
 class AppSettingsPage extends StatefulWidget {
   const AppSettingsPage({
     super.key,
@@ -75,164 +77,322 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('アプリ設定')),
+      backgroundColor: const Color(0xFFF6F8FC),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'アプリ設定',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.ink,
+          ),
+        ),
+      ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildSectionTitle('聖地クエスト'),
-                _buildSwitchTile(
-                  icon: Icons.auto_awesome,
-                  title: 'スタンプ獲得演出',
-                  subtitle: '聖地を獲得したときの演出を表示します',
-                  value: _stampEffect,
-                  onChanged: _setStampEffect,
+          ? const SafeArea(
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: QuestUiTokens.primary,
+                  strokeWidth: 2.5,
                 ),
-                _buildSwitchTile(
-                  icon: Icons.navigation,
-                  title: '次の目的地を自動設定',
-                  subtitle: '聖地を獲得したあと、次の未獲得聖地を目的地にします',
-                  value: _autoNextDestination,
-                  onChanged: _setAutoNextDestination,
-                ),
-                const SizedBox(height: 24),
-                _buildSectionTitle('データ'),
-                _buildResetHistoryTile(),
-                const SizedBox(height: 24),
-                if (kDebugMode) ...[
-                  _buildSectionTitle('開発用'),
-                  _buildQuestCompleteTestTile(),
-                  _buildRecommendedRouteNextTestTile(),
-                  const SizedBox(height: 24),
+              ),
+            )
+          : SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
+                children: [
+                  QuestGlassCard(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 54,
+                          height: 54,
+                          decoration: BoxDecoration(
+                            gradient: QuestUiTokens.primaryGradient,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: [
+                              BoxShadow(
+                                color: QuestUiTokens.primary.withValues(
+                                  alpha: 0.16,
+                                ),
+                                blurRadius: 20,
+                                offset: const Offset(0, 7),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.tune_rounded,
+                            color: Colors.white,
+                            size: 27,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'QUEST SETTINGS',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  letterSpacing: 1.4,
+                                  fontWeight: FontWeight.w900,
+                                  color: QuestUiTokens.mutedInk,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                '冒険スタイルを調整',
+                                style: TextStyle(
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w900,
+                                  color: QuestUiTokens.ink,
+                                ),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                '演出や目的地設定を、自分好みにカスタマイズできます',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  height: 1.4,
+                                  color: QuestUiTokens.mutedInk,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  _buildSectionTitle('聖地クエスト'),
+                  _buildSwitchTile(
+                    icon: Icons.auto_awesome,
+                    title: 'スタンプ獲得演出',
+                    subtitle: '聖地を獲得したときの演出を表示します',
+                    value: _stampEffect,
+                    onChanged: _setStampEffect,
+                  ),
+                  _buildSwitchTile(
+                    icon: Icons.navigation_rounded,
+                    title: '次の目的地を自動設定',
+                    subtitle: '聖地を獲得したあと、次の未獲得聖地を目的地にします',
+                    value: _autoNextDestination,
+                    onChanged: _setAutoNextDestination,
+                  ),
+                  const SizedBox(height: 14),
+                  _buildSectionTitle('データ'),
+                  _buildResetHistoryTile(),
+                  if (kDebugMode) ...[
+                    const SizedBox(height: 14),
+                    _buildSectionTitle('開発用'),
+                    _buildQuestCompleteTestTile(),
+                    _buildRecommendedRouteNextTestTile(),
+                  ],
+                  const SizedBox(height: 14),
+                  _buildSectionTitle('情報'),
+                  _buildInfoTile(
+                    icon: Icons.info_outline_rounded,
+                    title: 'アプリバージョン',
+                    value: '1.0.0',
+                  ),
                 ],
-                _buildSectionTitle('情報'),
-                _buildInfoTile(
-                  icon: Icons.info_outline,
-                  title: 'アプリバージョン',
-                  value: '1.0.0',
-                ),
-              ],
+              ),
             ),
     );
   }
 
   Widget _buildQuestCompleteTestTile() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 6,
-          ),
-          leading: Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: Colors.deepPurple.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: QuestGlassCard(
+        padding: EdgeInsets.zero,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(QuestUiTokens.cardRadius),
+            onTap: () async {
+              await widget.onTestQuestComplete();
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: QuestUiTokens.primaryGradient,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.emoji_events_outlined,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'QUEST COMPLETE演出をテスト',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: QuestUiTokens.ink,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          '獲得履歴を変更せず、完全制覇時の演出だけを表示します',
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.4,
+                            color: QuestUiTokens.mutedInk,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Icon(
+                    Icons.play_arrow_rounded,
+                    color: QuestUiTokens.primary,
+                  ),
+                ],
+              ),
             ),
-            child: const Icon(
-              Icons.emoji_events_outlined,
-              color: Colors.deepPurple,
-            ),
           ),
-          title: const Text(
-            'QUEST COMPLETE演出をテスト',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          subtitle: const Text(
-            '獲得履歴を変更せず、完全制覇時の演出だけを表示します',
-            style: TextStyle(fontSize: 12),
-          ),
-          trailing: const Icon(Icons.play_arrow_rounded),
-          onTap: () async {
-            await widget.onTestQuestComplete();
-          },
         ),
       ),
     );
   }
 
   Widget _buildRecommendedRouteNextTestTile() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 6,
-          ),
-          leading: Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: Colors.deepPurple.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: QuestGlassCard(
+        padding: EdgeInsets.zero,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(QuestUiTokens.cardRadius),
+            onTap: () async {
+              await widget.onTestRecommendedRouteNext();
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: QuestUiTokens.cyanGradient,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.route_rounded, color: Colors.white),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '巡回ルートのNEXT進行をテスト',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: QuestUiTokens.ink,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          '獲得履歴を変更せず、巡回ルートのNEXTだけを1地点進めます',
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.4,
+                            color: QuestUiTokens.mutedInk,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Icon(
+                    Icons.skip_next_rounded,
+                    color: QuestUiTokens.cyan,
+                  ),
+                ],
+              ),
             ),
-            child: const Icon(Icons.route_rounded, color: Colors.deepPurple),
           ),
-          title: const Text(
-            '巡回ルートのNEXT進行をテスト',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          subtitle: const Text(
-            '獲得履歴を変更せず、巡回ルートのNEXTだけを1地点進めます',
-            style: TextStyle(fontSize: 12),
-          ),
-          trailing: const Icon(Icons.skip_next_rounded),
-          onTap: () async {
-            await widget.onTestRecommendedRouteNext();
-          },
         ),
       ),
     );
   }
 
   Widget _buildResetHistoryTile() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
+    return QuestGlassCard(
+      padding: EdgeInsets.zero,
       child: Material(
         color: Colors.transparent,
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 6,
-          ),
-          leading: Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.delete_outline, color: Colors.red),
-          ),
-          title: const Text(
-            '獲得履歴をリセット',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          subtitle: const Text(
-            '現在のイベントで獲得した聖地をすべて未獲得に戻します',
-            style: TextStyle(fontSize: 12),
-          ),
-          trailing: const Icon(Icons.chevron_right),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(QuestUiTokens.cardRadius),
           onTap: _confirmResetEventCollectionHistory,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: Colors.redAccent,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '獲得履歴をリセット',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: QuestUiTokens.ink,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        '現在のイベントで獲得した聖地をすべて未獲得に戻します',
+                        style: TextStyle(
+                          fontSize: 11,
+                          height: 1.4,
+                          color: QuestUiTokens.mutedInk,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: QuestUiTokens.mutedInk,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -287,14 +447,28 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey.shade700,
-        ),
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 9),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 16,
+            decoration: BoxDecoration(
+              gradient: QuestUiTokens.primaryGradient,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(width: 9),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              letterSpacing: 0.2,
+              fontWeight: FontWeight.w900,
+              color: QuestUiTokens.ink,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -306,36 +480,55 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Material(
-        color: Colors.transparent,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: QuestGlassCard(
+        padding: EdgeInsets.zero,
         child: SwitchListTile(
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 4,
+            horizontal: 16,
+            vertical: 5,
           ),
           secondary: Container(
-            width: 42,
-            height: 42,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: Colors.deepPurple.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
+              gradient: value ? QuestUiTokens.primaryGradient : null,
+              color: value
+                  ? null
+                  : QuestUiTokens.primary.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(icon, color: Colors.deepPurple),
+            child: Icon(
+              icon,
+              color: value ? Colors.white : QuestUiTokens.primary,
+            ),
           ),
           title: Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: QuestUiTokens.ink,
+            ),
           ),
-          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 3),
+            child: Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 11,
+                height: 1.4,
+                color: QuestUiTokens.mutedInk,
+              ),
+            ),
+          ),
           value: value,
           onChanged: onChanged,
-          activeThumbColor: Colors.deepPurple,
+          activeThumbColor: Colors.white,
+          activeTrackColor: QuestUiTokens.primary,
+          inactiveThumbColor: Colors.white,
+          inactiveTrackColor: QuestUiTokens.mutedInk.withValues(alpha: 0.22),
         ),
       ),
     );
@@ -346,22 +539,36 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
     required String title,
     required String value,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 4,
+    return QuestGlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: QuestUiTokens.cyan.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Icon(icon, color: QuestUiTokens.cyan),
           ),
-          leading: Icon(icon, color: Colors.deepPurple),
-          title: Text(title),
-          trailing: Text(value, style: TextStyle(color: Colors.grey.shade600)),
-        ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: QuestUiTokens.ink,
+              ),
+            ),
+          ),
+          QuestStatusChip(
+            label: value,
+            icon: Icons.apps_rounded,
+            accentColor: QuestUiTokens.cyan,
+          ),
+        ],
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../models/event.dart';
 import '../models/seichi.dart';
+import 'quest_ui.dart';
 
 class EventDetailPage extends StatefulWidget {
   const EventDetailPage({
@@ -502,8 +503,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF6F8FC),
       builder: (sheetContext) {
+        final collected = _collectedSeichiIds.contains(seichi.id);
+        final isNext = widget.currentNextSeichiId == seichi.id;
+
         return SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
@@ -514,154 +518,156 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   _buildLargeCardImage(seichi)
                 else
                   _buildCardFallback(seichi),
-                const SizedBox(height: 20),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurple.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(13),
-                      ),
-                      child: Text(
-                        seichi.card,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.deepPurple,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
+                const SizedBox(height: 18),
+                QuestGlassCard(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            seichi.name,
-                            style: const TextStyle(
-                              fontSize: 21,
-                              fontWeight: FontWeight.bold,
+                          Container(
+                            width: 48,
+                            height: 48,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              gradient: QuestUiTokens.primaryGradient,
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Text(
+                              seichi.card,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
-                          if (seichi.reading.trim().isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              seichi.reading,
-                              style: TextStyle(color: Colors.grey.shade600),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'SPOT DETAIL',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    letterSpacing: 1.2,
+                                    fontWeight: FontWeight.w900,
+                                    color: QuestUiTokens.mutedInk,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  seichi.name,
+                                  style: const TextStyle(
+                                    fontSize: 21,
+                                    fontWeight: FontWeight.w900,
+                                    color: QuestUiTokens.ink,
+                                  ),
+                                ),
+                                if (seichi.reading.trim().isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    seichi.reading,
+                                    style: const TextStyle(
+                                      color: QuestUiTokens.mutedInk,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
-                          ],
+                          ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-                if (seichi.description.trim().isNotEmpty) ...[
-                  const SizedBox(height: 18),
-                  Text(
-                    seichi.description,
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.65,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 18),
-                if (_collectedSeichiIds.contains(seichi.id)) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.check_circle, size: 17, color: Colors.green),
-                        SizedBox(width: 6),
-                        Text(
-                          '獲得済み',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
+                      if (seichi.description.trim().isNotEmpty) ...[
+                        const SizedBox(height: 17),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: QuestUiTokens.primary.withValues(
+                              alpha: 0.035,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            seichi.description,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              height: 1.65,
+                              color: QuestUiTokens.mutedInk,
+                            ),
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                ],
-
-                Row(
-                  children: [
-                    Icon(
-                      Icons.place_outlined,
-                      size: 18,
-                      color: Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 7),
-                    Expanded(
-                      child: Text(
-                        '獲得範囲 '
-                        '${seichi.stampRadiusMeters}m',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                        ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (collected)
+                            const QuestStatusChip(
+                              label: '獲得済み',
+                              icon: Icons.check_circle,
+                              accentColor: Colors.green,
+                            ),
+                          if (isNext && !collected)
+                            const QuestStatusChip(
+                              label: 'NEXT',
+                              icon: Icons.navigation_rounded,
+                            ),
+                          QuestStatusChip(
+                            label: '獲得範囲 ${seichi.stampRadiusMeters}m',
+                            icon: Icons.place_outlined,
+                            accentColor: QuestUiTokens.cyan,
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-
                 if (widget.onShowOnMap != null) ...[
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 14),
                   SizedBox(
                     width: double.infinity,
-                    height: 50,
                     child: OutlinedButton.icon(
                       onPressed: () {
                         Navigator.of(sheetContext).pop();
-
                         widget.onShowOnMap!(seichi);
                       },
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(50),
+                        foregroundColor: QuestUiTokens.primary,
+                        side: BorderSide(
+                          color: QuestUiTokens.primary.withValues(alpha: 0.20),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            QuestUiTokens.controlRadius,
+                          ),
+                        ),
+                      ),
                       icon: const Icon(Icons.map_outlined),
-                      label: const Text('この地点を地図で見る'),
+                      label: const Text(
+                        'この地点を地図で見る',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
                     ),
                   ),
                 ],
-
-                if (widget.onSetNextDestination != null &&
-                    !_collectedSeichiIds.contains(seichi.id)) ...[
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: FilledButton.icon(
-                      onPressed: widget.currentNextSeichiId == seichi.id
-                          ? null
-                          : () {
-                              widget.onSetNextDestination!(seichi);
-
-                              Navigator.of(sheetContext).pop();
-                            },
-                      icon: Icon(
-                        widget.currentNextSeichiId == seichi.id
-                            ? Icons.flag
-                            : Icons.navigation_outlined,
-                      ),
-                      label: Text(
-                        widget.currentNextSeichiId == seichi.id
-                            ? '次の目的地に設定済み'
-                            : '次の目的地に設定',
-                      ),
-                    ),
+                if (widget.onSetNextDestination != null && !collected) ...[
+                  const SizedBox(height: 10),
+                  QuestPrimaryButton(
+                    label: isNext ? '次の目的地に設定済み' : '次の目的地に設定',
+                    icon: isNext ? Icons.flag : Icons.navigation_outlined,
+                    onPressed: isNext
+                        ? null
+                        : () {
+                            widget.onSetNextDestination!(seichi);
+                            Navigator.of(sheetContext).pop();
+                          },
                   ),
                 ],
               ],
@@ -683,9 +689,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
       width: double.infinity,
       constraints: const BoxConstraints(maxHeight: 420),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: QuestUiTokens.ink.withValues(alpha: 0.07)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Image.network(
@@ -700,7 +706,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
           return const SizedBox(
             height: 260,
-            child: Center(child: CircularProgressIndicator()),
+            child: Center(
+              child: CircularProgressIndicator(color: QuestUiTokens.primary),
+            ),
           );
         },
         errorBuilder: (context, error, stackTrace) {
@@ -738,26 +746,39 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Widget _buildSocialStatsCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
+    return QuestGlassCard(
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'クエスト情報',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          const Row(
+            children: [
+              Icon(
+                Icons.groups_2_rounded,
+                size: 20,
+                color: QuestUiTokens.primary,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'クエスト情報',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: QuestUiTokens.ink,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-
+          const SizedBox(height: 15),
           if (_isLoadingSocialStats)
             const SizedBox(
               height: 54,
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: QuestUiTokens.primary,
+                ),
+              ),
             )
           else
             Row(
@@ -769,7 +790,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     value: _participantCount == null
                         ? '−'
                         : '${_participantCount!}人',
-                    color: Colors.blue,
+                    color: QuestUiTokens.cyan,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -778,7 +799,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     icon: _isFavorited ? Icons.favorite : Icons.favorite_border,
                     label: 'お気に入り',
                     value: _favoriteCount == null ? '−' : '${_favoriteCount!}件',
-                    color: _isFavorited ? Colors.pink : Colors.deepPurple,
+                    color: _isFavorited ? Colors.pink : QuestUiTokens.primary,
                     onTap: _isFavoriteUpdating ? null : _toggleFavorite,
                     isLoading: _isFavoriteUpdating,
                   ),
@@ -803,11 +824,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        child: Container(
+        child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.06),
+            color: color.withValues(alpha: 0.055),
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.10)),
           ),
           child: Row(
             children: [
@@ -816,7 +838,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 height: 38,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.10),
+                  color: color.withValues(alpha: 0.11),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: isLoading
@@ -841,16 +863,17 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 17,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.ink,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       label,
                       maxLines: 1,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 11,
-                        color: Colors.grey.shade600,
+                        color: QuestUiTokens.mutedInk,
                       ),
                     ),
                   ],
@@ -871,7 +894,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
     }
 
     final distance = _distanceFromCurrentPosition(seichi);
-
     final isNext = widget.currentNextSeichiId == seichi.id;
 
     String? distanceText;
@@ -882,36 +904,24 @@ class _EventDetailPageState extends State<EventDetailPage> {
           : '${(distance / 1000).toStringAsFixed(1)}km';
     }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isNext
-              ? Colors.deepPurple.withValues(alpha: 0.35)
-              : Colors.grey.shade200,
-          width: isNext ? 1.5 : 1,
-        ),
-      ),
+    return QuestGlassCard(
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: QuestUiTokens.primaryGradient,
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
-                  Icons.near_me_outlined,
-                  color: Colors.deepPurple,
-                  size: 21,
+                  Icons.near_me_rounded,
+                  color: Colors.white,
+                  size: 22,
                 ),
               ),
               const SizedBox(width: 12),
@@ -920,103 +930,110 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '最寄りの未獲得地点',
+                      'NEXT SPOT',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 9,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.mutedInk,
                       ),
                     ),
                     SizedBox(height: 2),
                     Text(
-                      '現在地から一番近いスポット',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      '最寄りの未獲得地点',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.ink,
+                      ),
                     ),
                   ],
                 ),
               ),
               if (isNext)
+                const QuestStatusChip(
+                  label: 'NEXT',
+                  icon: Icons.navigation_rounded,
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: QuestUiTokens.primary.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(
+                color: QuestUiTokens.primary.withValues(alpha: 0.08),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
+                  width: 42,
+                  height: 42,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: Colors.deepPurple.withValues(alpha: 0.09),
-                    borderRadius: BorderRadius.circular(999),
+                    color: QuestUiTokens.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'NEXT',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
+                  child: Text(
+                    seichi.card,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: QuestUiTokens.primary,
                     ),
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  seichi.card,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      seichi.name,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        seichi.name,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: QuestUiTokens.ink,
+                        ),
                       ),
-                    ),
-                    if (distanceText != null) ...[
-                      const SizedBox(height: 5),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.place_outlined,
-                            size: 15,
-                            color: Colors.grey.shade600,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '現在地から $distanceText',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
+                      if (distanceText != null) ...[
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.place_outlined,
+                              size: 15,
+                              color: QuestUiTokens.mutedInk,
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '現在地から $distanceText',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: QuestUiTokens.mutedInk,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
-            child: FilledButton.icon(
+            child: QuestPrimaryButton(
+              label: isNext ? '次の目的地に設定済み' : '次の目的地に設定',
+              icon: isNext
+                  ? Icons.check_circle_outline
+                  : Icons.navigation_outlined,
               onPressed: widget.onSetNextDestination == null || isNext
                   ? null
                   : () {
@@ -1028,10 +1045,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
                       setState(() {});
                     },
-              icon: Icon(
-                isNext ? Icons.check_circle_outline : Icons.navigation_outlined,
-              ),
-              label: Text(isNext ? '次の目的地に設定済み' : '次の目的地に設定'),
             ),
           ),
         ],
@@ -1114,7 +1127,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF6F8FC),
       builder: (sheetContext) {
         return SafeArea(
           child: DraggableScrollableSheet(
@@ -1130,16 +1143,15 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     child: Row(
                       children: [
                         Container(
-                          width: 42,
-                          height: 42,
-                          alignment: Alignment.center,
+                          width: 44,
+                          height: 44,
                           decoration: BoxDecoration(
-                            color: Colors.deepPurple.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(12),
+                            gradient: QuestUiTokens.cyanGradient,
+                            borderRadius: BorderRadius.circular(14),
                           ),
                           child: const Icon(
-                            Icons.route_outlined,
-                            color: Colors.deepPurple,
+                            Icons.route_rounded,
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -1148,18 +1160,21 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'おすすめ巡回ルート',
+                                'SMART ROUTE',
                                 style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 9,
+                                  letterSpacing: 1.2,
+                                  fontWeight: FontWeight.w900,
+                                  color: QuestUiTokens.mutedInk,
                                 ),
                               ),
                               SizedBox(height: 2),
                               Text(
-                                '未獲得地点を近い順につないだルート',
+                                'おすすめ巡回ルート',
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: QuestUiTokens.ink,
                                 ),
                               ),
                             ],
@@ -1168,7 +1183,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       ],
                     ),
                   ),
-                  const Divider(height: 1),
+                  Divider(
+                    height: 1,
+                    color: QuestUiTokens.primary.withValues(alpha: 0.08),
+                  ),
                   Expanded(
                     child: ListView.separated(
                       controller: scrollController,
@@ -1205,23 +1223,23 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         return Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(17),
                             onTap: () {
                               _showSeichiDetail(seichi);
                             },
                             child: Ink(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: isNext
-                                    ? Colors.deepPurple.withValues(alpha: 0.06)
-                                    : Colors.grey.withValues(alpha: 0.04),
-                                borderRadius: BorderRadius.circular(14),
+                                color: Colors.white.withValues(alpha: 0.88),
+                                borderRadius: BorderRadius.circular(17),
                                 border: Border.all(
                                   color: isNext
-                                      ? Colors.deepPurple.withValues(
+                                      ? QuestUiTokens.primary.withValues(
                                           alpha: 0.30,
                                         )
-                                      : Colors.grey.shade200,
+                                      : QuestUiTokens.ink.withValues(
+                                          alpha: 0.06,
+                                        ),
                                 ),
                               ),
                               child: Row(
@@ -1231,16 +1249,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     height: 38,
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                      color: Colors.deepPurple.withValues(
-                                        alpha: 0.09,
-                                      ),
+                                      gradient: QuestUiTokens.primaryGradient,
                                       shape: BoxShape.circle,
                                     ),
                                     child: Text(
                                       '${index + 1}',
                                       style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.deepPurple,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
                                       ),
                                     ),
                                   ),
@@ -1250,15 +1266,17 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     height: 36,
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                      color: Colors.white,
+                                      color: QuestUiTokens.primary.withValues(
+                                        alpha: 0.08,
+                                      ),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
                                       seichi.card,
                                       style: const TextStyle(
                                         fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.deepPurple,
+                                        fontWeight: FontWeight.w900,
+                                        color: QuestUiTokens.primary,
                                       ),
                                     ),
                                   ),
@@ -1272,7 +1290,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                           seichi.name,
                                           style: const TextStyle(
                                             fontSize: 14,
-                                            fontWeight: FontWeight.w600,
+                                            fontWeight: FontWeight.w800,
+                                            color: QuestUiTokens.ink,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
@@ -1280,9 +1299,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                           index == 0
                                               ? '現在地から ${_formatRouteDistance(distance)}'
                                               : '前の地点から ${_formatRouteDistance(distance)}',
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 12,
-                                            color: Colors.grey.shade600,
+                                            color: QuestUiTokens.mutedInk,
                                           ),
                                         ),
                                       ],
@@ -1294,7 +1313,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                       child: Icon(
                                         Icons.navigation_rounded,
                                         size: 20,
-                                        color: Colors.deepPurple,
+                                        color: QuestUiTokens.primary,
                                       ),
                                     ),
                                 ],
@@ -1306,22 +1325,22 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     ),
                   ),
                   if (widget.onStartRecommendedRoute != null) ...[
-                    const Divider(height: 1),
+                    Divider(
+                      height: 1,
+                      color: QuestUiTokens.primary.withValues(alpha: 0.08),
+                    ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed: () {
-                            Navigator.of(sheetContext).pop();
+                      child: QuestPrimaryButton(
+                        label: 'このルートでスタート',
+                        icon: Icons.flag_rounded,
+                        onPressed: () {
+                          Navigator.of(sheetContext).pop();
 
-                            widget.onStartRecommendedRoute!(
-                              List<Seichi>.unmodifiable(route),
-                            );
-                          },
-                          icon: const Icon(Icons.flag_rounded),
-                          label: const Text('このルートでスタート'),
-                        ),
+                          widget.onStartRecommendedRoute!(
+                            List<Seichi>.unmodifiable(route),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -1361,31 +1380,24 @@ class _EventDetailPageState extends State<EventDetailPage> {
       );
     }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
+    return QuestGlassCard(
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: QuestUiTokens.cyanGradient,
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
-                  Icons.route_outlined,
-                  color: Colors.deepPurple,
-                  size: 21,
+                  Icons.route_rounded,
+                  color: Colors.white,
+                  size: 22,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1394,16 +1406,22 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'おすすめ巡回ルート',
+                      'SMART ROUTE',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 9,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.mutedInk,
                       ),
                     ),
                     SizedBox(height: 2),
                     Text(
-                      '未獲得地点を効率よく巡る順番',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      'おすすめ巡回ルート',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.ink,
+                      ),
                     ),
                   ],
                 ),
@@ -1411,45 +1429,69 @@ class _EventDetailPageState extends State<EventDetailPage> {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '残り ${route.length}地点',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: QuestUiTokens.cyan.withValues(alpha: 0.055),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '残り ${route.length}地点',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: QuestUiTokens.ink,
+                    ),
                   ),
                 ),
-              ),
-              Text(
-                '直線距離 約${_formatRouteDistance(totalDistance)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-            ],
+                Text(
+                  '約${_formatRouteDistance(totalDistance)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: QuestUiTokens.mutedInk,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: _showRecommendedRoute,
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                foregroundColor: QuestUiTokens.primary,
+                side: BorderSide(
+                  color: QuestUiTokens.primary.withValues(alpha: 0.18),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    QuestUiTokens.controlRadius,
+                  ),
+                ),
+              ),
               icon: const Icon(Icons.route_outlined),
-              label: const Text('巡回する順番を見る'),
+              label: const Text(
+                '巡回する順番を見る',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
             ),
           ),
           if (widget.onStartRecommendedRoute != null) ...[
             const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () {
-                  widget.onStartRecommendedRoute!(
-                    List<Seichi>.unmodifiable(route),
-                  );
-                },
-                icon: const Icon(Icons.flag_rounded),
-                label: const Text('このルートでスタート'),
-              ),
+            QuestPrimaryButton(
+              label: 'このルートでスタート',
+              icon: Icons.flag_rounded,
+              onPressed: () {
+                widget.onStartRecommendedRoute!(
+                  List<Seichi>.unmodifiable(route),
+                );
+              },
             ),
           ],
         ],
@@ -1460,37 +1502,64 @@ class _EventDetailPageState extends State<EventDetailPage> {
   Widget _buildCardGallery() {
     final filteredList = _filteredSeichiList;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
+    return QuestGlassCard(
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: QuestUiTokens.primaryGradient,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.grid_view_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
               const Expanded(
-                child: Text(
-                  '札ギャラリー',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'COLLECTION',
+                      style: TextStyle(
+                        fontSize: 9,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.mutedInk,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      '札ギャラリー',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.ink,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               if (!_isLoadingSeichi && _seichiList.isNotEmpty)
-                Text(
-                  '${filteredList.length} / ${_seichiList.length}札',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                QuestStatusChip(
+                  label: '${filteredList.length} / ${_seichiList.length}札',
+                  accentColor: QuestUiTokens.cyan,
                 ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
+          const SizedBox(height: 8),
+          const Text(
             '札をタップすると詳細を確認できます',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 12, color: QuestUiTokens.mutedInk),
           ),
-
           if (!_isLoadingSeichi &&
               _seichiErrorMessage == null &&
               _seichiList.isNotEmpty) ...[
@@ -1503,6 +1572,20 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ChoiceChip(
                     label: Text(filter),
                     selected: _galleryFilter == filter,
+                    selectedColor: QuestUiTokens.primary.withValues(
+                      alpha: 0.12,
+                    ),
+                    side: BorderSide(
+                      color: _galleryFilter == filter
+                          ? QuestUiTokens.primary.withValues(alpha: 0.25)
+                          : QuestUiTokens.ink.withValues(alpha: 0.07),
+                    ),
+                    labelStyle: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: _galleryFilter == filter
+                          ? QuestUiTokens.primary
+                          : QuestUiTokens.mutedInk,
+                    ),
                     onSelected: (_) {
                       setState(() {
                         _galleryFilter = filter;
@@ -1512,13 +1595,13 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ],
             ),
           ],
-
           const SizedBox(height: 16),
-
           if (_isLoadingSeichi)
             const SizedBox(
               height: 120,
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(
+                child: CircularProgressIndicator(color: QuestUiTokens.primary),
+              ),
             )
           else if (_seichiErrorMessage != null)
             Container(
@@ -1526,7 +1609,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: Colors.red.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
                 children: [
@@ -1557,12 +1640,13 @@ class _EventDetailPageState extends State<EventDetailPage> {
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(14),
+                color: QuestUiTokens.ink.withValues(alpha: 0.035),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: const Text(
                 'このクエストには札が登録されていません。',
                 textAlign: TextAlign.center,
+                style: TextStyle(color: QuestUiTokens.mutedInk),
               ),
             )
           else if (filteredList.isEmpty)
@@ -1570,12 +1654,13 @@ class _EventDetailPageState extends State<EventDetailPage> {
               width: double.infinity,
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(14),
+                color: QuestUiTokens.ink.withValues(alpha: 0.035),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
                 _galleryFilter == '獲得済み' ? '獲得済みの札はまだありません。' : '未獲得の札はありません。',
                 textAlign: TextAlign.center,
+                style: const TextStyle(color: QuestUiTokens.mutedInk),
               ),
             )
           else
@@ -1600,30 +1685,39 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   Widget _buildGalleryCard(Seichi seichi) {
     final imageUrl = seichi.cardImageUrl;
-
     final collected = _collectedSeichiIds.contains(seichi.id);
-
     final isNext = widget.currentNextSeichiId == seichi.id;
+
+    final accent = collected
+        ? Colors.green
+        : isNext
+        ? QuestUiTokens.primary
+        : QuestUiTokens.mutedInk;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         onTap: () {
           _showSeichiDetail(seichi);
         },
         child: Ink(
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(14),
+            color: Colors.white.withValues(alpha: 0.86),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: collected
-                  ? Colors.green.withValues(alpha: 0.55)
-                  : isNext
-                  ? Colors.deepPurple.withValues(alpha: 0.55)
-                  : Colors.grey.shade200,
+              color: accent.withValues(
+                alpha: collected || isNext ? 0.34 : 0.10,
+              ),
               width: collected || isNext ? 1.5 : 1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: QuestUiTokens.ink.withValues(alpha: 0.045),
+                blurRadius: 12,
+                offset: const Offset(0, 5),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1634,7 +1728,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   children: [
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(13),
+                        top: Radius.circular(15),
                       ),
                       child: imageUrl != null && imageUrl.isNotEmpty
                           ? Image.network(
@@ -1648,7 +1742,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             )
                           : _buildGalleryFallback(seichi),
                     ),
-
                     if (collected)
                       Positioned(
                         top: 7,
@@ -1667,7 +1760,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           ),
                         ),
                       ),
-
                     if (isNext && !collected)
                       Positioned(
                         top: 7,
@@ -1678,7 +1770,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.deepPurple,
+                            gradient: QuestUiTokens.primaryGradient,
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: const Text(
@@ -1686,7 +1778,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 9,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w900,
                             ),
                           ),
                         ),
@@ -1703,17 +1795,15 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       height: 26,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: collected
-                            ? Colors.green.withValues(alpha: 0.10)
-                            : Colors.deepPurple.withValues(alpha: 0.08),
+                        color: accent.withValues(alpha: 0.09),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         seichi.card,
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: collected ? Colors.green : Colors.deepPurple,
+                          fontWeight: FontWeight.w900,
+                          color: accent,
                         ),
                       ),
                     ),
@@ -1725,7 +1815,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
+                          color: QuestUiTokens.ink,
                         ),
                       ),
                     ),
@@ -1741,14 +1832,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   Widget _buildGalleryFallback(Seichi seichi) {
     return Container(
-      color: Colors.deepPurple.withValues(alpha: 0.05),
+      color: QuestUiTokens.primary.withValues(alpha: 0.045),
       alignment: Alignment.center,
       child: Text(
         seichi.card,
         style: const TextStyle(
           fontSize: 38,
-          fontWeight: FontWeight.bold,
-          color: Colors.deepPurple,
+          fontWeight: FontWeight.w900,
+          color: QuestUiTokens.primary,
         ),
       ),
     );
@@ -1807,17 +1898,25 @@ class _EventDetailPageState extends State<EventDetailPage> {
     final participationColor = _participationColor();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F5FB),
+      backgroundColor: const Color(0xFFF6F8FC),
       appBar: AppBar(
-        title: const Text('クエスト詳細'),
+        title: const Text(
+          'クエスト詳細',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.ink,
+          ),
+        ),
+        foregroundColor: QuestUiTokens.ink,
         backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         actions: [
           Builder(
             builder: (shareButtonContext) {
               return IconButton(
                 tooltip: 'クエストを共有',
-                icon: const Icon(Icons.share_outlined),
+                icon: const Icon(Icons.ios_share_rounded),
                 onPressed: () => _shareEvent(shareButtonContext),
               );
             },
@@ -1826,22 +1925,17 @@ class _EventDetailPageState extends State<EventDetailPage> {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 30),
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
-              ),
+            QuestGlassCard(
+              padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (widget.event.coverImageUrl != null &&
                       widget.event.coverImageUrl!.isNotEmpty) ...[
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(20),
                       child: AspectRatio(
                         aspectRatio: 16 / 9,
                         child: Image.network(
@@ -1851,11 +1945,13 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           filterQuality: FilterQuality.medium,
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
-                              color: Colors.grey.shade100,
+                              color: QuestUiTokens.primary.withValues(
+                                alpha: 0.045,
+                              ),
                               alignment: Alignment.center,
-                              child: Icon(
+                              child: const Icon(
                                 Icons.image_not_supported_outlined,
-                                color: Colors.grey.shade400,
+                                color: QuestUiTokens.mutedInk,
                               ),
                             );
                           },
@@ -1864,21 +1960,29 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     ),
                     const SizedBox(height: 18),
                   ],
-
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        width: 54,
-                        height: 54,
+                        width: 56,
+                        height: 56,
                         decoration: BoxDecoration(
-                          color: Colors.deepPurple.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(16),
+                          gradient: QuestUiTokens.primaryGradient,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: QuestUiTokens.primary.withValues(
+                                alpha: 0.20,
+                              ),
+                              blurRadius: 18,
+                              offset: const Offset(0, 7),
+                            ),
+                          ],
                         ),
                         child: const Icon(
-                          Icons.explore_outlined,
-                          color: Colors.deepPurple,
-                          size: 28,
+                          Icons.explore_rounded,
+                          color: Colors.white,
+                          size: 29,
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -1886,17 +1990,29 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            const Text(
+                              'QUEST',
+                              style: TextStyle(
+                                fontSize: 9,
+                                letterSpacing: 1.4,
+                                fontWeight: FontWeight.w900,
+                                color: QuestUiTokens.mutedInk,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
                             Text(
                               widget.event.name,
                               style: const TextStyle(
                                 fontSize: 21,
-                                fontWeight: FontWeight.bold,
+                                height: 1.2,
+                                fontWeight: FontWeight.w900,
+                                color: QuestUiTokens.ink,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 9),
                             Wrap(
-                              spacing: 8,
-                              runSpacing: 6,
+                              spacing: 7,
+                              runSpacing: 7,
                               children: [
                                 _buildStatusChip(
                                   _eventStatusText(),
@@ -1914,12 +2030,21 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     ],
                   ),
                   if (widget.event.description.trim().isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    Text(
-                      widget.event.description,
-                      style: TextStyle(
-                        height: 1.6,
-                        color: Colors.grey.shade700,
+                    const SizedBox(height: 18),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: QuestUiTokens.primary.withValues(alpha: 0.035),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        widget.event.description,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          height: 1.65,
+                          color: QuestUiTokens.mutedInk,
+                        ),
                       ),
                     ),
                   ],
@@ -1929,13 +2054,37 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
             if (widget.primaryActionLabel != null &&
                 widget.onPrimaryAction != null) ...[
-              const SizedBox(height: 20),
-
-              SizedBox(
+              const SizedBox(height: 16),
+              Container(
                 width: double.infinity,
-                height: 52,
+                decoration: BoxDecoration(
+                  gradient: QuestUiTokens.primaryGradient,
+                  borderRadius: BorderRadius.circular(
+                    QuestUiTokens.controlRadius,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: QuestUiTokens.primary.withValues(alpha: 0.20),
+                      blurRadius: 16,
+                      offset: const Offset(0, 7),
+                    ),
+                  ],
+                ),
                 child: FilledButton.icon(
                   onPressed: _isActionRunning ? null : _runPrimaryAction,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    backgroundColor: Colors.transparent,
+                    disabledBackgroundColor: QuestUiTokens.mutedInk.withValues(
+                      alpha: 0.30,
+                    ),
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        QuestUiTokens.controlRadius,
+                      ),
+                    ),
+                  ),
                   icon: _isActionRunning
                       ? const SizedBox(
                           width: 20,
@@ -1949,8 +2098,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   label: Text(
                     widget.primaryActionLabel!,
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
@@ -1959,36 +2108,47 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
             const SizedBox(height: 14),
 
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            QuestGlassCard(
+              padding: const EdgeInsets.all(18),
+              child: Row(
                 children: [
-                  const Text(
-                    '開催情報',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: QuestUiTokens.cyan.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.calendar_month_rounded,
+                      color: QuestUiTokens.cyan,
+                      size: 22,
+                    ),
                   ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_month_outlined,
-                        size: 20,
-                        color: Colors.grey.shade600,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          _periodText(),
-                          style: TextStyle(color: Colors.grey.shade700),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '開催情報',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: QuestUiTokens.ink,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 3),
+                        Text(
+                          _periodText(),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            height: 1.4,
+                            color: QuestUiTokens.mutedInk,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -2001,43 +2161,84 @@ class _EventDetailPageState extends State<EventDetailPage> {
             if (_hasProgress) ...[
               const SizedBox(height: 14),
 
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
+              QuestGlassCard(
+                padding: const EdgeInsets.all(18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '進捗',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(
-                          child: Text(
-                            '${widget.collectedCount}'
-                            ' / '
-                            '${widget.totalCount}',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            gradient: QuestUiTokens.cyanGradient,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.auto_graph_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'PROGRESS',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  letterSpacing: 1.2,
+                                  fontWeight: FontWeight.w900,
+                                  color: QuestUiTokens.mutedInk,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'クエスト進捗',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: QuestUiTokens.ink,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         Text(
                           '$_progressPercent%',
                           style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.deepPurple,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: QuestUiTokens.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${widget.collectedCount}',
+                          style: const TextStyle(
+                            fontSize: 28,
+                            height: 1,
+                            fontWeight: FontWeight.w900,
+                            color: QuestUiTokens.ink,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 5, bottom: 2),
+                          child: Text(
+                            '/ ${widget.totalCount} SPOTS',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: QuestUiTokens.mutedInk,
+                            ),
                           ),
                         ),
                       ],
@@ -2047,10 +2248,16 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       borderRadius: BorderRadius.circular(999),
                       child: LinearProgressIndicator(
                         value: _progress,
-                        minHeight: 10,
+                        minHeight: 9,
+                        backgroundColor: QuestUiTokens.primary.withValues(
+                          alpha: 0.08,
+                        ),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          QuestUiTokens.primary,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 11),
                     Text(
                       widget.totalCount != null &&
                               widget.collectedCount != null &&
@@ -2062,14 +2269,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                       '札で完全制覇'
                           : '',
                       style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
                         color:
                             widget.collectedCount != null &&
                                 widget.totalCount != null &&
                                 widget.collectedCount! >= widget.totalCount!
                             ? Colors.green
-                            : Colors.grey.shade700,
+                            : QuestUiTokens.mutedInk,
                       ),
                     ),
                   ],
@@ -2090,16 +2297,30 @@ class _EventDetailPageState extends State<EventDetailPage> {
             _buildCardGallery(),
 
             if (widget.onSelectAnotherEvent != null) ...[
-              const SizedBox(height: 12),
-
+              const SizedBox(height: 14),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () async {
                     await widget.onSelectAnotherEvent!();
                   },
-                  icon: const Icon(Icons.swap_horiz),
-                  label: const Text('別のクエストを見る'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                    foregroundColor: QuestUiTokens.primary,
+                    side: BorderSide(
+                      color: QuestUiTokens.primary.withValues(alpha: 0.22),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        QuestUiTokens.controlRadius,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.swap_horiz_rounded),
+                  label: const Text(
+                    '別のクエストを見る',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
                 ),
               ),
             ],
@@ -2110,20 +2331,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Widget _buildStatusChip(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.09),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
+    return QuestStatusChip(label: label, accentColor: color);
   }
 }

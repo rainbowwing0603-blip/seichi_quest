@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import '../models/event.dart';
 import '../models/seichi.dart';
 import 'event_detail_page.dart';
+import 'quest_ui.dart';
 
 class EventExplorePage extends StatefulWidget {
   const EventExplorePage({
@@ -424,15 +425,24 @@ class _EventExplorePageState extends State<EventExplorePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F5FB),
+      backgroundColor: const Color(0xFFF6F8FC),
       appBar: AppBar(
-        title: Text(widget.initialFavoriteOnly ? 'お気に入りクエスト' : 'クエストを探す'),
+        title: Text(
+          widget.initialFavoriteOnly ? 'お気に入りクエスト' : 'クエストを探す',
+          style: const TextStyle(
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.ink,
+          ),
+        ),
+        foregroundColor: QuestUiTokens.ink,
         backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
       ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadParticipationStates,
+          color: QuestUiTokens.primary,
           child: _buildBody(),
         ),
       ),
@@ -450,7 +460,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFFF7F5FB),
+      backgroundColor: const Color(0xFFF6F8FC),
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
@@ -783,7 +793,9 @@ class _EventExplorePageState extends State<EventExplorePage> {
     }
 
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(color: QuestUiTokens.primary),
+      );
     }
 
     if (_errorMessage != null) {
@@ -844,7 +856,10 @@ class _EventExplorePageState extends State<EventExplorePage> {
           },
           decoration: InputDecoration(
             hintText: 'クエスト名・説明から検索',
-            prefixIcon: const Icon(Icons.search),
+            prefixIcon: const Icon(
+              Icons.search_rounded,
+              color: QuestUiTokens.primary,
+            ),
             suffixIcon: _searchQuery.isEmpty
                 ? null
                 : IconButton(
@@ -859,10 +874,12 @@ class _EventExplorePageState extends State<EventExplorePage> {
                     icon: const Icon(Icons.close),
                   ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: Colors.white.withValues(alpha: 0.82),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(QuestUiTokens.controlRadius),
+              borderSide: BorderSide(
+                color: QuestUiTokens.primary.withValues(alpha: 0.08),
+              ),
             ),
           ),
         ),
@@ -884,7 +901,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
                     onPressed: () {
                       _showFilterSheet(prefectureOptions);
                     },
-                    icon: const Icon(Icons.tune, size: 19),
+                    icon: const Icon(Icons.tune_rounded, size: 19),
                     label: Text(
                       activeFilterCount == 0
                           ? '絞り込み'
@@ -906,16 +923,22 @@ class _EventExplorePageState extends State<EventExplorePage> {
                     initialValue: _sortOrder,
                     isDense: true,
                     decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.sort, size: 19),
+                      prefixIcon: const Icon(
+                        Icons.sort_rounded,
+                        size: 19,
+                        color: QuestUiTokens.primary,
+                      ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: Colors.white.withValues(alpha: 0.82),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 13,
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(
+                          color: QuestUiTokens.primary.withValues(alpha: 0.08),
+                        ),
                       ),
                     ),
                     items: const [
@@ -947,7 +970,11 @@ class _EventExplorePageState extends State<EventExplorePage> {
             _searchQuery.trim().isEmpty
                 ? '${filteredEvents.length}件のクエスト'
                 : '検索結果 ${filteredEvents.length}件',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: QuestUiTokens.mutedInk,
+            ),
           ),
         ),
         const SizedBox(height: 10),
@@ -970,7 +997,11 @@ class _EventExplorePageState extends State<EventExplorePage> {
                 const SizedBox(height: 6),
                 Text(
                   '検索条件やフィルターを変えてみてください。',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: QuestUiTokens.mutedInk,
+                  ),
                 ),
               ],
             ),
@@ -981,25 +1012,36 @@ class _EventExplorePageState extends State<EventExplorePage> {
   }
 
   Widget _buildHeader() {
-    return Container(
+    final title = widget.initialFavoriteOnly ? 'お気に入りを巡ろう' : '新しいクエストを見つけよう';
+
+    final subtitle = widget.initialFavoriteOnly
+        ? '${widget.events.length}件のクエストからお気に入りを表示'
+        : '${widget.events.length}件のクエストを公開中';
+
+    return QuestGlassCard(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
       child: Row(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
-              color: Colors.deepPurple.withValues(alpha: 0.09),
-              borderRadius: BorderRadius.circular(16),
+              gradient: QuestUiTokens.primaryGradient,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: QuestUiTokens.primary.withValues(alpha: 0.18),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-            child: const Icon(
-              Icons.travel_explore,
-              color: Colors.deepPurple,
-              size: 27,
+            child: Icon(
+              widget.initialFavoriteOnly
+                  ? Icons.star_rounded
+                  : Icons.travel_explore_rounded,
+              color: Colors.white,
+              size: 28,
             ),
           ),
           const SizedBox(width: 14),
@@ -1008,13 +1050,30 @@ class _EventExplorePageState extends State<EventExplorePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '新しいクエストを見つけよう',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  'DISCOVER QUESTS',
+                  style: TextStyle(
+                    fontSize: 9,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w900,
+                    color: QuestUiTokens.mutedInk,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    color: QuestUiTokens.ink,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${widget.events.length}件のクエストを公開中',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: QuestUiTokens.mutedInk,
+                  ),
                 ),
               ],
             ),
@@ -1026,151 +1085,167 @@ class _EventExplorePageState extends State<EventExplorePage> {
 
   Widget _buildEventCard(Event event) {
     final label = _participationLabel(event);
-
     final color = _statusColor(label);
-
     final icon = _statusIcon(label);
-
     final description = event.description.trim();
-
     final nearestDistance = _nearestDistanceByEventId[event.id];
-
     final nearestPlaceName = _nearestPlaceNameByEventId[event.id];
-
     final isFavorite = _favoriteEventIds.contains(event.id);
 
+    String? distanceText;
+
+    if (nearestDistance != null) {
+      final distance = nearestDistance < 1000
+          ? '${nearestDistance.round()}m'
+          : '${(nearestDistance / 1000).toStringAsFixed(1)}km';
+
+      distanceText = nearestPlaceName != null && nearestPlaceName.isNotEmpty
+          ? '最寄り $distance  $nearestPlaceName'
+          : '最寄り $distance';
+    }
+
+    final isCurrent = label == '選択中';
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 11),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: label == '選択中'
-            ? Border.all(
-                color: Colors.deepPurple.withValues(alpha: 0.30),
-                width: 1.5,
-              )
-            : null,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isCurrent
+              ? [
+                  QuestUiTokens.primary.withValues(alpha: 0.12),
+                  QuestUiTokens.cyan.withValues(alpha: 0.055),
+                ]
+              : [
+                  Colors.white.withValues(alpha: 0.86),
+                  Colors.white.withValues(alpha: 0.62),
+                ],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isCurrent
+              ? QuestUiTokens.primary.withValues(alpha: 0.28)
+              : QuestUiTokens.primary.withValues(alpha: 0.07),
+          width: isCurrent ? 1.3 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: QuestUiTokens.ink.withValues(alpha: 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () {
-          _openEventDetail(event);
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.09),
-                  borderRadius: BorderRadius.circular(16),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: () {
+            _openEventDetail(event);
+          },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 10, 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    gradient: isCurrent ? QuestUiTokens.primaryGradient : null,
+                    color: isCurrent ? null : color.withValues(alpha: 0.09),
+                    borderRadius: BorderRadius.circular(17),
+                  ),
+                  child: Icon(
+                    Icons.explore_rounded,
+                    color: isCurrent ? Colors.white : color,
+                    size: 26,
+                  ),
                 ),
-                child: Icon(Icons.explore_outlined, color: color),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            event.name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(icon, size: 13, color: color),
-                              const SizedBox(width: 4),
-                              Text(
-                                label,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: color,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (description.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          height: 1.4,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                    if (nearestDistance != null) ...[
-                      const SizedBox(height: 10),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.place_outlined,
-                            size: 15,
-                            color: Colors.grey.shade500,
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            nearestDistance < 1000
-                                ? nearestPlaceName != null &&
-                                          nearestPlaceName.isNotEmpty
-                                      ? '最寄り ${nearestDistance.round()}m  $nearestPlaceName'
-                                      : '最寄り ${nearestDistance.round()}m'
-                                : nearestPlaceName != null &&
-                                      nearestPlaceName.isNotEmpty
-                                ? '最寄り ${(nearestDistance / 1000).toStringAsFixed(1)}km  $nearestPlaceName'
-                                : '最寄り ${(nearestDistance / 1000).toStringAsFixed(1)}km',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
+                          Expanded(
+                            child: Text(
+                              event.name,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                height: 1.25,
+                                fontWeight: FontWeight.w900,
+                                color: QuestUiTokens.ink,
+                              ),
                             ),
+                          ),
+                          const SizedBox(width: 7),
+                          QuestStatusChip(
+                            label: label,
+                            icon: icon,
+                            accentColor: color,
                           ),
                         ],
                       ),
+                      if (description.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            height: 1.45,
+                            color: QuestUiTokens.mutedInk,
+                          ),
+                        ),
+                      ],
+                      if (distanceText != null) ...[
+                        const SizedBox(height: 11),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.near_me_outlined,
+                              size: 15,
+                              color: QuestUiTokens.primary,
+                            ),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                distanceText,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: QuestUiTokens.mutedInk,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              IconButton(
-                tooltip: isFavorite ? 'お気に入りから外す' : 'お気に入りに追加',
-                onPressed: () {
-                  _toggleFavorite(event);
-                },
-                icon: Icon(
-                  isFavorite ? Icons.star : Icons.star_border,
-                  color: isFavorite
-                      ? Colors.amber.shade700
-                      : Colors.grey.shade500,
+                const SizedBox(width: 2),
+                IconButton(
+                  tooltip: isFavorite ? 'お気に入りから外す' : 'お気に入りに追加',
+                  onPressed: () {
+                    _toggleFavorite(event);
+                  },
+                  icon: Icon(
+                    isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
+                    color: isFavorite
+                        ? Colors.amber.shade700
+                        : QuestUiTokens.mutedInk,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

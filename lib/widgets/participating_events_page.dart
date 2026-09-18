@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
+import 'quest_ui.dart';
+
 class ParticipatingEventsPage extends StatefulWidget {
   const ParticipatingEventsPage({super.key, required this.currentEventId});
 
@@ -238,17 +240,23 @@ class _ParticipatingEventsPageState extends State<ParticipatingEventsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F5FB),
+      backgroundColor: const Color(0xFFF6F8FC),
       appBar: AppBar(
-        title: const Text('参加中クエスト'),
         backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-      ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadParticipatingEvents,
-          child: _buildBody(),
+        title: const Text(
+          '参加中クエスト',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.ink,
+          ),
         ),
+      ),
+      body: RefreshIndicator(
+        color: QuestUiTokens.primary,
+        onRefresh: _loadParticipatingEvents,
+        child: _buildBody(),
       ),
     );
   }
@@ -256,10 +264,20 @@ class _ParticipatingEventsPageState extends State<ParticipatingEventsPage> {
   Widget _buildBody() {
     if (_isLoading) {
       return ListView(
-        physics: AlwaysScrollableScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 70, 20, 30),
         children: [
-          SizedBox(height: 180),
-          Center(child: CircularProgressIndicator()),
+          QuestGlassCard(
+            child: const SizedBox(
+              height: 150,
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: QuestUiTokens.primary,
+                  strokeWidth: 2.5,
+                ),
+              ),
+            ),
+          ),
         ],
       );
     }
@@ -267,22 +285,51 @@ class _ParticipatingEventsPageState extends State<ParticipatingEventsPage> {
     if (_errorMessage != null) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(20, 40, 20, 30),
         children: [
-          const SizedBox(height: 90),
-          Icon(Icons.cloud_off_outlined, size: 56, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
-          Text(
-            _errorMessage!,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade700),
-          ),
-          const SizedBox(height: 18),
-          Center(
-            child: FilledButton.icon(
-              onPressed: _loadParticipatingEvents,
-              icon: const Icon(Icons.refresh),
-              label: const Text('再読み込み'),
+          QuestGlassCard(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Icon(
+                    Icons.cloud_off_rounded,
+                    size: 30,
+                    color: Colors.redAccent,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  '読み込みに失敗しました',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: QuestUiTokens.ink,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    height: 1.5,
+                    color: QuestUiTokens.mutedInk,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                QuestPrimaryButton(
+                  label: '再読み込み',
+                  icon: Icons.refresh_rounded,
+                  onPressed: _loadParticipatingEvents,
+                ),
+              ],
             ),
           ),
         ],
@@ -292,21 +339,43 @@ class _ParticipatingEventsPageState extends State<ParticipatingEventsPage> {
     if (_events.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(20, 40, 20, 30),
         children: [
-          const SizedBox(height: 90),
-          Icon(Icons.flag_outlined, size: 64, color: Colors.grey.shade400),
-          const SizedBox(height: 18),
-          const Text(
-            '参加中のクエストはありません',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'クエストを選択すると、ここに参加中クエストとして表示されます。',
-            textAlign: TextAlign.center,
-            style: TextStyle(height: 1.5, color: Colors.grey.shade600),
+          QuestGlassCard(
+            padding: const EdgeInsets.all(26),
+            child: Column(
+              children: [
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: const BoxDecoration(
+                    gradient: QuestUiTokens.primaryGradient,
+                    borderRadius: BorderRadius.all(Radius.circular(22)),
+                  ),
+                  child: const Icon(
+                    Icons.flag_rounded,
+                    size: 32,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  '参加中のクエストはありません',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                    color: QuestUiTokens.ink,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'クエストを選択すると、ここからいつでも切り替えられます。',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(height: 1.55, color: QuestUiTokens.mutedInk),
+                ),
+              ],
+            ),
           ),
         ],
       );
@@ -314,7 +383,7 @@ class _ParticipatingEventsPageState extends State<ParticipatingEventsPage> {
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
       children: [
         _buildHeader(),
         const SizedBox(height: 14),
@@ -324,37 +393,94 @@ class _ParticipatingEventsPageState extends State<ParticipatingEventsPage> {
   }
 
   Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
+    final currentExists = _events.any(
+      (event) => event.id == widget.currentEventId,
+    );
+
+    return QuestGlassCard(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.deepPurple.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: const Icon(Icons.flag_outlined, color: Colors.deepPurple),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'あなたのクエスト',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+          Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: QuestUiTokens.primaryGradient,
+                  borderRadius: BorderRadius.circular(17),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  '${_events.length}件に参加中',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                child: const Icon(
+                  Icons.flag_rounded,
+                  color: Colors.white,
+                  size: 25,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'MY QUESTS',
+                      style: TextStyle(
+                        fontSize: 9,
+                        letterSpacing: 1.35,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.mutedInk,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      'あなたのクエスト',
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.ink,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              QuestStatusChip(
+                label: '${_events.length}件',
+                icon: Icons.explore_rounded,
+                accentColor: QuestUiTokens.cyan,
+              ),
+            ],
+          ),
+          const SizedBox(height: 17),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: currentExists
+                  ? QuestUiTokens.primary.withValues(alpha: 0.045)
+                  : QuestUiTokens.ink.withValues(alpha: 0.035),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  currentExists
+                      ? Icons.navigation_rounded
+                      : Icons.info_outline_rounded,
+                  size: 18,
+                  color: currentExists
+                      ? QuestUiTokens.primary
+                      : QuestUiTokens.mutedInk,
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    currentExists ? '選択中のクエストは強調表示されています' : 'クエストをタップして選択できます',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: QuestUiTokens.mutedInk,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -367,114 +493,167 @@ class _ParticipatingEventsPageState extends State<ParticipatingEventsPage> {
   Widget _buildEventCard(_ParticipatingEvent event) {
     final isCurrent = event.id == widget.currentEventId;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: isCurrent
-            ? Border.all(
-                color: Colors.deepPurple.withValues(alpha: 0.35),
-                width: 1.5,
-              )
-            : null,
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 11),
       child: Material(
         color: Colors.transparent,
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 8,
-          ),
-          leading: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: isCurrent
-                  ? Colors.deepPurple.withValues(alpha: 0.12)
-                  : Colors.grey.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              isCurrent ? Icons.explore : Icons.explore_outlined,
-              color: isCurrent ? Colors.deepPurple : Colors.grey.shade700,
-            ),
-          ),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  event.name,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-              if (isCurrent)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: const Text(
-                    '選択中',
-                    style: TextStyle(
-                      color: Colors.deepPurple,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (event.description.isNotEmpty)
-                  Text(
-                    event.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                if (event.description.isNotEmpty) const SizedBox(height: 5),
-                Text(
-                  _formatJoinedAt(event.joinedAt),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                ),
-              ],
-            ),
-          ),
-          trailing: isCurrent
-              ? const Icon(Icons.check_circle, color: Colors.deepPurple)
-              : PopupMenuButton<String>(
-                  tooltip: 'クエスト操作',
-                  onSelected: (value) async {
-                    if (value == 'leave') {
-                      await _confirmLeaveEvent(event);
-                    }
-                  },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem<String>(
-                      value: 'leave',
-                      child: Row(
-                        children: [
-                          Icon(Icons.logout_outlined, size: 20),
-                          SizedBox(width: 10),
-                          Text('参加をやめる'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+        child: InkWell(
           onTap: isCurrent
               ? null
               : () {
                   Navigator.of(context).pop(event.id);
                 },
+          borderRadius: BorderRadius.circular(QuestUiTokens.cardRadius),
+          child: Ink(
+            padding: const EdgeInsets.all(17),
+            decoration: BoxDecoration(
+              gradient: isCurrent
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.98),
+                        QuestUiTokens.primary.withValues(alpha: 0.075),
+                      ],
+                    )
+                  : QuestUiTokens.glassGradient,
+              borderRadius: BorderRadius.circular(QuestUiTokens.cardRadius),
+              border: Border.all(
+                color: isCurrent
+                    ? QuestUiTokens.primary.withValues(alpha: 0.26)
+                    : QuestUiTokens.ink.withValues(alpha: 0.055),
+                width: isCurrent ? 1.5 : 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: QuestUiTokens.ink.withValues(
+                    alpha: isCurrent ? 0.075 : 0.045,
+                  ),
+                  blurRadius: isCurrent ? 22 : 16,
+                  offset: const Offset(0, 7),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: isCurrent
+                        ? QuestUiTokens.primaryGradient
+                        : QuestUiTokens.cyanGradient,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    isCurrent
+                        ? Icons.navigation_rounded
+                        : Icons.explore_outlined,
+                    color: Colors.white,
+                    size: 23,
+                  ),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              event.name,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                color: QuestUiTokens.ink,
+                              ),
+                            ),
+                          ),
+                          if (isCurrent) ...[
+                            const SizedBox(width: 8),
+                            const QuestStatusChip(
+                              label: '選択中',
+                              icon: Icons.check_circle_rounded,
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (event.description.trim().isNotEmpty) ...[
+                        const SizedBox(height: 7),
+                        Text(
+                          event.description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            height: 1.45,
+                            fontSize: 13,
+                            color: QuestUiTokens.mutedInk,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.schedule_rounded,
+                            size: 15,
+                            color: QuestUiTokens.mutedInk,
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              _formatJoinedAt(event.joinedAt),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: QuestUiTokens.mutedInk,
+                              ),
+                            ),
+                          ),
+                          if (!isCurrent)
+                            PopupMenuButton<String>(
+                              padding: EdgeInsets.zero,
+                              tooltip: 'クエスト操作',
+                              color: Colors.white,
+                              icon: const Icon(
+                                Icons.more_horiz_rounded,
+                                color: QuestUiTokens.mutedInk,
+                              ),
+                              onSelected: (value) async {
+                                if (value == 'leave') {
+                                  await _confirmLeaveEvent(event);
+                                }
+                              },
+                              itemBuilder: (context) => const [
+                                PopupMenuItem<String>(
+                                  value: 'leave',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.logout_outlined, size: 20),
+                                      SizedBox(width: 10),
+                                      Text('参加をやめる'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              size: 22,
+                              color: QuestUiTokens.primary,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

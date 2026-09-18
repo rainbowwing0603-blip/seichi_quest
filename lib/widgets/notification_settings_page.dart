@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'quest_ui.dart';
+
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
 
@@ -51,12 +53,92 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('通知設定')),
+      backgroundColor: const Color(0xFFF6F8FC),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          '通知設定',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.ink,
+          ),
+        ),
+      ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: QuestUiTokens.primary),
+            )
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
               children: [
+                QuestGlassCard(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 58,
+                        height: 58,
+                        decoration: BoxDecoration(
+                          gradient: QuestUiTokens.primaryGradient,
+                          borderRadius: BorderRadius.circular(19),
+                          boxShadow: [
+                            BoxShadow(
+                              color: QuestUiTokens.primary.withValues(
+                                alpha: 0.16,
+                              ),
+                              blurRadius: 20,
+                              offset: const Offset(0, 7),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.notifications_active_outlined,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'NOTIFICATIONS',
+                              style: TextStyle(
+                                fontSize: 9,
+                                letterSpacing: 1.3,
+                                fontWeight: FontWeight.w900,
+                                color: QuestUiTokens.mutedInk,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              '冒険のお知らせ',
+                              style: TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w900,
+                                color: QuestUiTokens.ink,
+                              ),
+                            ),
+                            SizedBox(height: 7),
+                            Text(
+                              '聖地クエストから受け取る通知を設定できます。',
+                              style: TextStyle(
+                                fontSize: 12,
+                                height: 1.45,
+                                color: QuestUiTokens.mutedInk,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 22),
                 _buildSectionTitle('聖地クエスト'),
                 _buildSwitchTile(
                   icon: Icons.notifications_active_outlined,
@@ -65,9 +147,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   value: _stampNotification,
                   onChanged: _setStampNotification,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 _buildInfoTile(
-                  icon: Icons.info_outline,
+                  icon: Icons.info_outline_rounded,
                   title: '通知について',
                   subtitle: '通知を表示するには、端末側の通知許可も必要です。',
                 ),
@@ -78,14 +160,27 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey.shade700,
-        ),
+      padding: const EdgeInsets.only(left: 4, bottom: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 18,
+            decoration: BoxDecoration(
+              gradient: QuestUiTokens.primaryGradient,
+              borderRadius: BorderRadius.circular(99),
+            ),
+          ),
+          const SizedBox(width: 9),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+              color: QuestUiTokens.ink,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -97,37 +192,61 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: SwitchListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 4,
-          ),
-          secondary: Container(
-            width: 42,
-            height: 42,
+    return QuestGlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 15),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
             decoration: BoxDecoration(
-              color: Colors.deepPurple.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
+              gradient: value ? QuestUiTokens.primaryGradient : null,
+              color: value
+                  ? null
+                  : QuestUiTokens.mutedInk.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(15),
             ),
-            child: Icon(icon, color: Colors.deepPurple),
+            child: Icon(
+              icon,
+              color: value ? Colors.white : QuestUiTokens.mutedInk,
+              size: 22,
+            ),
           ),
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: QuestUiTokens.ink,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    height: 1.4,
+                    color: QuestUiTokens.mutedInk,
+                  ),
+                ),
+              ],
+            ),
           ),
-          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-          value: value,
-          onChanged: onChanged,
-          activeThumbColor: Colors.deepPurple,
-        ),
+          const SizedBox(width: 8),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: Colors.white,
+            activeTrackColor: QuestUiTokens.primary,
+            inactiveThumbColor: Colors.white,
+            inactiveTrackColor: QuestUiTokens.mutedInk.withValues(alpha: 0.20),
+          ),
+        ],
       ),
     );
   }
@@ -137,22 +256,46 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     required String title,
     required String subtitle,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 8,
+    return QuestGlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: QuestUiTokens.cyan.withValues(alpha: 0.09),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: QuestUiTokens.cyan, size: 21),
           ),
-          leading: Icon(icon, color: Colors.deepPurple),
-          title: Text(title),
-          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-        ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: QuestUiTokens.ink,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    height: 1.45,
+                    color: QuestUiTokens.mutedInk,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

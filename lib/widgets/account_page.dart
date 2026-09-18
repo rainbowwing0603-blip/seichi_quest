@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
+import 'quest_ui.dart';
+
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
 
@@ -378,9 +380,7 @@ class _AccountPageState extends State<AccountPage> {
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('アカウントを削除'),
-          content: const Text(
-            'アカウントを削除すると、獲得履歴や訪問履歴など、このアカウントに紐づくデータも削除されます。',
-          ),
+          content: const Text('アカウントを削除すると、獲得履歴や訪問履歴など、このアカウントに紐づくデータも削除されます。'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -404,9 +404,7 @@ class _AccountPageState extends State<AccountPage> {
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('本当に削除しますか？'),
-          content: const Text(
-            'この操作は取り消せません。削除したアカウントでは再ログインできません。',
-          ),
+          content: const Text('この操作は取り消せません。削除したアカウントでは再ログインできません。'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -414,9 +412,7 @@ class _AccountPageState extends State<AccountPage> {
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
               child: const Text('完全に削除する'),
             ),
           ],
@@ -434,9 +430,7 @@ class _AccountPageState extends State<AccountPage> {
     });
 
     try {
-      final response = await _client.functions.invoke(
-        'delete-account',
-      );
+      final response = await _client.functions.invoke('delete-account');
 
       final data = response.data;
 
@@ -447,9 +441,7 @@ class _AccountPageState extends State<AccountPage> {
           errorMessage = data['error']?.toString();
         }
 
-        throw Exception(
-          errorMessage ?? 'アカウント削除に失敗しました。',
-        );
+        throw Exception(errorMessage ?? 'アカウント削除に失敗しました。');
       }
 
       try {
@@ -465,10 +457,7 @@ class _AccountPageState extends State<AccountPage> {
 
       Navigator.of(context).pop(true);
     } catch (error) {
-      _showMessage(
-        'アカウントの削除に失敗しました。通信状態を確認してもう一度お試しください。',
-        isError: true,
-      );
+      _showMessage('アカウントの削除に失敗しました。通信状態を確認してもう一度お試しください。', isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -556,7 +545,7 @@ class _AccountPageState extends State<AccountPage> {
             title: const Text('既存アカウントでログイン'),
             content: const Text(
               '現在のゲストアカウントから既存アカウントへ切り替えます。'
-              'ゲストアカウント側の獲得記録は、既存アカウントへ自動統合されません。'
+              'ゲストアカウント側の獲得記録は、既存アカウントへ自動統合されません。',
             ),
             actions: [
               TextButton(
@@ -661,23 +650,25 @@ class _AccountPageState extends State<AccountPage> {
     final email = user?.email ?? _pendingEmail;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F5FB),
+      backgroundColor: const Color(0xFFF6F8FC),
       appBar: AppBar(
-        title: const Text('アカウント'),
         backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
+        title: const Text(
+          'アカウント',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.ink,
+          ),
+        ),
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
-              ),
+            QuestGlassCard(
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -685,8 +676,7 @@ class _AccountPageState extends State<AccountPage> {
                   const SizedBox(height: 22),
                   if (_showPasswordRecovery) ...[
                     _buildPasswordRecovery(),
-                  ] else 
-                  if (_emailVerified) ...[
+                  ] else if (_emailVerified) ...[
                     _buildPasswordStep(),
                   ] else if (isAnonymous) ...[
                     if (_showExistingLogin)
@@ -700,34 +690,45 @@ class _AccountPageState extends State<AccountPage> {
               ),
             ),
             if (_message != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: _messageIsError
-                      ? Colors.red.withValues(alpha: 0.07)
-                      : Colors.green.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(14),
-                ),
+              const SizedBox(height: 14),
+              QuestGlassCard(
+                padding: const EdgeInsets.all(15),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      _messageIsError
-                          ? Icons.error_outline
-                          : Icons.check_circle_outline,
-                      color: _messageIsError ? Colors.red : Colors.green,
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: _messageIsError
+                            ? Colors.red.withValues(alpha: 0.08)
+                            : Colors.green.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: Icon(
+                        _messageIsError
+                            ? Icons.error_outline_rounded
+                            : Icons.check_circle_outline_rounded,
+                        color: _messageIsError
+                            ? Colors.redAccent
+                            : Colors.green,
+                        size: 21,
+                      ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        _message!,
-                        style: TextStyle(
-                          height: 1.4,
-                          color: _messageIsError
-                              ? Colors.red.shade700
-                              : Colors.green.shade800,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          _message!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.45,
+                            fontWeight: FontWeight.w700,
+                            color: _messageIsError
+                                ? Colors.red.shade700
+                                : Colors.green.shade800,
+                          ),
                         ),
                       ),
                     ),
@@ -746,17 +747,32 @@ class _AccountPageState extends State<AccountPage> {
     required String? email,
   }) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 48,
-          height: 48,
+          width: 58,
+          height: 58,
           decoration: BoxDecoration(
-            color: Colors.deepPurple.withValues(alpha: 0.08),
-            shape: BoxShape.circle,
+            gradient: isAnonymous
+                ? QuestUiTokens.cyanGradient
+                : QuestUiTokens.primaryGradient,
+            borderRadius: BorderRadius.circular(19),
+            boxShadow: [
+              BoxShadow(
+                color:
+                    (isAnonymous ? QuestUiTokens.cyan : QuestUiTokens.primary)
+                        .withValues(alpha: 0.16),
+                blurRadius: 20,
+                offset: const Offset(0, 7),
+              ),
+            ],
           ),
           child: Icon(
-            isAnonymous ? Icons.person_outline : Icons.verified_user_outlined,
-            color: Colors.deepPurple,
+            isAnonymous
+                ? Icons.person_outline_rounded
+                : Icons.verified_user_outlined,
+            color: Colors.white,
+            size: 28,
           ),
         ),
         const SizedBox(width: 14),
@@ -765,18 +781,43 @@ class _AccountPageState extends State<AccountPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isAnonymous ? 'ゲストアカウント' : '登録済みアカウント',
+                isAnonymous ? 'GUEST ACCOUNT' : 'PLAYER ACCOUNT',
                 style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 9,
+                  letterSpacing: 1.3,
+                  fontWeight: FontWeight.w900,
+                  color: QuestUiTokens.mutedInk,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
+                isAnonymous ? 'ゲストアカウント' : '登録済みアカウント',
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                  color: QuestUiTokens.ink,
+                ),
+              ),
+              const SizedBox(height: 7),
+              QuestStatusChip(
+                label: isAnonymous ? 'ゲスト' : '登録済み',
+                icon: isAnonymous
+                    ? Icons.person_outline_rounded
+                    : Icons.verified_rounded,
+                accentColor: isAnonymous
+                    ? QuestUiTokens.cyan
+                    : QuestUiTokens.primary,
+              ),
+              const SizedBox(height: 9),
+              Text(
                 isAnonymous
                     ? '現在のデータはこの端末の匿名アカウントに紐づいています。'
                     : email ?? 'メールアドレス登録済み',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                style: const TextStyle(
+                  fontSize: 12,
+                  height: 1.45,
+                  color: QuestUiTokens.mutedInk,
+                ),
               ),
             ],
           ),
@@ -798,13 +839,31 @@ class _AccountPageState extends State<AccountPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
+          'SAVE YOUR JOURNEY',
+          style: TextStyle(
+            fontSize: 9,
+            letterSpacing: 1.3,
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.mutedInk,
+          ),
+        ),
+        const SizedBox(height: 5),
+        const Text(
           'データを引き継げるようにする',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.ink,
+          ),
         ),
         const SizedBox(height: 8),
-        Text(
+        const Text(
           'メールアドレスを登録すると、機種変更や再インストール後も現在の獲得記録を引き継げるようになります。',
-          style: TextStyle(height: 1.5, color: Colors.grey.shade700),
+          style: TextStyle(
+            height: 1.5,
+            fontSize: 12,
+            color: QuestUiTokens.mutedInk,
+          ),
         ),
         const SizedBox(height: 18),
         TextField(
@@ -812,52 +871,74 @@ class _AccountPageState extends State<AccountPage> {
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
           enableSuggestions: false,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'メールアドレス',
             hintText: 'example@example.com',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.mail_outline),
+            prefixIcon: const Icon(Icons.mail_outline_rounded),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.72),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(QuestUiTokens.controlRadius),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(QuestUiTokens.controlRadius),
+              borderSide: BorderSide(
+                color: QuestUiTokens.primary.withValues(alpha: 0.10),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(QuestUiTokens.controlRadius),
+              borderSide: const BorderSide(
+                color: QuestUiTokens.primary,
+                width: 1.5,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 14),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: _isSendingEmail ? null : _sendEmailVerification,
-            icon: _isSendingEmail
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.mail_outline),
-            label: Text(_isSendingEmail ? '送信中...' : '確認メールを送信'),
+        QuestPrimaryButton(
+          label: _isSendingEmail ? '送信中...' : '確認メールを送信',
+          icon: _isSendingEmail
+              ? Icons.hourglass_top_rounded
+              : Icons.mark_email_read_outlined,
+          onPressed: _isSendingEmail ? null : _sendEmailVerification,
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            color: QuestUiTokens.cyan.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.shield_outlined, size: 18, color: QuestUiTokens.cyan),
+              SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  '登録しても現在のユーザーIDは変わらないため、これまでの獲得データはそのまま引き継がれます。',
+                  style: TextStyle(
+                    fontSize: 11,
+                    height: 1.45,
+                    color: QuestUiTokens.mutedInk,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 10),
-        Text(
-          '登録しても現在のユーザーIDは変わらないため、これまでの獲得データはそのまま引き継がれます。',
-          style: TextStyle(
-            fontSize: 12,
-            height: 1.4,
-            color: Colors.grey.shade500,
-          ),
-        ),
-        const SizedBox(height: 18),
-        const Divider(),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          child: TextButton.icon(
-            onPressed: () {
-              setState(() {
-                _showExistingLogin = true;
-                _message = null;
-              });
-            },
-            icon: const Icon(Icons.login_outlined),
-            label: const Text('すでにアカウントをお持ちの方'),
-          ),
+        const SizedBox(height: 16),
+        TextButton.icon(
+          onPressed: () {
+            setState(() {
+              _showExistingLogin = true;
+              _message = null;
+            });
+          },
+          icon: const Icon(Icons.login_outlined),
+          label: const Text('すでにアカウントをお持ちの方'),
         ),
       ],
     );
@@ -872,13 +953,31 @@ class _AccountPageState extends State<AccountPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
+          'WELCOME BACK',
+          style: TextStyle(
+            fontSize: 9,
+            letterSpacing: 1.3,
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.mutedInk,
+          ),
+        ),
+        const SizedBox(height: 5),
+        const Text(
           '既存アカウントでログイン',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.ink,
+          ),
         ),
         const SizedBox(height: 8),
-        Text(
+        const Text(
           '以前に登録したメールアドレスとパスワードを入力してください。',
-          style: TextStyle(height: 1.5, color: Colors.grey.shade700),
+          style: TextStyle(
+            height: 1.5,
+            fontSize: 12,
+            color: QuestUiTokens.mutedInk,
+          ),
         ),
         const SizedBox(height: 18),
         TextField(
@@ -886,11 +985,29 @@ class _AccountPageState extends State<AccountPage> {
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
           enableSuggestions: false,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'メールアドレス',
             hintText: 'example@example.com',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.mail_outline),
+            prefixIcon: const Icon(Icons.mail_outline_rounded),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.72),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(QuestUiTokens.controlRadius),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(QuestUiTokens.controlRadius),
+              borderSide: BorderSide(
+                color: QuestUiTokens.primary.withValues(alpha: 0.10),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(QuestUiTokens.controlRadius),
+              borderSide: const BorderSide(
+                color: QuestUiTokens.primary,
+                width: 1.5,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 14),
@@ -904,8 +1021,7 @@ class _AccountPageState extends State<AccountPage> {
           },
           decoration: InputDecoration(
             labelText: 'パスワード',
-            border: const OutlineInputBorder(),
-            prefixIcon: const Icon(Icons.lock_outline),
+            prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
               onPressed: () {
                 setState(() {
@@ -918,26 +1034,37 @@ class _AccountPageState extends State<AccountPage> {
                     : Icons.visibility_off_outlined,
               ),
             ),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.72),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(QuestUiTokens.controlRadius),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(QuestUiTokens.controlRadius),
+              borderSide: BorderSide(
+                color: QuestUiTokens.primary.withValues(alpha: 0.10),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(QuestUiTokens.controlRadius),
+              borderSide: const BorderSide(
+                color: QuestUiTokens.primary,
+                width: 1.5,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 18),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: _isSigningIn ? null : _signInExistingAccount,
-            icon: _isSigningIn
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.login_outlined),
-            label: Text(_isSigningIn ? 'ログイン中...' : 'ログイン'),
-          ),
+        QuestPrimaryButton(
+          label: _isSigningIn ? 'ログイン中...' : 'ログイン',
+          icon: _isSigningIn
+              ? Icons.hourglass_top_rounded
+              : Icons.login_outlined,
+          onPressed: _isSigningIn ? null : _signInExistingAccount,
         ),
-        const SizedBox(height: 4),
-        SizedBox(
-          width: double.infinity,
+        const SizedBox(height: 6),
+        Center(
           child: TextButton(
             onPressed: _isSigningIn
                 ? null
@@ -952,9 +1079,7 @@ class _AccountPageState extends State<AccountPage> {
             child: const Text('パスワードを忘れた方'),
           ),
         ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
+        Center(
           child: TextButton(
             onPressed: _isSigningIn
                 ? null
@@ -977,9 +1102,19 @@ class _AccountPageState extends State<AccountPage> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const QuestStatusChip(
+            label: '本人確認済み',
+            icon: Icons.verified_rounded,
+            accentColor: QuestUiTokens.cyan,
+          ),
+          const SizedBox(height: 14),
           const Text(
             '新しいパスワードを設定',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: QuestUiTokens.ink,
+            ),
           ),
           const SizedBox(height: 18),
           TextField(
@@ -988,13 +1123,11 @@ class _AccountPageState extends State<AccountPage> {
             decoration: InputDecoration(
               labelText: '新しいパスワード',
               hintText: '8文字以上',
-              border: const OutlineInputBorder(),
-              prefixIcon: const Icon(Icons.lock_outline),
+              prefixIcon: const Icon(Icons.lock_outline_rounded),
               suffixIcon: IconButton(
                 onPressed: () {
                   setState(() {
-                    _obscureRecoveryPassword =
-                        !_obscureRecoveryPassword;
+                    _obscureRecoveryPassword = !_obscureRecoveryPassword;
                   });
                 },
                 icon: Icon(
@@ -1003,29 +1136,42 @@ class _AccountPageState extends State<AccountPage> {
                       : Icons.visibility_off_outlined,
                 ),
               ),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.72),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(
+                  QuestUiTokens.controlRadius,
+                ),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
           const SizedBox(height: 14),
           TextField(
             controller: _recoveryPasswordConfirmController,
             obscureText: _obscureRecoveryPassword,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: '新しいパスワード確認',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.lock_outline),
+              prefixIcon: const Icon(Icons.lock_outline_rounded),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.72),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(
+                  QuestUiTokens.controlRadius,
+                ),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
           const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _isSavingRecoveryPassword
-                  ? null
-                  : _saveRecoveredPassword,
-              child: Text(
-                _isSavingRecoveryPassword ? '更新中...' : 'パスワードを更新',
-              ),
-            ),
+          QuestPrimaryButton(
+            label: _isSavingRecoveryPassword ? '更新中...' : 'パスワードを更新',
+            icon: _isSavingRecoveryPassword
+                ? Icons.hourglass_top_rounded
+                : Icons.password_rounded,
+            onPressed: _isSavingRecoveryPassword
+                ? null
+                : _saveRecoveredPassword,
           ),
         ],
       );
@@ -1036,41 +1182,63 @@ class _AccountPageState extends State<AccountPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
+            'VERIFY CODE',
+            style: TextStyle(
+              fontSize: 9,
+              letterSpacing: 1.3,
+              fontWeight: FontWeight.w900,
+              color: QuestUiTokens.mutedInk,
+            ),
+          ),
+          const SizedBox(height: 5),
+          const Text(
             '確認コードを入力',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: QuestUiTokens.ink,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             '${_loginEmailController.text.trim()} に再設定コードを送信しました。',
-            style: TextStyle(height: 1.5, color: Colors.grey.shade700),
+            style: const TextStyle(
+              height: 1.5,
+              fontSize: 12,
+              color: QuestUiTokens.mutedInk,
+            ),
           ),
           const SizedBox(height: 18),
           TextField(
             controller: _recoveryOtpController,
             keyboardType: TextInputType.number,
             maxLength: 8,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: '8桁の確認コード',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.pin_outlined),
+              prefixIcon: const Icon(Icons.pin_outlined),
               counterText: '',
-            ),
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _isVerifyingRecoveryOtp
-                  ? null
-                  : _verifyPasswordRecoveryOtp,
-              child: Text(
-                _isVerifyingRecoveryOtp ? '確認中...' : '確認する',
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.72),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(
+                  QuestUiTokens.controlRadius,
+                ),
+                borderSide: BorderSide.none,
               ),
             ),
           ),
+          const SizedBox(height: 14),
+          QuestPrimaryButton(
+            label: _isVerifyingRecoveryOtp ? '確認中...' : '確認する',
+            icon: _isVerifyingRecoveryOtp
+                ? Icons.hourglass_top_rounded
+                : Icons.verified_outlined,
+            onPressed: _isVerifyingRecoveryOtp
+                ? null
+                : _verifyPasswordRecoveryOtp,
+          ),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
+          Center(
             child: TextButton(
               onPressed: _isSendingRecoveryEmail
                   ? null
@@ -1086,13 +1254,31 @@ class _AccountPageState extends State<AccountPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
+          'ACCOUNT RECOVERY',
+          style: TextStyle(
+            fontSize: 9,
+            letterSpacing: 1.3,
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.mutedInk,
+          ),
+        ),
+        const SizedBox(height: 5),
+        const Text(
           'パスワードを再設定',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.ink,
+          ),
         ),
         const SizedBox(height: 8),
-        Text(
+        const Text(
           '登録済みのメールアドレスへ確認コードを送信します。',
-          style: TextStyle(height: 1.5, color: Colors.grey.shade700),
+          style: TextStyle(
+            height: 1.5,
+            fontSize: 12,
+            color: QuestUiTokens.mutedInk,
+          ),
         ),
         const SizedBox(height: 18),
         TextField(
@@ -1100,28 +1286,29 @@ class _AccountPageState extends State<AccountPage> {
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
           enableSuggestions: false,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'メールアドレス',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.mail_outline),
-          ),
-        ),
-        const SizedBox(height: 18),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: _isSendingRecoveryEmail
-                ? null
-                : _sendPasswordRecoveryEmail,
-            icon: const Icon(Icons.mark_email_read_outlined),
-            label: Text(
-              _isSendingRecoveryEmail ? '送信中...' : '再設定コードを送信',
+            prefixIcon: const Icon(Icons.mail_outline_rounded),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.72),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(QuestUiTokens.controlRadius),
+              borderSide: BorderSide.none,
             ),
           ),
         ),
+        const SizedBox(height: 18),
+        QuestPrimaryButton(
+          label: _isSendingRecoveryEmail ? '送信中...' : '再設定コードを送信',
+          icon: _isSendingRecoveryEmail
+              ? Icons.hourglass_top_rounded
+              : Icons.mark_email_read_outlined,
+          onPressed: _isSendingRecoveryEmail
+              ? null
+              : _sendPasswordRecoveryEmail,
+        ),
         const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
+        Center(
           child: TextButton(
             onPressed: () {
               setState(() {
@@ -1144,50 +1331,65 @@ class _AccountPageState extends State<AccountPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
+          'VERIFY EMAIL',
+          style: TextStyle(
+            fontSize: 9,
+            letterSpacing: 1.3,
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.mutedInk,
+          ),
+        ),
+        const SizedBox(height: 5),
+        const Text(
           'メールアドレスを確認',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.ink,
+          ),
         ),
         const SizedBox(height: 8),
         Text(
           '${_pendingEmail ?? ''} に確認メールを送信しました。',
-          style: TextStyle(height: 1.5, color: Colors.grey.shade700),
+          style: const TextStyle(
+            height: 1.5,
+            fontSize: 12,
+            color: QuestUiTokens.mutedInk,
+          ),
         ),
         const SizedBox(height: 18),
         TextField(
           controller: _otpController,
           keyboardType: TextInputType.number,
           maxLength: 8,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: '8桁の確認コード',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.pin_outlined),
+            prefixIcon: const Icon(Icons.pin_outlined),
             counterText: '',
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.72),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(QuestUiTokens.controlRadius),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
         const SizedBox(height: 14),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: _isVerifyingOtp ? null : _verifyEmailOtp,
-            child: _isVerifyingOtp
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('確認する'),
-          ),
+        QuestPrimaryButton(
+          label: _isVerifyingOtp ? '確認中...' : '確認する',
+          icon: _isVerifyingOtp
+              ? Icons.hourglass_top_rounded
+              : Icons.verified_outlined,
+          onPressed: _isVerifyingOtp ? null : _verifyEmailOtp,
         ),
         const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
+        Center(
           child: TextButton(
             onPressed: _isSendingEmail ? null : _sendEmailVerification,
             child: const Text('確認メールを再送'),
           ),
         ),
-        SizedBox(
-          width: double.infinity,
+        Center(
           child: TextButton(
             onPressed: () {
               setState(() {
@@ -1207,27 +1409,38 @@ class _AccountPageState extends State<AccountPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'メールアドレスを確認しました',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
+        const QuestStatusChip(
+          label: 'メール確認済み',
+          icon: Icons.check_circle_rounded,
+          accentColor: QuestUiTokens.cyan,
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 14),
+        const Text(
+          'CREATE PASSWORD',
+          style: TextStyle(
+            fontSize: 9,
+            letterSpacing: 1.3,
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.mutedInk,
+          ),
+        ),
+        const SizedBox(height: 5),
         const Text(
           'パスワードを設定',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.ink,
+          ),
         ),
         const SizedBox(height: 8),
-        Text(
+        const Text(
           '別の端末からログインするときに使用するパスワードを設定します。',
-          style: TextStyle(height: 1.5, color: Colors.grey.shade700),
+          style: TextStyle(
+            height: 1.5,
+            fontSize: 12,
+            color: QuestUiTokens.mutedInk,
+          ),
         ),
         const SizedBox(height: 18),
         TextField(
@@ -1236,8 +1449,7 @@ class _AccountPageState extends State<AccountPage> {
           decoration: InputDecoration(
             labelText: 'パスワード',
             hintText: '8文字以上',
-            border: const OutlineInputBorder(),
-            prefixIcon: const Icon(Icons.lock_outline),
+            prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
               onPressed: () {
                 setState(() {
@@ -1250,32 +1462,36 @@ class _AccountPageState extends State<AccountPage> {
                     : Icons.visibility_off_outlined,
               ),
             ),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.72),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(QuestUiTokens.controlRadius),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
         const SizedBox(height: 14),
         TextField(
           controller: _passwordConfirmController,
           obscureText: _obscurePassword,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'パスワード確認',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.lock_outline),
+            prefixIcon: const Icon(Icons.lock_outline_rounded),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.72),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(QuestUiTokens.controlRadius),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
         const SizedBox(height: 18),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: _isSavingPassword ? null : _savePassword,
-            icon: _isSavingPassword
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.verified_user_outlined),
-            label: Text(_isSavingPassword ? '登録中...' : 'アカウント登録を完了'),
-          ),
+        QuestPrimaryButton(
+          label: _isSavingPassword ? '登録中...' : 'アカウント登録を完了',
+          icon: _isSavingPassword
+              ? Icons.hourglass_top_rounded
+              : Icons.verified_user_outlined,
+          onPressed: _isSavingPassword ? null : _savePassword,
         ),
       ],
     );
@@ -1285,39 +1501,75 @@ class _AccountPageState extends State<AccountPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'このアカウントは引き継ぎに対応しています。',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
+        const QuestStatusChip(
+          label: '引き継ぎ対応',
+          icon: Icons.cloud_done_outlined,
+          accentColor: QuestUiTokens.cyan,
         ),
-        if (email != null) ...[
-          const SizedBox(height: 14),
-          Text(email, style: TextStyle(color: Colors.grey.shade700)),
-        ],
-        const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () {
-              setState(() {
-                _emailVerified = true;
-                _message = null;
-              });
-            },
-            icon: const Icon(Icons.password_outlined),
-            label: const Text('パスワードを設定・変更'),
+        const SizedBox(height: 14),
+        const Text(
+          'ACCOUNT READY',
+          style: TextStyle(
+            fontSize: 9,
+            letterSpacing: 1.3,
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.mutedInk,
           ),
         ),
+        const SizedBox(height: 5),
+        const Text(
+          'このアカウントは引き継ぎに対応しています。',
+          style: TextStyle(
+            fontSize: 16,
+            height: 1.4,
+            fontWeight: FontWeight.w900,
+            color: QuestUiTokens.ink,
+          ),
+        ),
+        if (email != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: QuestUiTokens.primary.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.mail_outline_rounded,
+                  size: 18,
+                  color: QuestUiTokens.primary,
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    email,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: QuestUiTokens.ink,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 20),
+        QuestPrimaryButton(
+          label: 'パスワードを設定・変更',
+          icon: Icons.password_outlined,
+          onPressed: () {
+            setState(() {
+              _emailVerified = true;
+              _message = null;
+            });
+          },
+        ),
         const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
+        Center(
           child: TextButton.icon(
             onPressed: () {
               setState(() {
@@ -1332,12 +1584,25 @@ class _AccountPageState extends State<AccountPage> {
           ),
         ),
         const SizedBox(height: 20),
-        const Divider(),
-        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          height: 1,
+          color: QuestUiTokens.mutedInk.withValues(alpha: 0.10),
+        ),
+        const SizedBox(height: 16),
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: _isSigningOut ? null : _signOutCurrentAccount,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: QuestUiTokens.ink,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  QuestUiTokens.controlRadius,
+                ),
+              ),
+            ),
             icon: _isSigningOut
                 ? const SizedBox(
                     width: 18,
@@ -1349,15 +1614,12 @@ class _AccountPageState extends State<AccountPage> {
           ),
         ),
         const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
+        Center(
           child: TextButton.icon(
             onPressed: _isDeletingAccount || _isSigningOut
                 ? null
                 : _deleteCurrentAccount,
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             icon: _isDeletingAccount
                 ? const SizedBox(
                     width: 18,
@@ -1365,11 +1627,7 @@ class _AccountPageState extends State<AccountPage> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.delete_forever_outlined),
-            label: Text(
-              _isDeletingAccount
-                  ? '削除中...'
-                  : 'アカウントを削除',
-            ),
+            label: Text(_isDeletingAccount ? '削除中...' : 'アカウントを削除'),
           ),
         ),
       ],
