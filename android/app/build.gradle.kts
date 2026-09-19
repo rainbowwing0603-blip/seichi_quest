@@ -1,3 +1,14 @@
+import java.io.FileInputStream
+import java.util.Properties
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+
+if (!keystorePropertiesFile.exists()) {
+    throw GradleException("android/key.properties is required for release signing.")
+}
+
+keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -34,6 +45,14 @@ android {
             "ca-app-pub-3940256099942544~3347511713"
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+        }
+    }
     buildTypes {
 
         release {
@@ -41,8 +60,8 @@ android {
             manifestPlaceholders["adMobAppId"] =
                 "ca-app-pub-1391846841313915~6472071786"
 
-            // 現在はデバッグ署名を使用
-            signingConfig = signingConfigs.getByName("debug")
+            // Releaseはupload keystoreで署名
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
