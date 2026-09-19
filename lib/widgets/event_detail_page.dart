@@ -696,7 +696,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: QuestUiTokens.ink.withValues(alpha: 0.07)),
       ),
-      clipBehavior: Clip.antiAlias,
       child: Image.network(
         imageUrl,
         fit: BoxFit.contain,
@@ -1726,67 +1725,20 @@ class _EventDetailPageState extends State<EventDetailPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(15),
-                      ),
-                      child: imageUrl != null && imageUrl.isNotEmpty
-                          ? Image.network(
-                              imageUrl,
-                              fit: BoxFit.cover,
-                              cacheWidth: 360,
-                              filterQuality: FilterQuality.low,
-                              errorBuilder: (context, error, stackTrace) {
-                                return _buildGalleryFallback(seichi);
-                              },
-                            )
-                          : _buildGalleryFallback(seichi),
-                    ),
-                    if (collected)
-                      Positioned(
-                        top: 7,
-                        right: 7,
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: const BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.check,
-                            size: 18,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    if (isNext && !collected)
-                      Positioned(
-                        top: 7,
-                        left: 7,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: QuestUiTokens.primaryGradient,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Text(
-                            'NEXT',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
+                child: Container(
+                  color: Colors.white,
+                  alignment: Alignment.center,
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.contain,
+                          cacheWidth: 360,
+                          filterQuality: FilterQuality.low,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildGalleryFallback(seichi);
+                          },
+                        )
+                      : _buildGalleryFallback(seichi),
                 ),
               ),
               Padding(
@@ -1823,6 +1775,34 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         ),
                       ),
                     ),
+                    if (collected) ...[
+                      const SizedBox(width: 5),
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        size: 18,
+                        color: Colors.green,
+                      ),
+                    ] else if (isNext) ...[
+                      const SizedBox(width: 5),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: QuestUiTokens.primaryGradient,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Text(
+                          'NEXT',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
