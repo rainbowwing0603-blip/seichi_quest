@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'dart:ui';
 
 import 'dart:async';
@@ -39,6 +41,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import 'services/app_logger.dart';
+import 'services/interstitial_ad_service.dart';
 
 // ============================================================
 // Supabase
@@ -154,6 +157,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   String? _errorMessage;
 
+  BitmapDescriptor? _uncollectedMarkerIcon;
+  BitmapDescriptor? _collectedMarkerIcon;
+  BitmapDescriptor? _nextMarkerIcon;
+  Set<Marker>? _staticMarkerCache;
+  String? _staticMarkerCacheSignature;
   Seichi? _nextSeichi;
   double? _nextDistance;
 
@@ -178,6 +186,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   bool _isCollecting = false;
 
   late AnimationController _sonarController;
+  int _lastMarkerAnimationFrame = -1;
 
   int _selectedTab = 0;
 
@@ -256,13 +265,26 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   @override
   void initState() {
     super.initState();
+    InterstitialAdService.instance.preload();
 
     _sonarController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     )..repeat();
+    _sonarController.addListener(_onMarkerAnimationTick);
 
     _initialize();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (_uncollectedMarkerIcon == null ||
+        _collectedMarkerIcon == null ||
+        _nextMarkerIcon == null) {
+      _loadMapMarkerIcons();
+    }
   }
 
   Future<void> _loadCurrentEvent() async {
@@ -472,6 +494,47 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     _eventAchievements = achievements;
+  }
+
+  Future<void> _loadMapMarkerIcons() async {
+    try {
+      final configuration = createLocalImageConfiguration(context);
+
+      final icons = await Future.wait<BitmapDescriptor>([
+        BitmapDescriptor.asset(
+          configuration,
+          'assets/map_markers/marker_uncollected.png',
+          width: 36,
+          height: 48,
+        ),
+        BitmapDescriptor.asset(
+          configuration,
+          'assets/map_markers/marker_collected.png',
+          width: 36,
+          height: 48,
+        ),
+        BitmapDescriptor.asset(
+          configuration,
+          'assets/map_markers/marker_next.png',
+          width: 42,
+          height: 56,
+        ),
+      ]);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _uncollectedMarkerIcon = icons[0];
+        _collectedMarkerIcon = icons[1];
+        _nextMarkerIcon = icons[2];
+      });
+
+      appDebugPrint('[MARKER] crystal icons loaded');
+    } catch (error) {
+      appDebugPrint('[MARKER] crystal icon load failed: $error');
+    }
   }
 
   Future<void> _initialize() async {
@@ -1671,6 +1734,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
+    InterstitialAdService.instance.markStampCollected();
+
     for (final item in newlyCollectedSeichi) {
       _collectedIds.add(item.id);
     }
@@ -2193,31 +2258,99 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   Set<Marker> _buildMarkers() {
-    final markers = <Marker>{};
+    final nextId = _nextSeichi?.id;
 
-    for (final seichi in _seichiList) {
-      final collected = _collectedIds.contains(seichi.id);
+    // 静止Markerの状態を表す署名。
+    // アニメーションだけではこの値は変化しない。
+    final sortedCollectedIds = _collectedIds.toList()..sort();
 
-      appDebugPrint(
-        '[MARKER] ${seichi.name} id=${seichi.id} collected=$collected',
-      );
+    final signature = [
+      _seichiList.map((item) => item.id).join(','),
+      sortedCollectedIds.join(','),
+      nextId ?? '',
+      _uncollectedMarkerIcon?.hashCode ?? 0,
+      _collectedMarkerIcon?.hashCode ?? 0,
+    ].join('|');
+
+    if (_staticMarkerCache == null ||
+        _staticMarkerCacheSignature != signature) {
+      final staticMarkers = <Marker>{};
+
+      for (final seichi in _seichiList) {
+        final collected = _collectedIds.contains(seichi.id);
+        final isNext = !collected && seichi.id == nextId;
+
+        // NEXTだけはアニメーションするため静止キャッシュから除外する。
+        if (isNext) {
+          continue;
+        }
+
+        final markerIcon = collected
+            ? _collectedMarkerIcon ??
+                  BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueGreen,
+                  )
+            : _uncollectedMarkerIcon ??
+                  BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueAzure,
+                  );
+
+        staticMarkers.add(
+          Marker(
+            markerId: MarkerId(seichi.id),
+            position: LatLng(seichi.latitude, seichi.longitude),
+            icon: markerIcon,
+            alpha: 0.78,
+            anchor: const Offset(0.5, 0.94),
+            zIndexInt: 1,
+            infoWindow: InfoWindow(
+              title: '${seichi.icon} ${seichi.card} ${seichi.name}',
+              snippet: collected
+                  ? '🏆 スタンプ獲得済み'
+                  : '${seichi.reading} ・ '
+                        '到達半径 ${seichi.stampRadiusMeters}m',
+            ),
+            onTap: () {
+              _showSeichiDetails(seichi);
+            },
+          ),
+        );
+      }
+
+      _staticMarkerCache = staticMarkers;
+      _staticMarkerCacheSignature = signature;
+    }
+
+    final markers = <Marker>{...?_staticMarkerCache};
+
+    final nextSeichi = _nextSeichi;
+
+    if (nextSeichi != null && !_collectedIds.contains(nextSeichi.id)) {
+      final animationValue = _sonarController.value;
+      final wave = math.sin(animationValue * math.pi * 2);
+      final nextAnchorY = 0.94 + (wave * 0.035);
 
       markers.add(
         Marker(
-          markerId: MarkerId(seichi.id),
-          position: LatLng(seichi.latitude, seichi.longitude),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            collected ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueViolet,
-          ),
+          markerId: MarkerId(nextSeichi.id),
+          position: LatLng(nextSeichi.latitude, nextSeichi.longitude),
+          icon:
+              _nextMarkerIcon ??
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+          alpha: 0.90,
+          anchor: Offset(0.5, nextAnchorY),
+          zIndexInt: 2,
           infoWindow: InfoWindow(
-            title: '${seichi.icon} ${seichi.card} ${seichi.name}',
-            snippet: collected
-                ? '🏆 スタンプ獲得済み'
-                : '${seichi.reading} ・ '
-                      '到達半径 ${seichi.stampRadiusMeters}m',
+            title:
+                '${nextSeichi.icon} '
+                '${nextSeichi.card} '
+                '${nextSeichi.name}',
+            snippet:
+                '✨ NEXT ・ ${nextSeichi.reading} ・ '
+                '到達半径 ${nextSeichi.stampRadiusMeters}m',
           ),
           onTap: () {
-            _showSeichiDetails(seichi);
+            _showSeichiDetails(nextSeichi);
           },
         ),
       );
@@ -2864,6 +2997,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     );
   }
 
+  Future<void> _showInterstitialAfterSafeScreen({
+    required DateTime openedAt,
+  }) async {
+    if (!mounted) {
+      return;
+    }
+
+    final screenStay = DateTime.now().difference(openedAt);
+
+    await InterstitialAdService.instance.showIfEligible(screenStay: screenStay);
+  }
+
   Widget _buildMyPage() {
     return MyPage(
       displayName: _displayName,
@@ -3111,10 +3256,15 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         });
       },
       onShowAdventureLog: () async {
+        final openedAt = DateTime.now();
+
         await Navigator.of(context)
             .push(MaterialPageRoute(builder: (_) => const AdventureLogPage()));
+
+        await _showInterstitialAfterSafeScreen(openedAt: openedAt);
       },
       onShowSyncStatus: () async {
+        final openedAt = DateTime.now();
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => SyncStatusPage(
@@ -3139,6 +3289,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             ),
           ),
         );
+
+        await _showInterstitialAfterSafeScreen(openedAt: openedAt);
       },
       onShowProfile: () async {
         await Navigator.of(context)
@@ -3187,9 +3339,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         }
       },
       onShowNotifications: () async {
+        final openedAt = DateTime.now();
+
         await Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const NotificationSettingsPage()),
         );
+
+        await _showInterstitialAfterSafeScreen(openedAt: openedAt);
       },
       onShowAbout: _showAbout,
       onShowSettings: () async {
@@ -3419,6 +3575,23 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         ],
       ),
     );
+  }
+
+  void _onMarkerAnimationTick() {
+    if (!mounted || _nextSeichi == null || _selectedTab != 0) {
+      return;
+    }
+
+    // 1.8秒周期を27段階で更新し、
+    // Google MapのMarker再構築を約15fpsに抑える。
+    final frame = (_sonarController.value * 27).floor();
+
+    if (frame == _lastMarkerAnimationFrame) {
+      return;
+    }
+
+    _lastMarkerAnimationFrame = frame;
+    setState(() {});
   }
 
   @override

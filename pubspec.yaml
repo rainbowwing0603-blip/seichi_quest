@@ -30,3 +30,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/map_markers/marker_uncollected.png
+    - assets/map_markers/marker_collected.png
+    - assets/map_markers/marker_next.png
