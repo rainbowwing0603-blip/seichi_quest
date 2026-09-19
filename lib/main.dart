@@ -1768,9 +1768,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       if (_preferences?.getBool('setting_stamp_notification') ?? true) {
         try {
-          await NotificationService.instance.showStampCollected(
-            seichiName: '${item.card} ${item.name}',
-          );
+          final notificationGranted = await NotificationService.instance
+              .requestPermission();
+
+          if (notificationGranted) {
+            await NotificationService.instance.showStampCollected(
+              seichiName: '${item.card} ${item.name}',
+            );
+          }
         } catch (_) {
           // 通知失敗時もスタンプ獲得状態は維持する。
         }
