@@ -208,7 +208,14 @@ class MapPage extends StatelessWidget {
       return 1.0;
     }
 
-    final normalized = 1.0 - (distance / 2000.0);
+    // ソナーの反応範囲は聖地ごとの獲得半径から自動計算する。
+    // 小さい獲得半径でも最低1km先から反応するようにする。
+    final calculatedSonarRange = radius * 5.0;
+    final sonarRangeMeters = calculatedSonarRange < 1000.0
+        ? 1000.0
+        : calculatedSonarRange;
+
+    final normalized = 1.0 - (distance / sonarRangeMeters);
 
     return normalized.clamp(0.1, 1.0);
   }
