@@ -30,10 +30,13 @@ class InterstitialAdService {
   static Duration get minimumScreenStay =>
       kReleaseMode ? _productionMinimumScreenStay : _debugMinimumScreenStay;
 
-  // Debug/ProfileではGoogle公式テスト広告を使用する。
-  // Release用IDは本番広告ユニット作成後に設定する。
+  // Debug/ProfileではGoogle公式テスト広告、
+  // Releaseでは聖地クエスト本番広告を使用する。
   static const String _testInterstitialAdUnitId =
       'ca-app-pub-3940256099942544/1033173712';
+
+  static const String _productionInterstitialAdUnitId =
+      'ca-app-pub-1391846841313915/4859337718';
 
   final DateTime _sessionStartedAt = DateTime.now();
 
@@ -44,11 +47,11 @@ class InterstitialAdService {
   bool _isLoading = false;
   bool _isShowing = false;
 
-  bool get hasProductionAdUnitId => false;
+  bool get hasProductionAdUnitId => true;
 
   String? get _adUnitId {
     if (kReleaseMode) {
-      return null;
+      return _productionInterstitialAdUnitId;
     }
 
     return _testInterstitialAdUnitId;
