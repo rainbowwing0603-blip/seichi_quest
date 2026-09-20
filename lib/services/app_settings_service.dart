@@ -5,9 +5,15 @@ class AppSettingsService {
       : _providedPreferences = preferences;
 
   final SharedPreferences? _providedPreferences;
+  Future<SharedPreferences>? _preferencesFuture;
 
-  Future<SharedPreferences> _preferences() async {
-    return _providedPreferences ?? SharedPreferences.getInstance();
+  Future<SharedPreferences> _preferences() {
+    final provided = _providedPreferences;
+    if (provided != null) {
+      return Future<SharedPreferences>.value(provided);
+    }
+
+    return _preferencesFuture ??= SharedPreferences.getInstance();
   }
 
   Future<bool> isAutoNextDestinationEnabled() async {
