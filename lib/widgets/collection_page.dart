@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import '../models/seichi.dart';
 import '../painters/stamp_ring_painter.dart';
 import '../services/content_block_service.dart';
+import '../services/content_block_presentation_policy.dart';
 import 'content_block_renderer.dart';
 import 'quest_ui.dart';
 
 class CollectionPage extends StatelessWidget {
+  static const ContentBlockPresentationPolicy _contentBlockPresentationPolicy =
+      ContentBlockPresentationPolicy();
+
   const CollectionPage({
     super.key,
     required this.eventId,
@@ -763,10 +767,32 @@ class CollectionPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (hasCardImage) ...[
-                    _buildCardImage(seichi),
-                    const SizedBox(height: 16),
-                  ],
+                  FutureBuilder(
+                    future: contentBlocksFuture,
+                    builder: (context, snapshot) {
+                      final presentation =
+                          _contentBlockPresentationPolicy.resolve(
+                            snapshot.data ?? const [],
+                          );
+
+                      if (snapshot.hasError) {
+                        debugPrint(
+                          '[CONTENT_BLOCKS] collection detail load failed: '
+                          '${snapshot.error}',
+                        );
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (presentation.showLegacyImage && hasCardImage) ...[
+                            _buildCardImage(seichi),
+                            const SizedBox(height: 16),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
 
                   QuestGlassCard(
                     padding: const EdgeInsets.all(18),
@@ -879,39 +905,30 @@ class CollectionPage extends StatelessWidget {
                     ),
                   ),
 
-                  if (contentBlocksFuture != null) ...[
-                    FutureBuilder(
-                      future: contentBlocksFuture,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState != ConnectionState.done) {
-                          return const SizedBox.shrink();
-                        }
-
-                        if (snapshot.hasError) {
-                          debugPrint(
-                            '[CONTENT_BLOCKS] collection detail load failed: '
-                            '${snapshot.error}',
+                  FutureBuilder(
+                    future: contentBlocksFuture,
+                    builder: (context, snapshot) {
+                      final presentation =
+                          _contentBlockPresentationPolicy.resolve(
+                            snapshot.data ?? const [],
                           );
-                          return const SizedBox.shrink();
-                        }
 
-                        final blocks = snapshot.data;
+                      if (presentation.blocks.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
 
-                        if (blocks == null || blocks.isEmpty) {
-                          return const SizedBox.shrink();
-                        }
-
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 14),
-                          child: QuestGlassCard(
-                            padding: const EdgeInsets.all(16),
-                            borderRadius: 20,
-                            child: ContentBlockRenderer(blocks: blocks),
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 14),
+                        child: QuestGlassCard(
+                          padding: const EdgeInsets.all(16),
+                          borderRadius: 20,
+                          child: ContentBlockRenderer(
+                            blocks: presentation.blocks,
                           ),
-                        );
-                      },
-                    ),
-                  ],
+                        ),
+                      );
+                    },
+                  ),
                   if (collected && eventNames.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     QuestGlassCard(
