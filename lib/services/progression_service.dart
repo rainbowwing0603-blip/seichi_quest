@@ -1,12 +1,27 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../models/achievement.dart';
+import 'collection_history_service.dart';
+import 'level_service.dart';
 
 class ProgressionService {
-  ProgressionService({supabase.SupabaseClient? client})
-      : _client = client ?? supabase.Supabase.instance.client;
+  ProgressionService({
+    supabase.SupabaseClient? client,
+    CollectionHistoryService? historyService,
+    LevelService levelService = const LevelService(),
+  })  : _client = client ?? supabase.Supabase.instance.client,
+        _historyService = historyService ?? CollectionHistoryService(),
+        _levelService = levelService;
 
   final supabase.SupabaseClient _client;
+  final CollectionHistoryService _historyService;
+  final LevelService _levelService;
+
+  Future<LevelProgress> loadLevelProgress() async {
+    final totalCollected = await _historyService.loadTotalCollectionCount();
+    final totalXp = _levelService.xpFromCollectedCount(totalCollected);
+    return _levelService.progressFromXp(totalXp);
+  }
 
   Future<List<Achievement>> loadEventAchievements(String eventId) async {
     if (eventId.isEmpty) {
