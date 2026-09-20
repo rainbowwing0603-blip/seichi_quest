@@ -1806,6 +1806,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       setState(() {
         _selectedTab = 0;
       });
+      _syncMarkerAnimation();
 
       return;
     }
@@ -2600,11 +2601,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         setState(() {
           _selectedTab = 3;
         });
+        _syncMarkerAnimation();
       },
       onShowAchievements: () {
         setState(() {
           _selectedTab = 1;
         });
+        _syncMarkerAnimation();
       },
       onShowAdventureLog: () async {
         final openedAt = DateTime.now();
@@ -2925,6 +2928,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                       setState(() {
                         _selectedTab = index;
                       });
+                      _syncMarkerAnimation();
                     },
                     destinations: const [
                       NavigationDestination(
