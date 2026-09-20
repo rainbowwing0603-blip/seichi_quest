@@ -1,4 +1,6 @@
-class QuestItem {
+import 'quest_destination.dart';
+
+class QuestItem implements QuestDestination {
   final String id;
   final String eventContentId;
   final String contentId;
