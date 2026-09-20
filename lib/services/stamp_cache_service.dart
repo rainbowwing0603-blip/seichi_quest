@@ -5,10 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// クラウド履歴やスタンプ獲得判定は扱わず、SharedPreferences上の
 /// 互換移行・読み込み・保存だけを担当する。
 class StampCacheService {
-  StampCacheService({SharedPreferences? preferences})
-      : _preferences = preferences;
+  StampCacheService({this.preferences});
 
-  SharedPreferences? _preferences;
+  final SharedPreferences? preferences;
 
   String storageKey({
     required String userId,
@@ -18,7 +17,7 @@ class StampCacheService {
   }
 
   Future<SharedPreferences> _prefs() async {
-    return _preferences ??= await SharedPreferences.getInstance();
+    return preferences ?? await SharedPreferences.getInstance();
   }
 
   Future<void> migrateLegacyCache({
