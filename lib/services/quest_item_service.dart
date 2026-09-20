@@ -6,12 +6,11 @@ import 'quest_item_mapper.dart';
 class QuestItemService {
   QuestItemService({
     supabase.SupabaseClient? client,
-    QuestItemMapper mapper = const QuestItemMapper(),
-  })  : _client = client ?? supabase.Supabase.instance.client,
-        _mapper = mapper;
+    this.mapper = const QuestItemMapper(),
+  }) : _client = client ?? supabase.Supabase.instance.client;
 
   final supabase.SupabaseClient _client;
-  final QuestItemMapper _mapper;
+  final QuestItemMapper mapper;
 
   Future<List<QuestItem>> loadActiveItems(String eventId) async {
     if (eventId.isEmpty) {
@@ -32,7 +31,7 @@ class QuestItemService {
         .order('display_order');
 
     return List<Map<String, dynamic>>.from(data)
-        .map(_mapper.fromEventContentRow)
+        .map(mapper.fromEventContentRow)
         .where(
           (item) =>
               item.id.isNotEmpty &&
