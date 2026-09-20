@@ -1354,14 +1354,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     _lastStampCheckPosition = position;
-    appDebugPrint(
-      '[STAMP_GPS] '
-      'lat=${position.latitude}, '
-      'lon=${position.longitude}, '
-      'accuracy=${position.accuracy}m, '
-      'timestamp=${position.timestamp}, '
-      'seichiCount=${_seichiList.length}',
-    );
+    if (kDebugMode) {
+      appDebugPrint(
+        '[STAMP_GPS] '
+        'lat=${position.latitude}, '
+        'lon=${position.longitude}, '
+        'accuracy=${position.accuracy}m, '
+        'timestamp=${position.timestamp}, '
+        'seichiCount=${_seichiList.length}',
+      );
+    }
 
     Seichi? nearestSeichi;
     double nearestDistance = double.infinity;
@@ -1397,7 +1399,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       }
     }
 
-    if (nearestSeichi != null) {
+    if (kDebugMode && nearestSeichi != null) {
       appDebugPrint(
         '[STAMP_DISTANCE] '
         'name=${nearestSeichi.name}, '
@@ -1482,12 +1484,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       ..addAll(applyPlan.newCollectedIds);
     _markerCacheRevision.markChanged();
 
-    appDebugPrint(
-      '[ROUTE-NEXT] COLLECTED '
-      'new=${newlyCollectedSeichi.map((item) => '${item.card}:${item.name}:${item.id}').toList()} '
-      'activeBefore=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
-      'manualBefore=$_manualNextSeichiId',
-    );
+    if (kDebugMode) {
+      appDebugPrint(
+        '[ROUTE-NEXT] COLLECTED '
+        'new=${newlyCollectedSeichi.map((item) => '${item.card}:${item.name}:${item.id}').toList()} '
+        'activeBefore=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+        'manualBefore=$_manualNextSeichiId',
+      );
+    }
 
     final routeState = RecommendedRoutePolicy.advanceAfterCollection(
       activeRoute: _activeRecommendedRoute,
@@ -1503,11 +1507,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       ..addAll(routeState.route);
     _manualNextSeichiId = routeState.manualNextSeichiId;
 
-    appDebugPrint(
-      '[ROUTE-NEXT] AFTER ROUTE ADVANCE '
-      'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
-      'manual=$_manualNextSeichiId',
-    );
+    if (kDebugMode) {
+      appDebugPrint(
+        '[ROUTE-NEXT] AFTER ROUTE ADVANCE '
+        'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+        'manual=$_manualNextSeichiId',
+      );
+    }
 
     await _saveManualNextDestination();
     if (_isRecommendedRouteLoaded) {
