@@ -552,10 +552,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     await _historyService.resetEventCollectionHistory(eventId: eventId);
 
-    _collectedIds.clear();
-    _markerCacheRevision.markChanged();
-    _manualNextSeichiId = null;
-    _activeRecommendedRoute.clear();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _collectedIds.clear();
+      _markerCacheRevision.markChanged();
+      _manualNextSeichiId = null;
+      _activeRecommendedRoute.clear();
+    });
 
     await _saveManualNextDestination();
     await _saveRecommendedRoute();
@@ -565,12 +571,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _updateNextDestination();
     await _checkStampDistance();
     await _loadMyEventRank();
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {});
   }
 
   Future<CollectionSyncStartResult> _startCollectionSync() async {
@@ -2676,10 +2676,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
                 _updateNextDestination();
 
-                if (mounted) {
-                  setState(() {});
-                }
-
                 return _historyService.pendingPlaceVisitCount();
               },
             ),
@@ -2731,10 +2727,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         ]);
 
         _updateNextDestination();
-
-        if (mounted) {
-          setState(() {});
-        }
       },
       onShowNotifications: () async {
         final openedAt = DateTime.now();
