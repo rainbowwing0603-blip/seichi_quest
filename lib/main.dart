@@ -270,7 +270,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _sonarController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
-    )..repeat();
+    );
     _sonarController.addListener(_onMarkerAnimationTick);
 
     _initialize();
@@ -1124,6 +1124,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _nextDistance = result.distance;
       });
     }
+
+    _syncMarkerAnimation();
 
     appDebugPrint(
       '[ROUTE-NEXT] UPDATE END '
@@ -2581,6 +2583,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         setState(() {
           _selectedTab = 0;
         });
+        _syncMarkerAnimation();
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) {
@@ -2958,6 +2961,22 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         ],
       ),
     );
+  }
+
+  void _syncMarkerAnimation() {
+    final shouldAnimate = _nextSeichi != null && _selectedTab == 0;
+
+    if (shouldAnimate) {
+      if (!_sonarController.isAnimating) {
+        _sonarController.repeat();
+      }
+      return;
+    }
+
+    if (_sonarController.isAnimating) {
+      _sonarController.stop();
+      _lastMarkerAnimationFrame = -1;
+    }
   }
 
   void _onMarkerAnimationTick() {
