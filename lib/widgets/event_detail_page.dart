@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../models/event.dart';
 import '../models/seichi.dart';
+import 'quest_item_content_section.dart';
 import 'quest_ui.dart';
 import '../services/app_logger.dart';
 import '../services/seichi_service.dart';
@@ -451,11 +452,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (seichi.cardImageUrl != null)
-                  _buildLargeCardImage(seichi)
-                else
-                  _buildCardFallback(seichi),
-                const SizedBox(height: 18),
                 QuestGlassCard(
                   padding: const EdgeInsets.all(18),
                   child: Column(
@@ -504,41 +500,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     color: QuestUiTokens.ink,
                                   ),
                                 ),
-                                if (seichi.reading.trim().isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    seichi.reading,
-                                    style: const TextStyle(
-                                      color: QuestUiTokens.mutedInk,
-                                    ),
-                                  ),
-                                ],
                               ],
                             ),
                           ),
                         ],
                       ),
-                      if (seichi.description.trim().isNotEmpty) ...[
-                        const SizedBox(height: 17),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: QuestUiTokens.primary.withValues(
-                              alpha: 0.035,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            seichi.description,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              height: 1.65,
-                              color: QuestUiTokens.mutedInk,
-                            ),
-                          ),
-                        ),
-                      ],
                       const SizedBox(height: 16),
                       Wrap(
                         spacing: 8,
@@ -565,6 +531,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 14),
+                QuestItemContentSection(item: seichi),
                 if (widget.onShowOnMap != null) ...[
                   const SizedBox(height: 14),
                   SizedBox(
