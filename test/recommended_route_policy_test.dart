@@ -7,6 +7,7 @@ void main() {
   Seichi seichi(String id) {
     return Seichi(
       id: id,
+      placeId: null,
       card: id,
       reading: id,
       name: id,
