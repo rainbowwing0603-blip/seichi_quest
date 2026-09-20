@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/content_block.dart';
+import '../services/content_media_resolver.dart';
 
 class ContentBlockRenderer extends StatelessWidget {
-  const ContentBlockRenderer({super.key, required this.blocks});
+  ContentBlockRenderer({
+    super.key,
+    required this.blocks,
+    ContentMediaResolver? mediaResolver,
+  }) : _mediaResolver = mediaResolver ?? ContentMediaResolver();
 
   final List<ContentBlock> blocks;
+  final ContentMediaResolver _mediaResolver;
 
   @override
   Widget build(BuildContext context) {
@@ -59,9 +66,9 @@ class ContentBlockRenderer extends StatelessWidget {
   }
 
   Widget _buildImageBlock(BuildContext context, ContentBlock block) {
-    final mediaPath = block.mediaPath;
+    final imageUrl = _mediaResolver.resolve(block.mediaPath);
 
-    if (mediaPath == null || mediaPath.isEmpty) {
+    if (imageUrl == null || imageUrl.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -71,7 +78,7 @@ class ContentBlockRenderer extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Image.network(
-          mediaPath,
+          imageUrl,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
             return const SizedBox.shrink();
@@ -82,19 +89,34 @@ class ContentBlockRenderer extends StatelessWidget {
   }
 
   Widget _buildLinkBlock(BuildContext context, ContentBlock block) {
-    final linkUrl = block.linkUrl;
+    final linkUrl = block.linkUrl?.trim();
 
     if (linkUrl == null || linkUrl.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final uri = Uri.tryParse(linkUrl);
+    final canOpen =
+        uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+
+    if (!canOpen) {
       return const SizedBox.shrink();
     }
 
     return _buildSection(
       context,
       title: block.title,
-      child: SelectableText(
-        linkUrl,
-        style: Theme.of(context).textTheme.bodyMedium
-            ?.copyWith(decoration: TextDecoration.underline),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: OutlinedButton.icon(
+          onPressed: () async {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          },
+          icon: const Icon(Icons.open_in_new_rounded),
+          label: Text(block.body ?? linkUrl),
+        ),
       ),
     );
   }
