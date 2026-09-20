@@ -402,10 +402,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _shouldShowOnboarding = !onboardingCompleted;
     });
 
-    _startupCoordinator.runDeferred(
-      loadDisplayName: _loadDisplayName,
-      loadMyEventRank: _loadMyEventRank,
-      loadLevelProgress: _loadLevelProgress,
+    unawaited(
+      _startupCoordinator.runDeferred(
+        loadDisplayName: _loadDisplayName,
+        loadMyEventRank: _loadMyEventRank,
+        loadLevelProgress: _loadLevelProgress,
+      ),
     );
 
     if (onboardingCompleted) {
