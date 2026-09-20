@@ -2885,12 +2885,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             builder: (_) => SyncStatusPage(
               loadPendingCount: _historyService.pendingPlaceVisitCount,
               syncNow: () async {
-                final syncedRows = await _historyService
-                    .syncPendingPlaceVisits();
+                final syncResult = await _synchronizeCollection();
 
-                await _applyCollectedRows(syncedRows);
-                await _loadCloudHistory();
-                await _loadCollectionEventNames();
+                await _applyCollectedRows(syncResult.pendingCollectedRows);
                 await _loadMyEventRank();
 
                 _updateNextDestination();
