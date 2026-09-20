@@ -1,6 +1,7 @@
 import '../models/achievement.dart';
 import '../models/seichi.dart';
 import 'achievement_service.dart';
+import 'collection_progress_policy.dart';
 
 class CollectionApplyPlan {
   const CollectionApplyPlan({
@@ -19,9 +20,11 @@ class CollectionApplyPlan {
 class CollectionApplyPolicy {
   const CollectionApplyPolicy({
     this.achievementService = const AchievementService(),
+    this.progressPolicy = const CollectionProgressPolicy(),
   });
 
   final AchievementService achievementService;
+  final CollectionProgressPolicy progressPolicy;
 
   CollectionApplyPlan plan({
     required String currentEventId,
@@ -30,7 +33,7 @@ class CollectionApplyPolicy {
     required Set<String> collectedIds,
     required List<Achievement> eventAchievements,
   }) {
-    final previousCollectedCount = _validCollectedCount(
+    final previousCollectedCount = progressPolicy.validCollectedCount(
       seichiList: seichiList,
       collectedIds: collectedIds,
     );
@@ -55,7 +58,7 @@ class CollectionApplyPolicy {
       ...newlyCollectedSeichi.map((item) => item.id),
     };
 
-    final newCollectedCount = _validCollectedCount(
+    final newCollectedCount = progressPolicy.validCollectedCount(
       seichiList: seichiList,
       collectedIds: newCollectedIds,
     );
@@ -88,7 +91,7 @@ class CollectionApplyPolicy {
     );
   }
 
-  int _validCollectedCount({
+  int progressPolicy.validCollectedCount({
     required List<Seichi> seichiList,
     required Set<String> collectedIds,
   }) {
