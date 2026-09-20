@@ -213,6 +213,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   BitmapDescriptor? _nextMarkerIcon;
   Set<Marker>? _staticMarkerCache;
   String? _staticMarkerCacheSignature;
+  String? _markerStateSignature;
+  String? _markerStateSeichiIds;
+  String? _markerStateCollectedIds;
   Seichi? _nextSeichi;
   double? _nextDistance;
 
@@ -1832,17 +1835,30 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Set<Marker> _buildMarkers() {
     final nextId = _nextSeichi?.id;
 
-    // 静止Markerの状態を表す署名。
-    // アニメーションだけではこの値は変化しない。
+    // アニメーション中は聖地一覧・獲得一覧が同一インスタンスのままなので、
+    // 前回の署名を再利用して毎フレームのsort/joinを避ける。
+    final seichiIds = _seichiList.map((item) => item.id).join(',');
     final sortedCollectedIds = _collectedIds.toList()..sort();
+    final collectedIds = sortedCollectedIds.join(',');
 
-    final signature = [
-      _seichiList.map((item) => item.id).join(','),
-      sortedCollectedIds.join(','),
+    final stateSignature = [
+      seichiIds,
+      collectedIds,
       nextId ?? '',
       _uncollectedMarkerIcon?.hashCode ?? 0,
       _collectedMarkerIcon?.hashCode ?? 0,
     ].join('|');
+
+    final signature =
+        _markerStateSignature == stateSignature &&
+            _markerStateSeichiIds == seichiIds &&
+            _markerStateCollectedIds == collectedIds
+        ? _markerStateSignature!
+        : stateSignature;
+
+    _markerStateSignature = signature;
+    _markerStateSeichiIds = seichiIds;
+    _markerStateCollectedIds = collectedIds;
 
     if (_staticMarkerCache == null ||
         _staticMarkerCacheSignature != signature) {
