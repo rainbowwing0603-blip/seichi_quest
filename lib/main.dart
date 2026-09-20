@@ -48,6 +48,7 @@ import 'widgets/content_block_renderer.dart';
 import 'services/app_logger.dart';
 import 'services/collection_sync_service.dart';
 import 'services/collection_apply_policy.dart';
+import 'services/collection_display_policy.dart';
 import 'services/event_service.dart';
 import 'services/destination_persistence_service.dart';
 import 'services/recommended_route_policy.dart';
@@ -131,6 +132,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   static const CollectionApplyPolicy _collectionApplyPolicy =
       CollectionApplyPolicy();
+  static const CollectionDisplayPolicy _collectionDisplayPolicy =
+      CollectionDisplayPolicy();
 
   GoogleMapController? _mapController;
 
@@ -585,21 +588,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     try {
       final history = await _historyService.loadCollectionDisplayHistory();
 
-      final next = <String, Set<String>>{};
-
-      for (final item in history) {
-        final card = item['card']?.toString();
-        final eventName = item['event_name']?.toString();
-
-        if (card == null ||
-            card.isEmpty ||
-            eventName == null ||
-            eventName.isEmpty) {
-          continue;
-        }
-
-        next.putIfAbsent(card, () => <String>{}).add(eventName);
-      }
+      final next = _collectionDisplayPolicy.eventNamesByCard(history);
 
       _collectionEventNamesByCard
         ..clear()
