@@ -18,10 +18,9 @@ class CollectionSyncStartResult {
 /// [mergeCloudHistory] を呼ぶ。
 class CollectionSyncService {
   const CollectionSyncService({
-    required CollectionHistoryService historyService,
-    required StampCacheService stampCacheService,
-  })  : _historyService = historyService,
-        _stampCacheService = stampCacheService;
+    required this._historyService,
+    required this._stampCacheService,
+  });
 
   final CollectionHistoryService _historyService;
   final StampCacheService _stampCacheService;
