@@ -788,25 +788,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     return result;
   }
 
-  Future<void> _loadCloudHistory() async {
-    try {
-      final history = await _historyService.loadHistory(
-        eventId: _currentEventId!,
-      );
-      for (final item in history) {
-        final id = item['seichi_id']?.toString();
-        if (id != null && id.isNotEmpty) {
-          _collectedIds.add(id);
-        }
-      }
-
-      await _saveStamps();
-    } catch (_) {
-      // DB取得失敗時は端末キャッシュをそのまま使用する。
-    }
-
-    await _loadCollectionEventNames();
-  }
 
   Future<void> _loadCollectionEventNames() async {
     try {
@@ -840,28 +821,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // 保存済みスタンプ
   // ============================================================
 
-  Future<void> _loadSavedStamps() async {
-    _preferences ??= await SharedPreferences.getInstance();
-
-    if (_currentEventId == null || _currentEventId!.isEmpty) {
-      throw Exception('イベントIDが未取得のため、獲得スタンプを読み込めません。');
-    }
-
-    final user = supabase.Supabase.instance.client.auth.currentUser;
-
-    if (user == null) {
-      throw Exception('ユーザーIDが未取得のため、獲得スタンプを読み込めません。');
-    }
-
-    final savedIds = await _stampCacheService.load(
-      userId: user.id,
-      eventId: _currentEventId!,
-    );
-
-    _collectedIds
-      ..clear()
-      ..addAll(savedIds);
-  }
 
 
   String _manualNextDestinationStorageKey({
