@@ -58,8 +58,9 @@ class QuestItemService {
       title: _firstNonEmpty(
         content['title'],
         place['name'],
-        fallback: '名称未設定',
-      ),
+      ).isNotEmpty
+          ? _firstNonEmpty(content['title'], place['name'])
+          : '名称未設定',
       latitude: _toDouble(place['latitude']),
       longitude: _toDouble(place['longitude']),
       radiusMeters: _toInt(place['radius_meters'], fallback: 200),
@@ -67,7 +68,7 @@ class QuestItemService {
         content['description'],
         place['description'],
       ),
-      icon: _firstNonEmpty(place['icon'], fallback: '📍'),
+      icon: _firstNonEmptyOr(place['icon'], '📍'),
       primaryImageUrl: _firstActiveImageForRole(
             content['content_blocks'],
             'picture_card',
@@ -121,10 +122,15 @@ class QuestItemService {
   String _firstNonEmpty(
     dynamic first, [
     dynamic second,
-  ], {
-    String fallback = '',
-  }) {
-    return _nullableString(first) ?? _nullableString(second) ?? fallback;
+  ]) {
+    return _nullableString(first) ?? _nullableString(second) ?? '';
+  }
+
+  String _firstNonEmptyOr(
+    dynamic first,
+    String fallback,
+  ) {
+    return _nullableString(first) ?? fallback;
   }
 
   String? _nullableString(dynamic value) {
