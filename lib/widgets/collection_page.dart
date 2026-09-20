@@ -2,15 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../models/seichi.dart';
 import '../painters/stamp_ring_painter.dart';
-import '../services/content_block_service.dart';
-import '../services/content_block_presentation_policy.dart';
-import 'content_block_renderer.dart';
+import 'quest_item_content_section.dart';
 import 'quest_ui.dart';
 
 class CollectionPage extends StatelessWidget {
-  static const ContentBlockPresentationPolicy _contentBlockPresentationPolicy =
-      ContentBlockPresentationPolicy();
-
   const CollectionPage({
     super.key,
     required this.eventId,
@@ -734,14 +729,6 @@ class CollectionPage extends StatelessWidget {
     final eventNames = eventNamesByCard[seichi.card]?.toList() ?? <String>[];
     eventNames.sort();
 
-    final contentId = seichi.contentId?.trim() ?? '';
-
-    final contentBlocksFuture = contentId.isEmpty
-        ? null
-        : ContentBlockService().loadForContent(contentId);
-
-    final imageUrl = seichi.cardImageUrl;
-    final hasCardImage = imageUrl != null && imageUrl.isNotEmpty;
 
     showModalBottomSheet<void>(
       context: context,
@@ -764,33 +751,6 @@ class CollectionPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  FutureBuilder(
-                    future: contentBlocksFuture,
-                    builder: (context, snapshot) {
-                      final presentation =
-                          _contentBlockPresentationPolicy.resolve(
-                            snapshot.data ?? const [],
-                          );
-
-                      if (snapshot.hasError) {
-                        debugPrint(
-                          '[CONTENT_BLOCKS] collection detail load failed: '
-                          '${snapshot.error}',
-                        );
-                      }
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (presentation.showLegacyImage && hasCardImage) ...[
-                            _buildCardImage(seichi),
-                            const SizedBox(height: 16),
-                          ],
-                        ],
-                      );
-                    },
-                  ),
-
                   QuestGlassCard(
                     padding: const EdgeInsets.all(18),
                     borderRadius: 22,
@@ -859,48 +819,18 @@ class CollectionPage extends StatelessWidget {
                           ],
                         ),
 
-                        FutureBuilder(
-                          future: contentBlocksFuture,
-                          builder: (context, snapshot) {
-                            final presentation =
-                                _contentBlockPresentationPolicy.resolve(
-                                  snapshot.data ?? const [],
-                                );
-
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (presentation.showLegacyReading &&
-                                    seichi.reading.isNotEmpty) ...[
-                                  const SizedBox(height: 14),
-                                  Text(
-                                    seichi.reading,
-                                    style: const TextStyle(
-                                      color: QuestUiTokens.mutedInk,
-                                      fontSize: 13,
-                                      height: 1.5,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                                if (presentation.showLegacyDescription) ...[
-                                  const SizedBox(height: 14),
-                                  Text(
-                                    collected
-                                        ? (seichi.description.isEmpty
-                                              ? 'この聖地のスタンプを獲得しました。'
-                                              : seichi.description)
-                                        : 'この聖地を訪れて、スタンプを獲得しよう！',
-                                    style: const TextStyle(
-                                      color: QuestUiTokens.ink,
-                                      fontSize: 14,
-                                      height: 1.65,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            );
-                          },
+                        const SizedBox(height: 14),
+                        Text(
+                          collected
+                              ? (seichi.description.isEmpty
+                                    ? 'この聖地のスタンプを獲得しました。'
+                                    : seichi.description)
+                              : 'この聖地を訪れて、スタンプを獲得しよう！',
+                          style: const TextStyle(
+                            color: QuestUiTokens.ink,
+                            fontSize: 14,
+                            height: 1.65,
+                          ),
                         ),
 
                         const SizedBox(height: 16),
@@ -918,30 +848,12 @@ class CollectionPage extends StatelessWidget {
                     ),
                   ),
 
-                  FutureBuilder(
-                    future: contentBlocksFuture,
-                    builder: (context, snapshot) {
-                      final presentation =
-                          _contentBlockPresentationPolicy.resolve(
-                            snapshot.data ?? const [],
-                          );
-
-                      if (presentation.blocks.isEmpty) {
-                        return const SizedBox.shrink();
-                      }
-
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 14),
-                        child: QuestGlassCard(
-                          padding: const EdgeInsets.all(16),
-                          borderRadius: 20,
-                          child: ContentBlockRenderer(
-                            blocks: presentation.blocks,
-                          ),
-                        ),
-                      );
-                    },
+                  const SizedBox(height: 14),
+                  QuestItemContentSection(
+                    item: seichi,
+                    showLegacyText: false,
                   ),
+
                   if (collected && eventNames.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     QuestGlassCard(
