@@ -2652,8 +2652,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         await Navigator.of(context)
             .push(MaterialPageRoute(builder: (_) => const ProfilePage()));
 
-        await _loadDisplayName();
-        await _loadMyEventRank();
+        await _secondaryRefreshCoordinator.refreshProfileAndRank(
+          loadDisplayName: _loadDisplayName,
+          loadMyEventRank: _loadMyEventRank,
+        );
         _updateNextDestination();
         await _checkStampDistance();
       },
@@ -2671,7 +2673,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _activeRecommendedRoute.clear();
         _isRecommendedRouteLoaded = false;
 
-        await _loadDisplayName();
+        final displayNameFuture = _loadDisplayName();
         await _loadEventAchievements();
         final syncResult = await _startCollectionSync();
 
@@ -2683,7 +2685,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         if (_activeRecommendedRoute.isNotEmpty) {
           _manualNextSeichiId = _activeRecommendedRoute.first.id;
         }
-        await _loadMyEventRank();
+        await Future.wait<void>([
+          displayNameFuture,
+          _loadMyEventRank(),
+        ]);
 
         _updateNextDestination();
 
