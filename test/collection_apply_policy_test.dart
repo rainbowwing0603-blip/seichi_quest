@@ -2,12 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:seichi_quest/models/achievement.dart';
 import 'package:seichi_quest/models/seichi.dart';
-import 'package:seichi_quest/services/achievement_service.dart';
 import 'package:seichi_quest/services/collection_apply_policy.dart';
 
 void main() {
   const policy = CollectionApplyPolicy();
-  const achievementService = AchievementService();
 
   Seichi seichi(String id, String card) => Seichi(
         id: id,
@@ -52,7 +50,6 @@ void main() {
       seichiList: list,
       collectedIds: <String>{},
       eventAchievements: achievements,
-      achievementService: achievementService,
     );
 
     expect(result.newlyCollectedSeichi.map((item) => item.id), <String>['1']);
@@ -73,7 +70,6 @@ void main() {
       seichiList: list,
       collectedIds: <String>{'1'},
       eventAchievements: achievements,
-      achievementService: achievementService,
     );
 
     expect(result.newlyCollectedSeichi.map((item) => item.id), <String>['2']);
@@ -96,7 +92,6 @@ void main() {
       seichiList: list,
       collectedIds: <String>{},
       eventAchievements: achievements,
-      achievementService: achievementService,
     );
 
     expect(result.newlyCollectedSeichi, isEmpty);
