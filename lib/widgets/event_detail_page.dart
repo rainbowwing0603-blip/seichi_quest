@@ -532,7 +532,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                QuestItemContentSection(item: seichi),
+                QuestItemContentSection(
+                  item: seichi,
+                  collected: collected,
+                ),
                 if (widget.onShowOnMap != null) ...[
                   const SizedBox(height: 14),
                   SizedBox(
