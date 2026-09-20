@@ -583,6 +583,1200 @@ class _EventDetailPageState extends State<EventDetailPage> {
     );
   }
 
+  Widget _buildLargeCardImage(Seichi seichi) {
+    final imageUrl = seichi.cardImageUrl;
+
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return _buildCardFallback(seichi);
+    }
+
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxHeight: 420),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: QuestUiTokens.ink.withValues(alpha: 0.07)),
+      ),
+      child: Image.network(
+        imageUrl,
+        fit: BoxFit.contain,
+        cacheWidth: 1200,
+        filterQuality: FilterQuality.medium,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) {
+            return child;
+          }
+
+          return const SizedBox(
+            height: 260,
+            child: Center(
+              child: CircularProgressIndicator(color: QuestUiTokens.primary),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return _buildCardFallback(seichi);
+        },
+      ),
+    );
+  }
+
+  Widget _buildCardFallback(Seichi seichi) {
+    return Container(
+      width: double.infinity,
+      height: 240,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.deepPurple.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            seichi.card,
+            style: const TextStyle(
+              fontSize: 72,
+              fontWeight: FontWeight.bold,
+              color: Colors.deepPurple,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(seichi.icon, style: const TextStyle(fontSize: 34)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSocialStatsCard() {
+    return QuestGlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(
+                Icons.groups_2_rounded,
+                size: 20,
+                color: QuestUiTokens.primary,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'クエスト情報',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: QuestUiTokens.ink,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          if (_isLoadingSocialStats)
+            const SizedBox(
+              height: 54,
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: QuestUiTokens.primary,
+                ),
+              ),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSocialStatItem(
+                    icon: Icons.people_alt_outlined,
+                    label: '参加中',
+                    value: _participantCount == null
+                        ? '−'
+                        : '${_participantCount!}人',
+                    color: QuestUiTokens.cyan,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildSocialStatItem(
+                    icon: _isFavorited ? Icons.favorite : Icons.favorite_border,
+                    label: 'お気に入り',
+                    value: _favoriteCount == null ? '−' : '${_favoriteCount!}件',
+                    color: _isFavorited ? Colors.pink : QuestUiTokens.primary,
+                    onTap: _isFavoriteUpdating ? null : _toggleFavorite,
+                    isLoading: _isFavoriteUpdating,
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSocialStatItem({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+    VoidCallback? onTap,
+    bool isLoading = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.055),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.10)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: isLoading
+                    ? SizedBox(
+                        width: 19,
+                        height: 19,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: color,
+                        ),
+                      )
+                    : Icon(icon, size: 21, color: color),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: QuestUiTokens.mutedInk,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNearestUncollectedCard() {
+    final seichi = _nearestUncollectedSeichi;
+
+    if (seichi == null) {
+      return const SizedBox.shrink();
+    }
+
+    final distance = _distanceFromCurrentPosition(seichi);
+    final isNext = widget.currentNextSeichiId == seichi.id;
+
+    String? distanceText;
+
+    if (distance != null) {
+      distanceText = distance < 1000
+          ? '${distance.round()}m'
+          : '${(distance / 1000).toStringAsFixed(1)}km';
+    }
+
+    return QuestGlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: QuestUiTokens.primaryGradient,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.near_me_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'NEXT SPOT',
+                      style: TextStyle(
+                        fontSize: 9,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.mutedInk,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      '最寄りの未獲得地点',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.ink,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isNext)
+                const QuestStatusChip(
+                  label: 'NEXT',
+                  icon: Icons.navigation_rounded,
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: QuestUiTokens.primary.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(
+                color: QuestUiTokens.primary.withValues(alpha: 0.08),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: QuestUiTokens.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    seichi.card,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: QuestUiTokens.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        seichi.name,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: QuestUiTokens.ink,
+                        ),
+                      ),
+                      if (distanceText != null) ...[
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.place_outlined,
+                              size: 15,
+                              color: QuestUiTokens.mutedInk,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '現在地から $distanceText',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: QuestUiTokens.mutedInk,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: QuestPrimaryButton(
+              label: isNext ? '次の目的地に設定済み' : '次の目的地に設定',
+              icon: isNext
+                  ? Icons.check_circle_outline
+                  : Icons.navigation_outlined,
+              onPressed: widget.onSetNextDestination == null || isNext
+                  ? null
+                  : () {
+                      widget.onSetNextDestination!(seichi);
+
+                      if (!mounted) {
+                        return;
+                      }
+
+                      setState(() {});
+                    },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Seichi> _buildRecommendedRoute() {
+    final position = widget.currentPosition;
+
+    if (position == null) {
+      return const <Seichi>[];
+    }
+
+    final remaining = _seichiList
+        .where(
+          (seichi) =>
+              !_collectedSeichiIds.contains(seichi.id) &&
+              !(seichi.latitude == 0.0 && seichi.longitude == 0.0),
+        )
+        .toList();
+
+    if (remaining.isEmpty) {
+      return const <Seichi>[];
+    }
+
+    final route = <Seichi>[];
+
+    var currentLatitude = position.latitude;
+    var currentLongitude = position.longitude;
+
+    while (remaining.isNotEmpty) {
+      Seichi? nearest;
+      double? nearestDistance;
+
+      for (final seichi in remaining) {
+        final distance = Geolocator.distanceBetween(
+          currentLatitude,
+          currentLongitude,
+          seichi.latitude,
+          seichi.longitude,
+        );
+
+        if (nearestDistance == null || distance < nearestDistance) {
+          nearest = seichi;
+          nearestDistance = distance;
+        }
+      }
+
+      if (nearest == null) {
+        break;
+      }
+
+      route.add(nearest);
+      remaining.remove(nearest);
+
+      currentLatitude = nearest.latitude;
+      currentLongitude = nearest.longitude;
+    }
+
+    return route;
+  }
+
+  String _formatRouteDistance(double distance) {
+    if (distance < 1000) {
+      return '${distance.round()}m';
+    }
+
+    return '${(distance / 1000).toStringAsFixed(1)}km';
+  }
+
+  void _showRecommendedRoute() {
+    final route = _buildRecommendedRoute();
+
+    if (route.isEmpty) {
+      return;
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFFF6F8FC),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.75,
+            minChildSize: 0.45,
+            maxChildSize: 0.92,
+            builder: (context, scrollController) {
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            gradient: QuestUiTokens.cyanGradient,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.route_rounded,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'SMART ROUTE',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  letterSpacing: 1.2,
+                                  fontWeight: FontWeight.w900,
+                                  color: QuestUiTokens.mutedInk,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'おすすめ巡回ルート',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: QuestUiTokens.ink,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Divider(
+                    height: 1,
+                    color: QuestUiTokens.primary.withValues(alpha: 0.08),
+                  ),
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                      itemCount: route.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final seichi = route[index];
+
+                        double distance;
+
+                        if (index == 0) {
+                          final position = widget.currentPosition!;
+
+                          distance = Geolocator.distanceBetween(
+                            position.latitude,
+                            position.longitude,
+                            seichi.latitude,
+                            seichi.longitude,
+                          );
+                        } else {
+                          final previous = route[index - 1];
+
+                          distance = Geolocator.distanceBetween(
+                            previous.latitude,
+                            previous.longitude,
+                            seichi.latitude,
+                            seichi.longitude,
+                          );
+                        }
+
+                        final isNext = widget.currentNextSeichiId == seichi.id;
+
+                        return Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(17),
+                            onTap: () {
+                              _showSeichiDetail(seichi);
+                            },
+                            child: Ink(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.88),
+                                borderRadius: BorderRadius.circular(17),
+                                border: Border.all(
+                                  color: isNext
+                                      ? QuestUiTokens.primary.withValues(
+                                          alpha: 0.30,
+                                        )
+                                      : QuestUiTokens.ink.withValues(
+                                          alpha: 0.06,
+                                        ),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 38,
+                                    height: 38,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      gradient: QuestUiTokens.primaryGradient,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      '${index + 1}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: QuestUiTokens.primary.withValues(
+                                        alpha: 0.08,
+                                      ),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      seichi.card,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900,
+                                        color: QuestUiTokens.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          seichi.name,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                            color: QuestUiTokens.ink,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          index == 0
+                                              ? '現在地から ${_formatRouteDistance(distance)}'
+                                              : '前の地点から ${_formatRouteDistance(distance)}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: QuestUiTokens.mutedInk,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (isNext)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 8),
+                                      child: Icon(
+                                        Icons.navigation_rounded,
+                                        size: 20,
+                                        color: QuestUiTokens.primary,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  if (widget.onStartRecommendedRoute != null) ...[
+                    Divider(
+                      height: 1,
+                      color: QuestUiTokens.primary.withValues(alpha: 0.08),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+                      child: QuestPrimaryButton(
+                        label: 'このルートでスタート',
+                        icon: Icons.flag_rounded,
+                        onPressed: () {
+                          Navigator.of(sheetContext).pop();
+
+                          widget.onStartRecommendedRoute!(
+                            List<Seichi>.unmodifiable(route),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRecommendedRouteCard() {
+    final route = _buildRecommendedRoute();
+
+    if (route.length < 2) {
+      return const SizedBox.shrink();
+    }
+
+    double totalDistance = 0;
+
+    final position = widget.currentPosition!;
+
+    totalDistance += Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      route.first.latitude,
+      route.first.longitude,
+    );
+
+    for (var i = 1; i < route.length; i++) {
+      totalDistance += Geolocator.distanceBetween(
+        route[i - 1].latitude,
+        route[i - 1].longitude,
+        route[i].latitude,
+        route[i].longitude,
+      );
+    }
+
+    return QuestGlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: QuestUiTokens.cyanGradient,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.route_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'SMART ROUTE',
+                      style: TextStyle(
+                        fontSize: 9,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.mutedInk,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'おすすめ巡回ルート',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.ink,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: QuestUiTokens.cyan.withValues(alpha: 0.055),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '残り ${route.length}地点',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: QuestUiTokens.ink,
+                    ),
+                  ),
+                ),
+                Text(
+                  '約${_formatRouteDistance(totalDistance)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: QuestUiTokens.mutedInk,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _showRecommendedRoute,
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                foregroundColor: QuestUiTokens.primary,
+                side: BorderSide(
+                  color: QuestUiTokens.primary.withValues(alpha: 0.18),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    QuestUiTokens.controlRadius,
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.route_outlined),
+              label: const Text(
+                '巡回する順番を見る',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+          if (widget.onStartRecommendedRoute != null) ...[
+            const SizedBox(height: 10),
+            QuestPrimaryButton(
+              label: 'このルートでスタート',
+              icon: Icons.flag_rounded,
+              onPressed: () {
+                widget.onStartRecommendedRoute!(
+                  List<Seichi>.unmodifiable(route),
+                );
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardGallery() {
+    final filteredList = _filteredSeichiList;
+
+    return QuestGlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: QuestUiTokens.primaryGradient,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.grid_view_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'COLLECTION',
+                      style: TextStyle(
+                        fontSize: 9,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.mutedInk,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      '札ギャラリー',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: QuestUiTokens.ink,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (!_isLoadingSeichi && _seichiList.isNotEmpty)
+                QuestStatusChip(
+                  label: '${filteredList.length} / ${_seichiList.length}札',
+                  accentColor: QuestUiTokens.cyan,
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '札をタップすると詳細を確認できます',
+            style: TextStyle(fontSize: 12, color: QuestUiTokens.mutedInk),
+          ),
+          if (!_isLoadingSeichi &&
+              _seichiErrorMessage == null &&
+              _seichiList.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final filter in const <String>['すべて', '獲得済み', '未獲得'])
+                  Builder(
+                    builder: (context) {
+                      final isSelected = _galleryFilter == filter;
+
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              _galleryFilter = filter;
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(99),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 15,
+                              vertical: 9,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: isSelected
+                                  ? QuestUiTokens.primaryGradient
+                                  : null,
+                              color: isSelected ? null : Colors.white,
+                              borderRadius: BorderRadius.circular(99),
+                              border: Border.all(
+                                color: isSelected
+                                    ? Colors.transparent
+                                    : QuestUiTokens.ink.withValues(alpha: 0.07),
+                              ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: QuestUiTokens.primary.withValues(
+                                          alpha: 0.18,
+                                        ),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isSelected) ...[
+                                  const Icon(
+                                    Icons.check_rounded,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 5),
+                                ],
+                                Text(
+                                  filter,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : QuestUiTokens.mutedInk,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 16),
+          if (_isLoadingSeichi)
+            const SizedBox(
+              height: 120,
+              child: Center(
+                child: CircularProgressIndicator(color: QuestUiTokens.primary),
+              ),
+            )
+          else if (_seichiErrorMessage != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: Colors.redAccent,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(_seichiErrorMessage!, textAlign: TextAlign.center),
+                  const SizedBox(height: 10),
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _isLoadingSeichi = true;
+                        _seichiErrorMessage = null;
+                      });
+
+                      _loadSeichiList();
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('再読み込み'),
+                  ),
+                ],
+              ),
+            )
+          else if (_seichiList.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: QuestUiTokens.ink.withValues(alpha: 0.035),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Text(
+                'このクエストには札が登録されていません。',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: QuestUiTokens.mutedInk),
+              ),
+            )
+          else if (filteredList.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: QuestUiTokens.ink.withValues(alpha: 0.035),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                _galleryFilter == '獲得済み' ? '獲得済みの札はまだありません。' : '未獲得の札はありません。',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: QuestUiTokens.mutedInk),
+              ),
+            )
+          else
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filteredList.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.74,
+              ),
+              itemBuilder: (context, index) {
+                return _buildGalleryCard(filteredList[index]);
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGalleryCard(Seichi seichi) {
+    final imageUrl = seichi.cardImageUrl;
+    final collected = _collectedSeichiIds.contains(seichi.id);
+    final isNext = widget.currentNextSeichiId == seichi.id;
+
+    final accent = collected
+        ? Colors.green
+        : isNext
+        ? QuestUiTokens.primary
+        : QuestUiTokens.mutedInk;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          _showSeichiDetail(seichi);
+        },
+        child: Ink(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.86),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: accent.withValues(
+                alpha: collected || isNext ? 0.34 : 0.10,
+              ),
+              width: collected || isNext ? 1.5 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: QuestUiTokens.ink.withValues(alpha: 0.045),
+                blurRadius: 12,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Container(
+                  color: Colors.white,
+                  alignment: Alignment.center,
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.contain,
+                          cacheWidth: 360,
+                          filterQuality: FilterQuality.low,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildGalleryFallback(seichi);
+                          },
+                        )
+                      : _buildGalleryFallback(seichi),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 26,
+                      height: 26,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.09),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        seichi.card,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          color: accent,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        seichi.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: QuestUiTokens.ink,
+                        ),
+                      ),
+                    ),
+                    if (collected) ...[
+                      const SizedBox(width: 5),
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        size: 18,
+                        color: Colors.green,
+                      ),
+                    ] else if (isNext) ...[
+                      const SizedBox(width: 5),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: QuestUiTokens.primaryGradient,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Text(
+                          'NEXT',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGalleryFallback(Seichi seichi) {
+    return Container(
+      color: QuestUiTokens.primary.withValues(alpha: 0.045),
+      alignment: Alignment.center,
+      child: Text(
+        seichi.card,
+        style: const TextStyle(
+          fontSize: 38,
+          fontWeight: FontWeight.w900,
+          color: QuestUiTokens.primary,
+        ),
+      ),
+    );
+  }
+
   Future<void> _shareEvent(BuildContext shareButtonContext) async {
     final eventName = widget.event.name.trim();
     final prefecture = widget.event.prefecture?.trim();
