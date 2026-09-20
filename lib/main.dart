@@ -48,6 +48,7 @@ import 'widgets/content_block_renderer.dart';
 
 import 'services/app_logger.dart';
 import 'services/collection_sync_service.dart';
+import 'services/collection_apply_policy.dart';
 import 'services/event_service.dart';
 import 'services/destination_persistence_service.dart';
 import 'services/recommended_route_policy.dart';
@@ -130,6 +131,8 @@ class SeichiMapPage extends StatefulWidget {
 class _SeichiMapPageState extends State<SeichiMapPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   static const AchievementService _achievementService = AchievementService();
+  static const CollectionApplyPolicy _collectionApplyPolicy =
+      CollectionApplyPolicy();
 
   GoogleMapController? _mapController;
 
@@ -1382,26 +1385,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    final previousCollectedCount = _getCollectedCount();
+    final applyPlan = _collectionApplyPolicy.plan(
+      currentEventId: currentEventId,
+      collectedRows: collectedRows,
+      seichiList: _seichiList,
+      collectedIds: _collectedIds,
+      eventAchievements: _eventAchievements,
+      achievementService: _achievementService,
+    );
 
-    final collectedCards = collectedRows
-        .where((row) => row['event_id']?.toString() == currentEventId)
-        .map((row) => row['card']?.toString())
-        .whereType<String>()
-        .where((card) => card.isNotEmpty)
-        .toSet();
-
-    if (collectedCards.isEmpty) {
-      return;
-    }
-
-    final newlyCollectedSeichi = _seichiList
-        .where(
-          (item) =>
-              collectedCards.contains(item.card) &&
-              !_collectedIds.contains(item.id),
-        )
-        .toList(growable: false);
+    final newlyCollectedSeichi = applyPlan.newlyCollectedSeichi;
 
     if (newlyCollectedSeichi.isEmpty) {
       return;
@@ -1409,9 +1402,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     InterstitialAdService.instance.markStampCollected();
 
-    for (final item in newlyCollectedSeichi) {
-      _collectedIds.add(item.id);
-    }
+    _collectedIds
+      ..clear()
+      ..addAll(applyPlan.newCollectedIds);
 
     appDebugPrint(
       '[ROUTE-NEXT] COLLECTED '
@@ -1462,30 +1455,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         newLevel != null &&
         newLevel > previousLevel;
 
-    final newCollectedCount = _getCollectedCount();
-
-    final didCompleteQuest =
-        _seichiList.isNotEmpty &&
-        previousCollectedCount < _seichiList.length &&
-        newCollectedCount >= _seichiList.length;
-
-    final previousAchievements = _achievementService.getUnlockedAchievements(
-      _eventAchievements,
-      previousCollectedCount,
-    );
-
-    final newAchievements = _achievementService.getUnlockedAchievements(
-      _eventAchievements,
-      newCollectedCount,
-    );
-
-    final newlyUnlockedAchievements = newAchievements
-        .where(
-          (achievement) => !previousAchievements.any(
-            (previous) => previous.id == achievement.id,
-          ),
-        )
-        .toList(growable: false);
+    final didCompleteQuest = applyPlan.didCompleteQuest;
+    final newlyUnlockedAchievements = applyPlan.newlyUnlockedAchievements;
 
     if (!mounted) {
       return;
