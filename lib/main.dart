@@ -32,6 +32,7 @@ import 'models/achievement.dart';
 import 'models/event.dart';
 import 'services/achievement_service.dart';
 import 'services/level_service.dart';
+import 'services/location_service.dart';
 import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
 import 'services/onboarding_service.dart';
@@ -124,6 +125,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   GoogleMapController? _mapController;
 
   StreamSubscription<Position>? _positionSubscription;
+
+  static const LocationService _locationService = LocationService();
 
   Position? _currentPosition;
 
@@ -1204,106 +1207,75 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _isLoadingLocation = true;
     });
 
-    try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    final result = await _locationService.getInitialPosition();
 
-      if (!serviceEnabled) {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          _isLoadingLocation = false;
-          _errorMessage =
-              '位置情報サービスがOFFになっています。\n'
-              '端末の位置情報をONにしてください。';
-          _errorActionLabel = '位置情報設定を開く';
-          _errorAction = () async {
-            await Geolocator.openLocationSettings();
-          };
-        });
-
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.denied) {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          _isLoadingLocation = false;
-          _errorMessage = '位置情報の利用が許可されていません。';
-          _errorActionLabel = '再試行';
-          _errorAction = _initializeLocation;
-        });
-
-        return;
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          _isLoadingLocation = false;
-          _errorMessage =
-              '位置情報の利用が永久に拒否されています。\n'
-              '端末の設定から位置情報を許可してください。';
-          _errorActionLabel = 'アプリ設定を開く';
-          _errorAction = () async {
-            await Geolocator.openAppSettings();
-          };
-        });
-
-        return;
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
-
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _currentPosition = position;
-        _isLoadingLocation = false;
-        _hasVeryLowLocationAccuracy = position.accuracy > 500.0;
-        _errorMessage = null;
-        _errorActionLabel = null;
-        _errorAction = null;
-      });
-
-      _updateNextDestination();
-      await _updateWeatherIfNeeded(position, force: true);
-
-      await _moveCameraToCurrentLocation();
-
-      _startLocationStream();
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isLoadingLocation = false;
-        _errorMessage = '現在地を取得できませんでした。\n$e';
-        _errorActionLabel = '再試行';
-        _errorAction = _initializeLocation;
-      });
+    if (!mounted) {
+      return;
     }
+
+    final position = result.position;
+
+    if (position == null) {
+      switch (result.failure) {
+        case LocationStartFailure.serviceDisabled:
+          setState(() {
+            _isLoadingLocation = false;
+            _errorMessage =
+                '位置情報サービスがOFFになっています.\n'
+                '端末の位置情報をONにしてください。';
+            _errorActionLabel = '位置情報設定を開く';
+            _errorAction = () async {
+              await _locationService.openLocationSettings();
+            };
+          });
+        case LocationStartFailure.permissionDenied:
+          setState(() {
+            _isLoadingLocation = false;
+            _errorMessage = '位置情報の利用が許可されていません。';
+            _errorActionLabel = '再試行';
+            _errorAction = _initializeLocation;
+          });
+        case LocationStartFailure.permissionDeniedForever:
+          setState(() {
+            _isLoadingLocation = false;
+            _errorMessage =
+                '位置情報の利用が永久に拒否されています。\n'
+                '端末の設定から位置情報を許可してください。';
+            _errorActionLabel = 'アプリ設定を開く';
+            _errorAction = () async {
+              await _locationService.openAppSettings();
+            };
+          });
+        case LocationStartFailure.unavailable:
+        case null:
+          setState(() {
+            _isLoadingLocation = false;
+            _errorMessage =
+                '現在地を取得できませんでした。\n'
+                '${result.error ?? '不明なエラー'}';
+            _errorActionLabel = '再試行';
+            _errorAction = _initializeLocation;
+          });
+      }
+
+      return;
+    }
+
+    setState(() {
+      _currentPosition = position;
+      _isLoadingLocation = false;
+      _hasVeryLowLocationAccuracy = position.accuracy > 500.0;
+      _errorMessage = null;
+      _errorActionLabel = null;
+      _errorAction = null;
+    });
+
+    _updateNextDestination();
+    await _updateWeatherIfNeeded(position, force: true);
+
+    await _moveCameraToCurrentLocation();
+
+    _startLocationStream();
   }
 
   // ============================================================
@@ -1332,12 +1304,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     if (!shouldFetch && lastPosition != null) {
-      final distance = Geolocator.distanceBetween(
-        lastPosition.latitude,
-        lastPosition.longitude,
-        position.latitude,
-        position.longitude,
-      );
+      final distance = _locationService.distanceBetween(\n        startLatitude: lastPosition.latitude,\n        startLongitude: lastPosition.longitude,\n        endLatitude: position.latitude,\n        endLongitude: position.longitude,\n      );
 
       if (distance >= refreshDistanceMeters) {
         shouldFetch = true;
@@ -1386,40 +1353,33 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   void _startLocationStream() {
     _positionSubscription?.cancel();
 
-    const locationSettings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 10,
+    _positionSubscription = _locationService.getPositionStream().listen(
+      (position) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _currentPosition = position;
+          _hasVeryLowLocationAccuracy = position.accuracy > 500.0;
+        });
+
+        _updateNextDestination();
+        _updateWeatherIfNeeded(position);
+        _checkStampDistance();
+      },
+      onError: (error) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _errorMessage = '位置情報の監視でエラーが発生しました。\n$error';
+          _errorActionLabel = '再試行';
+          _errorAction = _initializeLocation;
+        });
+      },
     );
-
-    _positionSubscription =
-        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-          (position) {
-            if (!mounted) {
-              return;
-            }
-
-
-            setState(() {
-              _currentPosition = position;
-              _hasVeryLowLocationAccuracy = position.accuracy > 500.0;
-            });
-
-            _updateNextDestination();
-            _updateWeatherIfNeeded(position);
-            _checkStampDistance();
-          },
-          onError: (error) {
-            if (!mounted) {
-              return;
-            }
-
-            setState(() {
-              _errorMessage = '位置情報の監視でエラーが発生しました。\n$error';
-              _errorActionLabel = '再試行';
-              _errorAction = _initializeLocation;
-            });
-          },
-        );
   }
 
   // ============================================================
@@ -1606,12 +1566,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           1000.0;
 
       if (elapsedSeconds > 0) {
-        final movedDistance = Geolocator.distanceBetween(
-          previousPosition.latitude,
-          previousPosition.longitude,
-          position.latitude,
-          position.longitude,
-        );
+        final movedDistance = _locationService.distanceBetween(\n        startLatitude: previousPosition.latitude,\n        startLongitude: previousPosition.longitude,\n        endLatitude: position.latitude,\n        endLongitude: position.longitude,\n      );
 
         if (!StampEligibilityPolicy.isPlausibleMovement(
           movedDistanceMeters: movedDistance,
@@ -1640,12 +1595,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         continue;
       }
 
-      final distance = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        seichi.latitude,
-        seichi.longitude,
-      );
+      final distance = _locationService.distanceBetween(\n        startLatitude: position.latitude,\n        startLongitude: position.longitude,\n        endLatitude: seichi.latitude,\n        endLongitude: seichi.longitude,\n      );
 
       if (distance < nearestDistance) {
         nearestDistance = distance;
@@ -1675,12 +1625,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       )) {
         continue;
       }
-      final distance = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        seichi.latitude,
-        seichi.longitude,
-      );
+      final distance = _locationService.distanceBetween(\n        startLatitude: position.latitude,\n        startLongitude: position.longitude,\n        endLatitude: seichi.latitude,\n        endLongitude: seichi.longitude,\n      );
 
       if (StampEligibilityPolicy.isWithinStampRadius(
         distanceMeters: distance,
@@ -2330,12 +2275,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     double? distance;
 
     if (position != null) {
-      distance = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        seichi.latitude,
-        seichi.longitude,
-      );
+      distance = _locationService.distanceBetween(\n        startLatitude: position.latitude,\n        startLongitude: position.longitude,\n        endLatitude: seichi.latitude,\n        endLongitude: seichi.longitude,\n      );
     }
 
     final collected = _collectedIds.contains(seichi.id);
@@ -2704,7 +2644,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       onErrorAction: _errorMessage != null
           ? _errorAction
           : (_hasVeryLowLocationAccuracy
-              ? Geolocator.openAppSettings
+              ? _locationService.openAppSettings
               : null),
       sonarController: _sonarController,
       justCollected: _justCollected,
