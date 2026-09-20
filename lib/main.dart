@@ -54,6 +54,8 @@ import 'services/event_service.dart';
 import 'services/destination_persistence_service.dart';
 import 'services/recommended_route_policy.dart';
 import 'services/progression_service.dart';
+import 'services/profile_service.dart';
+import 'services/session_service.dart';
 import 'services/interstitial_ad_service.dart';
 
 // ============================================================
@@ -158,6 +160,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final CollectionHistoryService _historyService = CollectionHistoryService();
   final EventService _eventService = EventService();
   final ProgressionService _progressionService = ProgressionService();
+  final ProfileService _profileService = ProfileService();
+  final SessionService _sessionService = SessionService();
   final DestinationPersistenceService _destinationPersistenceService =
       DestinationPersistenceService();
   final StampCacheService _stampCacheService = StampCacheService();
@@ -450,39 +454,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   }
 
   Future<void> _loadDisplayName() async {
-    final client = supabase.Supabase.instance.client;
-    final user = client.auth.currentUser;
-
-    if (user == null) {
-      if (mounted) {
-        setState(() {
-          _displayName = null;
-        });
-      }
-      return;
-    }
-
     try {
-      final data = await client
-          .from('profiles')
-          .select('display_name, avatar_key')
-          .eq('id', user.id)
-          .maybeSingle();
+      final profile = await _profileService.loadCurrentProfile();
 
       if (!mounted) {
         return;
       }
 
-      final displayName = data?['display_name']?.toString().trim();
-
-      final avatarKey = data?['avatar_key']?.toString().trim();
-
       setState(() {
-        _displayName = displayName == null || displayName.isEmpty
-            ? null
-            : displayName;
-
-        _avatarKey = avatarKey == null || avatarKey.isEmpty ? null : avatarKey;
+        _displayName = profile?.displayName;
+        _avatarKey = profile?.avatarKey;
       });
     } catch (error) {
       appDebugPrint('[PROFILE] display name load failed: $error');
@@ -490,40 +471,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   }
 
   Future<void> _ensureCloudUser() async {
-    final client = supabase.Supabase.instance.client;
-
-    final existingUser = client.auth.currentUser;
-
-    if (existingUser != null) {
-      appDebugPrint(
-        '[AUTH] existing user: ${existingUser.id}, '
-        'anonymous=${existingUser.isAnonymous}',
-      );
-      return;
-    }
-
-    appDebugPrint('[AUTH] no current user. Starting anonymous sign-in...');
-
-    try {
-      final response = await client.auth.signInAnonymously();
-      final user = response.user;
-
-      if (user != null) {
-        appDebugPrint(
-          '[AUTH] anonymous sign-in success: ${user.id}, '
-          'anonymous=${user.isAnonymous}',
-        );
-      } else {
-        appDebugPrint('[AUTH] anonymous sign-in returned null user');
-      }
-    } on supabase.AuthException catch (error) {
-      appDebugPrint(
-        '[AUTH] anonymous sign-in failed: '
-        'code=${error.statusCode}, message=${error.message}',
-      );
-    } catch (error) {
-      appDebugPrint('[AUTH] anonymous sign-in failed: $error');
-    }
+    await _sessionService.ensureCloudUser();
   }
 
   Future<void> _loadMyEventRank() async {
