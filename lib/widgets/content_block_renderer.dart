@@ -17,7 +17,7 @@ class ContentBlockRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visibleBlocks = blocks
-        .where((block) => block.type != ContentBlockType.unsupported)
+        .where(_isRenderable)
         .toList(growable: false);
 
     if (visibleBlocks.isEmpty) {
@@ -33,6 +33,19 @@ class ContentBlockRenderer extends StatelessWidget {
         ],
       ],
     );
+  }
+
+  bool _isRenderable(ContentBlock block) {
+    switch (block.type) {
+      case ContentBlockType.text:
+        return block.body?.isNotEmpty ?? false;
+      case ContentBlockType.image:
+        return _mediaResolver.resolve(block.mediaPath)?.isNotEmpty ?? false;
+      case ContentBlockType.link:
+        return _validLinkUri(block.linkUrl) != null;
+      case ContentBlockType.unsupported:
+        return false;
+    }
   }
 
   Widget _buildBlock(BuildContext context, ContentBlock block) {
@@ -73,6 +86,7 @@ class ContentBlockRenderer extends StatelessWidget {
     }
 
     final caption = block.body;
+    final isHero = block.role == 'hero';
 
     return _buildSection(
       context,
@@ -81,14 +95,19 @@ class ContentBlockRenderer extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              semanticLabel: block.altText,
-              errorBuilder: (context, error, stackTrace) {
-                return const SizedBox.shrink();
-              },
+            borderRadius: BorderRadius.circular(isHero ? 20 : 16),
+            child: AspectRatio(
+              aspectRatio: _aspectRatioFor(block),
+              child: Image.network(
+                imageUrl,
+                width: double.infinity,
+                height: double.infinity,
+                fit: _imageFitFor(block),
+                semanticLabel: block.altText,
+                errorBuilder: (context, error, stackTrace) {
+                  return const SizedBox.shrink();
+                },
+              ),
             ),
           ),
           if (caption != null && caption.isNotEmpty) ...[
@@ -106,22 +125,45 @@ class ContentBlockRenderer extends StatelessWidget {
     );
   }
 
+  BoxFit _imageFitFor(ContentBlock block) {
+    switch (block.role) {
+      case 'picture_card':
+      case 'reading_card':
+      case 'product':
+        return BoxFit.contain;
+      default:
+        return BoxFit.cover;
+    }
+  }
+
+  double _aspectRatioFor(ContentBlock block) {
+    final configured = block.metadata['aspect_ratio'];
+
+    if (configured is num && configured > 0) {
+      return configured.toDouble();
+    }
+
+    switch (block.role) {
+      case 'hero':
+        return 16 / 9;
+      case 'picture_card':
+      case 'reading_card':
+        return 4 / 3;
+      case 'product':
+        return 1;
+      default:
+        return 4 / 3;
+    }
+  }
+
   Widget _buildLinkBlock(BuildContext context, ContentBlock block) {
-    final linkUrl = block.linkUrl?.trim();
+    final uri = _validLinkUri(block.linkUrl);
 
-    if (linkUrl == null || linkUrl.isEmpty) {
+    if (uri == null) {
       return const SizedBox.shrink();
     }
 
-    final uri = Uri.tryParse(linkUrl);
-    final canOpen =
-        uri != null &&
-        (uri.scheme == 'http' || uri.scheme == 'https') &&
-        uri.host.isNotEmpty;
-
-    if (!canOpen) {
-      return const SizedBox.shrink();
-    }
+    final linkUrl = block.linkUrl!.trim();
 
     return _buildSection(
       context,
@@ -137,6 +179,24 @@ class ContentBlockRenderer extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Uri? _validLinkUri(String? value) {
+    final linkUrl = value?.trim();
+
+    if (linkUrl == null || linkUrl.isEmpty) {
+      return null;
+    }
+
+    final uri = Uri.tryParse(linkUrl);
+
+    if (uri == null ||
+        (uri.scheme != 'http' && uri.scheme != 'https') ||
+        uri.host.isEmpty) {
+      return null;
+    }
+
+    return uri;
   }
 
   Widget _buildSection(
