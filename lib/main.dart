@@ -30,7 +30,7 @@ import 'models/seichi.dart';
 import 'models/achievement.dart';
 import 'models/event.dart';
 import 'services/achievement_service.dart';
-import 'services/level_service.dart';
+import 'services/level_service.dart' show LevelProgress;
 import 'services/location_service.dart';
 import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
@@ -171,7 +171,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         stampCacheService: _stampCacheService,
       );
 
-  static const LevelService _levelService = LevelService();
   LevelProgress? _levelProgress;
 
   // 現在表示・獲得対象としているイベント。
@@ -429,11 +428,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _loadLevelProgress() async {
     try {
-      final totalCollected = await _historyService.loadTotalCollectionCount();
-
-      final totalXp = _levelService.xpFromCollectedCount(totalCollected);
-
-      final levelProgress = _levelService.progressFromXp(totalXp);
+      final levelProgress = await _progressionService.loadLevelProgress();
 
       if (!mounted) {
         return;
@@ -444,7 +439,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       });
 
       appDebugPrint(
-        '[LEVEL] collected=$totalCollected '
+        '[LEVEL] '
         'xp=${levelProgress.totalXp} '
         'level=${levelProgress.level}',
       );
