@@ -34,7 +34,7 @@ void main() {
           lastFetchAt: now,
           lastPosition: position(),
           currentPosition: position(),
-          distanceBetween: (_, __) => 0,
+          distanceBetween: (_, _) => 0,
         ),
         isTrue,
       );
@@ -48,7 +48,7 @@ void main() {
           lastFetchAt: null,
           lastPosition: null,
           currentPosition: position(),
-          distanceBetween: (_, __) => 0,
+          distanceBetween: (_, _) => 0,
         ),
         isTrue,
       );
@@ -62,7 +62,7 @@ void main() {
           lastFetchAt: now.subtract(const Duration(minutes: 15)),
           lastPosition: position(),
           currentPosition: position(),
-          distanceBetween: (_, __) => 0,
+          distanceBetween: (_, _) => 0,
         ),
         isTrue,
       );
@@ -76,7 +76,7 @@ void main() {
           lastFetchAt: now.subtract(const Duration(minutes: 1)),
           lastPosition: position(),
           currentPosition: position(),
-          distanceBetween: (_, __) => 5000,
+          distanceBetween: (_, _) => 5000,
         ),
         isTrue,
       );
@@ -90,7 +90,7 @@ void main() {
           lastFetchAt: now.subtract(const Duration(minutes: 1)),
           lastPosition: position(),
           currentPosition: position(),
-          distanceBetween: (_, __) => 4999.9,
+          distanceBetween: (_, _) => 4999.9,
         ),
         isFalse,
       );
