@@ -52,6 +52,7 @@ import 'services/collection_apply_policy.dart';
 import 'services/collection_display_policy.dart';
 import 'services/collection_progress_policy.dart';
 import 'services/event_service.dart';
+import 'services/event_switch_coordinator.dart';
 import 'services/destination_persistence_service.dart';
 import 'services/recommended_route_policy.dart';
 import 'services/progression_service.dart';
@@ -169,6 +170,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   static const NextDestinationService _nextDestinationService =
       NextDestinationService();
   final EventService _eventService = EventService();
+  static const EventSwitchCoordinator _eventSwitchCoordinator =
+      EventSwitchCoordinator();
   final ProgressionService _progressionService = ProgressionService();
   final ProfileService _profileService = ProfileService();
   final SessionService _sessionService = SessionService();
@@ -2532,20 +2535,31 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _activeRecommendedRoute.clear();
       _isRecommendedRouteLoaded = false;
 
-      await _loadEventAchievements();
-      final syncResult = await _startCollectionSync();
+      CollectionSyncStartResult? syncResult;
 
-      await _loadSeichi();
-      await _applyCollectedRows(syncResult.pendingCollectedRows);
-      await _mergeCloudCollectionHistory();
-      await _loadManualNextDestination();
-      await _loadRecommendedRoute();
+      await _eventSwitchCoordinator.run(
+        loadEventAchievements: _loadEventAchievements,
+        startCollectionSync: () async {
+          syncResult = await _startCollectionSync();
+        },
+        loadSeichi: _loadSeichi,
+        applyPendingRows: () async {
+          final result = syncResult;
+          if (result == null) {
+            throw StateError('イベント切替同期結果がありません。');
+          }
+          await _applyCollectedRows(result!.pendingCollectedRows);
+        },
+        mergeCloudHistory: _mergeCloudCollectionHistory,
+        loadManualNextDestination: _loadManualNextDestination,
+        loadRecommendedRoute: _loadRecommendedRoute,
+        loadMyEventRank: _loadMyEventRank,
+        activateEvent: () => _eventService.activateEvent(eventId),
+      );
 
       if (_activeRecommendedRoute.isNotEmpty) {
         _manualNextSeichiId = _activeRecommendedRoute.first.id;
       }
-      await _loadMyEventRank();
-      await _eventService.activateEvent(eventId);
 
       _updateNextDestination();
 
