@@ -56,6 +56,7 @@ import 'services/recommended_route_policy.dart';
 import 'services/progression_service.dart';
 import 'services/profile_service.dart';
 import 'services/session_service.dart';
+import 'services/seichi_service.dart';
 import 'services/interstitial_ad_service.dart';
 
 // ============================================================
@@ -162,6 +163,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final ProgressionService _progressionService = ProgressionService();
   final ProfileService _profileService = ProfileService();
   final SessionService _sessionService = SessionService();
+  final SeichiService _seichiService = SeichiService();
   final DestinationPersistenceService _destinationPersistenceService =
       DestinationPersistenceService();
   final StampCacheService _stampCacheService = StampCacheService();
@@ -850,35 +852,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         });
       }
 
-      final data = await supabase.Supabase.instance.client
-          .from('seichi')
-          .select(
-            'id, card, reading, name, latitude, longitude, '
-            'stamp_radius_meters, description, icon, card_image_url, is_active, place_id',
-          )
-          .eq('is_active', true)
-          .eq('event_id', _currentEventId!);
+      final eventId = _currentEventId;
 
-      final list = List<Map<String, dynamic>>.from(data)
-          .map(Seichi.fromMap)
-          .where(
-            (seichi) =>
-                seichi.id.isNotEmpty &&
-                seichi.latitude != 0 &&
-                seichi.longitude != 0,
-          )
-          .toList();
+      if (eventId == null || eventId.isEmpty) {
+        throw Exception('イベントIDが未取得のため、聖地を読み込めません。');
+      }
 
-      list.sort((a, b) {
-        final orderCompare = JomoKarutaOrder.indexOf(a.card)
-            .compareTo(JomoKarutaOrder.indexOf(b.card));
-
-        if (orderCompare != 0) {
-          return orderCompare;
-        }
-
-        return a.card.compareTo(b.card);
-      });
+      final list = await _seichiService.loadActiveSeichi(eventId);
 
       if (!mounted) {
         return;
