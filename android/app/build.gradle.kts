@@ -27,6 +27,13 @@ android {
     }
 
     defaultConfig {
+        val googleMapsApiKey =
+            keystoreProperties.getProperty("googleMapsApiKey")
+                ?: throw GradleException(
+                    "googleMapsApiKey is required in android/key.properties."
+                )
+
+        manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "jp.seichiquest.app"
         // You can update the following values to match your application needs.
