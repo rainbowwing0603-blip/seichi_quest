@@ -61,8 +61,8 @@ class ContentBlockService {
     final data = await _client
         .from('content_blocks')
         .select(
-          'id, content_id, block_type, title, body, '
-          'media_path, link_url, display_order',
+          'id, content_id, block_type, role, title, body, '
+          'media_path, alt_text, link_url, display_order, metadata',
         )
         .eq('content_id', normalizedContentId)
         .eq('is_active', true)
