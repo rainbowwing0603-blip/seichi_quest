@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../models/event.dart';
 import 'app_logger.dart';
+import 'event_selection_policy.dart';
 
 class EventSelection {
   const EventSelection({
@@ -58,27 +59,10 @@ class EventService {
       }
     }
 
-    Event? currentEvent;
-
-    if (savedEventId != null && savedEventId.isNotEmpty) {
-      for (final event in events) {
-        if (event.id == savedEventId) {
-          currentEvent = event;
-          break;
-        }
-      }
-    }
-
-    if (currentEvent == null) {
-      for (final event in events) {
-        if (event.slug == 'jomo-karuta-gunma') {
-          currentEvent = event;
-          break;
-        }
-      }
-    }
-
-    currentEvent ??= events.first;
+    final currentEvent = EventSelectionPolicy.select(
+      events: events,
+      savedEventId: savedEventId,
+    );
 
     if (currentEvent.id.isEmpty) {
       throw Exception('現在のイベントIDが取得できません。');
