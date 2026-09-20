@@ -1143,12 +1143,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   void _updateNextDestination() {
-    appDebugPrint(
-      '[ROUTE-NEXT] UPDATE START '
-      'manual=$_manualNextSeichiId '
-      'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
-      'collected=${_collectedIds.length}',
-    );
+    if (kDebugMode) {
+      appDebugPrint(
+        '[ROUTE-NEXT] UPDATE START '
+        'manual=$_manualNextSeichiId '
+        'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+        'collected=${_collectedIds.length}',
+      );
+    }
 
     final result = _nextDestinationService.findNextDestination(
       position: _currentPosition,
@@ -1157,11 +1159,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       manualNextSeichiId: _manualNextSeichiId,
     );
 
-    appDebugPrint(
-      '[ROUTE-NEXT] SERVICE RESULT '
-      'next=${result.seichi == null ? null : '${result.seichi!.card}:${result.seichi!.name}:${result.seichi!.id}'} '
-      'distance=${result.distance}',
-    );
+    if (kDebugMode) {
+      appDebugPrint(
+        '[ROUTE-NEXT] SERVICE RESULT '
+        'next=${result.seichi == null ? null : '${result.seichi!.card}:${result.seichi!.name}:${result.seichi!.id}'} '
+        'distance=${result.distance}',
+      );
+    }
 
     if (result.seichi == null && _manualNextSeichiId != null) {
       _manualNextSeichiId = null;
@@ -1184,12 +1188,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     _syncMarkerAnimation();
 
-    appDebugPrint(
-      '[ROUTE-NEXT] UPDATE END '
-      'next=${_nextSeichi == null ? null : '${_nextSeichi!.card}:${_nextSeichi!.name}:${_nextSeichi!.id}'} '
-      'manual=$_manualNextSeichiId '
-      'distance=$_nextDistance',
-    );
+    if (kDebugMode) {
+      appDebugPrint(
+        '[ROUTE-NEXT] UPDATE END '
+        'next=${_nextSeichi == null ? null : '${_nextSeichi!.card}:${_nextSeichi!.name}:${_nextSeichi!.id}'} '
+        'manual=$_manualNextSeichiId '
+        'distance=$_nextDistance',
+      );
+    }
   }
 
   Future<void> _setNextDestination(Seichi seichi) async {
