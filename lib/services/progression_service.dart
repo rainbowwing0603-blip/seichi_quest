@@ -1,17 +1,17 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../models/achievement.dart';
-import 'collection_history_service.dart';
+import '../collection_history_service.dart';
 import 'level_service.dart';
 
 class ProgressionService {
   ProgressionService({
     supabase.SupabaseClient? client,
     CollectionHistoryService? historyService,
-    LevelService levelService = const LevelService(),
+    LevelService? levelService,
   })  : _client = client ?? supabase.Supabase.instance.client,
         _historyService = historyService ?? CollectionHistoryService(),
-        _levelService = levelService;
+        _levelService = levelService ?? const LevelService();
 
   final supabase.SupabaseClient _client;
   final CollectionHistoryService _historyService;
