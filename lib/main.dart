@@ -187,6 +187,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final DestinationPersistenceService _destinationPersistenceService =
       DestinationPersistenceService();
   final StampCacheService _stampCacheService = StampCacheService();
+  final ContentBlockService _contentBlockService = ContentBlockService();
   late final CollectionSyncService _collectionSyncService =
       CollectionSyncService(
         historyService: _historyService,
@@ -2026,7 +2027,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     final contentBlocksFuture = eventId == null || eventId.isEmpty
         ? null
-        : ContentBlockService().loadForEventContent(
+        : _contentBlockService.loadForEventContent(
             eventId: eventId,
             contentKey: seichi.card,
           );
