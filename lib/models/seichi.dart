@@ -1,6 +1,8 @@
 class Seichi {
   final String id;
   final String? placeId;
+  final String? contentId;
+  final String? eventContentId;
   final String card;
   final String reading;
   final String name;
@@ -15,6 +17,8 @@ class Seichi {
   const Seichi({
     required this.id,
     required this.placeId,
+    this.contentId,
+    this.eventContentId,
     required this.card,
     required this.reading,
     required this.name,
@@ -30,7 +34,9 @@ class Seichi {
   factory Seichi.fromMap(Map<String, dynamic> map) {
     return Seichi(
       id: map['id']?.toString() ?? '',
-      placeId: map['place_id']?.toString(),
+      placeId: _toNullableString(map['place_id']),
+      contentId: _toNullableString(map['content_id']),
+      eventContentId: _toNullableString(map['event_content_id']),
       card: map['card']?.toString() ?? '',
       reading: map['reading']?.toString() ?? '',
       name: map['name']?.toString() ?? '名称未設定',
