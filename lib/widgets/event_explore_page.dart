@@ -247,9 +247,11 @@ class _EventExplorePageState extends State<EventExplorePage> {
       if (!mounted) {
         return;
       }
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('お気に入りの更新に失敗しました。')));
+      QuestSnackBar.show(
+        context,
+        message: 'お気に入りの更新に失敗しました。',
+        type: QuestNoticeType.error,
+      );
     }
   }
 
@@ -376,6 +378,107 @@ class _EventExplorePageState extends State<EventExplorePage> {
     }
   }
 
+  Future<void> _confirmLeaveEvent(Event event) async {
+    if (event.id == widget.currentEventId) {
+      QuestSnackBar.show(
+        context,
+        message: '現在選択中のクエストは参加解除できません。',
+        type: QuestNoticeType.warning,
+      );
+      return;
+    }
+
+    if (_participationStates[event.id] != true) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return QuestDialog(
+          icon: Icons.flag_outlined,
+          title: '参加をやめますか？',
+          subtitle: event.name,
+          content: const Text('参加をやめても、獲得済みの記録は削除されません。あとからもう一度参加できます。'),
+          actionLabel: '参加をやめる',
+          onAction: () {
+            Navigator.of(dialogContext).pop(true);
+          },
+          secondaryActionLabel: 'キャンセル',
+          onSecondaryAction: () {
+            Navigator.of(dialogContext).pop(false);
+          },
+          isDestructive: true,
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    await _leaveEvent(event);
+  }
+
+  Future<void> _leaveEvent(Event event) async {
+    final user = _client.auth.currentUser;
+
+    if (user == null) {
+      QuestSnackBar.show(
+        context,
+        message: '参加情報を更新できませんでした。',
+        type: QuestNoticeType.error,
+      );
+      return;
+    }
+
+    if (event.id == widget.currentEventId) {
+      QuestSnackBar.show(
+        context,
+        message: '現在選択中のクエストは参加解除できません。',
+        type: QuestNoticeType.warning,
+      );
+      return;
+    }
+
+    try {
+      final now = DateTime.now().toUtc().toIso8601String();
+
+      await _client
+          .from('user_event_participations')
+          .update({'is_active': false, 'left_at': now, 'updated_at': now})
+          .eq('user_id', user.id)
+          .eq('event_id', event.id);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _participationStates[event.id] = false;
+      });
+
+      QuestSnackBar.show(
+        context,
+        message: '${event.name} の参加を解除しました。',
+        type: QuestNoticeType.success,
+      );
+    } catch (error, stackTrace) {
+      appDebugPrint('[EVENT] leave participation failed: $error');
+      appDebugPrint('[EVENT] leave participation stackTrace: $stackTrace');
+
+      if (!mounted) {
+        return;
+      }
+
+      QuestSnackBar.show(
+        context,
+        message: '参加解除に失敗しました。',
+        type: QuestNoticeType.error,
+      );
+    }
+  }
+
   Future<void> _openEventDetail(Event event) async {
     final label = _participationLabel(event);
 
@@ -454,157 +557,468 @@ class _EventExplorePageState extends State<EventExplorePage> {
     var temporaryStatus = _statusFilter;
     var temporaryPeriod = _periodFilter;
     var temporaryPrefecture = _prefectureFilter;
-
     var temporaryFavoriteOnly = _favoriteOnly;
 
     final applied = await showModalBottomSheet<bool>(
       context: context,
-      showDragHandle: true,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFFF6F8FC),
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: QuestUiTokens.ink.withValues(alpha: 0.48),
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            Widget buildFilterOption({
+              required String label,
+              required bool selected,
+              required VoidCallback onTap,
+            }) {
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(14),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: selected ? QuestUiTokens.primaryGradient : null,
+                      color: selected
+                          ? null
+                          : Colors.white.withValues(alpha: 0.72),
+                      border: Border.all(
+                        color: selected
+                            ? Colors.white.withValues(alpha: 0.72)
+                            : QuestUiTokens.primary.withValues(alpha: 0.16),
+                      ),
+                      boxShadow: selected
+                          ? [
+                              BoxShadow(
+                                color: QuestUiTokens.primary.withValues(
+                                  alpha: 0.22,
+                                ),
+                                blurRadius: 12,
+                                offset: const Offset(0, 5),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (selected) ...[
+                          const Icon(
+                            Icons.check_rounded,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Text(
+                          label,
+                          style: TextStyle(
+                            color: selected ? Colors.white : QuestUiTokens.ink,
+                            fontSize: 13,
+                            fontWeight: selected
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
             Widget buildSection({
+              required IconData icon,
               required String title,
               required List<String> options,
               required String selected,
               required ValueChanged<String> onSelected,
+              String? helperText,
             }) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final option in options)
-                        ChoiceChip(
-                          label: Text(option),
-                          selected: selected == option,
-                          onSelected: (_) {
-                            onSelected(option);
-                          },
-                        ),
-                    ],
-                  ),
-                ],
-              );
-            }
-
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  4,
-                  20,
-                  20 + MediaQuery.of(context).viewInsets.bottom,
-                ),
+              return QuestGlassCard(
+                padding: const EdgeInsets.all(16),
+                borderRadius: 20,
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '絞り込み',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '条件を組み合わせてクエストを探せます。',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 22),
-                    buildSection(
-                      title: '参加状態',
-                      options: const ['すべて', '未参加', '参加中', '過去に参加'],
-                      selected: temporaryStatus,
-                      onSelected: (value) {
-                        setSheetState(() {
-                          temporaryStatus = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 22),
-                    buildSection(
-                      title: '開催状態',
-                      options: const ['すべて', '開催中', '開催前', '終了'],
-                      selected: temporaryPeriod,
-                      onSelected: (value) {
-                        setSheetState(() {
-                          temporaryPeriod = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 22),
-                    buildSection(
-                      title: '都道府県',
-                      options: <String>['すべて', ...prefectureOptions],
-                      selected: temporaryPrefecture,
-                      onSelected: (value) {
-                        setSheetState(() {
-                          temporaryPrefecture = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 22),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text(
-                        'お気に入りのみ',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: const Text('★を付けたクエストだけ表示'),
-                      value: temporaryFavoriteOnly,
-                      onChanged: (value) {
-                        setSheetState(() {
-                          temporaryFavoriteOnly = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 26),
                     Row(
                       children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              setSheetState(() {
-                                temporaryStatus = 'すべて';
-                                temporaryPeriod = 'すべて';
-                                temporaryPrefecture = 'すべて';
-                                temporaryFavoriteOnly = false;
-                              });
-                            },
-                            child: const Text('リセット'),
+                        Container(
+                          width: 34,
+                          height: 34,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: QuestUiTokens.primary.withValues(
+                              alpha: 0.10,
+                            ),
+                            borderRadius: BorderRadius.circular(11),
+                          ),
+                          child: Icon(
+                            icon,
+                            size: 18,
+                            color: QuestUiTokens.primary,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: FilledButton(
-                            onPressed: () {
-                              Navigator.of(sheetContext).pop(true);
-                            },
-                            child: const Text('この条件で表示'),
+                        const SizedBox(width: 10),
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            color: QuestUiTokens.ink,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 13),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final option in options)
+                          buildFilterOption(
+                            label: option,
+                            selected: selected == option,
+                            onTap: () {
+                              onSelected(option);
+                            },
+                          ),
+                      ],
+                    ),
+                    if (helperText != null && helperText.trim().isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.info_outline_rounded,
+                            size: 15,
+                            color: QuestUiTokens.mutedInk,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              helperText,
+                              style: const TextStyle(
+                                color: QuestUiTokens.mutedInk,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }
+
+            return FractionallySizedBox(
+              heightFactor: 0.92,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF6F8FC),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 11),
+                    Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: QuestUiTokens.mutedInk.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    gradient: QuestUiTokens.primaryGradient,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: QuestUiTokens.primary.withValues(
+                                          alpha: 0.24,
+                                        ),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.tune_rounded,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 13),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'FILTER QUESTS',
+                                        style: TextStyle(
+                                          color: QuestUiTokens.primary,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 1.6,
+                                        ),
+                                      ),
+                                      SizedBox(height: 3),
+                                      Text(
+                                        'クエストを絞り込む',
+                                        style: TextStyle(
+                                          color: QuestUiTokens.ink,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                      SizedBox(height: 3),
+                                      Text(
+                                        '条件を組み合わせて、次の冒険を見つけよう',
+                                        style: TextStyle(
+                                          color: QuestUiTokens.mutedInk,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            buildSection(
+                              icon: Icons.how_to_reg_rounded,
+                              title: '参加状態',
+                              options: const ['すべて', '未参加', '参加中', '過去に参加'],
+                              selected: temporaryStatus,
+                              onSelected: (value) {
+                                setSheetState(() {
+                                  temporaryStatus = value;
+                                });
+                              },
+                              helperText: '「参加中」には現在選択中のクエストも含まれます。',
+                            ),
+                            const SizedBox(height: 12),
+                            buildSection(
+                              icon: Icons.event_available_rounded,
+                              title: '開催状態',
+                              options: const ['すべて', '開催中', '開催前', '終了'],
+                              selected: temporaryPeriod,
+                              onSelected: (value) {
+                                setSheetState(() {
+                                  temporaryPeriod = value;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            buildSection(
+                              icon: Icons.location_on_outlined,
+                              title: '都道府県',
+                              options: <String>['すべて', ...prefectureOptions],
+                              selected: temporaryPrefecture,
+                              onSelected: (value) {
+                                setSheetState(() {
+                                  temporaryPrefecture = value;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            QuestGlassCard(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              borderRadius: 20,
+                              child: InkWell(
+                                onTap: () {
+                                  setSheetState(() {
+                                    temporaryFavoriteOnly =
+                                        !temporaryFavoriteOnly;
+                                  });
+                                },
+                                borderRadius: BorderRadius.circular(16),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 38,
+                                      height: 38,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: temporaryFavoriteOnly
+                                            ? Colors.amber.withValues(
+                                                alpha: 0.16,
+                                              )
+                                            : QuestUiTokens.primary.withValues(
+                                                alpha: 0.08,
+                                              ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        temporaryFavoriteOnly
+                                            ? Icons.star_rounded
+                                            : Icons.star_border_rounded,
+                                        color: temporaryFavoriteOnly
+                                            ? Colors.amber.shade700
+                                            : QuestUiTokens.primary,
+                                        size: 21,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'お気に入りのみ',
+                                            style: TextStyle(
+                                              color: QuestUiTokens.ink,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                          SizedBox(height: 2),
+                                          Text(
+                                            '★を付けたクエストだけ表示',
+                                            style: TextStyle(
+                                              color: QuestUiTokens.mutedInk,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 160,
+                                      ),
+                                      width: 48,
+                                      height: 28,
+                                      padding: const EdgeInsets.all(3),
+                                      decoration: BoxDecoration(
+                                        gradient: temporaryFavoriteOnly
+                                            ? QuestUiTokens.primaryGradient
+                                            : null,
+                                        color: temporaryFavoriteOnly
+                                            ? null
+                                            : QuestUiTokens.mutedInk.withValues(
+                                                alpha: 0.16,
+                                              ),
+                                        borderRadius: BorderRadius.circular(99),
+                                      ),
+                                      child: AnimatedAlign(
+                                        duration: const Duration(
+                                          milliseconds: 160,
+                                        ),
+                                        alignment: temporaryFavoriteOnly
+                                            ? Alignment.centerRight
+                                            : Alignment.centerLeft,
+                                        child: Container(
+                                          width: 22,
+                                          height: 22,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: QuestUiTokens.ink
+                                                    .withValues(alpha: 0.14),
+                                                blurRadius: 5,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.90),
+                        border: Border(
+                          top: BorderSide(
+                            color: QuestUiTokens.primary.withValues(
+                              alpha: 0.10,
+                            ),
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                setSheetState(() {
+                                  temporaryStatus = 'すべて';
+                                  temporaryPeriod = 'すべて';
+                                  temporaryPrefecture = 'すべて';
+                                  temporaryFavoriteOnly = false;
+                                });
+                              },
+                              icon: const Icon(Icons.refresh_rounded, size: 18),
+                              label: const Text('リセット'),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 50),
+                                foregroundColor: QuestUiTokens.primaryDeep,
+                                side: BorderSide(
+                                  color: QuestUiTokens.primary.withValues(
+                                    alpha: 0.26,
+                                  ),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    QuestUiTokens.controlRadius,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            flex: 2,
+                            child: QuestPrimaryButton(
+                              label: 'この条件で表示',
+                              icon: Icons.check_rounded,
+                              onPressed: () {
+                                Navigator.of(sheetContext).pop(true);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -906,7 +1320,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
                     label: Text(
                       activeFilterCount == 0
                           ? '絞り込み'
-                          : '絞り込み $activeFilterCount',
+                          : '絞り込み ・ $activeFilterCount',
                     ),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 48),
@@ -919,45 +1333,354 @@ class _EventExplorePageState extends State<EventExplorePage> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: DropdownButtonFormField<String>(
-                    key: ValueKey(_sortOrder),
-                    initialValue: _sortOrder,
-                    isDense: true,
-                    decoration: InputDecoration(
-                      prefixIcon: const Icon(
-                        Icons.sort_rounded,
-                        size: 19,
-                        color: QuestUiTokens.primary,
-                      ),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.82),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 13,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                          color: QuestUiTokens.primary.withValues(alpha: 0.08),
-                        ),
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: '標準', child: Text('標準')),
-                      DropdownMenuItem(value: '現在地から近い順', child: Text('近い順')),
-                      DropdownMenuItem(value: '終了が近い順', child: Text('終了順')),
-                      DropdownMenuItem(value: '開始日が早い順', child: Text('開始順')),
-                      DropdownMenuItem(value: '名前順', child: Text('名前順')),
-                    ],
-                    onChanged: (value) {
-                      if (value == null) {
+                  child: OutlinedButton(
+                    onPressed: () async {
+                      final selected = await showModalBottomSheet<String>(
+                        context: context,
+                        isScrollControlled: true,
+                        useSafeArea: true,
+                        backgroundColor: Colors.transparent,
+                        barrierColor: QuestUiTokens.ink.withValues(alpha: 0.48),
+                        builder: (sheetContext) {
+                          final options =
+                              <
+                                ({
+                                  String value,
+                                  String label,
+                                  String description,
+                                  IconData icon,
+                                })
+                              >[
+                                (
+                                  value: '標準',
+                                  label: '標準',
+                                  description: 'おすすめの順番で表示',
+                                  icon: Icons.auto_awesome_rounded,
+                                ),
+                                (
+                                  value: '現在地から近い順',
+                                  label: '近い順',
+                                  description: '現在地から近いクエストを優先',
+                                  icon: Icons.near_me_rounded,
+                                ),
+                                (
+                                  value: '終了が近い順',
+                                  label: '終了順',
+                                  description: '終了日が近いクエストを優先',
+                                  icon: Icons.hourglass_bottom_rounded,
+                                ),
+                                (
+                                  value: '開始日が早い順',
+                                  label: '開始順',
+                                  description: '開始日が早いクエストを優先',
+                                  icon: Icons.event_available_rounded,
+                                ),
+                                (
+                                  value: '名前順',
+                                  label: '名前順',
+                                  description: 'クエスト名の順番で表示',
+                                  icon: Icons.sort_by_alpha_rounded,
+                                ),
+                              ];
+
+                          return Container(
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF6F8FC),
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(30),
+                              ),
+                            ),
+                            child: SafeArea(
+                              top: false,
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.fromLTRB(
+                                  20,
+                                  11,
+                                  20,
+                                  20,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Center(
+                                      child: Container(
+                                        width: 42,
+                                        height: 4,
+                                        decoration: BoxDecoration(
+                                          color: QuestUiTokens.mutedInk
+                                              .withValues(alpha: 0.45),
+                                          borderRadius: BorderRadius.circular(
+                                            99,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 48,
+                                          height: 48,
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            gradient:
+                                                QuestUiTokens.primaryGradient,
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: QuestUiTokens.primary
+                                                    .withValues(alpha: 0.24),
+                                                blurRadius: 16,
+                                                offset: const Offset(0, 6),
+                                              ),
+                                            ],
+                                          ),
+                                          child: const Icon(
+                                            Icons.sort_rounded,
+                                            color: Colors.white,
+                                            size: 24,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 13),
+                                        const Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'SORT QUESTS',
+                                                style: TextStyle(
+                                                  color: QuestUiTokens.primary,
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: 1.6,
+                                                ),
+                                              ),
+                                              SizedBox(height: 3),
+                                              Text(
+                                                '並び替え',
+                                                style: TextStyle(
+                                                  color: QuestUiTokens.ink,
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w900,
+                                                ),
+                                              ),
+                                              SizedBox(height: 3),
+                                              Text(
+                                                'クエストの表示順を選択',
+                                                style: TextStyle(
+                                                  color: QuestUiTokens.mutedInk,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 20),
+                                    for (final option in options) ...[
+                                      Builder(
+                                        builder: (context) {
+                                          final isSelected =
+                                              _sortOrder == option.value;
+
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 10,
+                                            ),
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                onTap: () {
+                                                  Navigator.of(sheetContext)
+                                                      .pop(option.value);
+                                                },
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                                child: QuestGlassCard(
+                                                  padding: const EdgeInsets.all(
+                                                    15,
+                                                  ),
+                                                  borderRadius: 20,
+                                                  child: Row(
+                                                    children: [
+                                                      Container(
+                                                        width: 42,
+                                                        height: 42,
+                                                        alignment:
+                                                            Alignment.center,
+                                                        decoration: BoxDecoration(
+                                                          gradient: isSelected
+                                                              ? QuestUiTokens
+                                                                    .primaryGradient
+                                                              : null,
+                                                          color: isSelected
+                                                              ? null
+                                                              : QuestUiTokens
+                                                                    .primary
+                                                                    .withValues(
+                                                                      alpha:
+                                                                          0.08,
+                                                                    ),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                13,
+                                                              ),
+                                                        ),
+                                                        child: Icon(
+                                                          option.icon,
+                                                          size: 20,
+                                                          color: isSelected
+                                                              ? Colors.white
+                                                              : QuestUiTokens
+                                                                    .primary,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 13),
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Text(
+                                                              option.label,
+                                                              style: TextStyle(
+                                                                color:
+                                                                    QuestUiTokens
+                                                                        .ink,
+                                                                fontSize: 14,
+                                                                fontWeight:
+                                                                    isSelected
+                                                                    ? FontWeight
+                                                                          .w900
+                                                                    : FontWeight
+                                                                          .w800,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 3,
+                                                            ),
+                                                            Text(
+                                                              option
+                                                                  .description,
+                                                              style: const TextStyle(
+                                                                color:
+                                                                    QuestUiTokens
+                                                                        .mutedInk,
+                                                                fontSize: 11,
+                                                                height: 1.35,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      if (isSelected)
+                                                        Container(
+                                                          width: 28,
+                                                          height: 28,
+                                                          alignment:
+                                                              Alignment.center,
+                                                          decoration:
+                                                              const BoxDecoration(
+                                                                gradient:
+                                                                    QuestUiTokens
+                                                                        .primaryGradient,
+                                                                shape: BoxShape
+                                                                    .circle,
+                                                              ),
+                                                          child: const Icon(
+                                                            Icons.check_rounded,
+                                                            size: 17,
+                                                            color: Colors.white,
+                                                          ),
+                                                        )
+                                                      else
+                                                        const Icon(
+                                                          Icons
+                                                              .chevron_right_rounded,
+                                                          color: QuestUiTokens
+                                                              .mutedInk,
+                                                        ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+
+                      if (!mounted || selected == null) {
                         return;
                       }
 
                       setState(() {
-                        _sortOrder = value;
+                        _sortOrder = selected;
                       });
                     },
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 13,
+                        vertical: 10,
+                      ),
+                      backgroundColor: Colors.white,
+                      foregroundColor: QuestUiTokens.ink,
+                      side: BorderSide(
+                        color: QuestUiTokens.primary.withValues(alpha: 0.16),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.sort_rounded,
+                          size: 19,
+                          color: QuestUiTokens.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            switch (_sortOrder) {
+                              '現在地から近い順' => '近い順',
+                              '終了が近い順' => '終了順',
+                              '開始日が早い順' => '開始順',
+                              '名前順' => '名前順',
+                              _ => '標準',
+                            },
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.expand_more_rounded,
+                          size: 19,
+                          color: QuestUiTokens.mutedInk,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -1245,6 +1968,208 @@ class _EventExplorePageState extends State<EventExplorePage> {
                         : QuestUiTokens.mutedInk,
                   ),
                 ),
+                if (label == '参加中')
+                  IconButton(
+                    tooltip: 'クエストメニュー',
+                    onPressed: () async {
+                      final action = await showModalBottomSheet<String>(
+                        context: context,
+                        useSafeArea: true,
+                        backgroundColor: Colors.transparent,
+                        barrierColor: QuestUiTokens.ink.withValues(alpha: 0.48),
+                        builder: (sheetContext) {
+                          return Container(
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF6F8FC),
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(30),
+                              ),
+                            ),
+                            child: SafeArea(
+                              top: false,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  20,
+                                  11,
+                                  20,
+                                  20,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Center(
+                                      child: Container(
+                                        width: 42,
+                                        height: 4,
+                                        decoration: BoxDecoration(
+                                          color: QuestUiTokens.mutedInk
+                                              .withValues(alpha: 0.45),
+                                          borderRadius: BorderRadius.circular(
+                                            99,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 48,
+                                          height: 48,
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            gradient:
+                                                QuestUiTokens.primaryGradient,
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: QuestUiTokens.primary
+                                                    .withValues(alpha: 0.24),
+                                                blurRadius: 16,
+                                                offset: const Offset(0, 6),
+                                              ),
+                                            ],
+                                          ),
+                                          child: const Icon(
+                                            Icons.more_horiz_rounded,
+                                            color: Colors.white,
+                                            size: 25,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 13),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const Text(
+                                                'QUEST MENU',
+                                                style: TextStyle(
+                                                  color: QuestUiTokens.primary,
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: 1.6,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 3),
+                                              const Text(
+                                                'クエストメニュー',
+                                                style: TextStyle(
+                                                  color: QuestUiTokens.ink,
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w900,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 3),
+                                              Text(
+                                                event.name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  color: QuestUiTokens.mutedInk,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: () {
+                                          Navigator.of(sheetContext)
+                                              .pop('leave');
+                                        },
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: QuestGlassCard(
+                                          padding: const EdgeInsets.all(15),
+                                          borderRadius: 20,
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 42,
+                                                height: 42,
+                                                alignment: Alignment.center,
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFD94B5B)
+                                                      .withValues(alpha: 0.10),
+                                                  borderRadius:
+                                                      BorderRadius.circular(13),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.logout_rounded,
+                                                  size: 20,
+                                                  color: Color(0xFFD94B5B),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 13),
+                                              const Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      '参加をやめる',
+                                                      style: TextStyle(
+                                                        color: Color(
+                                                          0xFFD94B5B,
+                                                        ),
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.w900,
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 3),
+                                                    Text(
+                                                      '獲得済みの記録は削除されません',
+                                                      style: TextStyle(
+                                                        color: QuestUiTokens
+                                                            .mutedInk,
+                                                        fontSize: 11,
+                                                        height: 1.35,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              const Icon(
+                                                Icons.chevron_right_rounded,
+                                                color: Color(0xFFD94B5B),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+
+                      if (!mounted || action == null) {
+                        return;
+                      }
+
+                      if (action == 'leave') {
+                        await _confirmLeaveEvent(event);
+                      }
+                    },
+                    icon: const Icon(
+                      Icons.more_vert_rounded,
+                      color: QuestUiTokens.mutedInk,
+                    ),
+                  ),
               ],
             ),
           ),

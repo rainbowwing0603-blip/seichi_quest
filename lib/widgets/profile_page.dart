@@ -151,11 +151,10 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('プロフィールを保存しました。'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      QuestSnackBar.show(
+        context,
+        message: 'プロフィールを保存しました。',
+        type: QuestNoticeType.success,
       );
 
       Navigator.of(context).pop(true);
@@ -439,57 +438,350 @@ class _ProfilePageState extends State<ProfilePage> {
                       _buildSection(
                         title: '年代',
                         description: '年代を選択できます。回答したくない場合は「回答しない」を選べます。',
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _ageGroup,
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(
-                              Icons.cake_outlined,
-                              color: QuestUiTokens.cyan,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () async {
+                              final selected = await showModalBottomSheet<String>(
+                                context: context,
+                                useSafeArea: true,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                barrierColor: QuestUiTokens.ink.withValues(
+                                  alpha: 0.48,
+                                ),
+                                builder: (sheetContext) {
+                                  return Container(
+                                    constraints: BoxConstraints(
+                                      maxHeight:
+                                          MediaQuery.sizeOf(sheetContext)
+                                              .height *
+                                          0.82,
+                                    ),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFF6F8FC),
+                                      borderRadius: BorderRadius.vertical(
+                                        top: Radius.circular(30),
+                                      ),
+                                    ),
+                                    child: SafeArea(
+                                      top: false,
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                              20,
+                                              11,
+                                              20,
+                                              14,
+                                            ),
+                                            child: Column(
+                                              children: [
+                                                Container(
+                                                  width: 42,
+                                                  height: 4,
+                                                  decoration: BoxDecoration(
+                                                    color: QuestUiTokens
+                                                        .mutedInk
+                                                        .withValues(
+                                                          alpha: 0.45,
+                                                        ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          99,
+                                                        ),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 20),
+                                                Row(
+                                                  children: [
+                                                    Container(
+                                                      width: 48,
+                                                      height: 48,
+                                                      alignment:
+                                                          Alignment.center,
+                                                      decoration: BoxDecoration(
+                                                        gradient: QuestUiTokens
+                                                            .primaryGradient,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              16,
+                                                            ),
+                                                        boxShadow: [
+                                                          BoxShadow(
+                                                            color: QuestUiTokens
+                                                                .primary
+                                                                .withValues(
+                                                                  alpha: 0.24,
+                                                                ),
+                                                            blurRadius: 16,
+                                                            offset:
+                                                                const Offset(
+                                                                  0,
+                                                                  6,
+                                                                ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons.cake_outlined,
+                                                        color: Colors.white,
+                                                        size: 24,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 13),
+                                                    const Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Text(
+                                                            'AGE GROUP',
+                                                            style: TextStyle(
+                                                              color:
+                                                                  QuestUiTokens
+                                                                      .primary,
+                                                              fontSize: 9,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w900,
+                                                              letterSpacing:
+                                                                  1.6,
+                                                            ),
+                                                          ),
+                                                          SizedBox(height: 3),
+                                                          Text(
+                                                            '年代を選択',
+                                                            style: TextStyle(
+                                                              color:
+                                                                  QuestUiTokens
+                                                                      .ink,
+                                                              fontSize: 20,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w900,
+                                                            ),
+                                                          ),
+                                                          SizedBox(height: 3),
+                                                          Text(
+                                                            'プロフィールに表示する年代を選べます',
+                                                            style: TextStyle(
+                                                              color:
+                                                                  QuestUiTokens
+                                                                      .mutedInk,
+                                                              fontSize: 12,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Flexible(
+                                            child: SingleChildScrollView(
+                                              padding:
+                                                  const EdgeInsets.fromLTRB(
+                                                    20,
+                                                    4,
+                                                    20,
+                                                    20,
+                                                  ),
+                                              child: Column(
+                                                children: _ageGroups.map((
+                                                  value,
+                                                ) {
+                                                  final isSelected =
+                                                      value == _ageGroup;
+
+                                                  return Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          bottom: 9,
+                                                        ),
+                                                    child: Material(
+                                                      color: Colors.transparent,
+                                                      child: InkWell(
+                                                        onTap: () {
+                                                          Navigator.of(
+                                                            sheetContext,
+                                                          ).pop(value);
+                                                        },
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              18,
+                                                            ),
+                                                        child: AnimatedContainer(
+                                                          duration:
+                                                              const Duration(
+                                                                milliseconds:
+                                                                    180,
+                                                              ),
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 15,
+                                                                vertical: 14,
+                                                              ),
+                                                          decoration: BoxDecoration(
+                                                            gradient: isSelected
+                                                                ? QuestUiTokens
+                                                                      .primaryGradient
+                                                                : null,
+                                                            color: isSelected
+                                                                ? null
+                                                                : Colors.white,
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  18,
+                                                                ),
+                                                            border: Border.all(
+                                                              color: isSelected
+                                                                  ? Colors
+                                                                        .transparent
+                                                                  : QuestUiTokens
+                                                                        .ink
+                                                                        .withValues(
+                                                                          alpha:
+                                                                              0.06,
+                                                                        ),
+                                                            ),
+                                                            boxShadow:
+                                                                isSelected
+                                                                ? [
+                                                                    BoxShadow(
+                                                                      color: QuestUiTokens
+                                                                          .primary
+                                                                          .withValues(
+                                                                            alpha:
+                                                                                0.18,
+                                                                          ),
+                                                                      blurRadius:
+                                                                          14,
+                                                                      offset:
+                                                                          const Offset(
+                                                                            0,
+                                                                            5,
+                                                                          ),
+                                                                    ),
+                                                                  ]
+                                                                : null,
+                                                          ),
+                                                          child: Row(
+                                                            children: [
+                                                              Expanded(
+                                                                child: Text(
+                                                                  value,
+                                                                  style: TextStyle(
+                                                                    color:
+                                                                        isSelected
+                                                                        ? Colors
+                                                                              .white
+                                                                        : QuestUiTokens
+                                                                              .ink,
+                                                                    fontSize:
+                                                                        14,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w800,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              if (isSelected)
+                                                                const Icon(
+                                                                  Icons
+                                                                      .check_circle_rounded,
+                                                                  color: Colors
+                                                                      .white,
+                                                                  size: 20,
+                                                                )
+                                                              else
+                                                                const Icon(
+                                                                  Icons
+                                                                      .chevron_right_rounded,
+                                                                  color: QuestUiTokens
+                                                                      .mutedInk,
+                                                                  size: 20,
+                                                                ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                }).toList(),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+
+                              if (!mounted || selected == null) {
+                                return;
+                              }
+
+                              setState(() {
+                                _ageGroup = selected;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(
+                              QuestUiTokens.controlRadius,
                             ),
-                            filled: true,
-                            fillColor: QuestUiTokens.cyan.withValues(
-                              alpha: 0.035,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                QuestUiTokens.controlRadius,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 15,
+                                vertical: 14,
                               ),
-                              borderSide: BorderSide.none,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                QuestUiTokens.controlRadius,
-                              ),
-                              borderSide: BorderSide(
-                                color: QuestUiTokens.ink.withValues(
-                                  alpha: 0.06,
+                              decoration: BoxDecoration(
+                                color: QuestUiTokens.cyan.withValues(
+                                  alpha: 0.035,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  QuestUiTokens.controlRadius,
+                                ),
+                                border: Border.all(
+                                  color: QuestUiTokens.ink.withValues(
+                                    alpha: 0.06,
+                                  ),
                                 ),
                               ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                QuestUiTokens.controlRadius,
-                              ),
-                              borderSide: const BorderSide(
-                                color: QuestUiTokens.cyan,
-                                width: 1.5,
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.cake_outlined,
+                                    color: QuestUiTokens.cyan,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      _ageGroup ?? '年代を選択',
+                                      style: TextStyle(
+                                        color: _ageGroup == null
+                                            ? QuestUiTokens.mutedInk
+                                            : QuestUiTokens.ink,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    color: QuestUiTokens.mutedInk,
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                          hint: const Text('年代を選択'),
-                          items: _ageGroups
-                              .map(
-                                (value) => DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(value),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _ageGroup = value;
-                            });
-                          },
                         ),
                       ),
 

@@ -22,11 +22,6 @@ class MyPage extends StatelessWidget {
   final String? nextDestinationIcon;
   final double? nextDestinationDistance;
   final VoidCallback onShowNextDestination;
-  final VoidCallback onShowCurrentEvent;
-  final VoidCallback onShowParticipatingEvents;
-  final VoidCallback onShowEventExplore;
-  final VoidCallback onShowFavoriteEvents;
-  final VoidCallback onSelectEvent;
   final VoidCallback onShowAchievements;
   final VoidCallback onShowRanking;
   final VoidCallback onShowAdventureLog;
@@ -52,11 +47,6 @@ class MyPage extends StatelessWidget {
     required this.nextDestinationIcon,
     required this.nextDestinationDistance,
     required this.onShowNextDestination,
-    required this.onShowCurrentEvent,
-    required this.onShowParticipatingEvents,
-    required this.onShowEventExplore,
-    required this.onShowFavoriteEvents,
-    required this.onSelectEvent,
     required this.onShowAchievements,
     required this.onShowRanking,
     required this.onShowAdventureLog,
@@ -89,36 +79,6 @@ class MyPage extends StatelessWidget {
             const SizedBox(height: 14),
             _buildNextDestinationCard(),
             const SizedBox(height: 24),
-
-            _buildSectionTitle('クエスト', Icons.explore_outlined),
-            const SizedBox(height: 10),
-            _buildSettingsTile(
-              icon: Icons.explore_outlined,
-              title: '現在のクエスト',
-              subtitle: currentEventName ?? 'クエストを選択',
-              onTap: onShowCurrentEvent,
-            ),
-            _buildSettingsTile(
-              icon: Icons.travel_explore,
-              title: 'クエストを探す',
-              subtitle: '新しいクエストを見つける',
-              onTap: onShowEventExplore,
-            ),
-            _buildSettingsTile(
-              icon: Icons.star_outline,
-              title: 'お気に入りクエスト',
-              subtitle: '★を付けたクエストを見る',
-              onTap: onShowFavoriteEvents,
-            ),
-            _buildSettingsTile(
-              icon: Icons.flag_outlined,
-              title: '参加中クエスト',
-              subtitle: '参加しているクエストを確認・切替',
-              onTap: onShowParticipatingEvents,
-            ),
-
-            const SizedBox(height: 18),
-
             _buildSectionTitle('記録', Icons.auto_graph_outlined),
             const SizedBox(height: 10),
             GestureDetector(

@@ -402,22 +402,26 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('獲得履歴をリセットしますか？'),
+        return QuestDialog(
+          icon: Icons.restart_alt_rounded,
+          title: '獲得履歴をリセットしますか？',
+          subtitle: 'この操作は元に戻せません',
           content: const Text(
-            '現在のイベントで獲得した聖地がすべて未獲得になります。\n'
-            'この操作は元に戻せません。',
+            '現在のイベントで獲得した聖地がすべて未獲得になります。',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: QuestUiTokens.mutedInk,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              height: 1.55,
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('キャンセル'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('リセット'),
-            ),
-          ],
+          actionLabel: 'リセット',
+          actionIcon: Icons.delete_sweep_rounded,
+          onAction: () => Navigator.of(context).pop(true),
+          secondaryActionLabel: 'キャンセル',
+          onSecondaryAction: () => Navigator.of(context).pop(false),
+          isDestructive: true,
         );
       },
     );
@@ -433,15 +437,21 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
         return;
       }
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('獲得履歴をリセットしました。')));
+      QuestSnackBar.show(
+        context,
+        message: '獲得履歴をリセットしました。',
+        type: QuestNoticeType.success,
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('リセットに失敗しました: $error')));
+      QuestSnackBar.show(
+        context,
+        message: 'リセットに失敗しました: $error',
+        type: QuestNoticeType.error,
+      );
     }
   }
 

@@ -256,8 +256,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
         _isFavoriteUpdating = false;
       });
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('お気に入りの更新に失敗しました。')));
+      QuestSnackBar.show(
+        context,
+        message: 'お気に入りの更新に失敗しました。',
+        type: QuestNoticeType.error,
+      );
     }
   }
 
@@ -1571,27 +1574,74 @@ class _EventDetailPageState extends State<EventDetailPage> {
               runSpacing: 8,
               children: [
                 for (final filter in const <String>['すべて', '獲得済み', '未獲得'])
-                  ChoiceChip(
-                    label: Text(filter),
-                    selected: _galleryFilter == filter,
-                    selectedColor: QuestUiTokens.primary.withValues(
-                      alpha: 0.12,
-                    ),
-                    side: BorderSide(
-                      color: _galleryFilter == filter
-                          ? QuestUiTokens.primary.withValues(alpha: 0.25)
-                          : QuestUiTokens.ink.withValues(alpha: 0.07),
-                    ),
-                    labelStyle: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: _galleryFilter == filter
-                          ? QuestUiTokens.primary
-                          : QuestUiTokens.mutedInk,
-                    ),
-                    onSelected: (_) {
-                      setState(() {
-                        _galleryFilter = filter;
-                      });
+                  Builder(
+                    builder: (context) {
+                      final isSelected = _galleryFilter == filter;
+
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              _galleryFilter = filter;
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(99),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 15,
+                              vertical: 9,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: isSelected
+                                  ? QuestUiTokens.primaryGradient
+                                  : null,
+                              color: isSelected ? null : Colors.white,
+                              borderRadius: BorderRadius.circular(99),
+                              border: Border.all(
+                                color: isSelected
+                                    ? Colors.transparent
+                                    : QuestUiTokens.ink.withValues(alpha: 0.07),
+                              ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: QuestUiTokens.primary.withValues(
+                                          alpha: 0.18,
+                                        ),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isSelected) ...[
+                                  const Icon(
+                                    Icons.check_rounded,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 5),
+                                ],
+                                Text(
+                                  filter,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : QuestUiTokens.mutedInk,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
                     },
                   ),
               ],
@@ -1871,8 +1921,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
         return;
       }
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('クエストを共有できませんでした。')));
+      QuestSnackBar.show(
+        context,
+        message: 'クエストを共有できませんでした。',
+        type: QuestNoticeType.error,
+      );
     }
   }
 

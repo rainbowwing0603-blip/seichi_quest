@@ -215,3 +215,290 @@ class QuestPrimaryButton extends StatelessWidget {
     return SizedBox(width: double.infinity, child: button);
   }
 }
+
+/// UI 2.0共通のモーダルダイアログ。
+///
+/// レベルアップ・実績解除・クエスト完了などの演出を、
+/// MAP UI 2.0と同じビジュアル言語で統一する。
+class QuestDialog extends StatelessWidget {
+  const QuestDialog({
+    super.key,
+    required this.title,
+    required this.actionLabel,
+    required this.onAction,
+    this.icon,
+    this.iconText,
+    this.subtitle,
+    this.content,
+    this.actionIcon,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
+    this.isDestructive = false,
+    this.accentColor = QuestUiTokens.primary,
+  }) : assert(icon == null || iconText == null),
+       assert((secondaryActionLabel == null) == (onSecondaryAction == null));
+
+  final String title;
+  final String actionLabel;
+  final VoidCallback onAction;
+  final IconData? icon;
+  final String? iconText;
+  final String? subtitle;
+  final Widget? content;
+  final IconData? actionIcon;
+  final String? secondaryActionLabel;
+  final VoidCallback? onSecondaryAction;
+  final bool isDestructive;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveAccentColor = isDestructive
+        ? const Color(0xFFD94B5B)
+        : accentColor;
+
+    return Dialog(
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: QuestGlassCard(
+          padding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
+          borderRadius: 28,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 82,
+                  height: 82,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        effectiveAccentColor.withValues(alpha: 0.22),
+                        Colors.white.withValues(alpha: 0.78),
+                      ],
+                    ),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      width: 1.2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: effectiveAccentColor.withValues(alpha: 0.20),
+                        blurRadius: 22,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: iconText != null
+                      ? Text(
+                          iconText!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 46),
+                        )
+                      : Icon(
+                          icon ?? Icons.auto_awesome_rounded,
+                          size: 44,
+                          color: effectiveAccentColor,
+                        ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: QuestUiTokens.ink,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+                if (subtitle != null && subtitle!.trim().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    subtitle!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: QuestUiTokens.mutedInk,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+                if (content != null) ...[const SizedBox(height: 20), content!],
+                const SizedBox(height: 22),
+                if (isDestructive)
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: onAction,
+                      icon: Icon(actionIcon ?? Icons.warning_amber_rounded),
+                      label: Text(actionLabel),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: effectiveAccentColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            QuestUiTokens.controlRadius,
+                          ),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  QuestPrimaryButton(
+                    label: actionLabel,
+                    icon: actionIcon,
+                    onPressed: onAction,
+                  ),
+                if (secondaryActionLabel != null) ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: onSecondaryAction,
+                      style: TextButton.styleFrom(
+                        foregroundColor: QuestUiTokens.mutedInk,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 12,
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      child: Text(secondaryActionLabel!),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum QuestNoticeType { info, success, warning, error }
+
+class QuestSnackBar {
+  const QuestSnackBar._();
+
+  static void show(
+    BuildContext context, {
+    required String message,
+    QuestNoticeType type = QuestNoticeType.info,
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    final messenger = ScaffoldMessenger.of(context);
+    final visual = _visualFor(type);
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          padding: EdgeInsets.zero,
+          duration: duration,
+          content: Container(
+            constraints: const BoxConstraints(minHeight: 64),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.96),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: visual.color.withValues(alpha: 0.24),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: visual.color.withValues(alpha: 0.16),
+                  blurRadius: 22,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: visual.color.withValues(alpha: 0.12),
+                  ),
+                  child: Icon(visual.icon, color: visual.color, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: const TextStyle(
+                      color: QuestUiTokens.ink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+  }
+
+  static _QuestNoticeVisual _visualFor(QuestNoticeType type) {
+    return switch (type) {
+      QuestNoticeType.info => const _QuestNoticeVisual(
+        icon: Icons.info_outline_rounded,
+        color: QuestUiTokens.primary,
+      ),
+      QuestNoticeType.success => const _QuestNoticeVisual(
+        icon: Icons.check_circle_outline_rounded,
+        color: Color(0xFF2BAA76),
+      ),
+      QuestNoticeType.warning => const _QuestNoticeVisual(
+        icon: Icons.warning_amber_rounded,
+        color: Color(0xFFE49B35),
+      ),
+      QuestNoticeType.error => const _QuestNoticeVisual(
+        icon: Icons.error_outline_rounded,
+        color: Color(0xFFD94B5B),
+      ),
+    };
+  }
+}
+
+class _QuestNoticeVisual {
+  const _QuestNoticeVisual({required this.icon, required this.color});
+
+  final IconData icon;
+  final Color color;
+}

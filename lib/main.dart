@@ -19,13 +19,12 @@ import 'widgets/my_page.dart';
 import 'widgets/profile_page.dart';
 import 'widgets/account_page.dart';
 import 'widgets/adventure_log_page.dart';
-import 'widgets/event_detail_page.dart';
 import 'widgets/event_explore_page.dart';
 import 'widgets/sync_status_page.dart';
-import 'widgets/participating_events_page.dart';
 import 'widgets/notification_settings_page.dart';
 import 'widgets/app_settings_page.dart';
 import 'widgets/quest_ui.dart';
+import 'widgets/license_page.dart';
 import 'models/seichi.dart';
 import 'models/achievement.dart';
 import 'models/event.dart';
@@ -36,6 +35,8 @@ import 'services/notification_service.dart';
 import 'models/real_world_state.dart';
 import 'services/external_navigation_service.dart';
 import 'services/weather_service.dart';
+import 'services/content_block_service.dart';
+import 'widgets/content_block_renderer.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
@@ -447,53 +448,58 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   }
 
   Future<void> _loadEventAchievements() async {
-    if (_currentEventId == null || _currentEventId!.isEmpty) {
-      throw Exception('イベントIDが未取得のため、チャレンジを読み込めません。');
-    }
-
-    final data = await supabase.Supabase.instance.client
-        .from('event_achievements')
-        .select(
-          'sort_order, achievements('
-          'id, title, description, icon, required_count'
-          ')',
-        )
-        .eq('event_id', _currentEventId!)
-        .order('sort_order');
-
-    final rows = List<Map<String, dynamic>>.from(data);
-
-    final achievements = <Achievement>[];
-
-    for (final row in rows) {
-      final raw = row['achievements'];
-
-      if (raw is! Map<String, dynamic>) {
-        continue;
+    try {
+      if (_currentEventId == null || _currentEventId!.isEmpty) {
+        throw Exception('イベントIDが未取得のため、チャレンジを読み込めません。');
       }
 
-      final id = raw['id']?.toString() ?? '';
+      final data = await supabase.Supabase.instance.client
+          .from('event_achievements')
+          .select(
+            'sort_order, achievements('
+            'id, title, description, icon, required_count'
+            ')',
+          )
+          .eq('event_id', _currentEventId!)
+          .order('sort_order');
 
-      if (id.isEmpty) {
-        continue;
+      final rows = List<Map<String, dynamic>>.from(data);
+
+      final achievements = <Achievement>[];
+
+      for (final row in rows) {
+        final raw = row['achievements'];
+
+        if (raw is! Map<String, dynamic>) {
+          continue;
+        }
+
+        final id = raw['id']?.toString() ?? '';
+
+        if (id.isEmpty) {
+          continue;
+        }
+
+        final requiredCount = raw['required_count'] is int
+            ? raw['required_count'] as int
+            : int.tryParse(raw['required_count']?.toString() ?? '') ?? 0;
+
+        achievements.add(
+          Achievement(
+            id: id,
+            title: raw['title']?.toString() ?? '',
+            description: raw['description']?.toString() ?? '',
+            icon: raw['icon']?.toString() ?? '',
+            requiredCount: requiredCount,
+          ),
+        );
       }
 
-      final requiredCount = raw['required_count'] is int
-          ? raw['required_count'] as int
-          : int.tryParse(raw['required_count']?.toString() ?? '') ?? 0;
-
-      achievements.add(
-        Achievement(
-          id: id,
-          title: raw['title']?.toString() ?? '',
-          description: raw['description']?.toString() ?? '',
-          icon: raw['icon']?.toString() ?? '',
-          requiredCount: requiredCount,
-        ),
-      );
+      _eventAchievements = achievements;
+    } catch (error) {
+      _eventAchievements = <Achievement>[];
+      appDebugPrint('[ACHIEVEMENTS] load failed: $error');
     }
-
-    _eventAchievements = achievements;
   }
 
   Future<void> _loadMapMarkerIcons() async {
@@ -1433,11 +1439,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     _updateNextDestination();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${seichi.card} ${seichi.name} を次の目的地に設定しました。'),
-        behavior: SnackBarBehavior.floating,
-      ),
+    QuestSnackBar.show(
+      context,
+      message: '${seichi.card} ${seichi.name} を次の目的地に設定しました。',
+      type: QuestNoticeType.success,
     );
   }
 
@@ -1447,11 +1452,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('テストできる巡回ルートが開始されていません。'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      QuestSnackBar.show(
+        context,
+        message: 'テストできる巡回ルートが開始されていません。',
+        type: QuestNoticeType.warning,
       );
       return;
     }
@@ -1470,13 +1474,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
+      QuestSnackBar.show(
+        context,
+        message:
             'テスト: ${previousSeichi.card} ${previousSeichi.name} の次で巡回ルート終了です。',
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
+        type: QuestNoticeType.info,
       );
       return;
     }
@@ -1489,14 +1491,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
+    QuestSnackBar.show(
+      context,
+      message:
           'テスト: ${previousSeichi.card} ${previousSeichi.name} → '
           '${nextSeichi.card} ${nextSeichi.name}',
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
+      type: QuestNoticeType.info,
     );
   }
 
@@ -1526,14 +1526,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     _moveCameraToSeichi(firstSeichi);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
+    QuestSnackBar.show(
+      context,
+      message:
           '巡回ルートを開始しました。最初の目的地は '
           '${firstSeichi.card} ${firstSeichi.name} です。',
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
+      type: QuestNoticeType.success,
     );
   }
 
@@ -1898,64 +1896,48 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 28, 24, 22),
+        return QuestDialog(
+          icon: Icons.auto_awesome_rounded,
+          title: 'LEVEL UP!',
+          subtitle: '新しいレベルに到達しました',
+          actionLabel: '冒険を続ける',
+          actionIcon: Icons.explore_rounded,
+          onAction: () {
+            Navigator.of(dialogContext).pop();
+          },
+          content: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            decoration: BoxDecoration(
+              color: QuestUiTokens.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: QuestUiTokens.primary.withValues(alpha: 0.12),
+              ),
+            ),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 82,
-                  height: 82,
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.auto_awesome,
-                    size: 46,
-                    color: Colors.deepPurple,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  'LEVEL UP!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple,
-                  ),
-                ),
-                const SizedBox(height: 10),
                 Text(
                   'Lv.$previousLevel  →  Lv.$newLevel',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                    color: QuestUiTokens.primaryDeep,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 10),
-                if (progress != null)
+                if (progress != null) ...[
+                  const SizedBox(height: 7),
                   Text(
                     '累計 ${progress.totalXp} XP',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                    style: const TextStyle(
+                      color: QuestUiTokens.mutedInk,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                const SizedBox(height: 22),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {
-                      Navigator.of(dialogContext).pop();
-                    },
-                    child: const Text('冒険を続ける'),
-                  ),
-                ),
+                ],
               ],
             ),
           ),
@@ -1973,39 +1955,24 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('🎉 実績解除！', textAlign: TextAlign.center),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(achievement.icon, style: const TextStyle(fontSize: 56)),
-              const SizedBox(height: 12),
-              Text(
-                achievement.title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                achievement.description,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-          actions: [
-            Center(
-              child: TextButton(
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                },
-                child: const Text('OK'),
-              ),
+        return QuestDialog(
+          iconText: achievement.icon,
+          title: '実績解除！',
+          subtitle: achievement.title,
+          actionLabel: 'OK',
+          actionIcon: Icons.check_rounded,
+          onAction: () {
+            Navigator.of(dialogContext).pop();
+          },
+          content: Text(
+            achievement.description,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: QuestUiTokens.mutedInk,
+              fontSize: 14,
+              height: 1.55,
             ),
-          ],
+          ),
         );
       },
     );
@@ -2022,111 +1989,66 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 28, 24, 22),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 82,
-                  height: 82,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.emoji_events_rounded,
-                    size: 48,
-                    color: Colors.amber,
+        return QuestDialog(
+          icon: Icons.emoji_events_rounded,
+          accentColor: Colors.amber.shade700,
+          title: 'QUEST COMPLETE',
+          subtitle: eventName != null && eventName.isNotEmpty
+              ? eventName
+              : 'すべてのスポットを制覇しました',
+          actionLabel: 'コンプリート！',
+          actionIcon: Icons.check_circle_outline_rounded,
+          onAction: () {
+            Navigator.of(dialogContext).pop();
+          },
+          content: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 18,
+                  horizontal: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: QuestUiTokens.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: QuestUiTokens.primary.withValues(alpha: 0.12),
                   ),
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  'QUEST COMPLETE',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2,
-                    color: Colors.deepPurple,
-                  ),
-                ),
-                if (eventName != null && eventName.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    eventName,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 22),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 18,
-                    horizontal: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        '$totalCount / $totalCount',
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.deepPurple,
-                        ),
+                child: Column(
+                  children: [
+                    Text(
+                      '$totalCount / $totalCount',
+                      style: const TextStyle(
+                        color: QuestUiTokens.primaryDeep,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
                       ),
-                      const SizedBox(height: 5),
-                      const Text(
-                        '全スポット制覇！',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  'すべてのスポットを巡り、'
-                  'スタンプを集めました。',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    height: 1.5,
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      Navigator.of(dialogContext).pop();
-                    },
-                    icon: const Icon(Icons.check_circle_outline_rounded),
-                    label: const Text(
-                      'コンプリート！',
-                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                  ),
+                    const SizedBox(height: 5),
+                    const Text(
+                      '全スポット制覇！',
+                      style: TextStyle(
+                        color: QuestUiTokens.ink,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'すべてのスポットを巡り、スタンプを集めました。',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: QuestUiTokens.mutedInk,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -2171,11 +2093,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ナビを起動できませんでした。'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      QuestSnackBar.show(
+        context,
+        message: 'ナビを起動できませんでした。',
+        type: QuestNoticeType.error,
       );
     } catch (error) {
       appDebugPrint('[NAVIGATION] launch failed: $error');
@@ -2184,11 +2105,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ナビを起動できませんでした。'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      QuestSnackBar.show(
+        context,
+        message: 'ナビを起動できませんでした。',
+        type: QuestNoticeType.error,
       );
     }
   }
@@ -2365,6 +2285,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   void _showSeichiDetails(Seichi seichi) {
     final position = _currentPosition;
+    final eventId = _currentEventId;
+
+    final contentBlocksFuture = eventId == null || eventId.isEmpty
+        ? null
+        : ContentBlockService().loadForEventContent(
+            eventId: eventId,
+            contentKey: seichi.card,
+          );
 
     double? distance;
 
@@ -2383,107 +2311,292 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (context) {
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final colorScheme = Theme.of(sheetContext).colorScheme;
+
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          child: FractionallySizedBox(
+            heightFactor: 0.9,
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              decoration: BoxDecoration(
+                color: colorScheme.surface.withValues(alpha: 0.98),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    CircleAvatar(
-                      radius: 28,
-                      child: Text(
-                        seichi.icon,
-                        style: const TextStyle(fontSize: 24),
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: colorScheme.primary.withValues(alpha: 0.12),
+                            border: Border.all(
+                              color: colorScheme.primary.withValues(
+                                alpha: 0.20,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            seichi.icon,
+                            style: const TextStyle(
+                              fontSize: 25,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                seichi.card,
+                                style: TextStyle(
+                                  color: colorScheme.primary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                seichi.name,
+                                style: const TextStyle(
+                                  color: QuestUiTokens.ink,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.15,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        QuestStatusChip(
+                          label: collected ? '獲得済み' : '未獲得',
+                          icon: collected
+                              ? Icons.verified_rounded
+                              : Icons.lock_outline_rounded,
+                          accentColor: collected
+                              ? const Color(0xFF2BAA76)
+                              : QuestUiTokens.primary,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
+                    const SizedBox(height: 18),
+                    QuestGlassCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            seichi.card,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.bold,
+                          if (seichi.reading.isNotEmpty) ...[
+                            Text(
+                              seichi.reading,
+                              style: const TextStyle(
+                                color: QuestUiTokens.mutedInk,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                height: 1.4,
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 10),
+                          ],
                           Text(
-                            seichi.name,
+                            seichi.description.isEmpty
+                                ? '説明は登録されていません。'
+                                : seichi.description,
                             style: const TextStyle(
-                              fontSize: 21,
-                              fontWeight: FontWeight.bold,
+                              color: QuestUiTokens.ink,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              height: 1.55,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    if (collected)
-                      const Icon(Icons.verified, color: Colors.green, size: 30),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (seichi.reading.isNotEmpty)
-                  Text(
-                    seichi.reading,
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                const SizedBox(height: 8),
-                Text(
-                  seichi.description.isEmpty
-                      ? '説明は登録されていません。'
-                      : seichi.description,
-                  style: const TextStyle(fontSize: 15, height: 1.5),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Icon(Icons.radar, size: 20),
-                    const SizedBox(width: 8),
-                    Text('到達判定 ${seichi.stampRadiusMeters}m'),
-                  ],
-                ),
-                if (distance != null) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.near_me, size: 20),
-                      const SizedBox(width: 8),
-                      Text('現在地から ${_formatDistance(distance)}'),
+                    if (contentBlocksFuture != null) ...[
+                      FutureBuilder(
+                        future: contentBlocksFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState !=
+                              ConnectionState.done) {
+                            return const SizedBox.shrink();
+                          }
+
+                          if (snapshot.hasError) {
+                            appDebugPrint(
+                              '[CONTENT_BLOCKS] detail load failed: '
+                              '${snapshot.error}',
+                            );
+                            return const SizedBox.shrink();
+                          }
+
+                          final blocks = snapshot.data;
+
+                          if (blocks == null || blocks.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 14),
+                            child: QuestGlassCard(
+                              child: ContentBlockRenderer(blocks: blocks),
+                            ),
+                          );
+                        },
+                      ),
                     ],
-                  ),
-                ],
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      await _moveCameraToSeichi(seichi);
-                    },
-                    icon: const Icon(Icons.navigation),
-                    label: const Text('この聖地を地図で見る'),
-                  ),
-                ),
-                if (!collected) ...[
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _setNextDestination(seichi);
-                      },
-                      icon: const Icon(Icons.flag_rounded),
-                      label: const Text('次の目的地にする'),
+                    const SizedBox(height: 14),
+                    QuestGlassCard(
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: colorScheme.primary.withValues(
+                                    alpha: 0.10,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.radar_rounded,
+                                  color: colorScheme.primary,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  '到達判定',
+                                  style: TextStyle(
+                                    color: QuestUiTokens.mutedInk,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '${seichi.stampRadiusMeters}m',
+                                style: const TextStyle(
+                                  color: QuestUiTokens.ink,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (distance != null) ...[
+                            const SizedBox(height: 12),
+                            Divider(
+                              height: 1,
+                              color: colorScheme.outlineVariant.withValues(
+                                alpha: 0.55,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: colorScheme.primary.withValues(
+                                      alpha: 0.10,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.near_me_rounded,
+                                    color: colorScheme.primary,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    '現在地から',
+                                    style: TextStyle(
+                                      color: QuestUiTokens.mutedInk,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  _formatDistance(distance),
+                                  style: const TextStyle(
+                                    color: QuestUiTokens.ink,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ],
+                    const SizedBox(height: 18),
+                    QuestPrimaryButton(
+                      label: 'この聖地を地図で見る',
+                      icon: Icons.navigation_rounded,
+                      onPressed: () async {
+                        Navigator.pop(sheetContext);
+                        await _moveCameraToSeichi(seichi);
+                      },
+                    ),
+                    if (!collected) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(sheetContext);
+                            _setNextDestination(seichi);
+                          },
+                          icon: const Icon(Icons.flag_rounded),
+                          label: const Text('次の目的地にする'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: colorScheme.primary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 14,
+                            ),
+                            side: BorderSide(
+                              color: colorScheme.primary.withValues(
+                                alpha: 0.35,
+                              ),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                QuestUiTokens.controlRadius,
+                              ),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
         );
@@ -2590,6 +2703,62 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // クエスト画面
   // ============================================================
 
+  Future<void> _showEventExplore({bool favoriteOnly = false}) async {
+    final result = await Navigator.of(context).push<Object?>(
+      MaterialPageRoute(
+        builder: (_) => EventExplorePage(
+          events: _events,
+          currentPosition: _currentPosition,
+          initialFavoriteOnly: favoriteOnly,
+          currentEventId: _currentEventId,
+          currentCollectedCount: _getCollectedCount(),
+          currentTotalCount: _seichiList.length,
+          currentNextSeichiId: _nextSeichi?.id,
+          onSetNextDestination: _setNextDestination,
+          onShowOnMap: (seichi) {
+            Navigator.of(context).pop(seichi);
+          },
+          onStartRecommendedRoute: _startRecommendedRoute,
+        ),
+      ),
+    );
+
+    if (result == null) {
+      return;
+    }
+
+    if (result is Seichi) {
+      await _moveCameraToSeichi(result);
+      return;
+    }
+
+    if (result is! String || result.isEmpty || result == _currentEventId) {
+      return;
+    }
+
+    Event? selectedEvent;
+
+    for (final event in _events) {
+      if (event.id == result) {
+        selectedEvent = event;
+        break;
+      }
+    }
+
+    if (selectedEvent == null) {
+      if (mounted) {
+        QuestSnackBar.show(
+          context,
+          message: '選択したクエスト情報を取得できません。',
+          type: QuestNoticeType.error,
+        );
+      }
+      return;
+    }
+
+    await _selectEvent(selectedEvent);
+  }
+
   Widget _buildQuestPage() {
     return QuestPage(
       nextSeichi: _nextSeichi,
@@ -2597,6 +2766,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       collectedCount: _getCollectedCount(),
       total: _seichiList.length,
       onShowDestination: _moveCameraToNextSeichi,
+      onExploreEvents: _showEventExplore,
       eventAchievements: _eventAchievements,
     );
   }
@@ -2702,301 +2872,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
   }
 
-  Future<void> _showEventSelector() async {
-    if (_events.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('表示できるクエストがありません。')));
-      return;
-    }
-
-    final client = supabase.Supabase.instance.client;
-    final user = client.auth.currentUser;
-
-    Map<String, bool>? participationStates;
-
-    if (user != null) {
-      try {
-        final data = await client
-            .from('user_event_participations')
-            .select('event_id, is_active')
-            .eq('user_id', user.id);
-
-        final rows = List<Map<String, dynamic>>.from(data);
-
-        participationStates = <String, bool>{};
-
-        for (final row in rows) {
-          final eventId = row['event_id']?.toString();
-
-          if (eventId == null || eventId.isEmpty) {
-            continue;
-          }
-
-          participationStates[eventId] = row['is_active'] == true;
-        }
-      } catch (error) {
-        appDebugPrint('[EVENT] participation status load failed: $error');
-      }
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: ListView(
-            shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-            children: [
-              const Text(
-                'クエスト一覧',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '詳細を確認してから参加・選択できます。',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 16),
-
-              ..._events.map((event) {
-                final eventId = event.id;
-                final eventName = event.name;
-                final description = event.description;
-
-                final isCurrent = eventId == _currentEventId;
-
-                String statusLabel;
-                IconData statusIcon;
-                Color statusColor;
-
-                if (isCurrent) {
-                  statusLabel = '選択中';
-                  statusIcon = Icons.check_circle;
-                  statusColor = Colors.deepPurple;
-                } else if (participationStates == null) {
-                  statusLabel = '状態不明';
-                  statusIcon = Icons.help_outline;
-                  statusColor = Colors.grey;
-                } else if (participationStates[eventId] == true) {
-                  statusLabel = '参加中';
-                  statusIcon = Icons.flag_outlined;
-                  statusColor = Colors.green;
-                } else if (participationStates.containsKey(eventId)) {
-                  statusLabel = '過去に参加';
-                  statusIcon = Icons.history_outlined;
-                  statusColor = Colors.orange;
-                } else {
-                  statusLabel = '未参加';
-                  statusIcon = Icons.add_circle_outline;
-                  statusColor = Colors.grey;
-                }
-
-                String? primaryActionLabel;
-
-                if (!isCurrent) {
-                  switch (statusLabel) {
-                    case '参加中':
-                      primaryActionLabel = 'このクエストを選ぶ';
-                      break;
-
-                    case '過去に参加':
-                      primaryActionLabel = '再参加して選ぶ';
-                      break;
-
-                    case '未参加':
-                      primaryActionLabel = '参加して選ぶ';
-                      break;
-
-                    default:
-                      primaryActionLabel = null;
-                  }
-                }
-
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(vertical: 5),
-                  leading: Icon(
-                    isCurrent ? Icons.check_circle : Icons.explore_outlined,
-                    color: isCurrent ? Colors.deepPurple : null,
-                  ),
-                  title: Row(
-                    children: [
-                      Expanded(child: Text(eventName)),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.10),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(statusIcon, size: 13, color: statusColor),
-                            const SizedBox(width: 4),
-                            Text(
-                              statusLabel,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: statusColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  subtitle: description.isEmpty
-                      ? null
-                      : Text(
-                          description,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                  trailing: const Icon(Icons.chevron_right),
-
-                  // ------------------------------------------------
-                  // ここでは選択しない。
-                  // まず詳細画面を開く。
-                  // ------------------------------------------------
-                  onTap: () async {
-                    Navigator.of(sheetContext).pop();
-
-                    await Future<void>.delayed(Duration.zero);
-
-                    if (!mounted) {
-                      return;
-                    }
-
-                    final changed = await Navigator.of(context).push<bool>(
-                      MaterialPageRoute(
-                        builder: (_) => EventDetailPage(
-                          event: event,
-                          currentPosition: _currentPosition,
-
-                          participationLabel: statusLabel,
-
-                          collectedCount: isCurrent
-                              ? _getCollectedCount()
-                              : null,
-
-                          totalCount: isCurrent ? _seichiList.length : null,
-
-                          currentNextSeichiId: isCurrent
-                              ? _nextSeichi?.id
-                              : null,
-
-                          onSetNextDestination: isCurrent
-                              ? _setNextDestination
-                              : null,
-                          onStartRecommendedRoute: (route) async {
-                            if (route.isEmpty) {
-                              return;
-                            }
-
-                            final routeSeichiIds = route
-                                .map((seichi) => seichi.id)
-                                .toList(growable: false);
-
-                            if (!isCurrent) {
-                              await _selectEvent(event);
-                            }
-
-                            if (!mounted) {
-                              return;
-                            }
-
-                            final seichiById = <String, Seichi>{
-                              for (final seichi in _seichiList)
-                                seichi.id: seichi,
-                            };
-
-                            final selectedRoute = <Seichi>[];
-
-                            for (final seichiId in routeSeichiIds) {
-                              final seichi = seichiById[seichiId];
-
-                              if (seichi == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('巡回ルートの目的地を取得できませんでした。'),
-                                  ),
-                                );
-                                return;
-                              }
-
-                              selectedRoute.add(seichi);
-                            }
-
-                            if (selectedRoute.isEmpty) {
-                              return;
-                            }
-
-                            Navigator.of(context).pop();
-
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (!mounted) {
-                                return;
-                              }
-
-                              _startRecommendedRoute(selectedRoute);
-                            });
-                          },
-                          onShowOnMap: isCurrent
-                              ? (seichi) {
-                                  Navigator.of(context).pop();
-
-                                  WidgetsBinding.instance.addPostFrameCallback((
-                                    _,
-                                  ) {
-                                    if (!mounted) {
-                                      return;
-                                    }
-
-                                    _moveCameraToSeichi(seichi);
-                                  });
-                                }
-                              : null,
-
-                          primaryActionLabel: primaryActionLabel,
-
-                          onPrimaryAction: primaryActionLabel == null
-                              ? null
-                              : () async {
-                                  await _selectEvent(event);
-                                },
-
-                          onSelectAnotherEvent: () async {
-                            Navigator.of(context).pop();
-
-                            await _showEventSelector();
-                          },
-                        ),
-                      ),
-                    );
-
-                    if (changed == true && mounted) {
-                      setState(() {});
-                    }
-                  },
-                );
-              }),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> _showInterstitialAfterSafeScreen({
     required DateTime openedAt,
   }) async {
@@ -3045,206 +2920,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           }
         });
       },
-      onShowEventExplore: () async {
-        final result = await Navigator.of(context).push<Object?>(
-          MaterialPageRoute(
-            builder: (_) => EventExplorePage(
-              events: _events,
-              currentPosition: _currentPosition,
-              currentEventId: _currentEventId,
-              currentCollectedCount: _getCollectedCount(),
-              currentTotalCount: _seichiList.length,
-              currentNextSeichiId: _nextSeichi?.id,
-              onSetNextDestination: _setNextDestination,
-              onShowOnMap: (seichi) {
-                Navigator.of(context).pop(seichi);
-              },
-              onStartRecommendedRoute: _startRecommendedRoute,
-            ),
-          ),
-        );
-
-        if (result == null) {
-          return;
-        }
-
-        if (result is Seichi) {
-          await _moveCameraToSeichi(result);
-          return;
-        }
-
-        if (result is! String || result.isEmpty || result == _currentEventId) {
-          return;
-        }
-
-        final selectedEventId = result;
-
-        Event? selectedEvent;
-
-        for (final event in _events) {
-          if (event.id == selectedEventId) {
-            selectedEvent = event;
-            break;
-          }
-        }
-
-        if (selectedEvent == null) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('選択したクエスト情報を取得できません。')),
-            );
-          }
-          return;
-        }
-
-        await _selectEvent(selectedEvent);
-      },
-      onShowFavoriteEvents: () async {
-        final result = await Navigator.of(context).push<Object?>(
-          MaterialPageRoute(
-            builder: (_) => EventExplorePage(
-              events: _events,
-              currentPosition: _currentPosition,
-              initialFavoriteOnly: true,
-              currentEventId: _currentEventId,
-              currentCollectedCount: _getCollectedCount(),
-              currentTotalCount: _seichiList.length,
-              currentNextSeichiId: _nextSeichi?.id,
-              onSetNextDestination: _setNextDestination,
-              onShowOnMap: (seichi) {
-                Navigator.of(context).pop(seichi);
-              },
-              onStartRecommendedRoute: _startRecommendedRoute,
-            ),
-          ),
-        );
-
-        if (result == null) {
-          return;
-        }
-
-        if (result is Seichi) {
-          await _moveCameraToSeichi(result);
-          return;
-        }
-
-        if (result is! String || result.isEmpty || result == _currentEventId) {
-          return;
-        }
-
-        final selectedEventId = result;
-
-        Event? selectedEvent;
-
-        for (final event in _events) {
-          if (event.id == selectedEventId) {
-            selectedEvent = event;
-            break;
-          }
-        }
-
-        if (selectedEvent == null) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('選択したクエスト情報を取得できません。')),
-            );
-          }
-          return;
-        }
-
-        await _selectEvent(selectedEvent);
-      },
-      onShowParticipatingEvents: () async {
-        final selectedEventId = await Navigator.of(context).push<String>(
-          MaterialPageRoute(
-            builder: (_) =>
-                ParticipatingEventsPage(currentEventId: _currentEventId),
-          ),
-        );
-
-        if (selectedEventId == null ||
-            selectedEventId.isEmpty ||
-            selectedEventId == _currentEventId) {
-          return;
-        }
-
-        Event? selectedEvent;
-
-        for (final event in _events) {
-          if (event.id == selectedEventId) {
-            selectedEvent = event;
-            break;
-          }
-        }
-
-        if (selectedEvent == null) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('選択したクエスト情報を取得できません。')),
-            );
-          }
-          return;
-        }
-
-        await _selectEvent(selectedEvent);
-      },
-      onShowCurrentEvent: () async {
-        Event? currentEvent;
-
-        for (final event in _events) {
-          if (event.id == _currentEventId) {
-            currentEvent = event;
-            break;
-          }
-        }
-
-        if (currentEvent == null) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('現在のクエスト情報を取得できません。')));
-          return;
-        }
-
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => EventDetailPage(
-              event: currentEvent!,
-              currentPosition: _currentPosition,
-              collectedCount: _getCollectedCount(),
-              totalCount: _seichiList.length,
-              currentNextSeichiId: _nextSeichi?.id,
-              onSetNextDestination: _setNextDestination,
-              onStartRecommendedRoute: (route) {
-                Navigator.of(context).pop();
-
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (!mounted) {
-                    return;
-                  }
-
-                  _startRecommendedRoute(route);
-                });
-              },
-              onShowOnMap: (seichi) {
-                Navigator.of(context).pop();
-
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (!mounted) {
-                    return;
-                  }
-
-                  _moveCameraToSeichi(seichi);
-                });
-              },
-              onSelectAnotherEvent: () async {
-                Navigator.of(context).pop();
-                await _showEventSelector();
-              },
-            ),
-          ),
-        );
-      },
-      onSelectEvent: _showEventSelector,
       onShowRanking: () {
         setState(() {
           _selectedTab = 3;
@@ -3373,18 +3048,49 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   void _showAbout() {
-    showAboutDialog(
+    showDialog<void>(
       context: context,
-      applicationName: '聖地クエスト',
-      applicationVersion: '1.0.0',
-      applicationLegalese: '上毛かるた × 群馬',
-      children: const [
-        SizedBox(height: 12),
-        Text(
-          '群馬県内の聖地を巡りながら、'
-          '上毛かるたの世界を楽しむ聖地巡礼アプリです。',
-        ),
-      ],
+      builder: (dialogContext) {
+        return QuestDialog(
+          icon: Icons.explore_rounded,
+          title: '聖地クエスト',
+          subtitle: 'Version 1.0.0',
+          content: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: QuestStatusChip(
+                  label: '上毛かるた × 群馬',
+                  icon: Icons.location_on_outlined,
+                ),
+              ),
+              SizedBox(height: 18),
+              Text(
+                '群馬県内の聖地を巡りながら、'
+                '上毛かるたの世界を楽しむ聖地巡礼アプリです。',
+                style: TextStyle(
+                  color: QuestUiTokens.ink,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  height: 1.6,
+                ),
+              ),
+            ],
+          ),
+          actionLabel: '閉じる',
+          onAction: () {
+            Navigator.of(dialogContext).pop();
+          },
+          secondaryActionLabel: 'ライセンス',
+          onSecondaryAction: () {
+            Navigator.of(dialogContext).pop();
+
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const QuestLicensePage()),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -3402,6 +3108,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       case 2:
         return CollectionPage(
+          eventId: _currentEventId,
           seichiList: _seichiList,
           collectedIds: _collectedIds,
           eventNamesByCard: _collectionEventNamesByCard,

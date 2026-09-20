@@ -13,6 +13,7 @@ class QuestPage extends StatelessWidget {
     required this.collectedCount,
     required this.total,
     required this.onShowDestination,
+    required this.onExploreEvents,
     required this.eventAchievements,
   });
 
@@ -21,6 +22,7 @@ class QuestPage extends StatelessWidget {
   final int collectedCount;
   final int total;
   final VoidCallback onShowDestination;
+  final VoidCallback onExploreEvents;
   final List<Achievement> eventAchievements;
 
   static const AchievementService _achievementService = AchievementService();
@@ -50,6 +52,63 @@ class QuestPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildPageHeader(collected: safeCollected, totalCount: safeTotal),
+            const SizedBox(height: 14),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onExploreEvents,
+              child: QuestGlassCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: QuestUiTokens.primary.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.explore_rounded,
+                        color: QuestUiTokens.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'クエストを探す',
+                            style: TextStyle(
+                              color: QuestUiTokens.ink,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            '新しい冒険や参加中のクエストを見つけよう',
+                            style: TextStyle(
+                              color: QuestUiTokens.mutedInk,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.arrow_forward_rounded,
+                      color: QuestUiTokens.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 18),
             if (total == 0)
               _buildEmptyQuestCard()

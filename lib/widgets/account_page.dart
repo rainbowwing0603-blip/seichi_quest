@@ -378,19 +378,25 @@ class _AccountPageState extends State<AccountPage> {
     final firstConfirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('アカウントを削除'),
-          content: const Text('アカウントを削除すると、獲得履歴や訪問履歴など、このアカウントに紐づくデータも削除されます。'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('キャンセル'),
+        return QuestDialog(
+          icon: Icons.person_remove_alt_1_rounded,
+          title: 'アカウントを削除',
+          subtitle: 'このアカウントに紐づくデータも削除されます',
+          content: const Text(
+            '獲得履歴や訪問履歴など、このアカウントに紐づくデータも削除されます。',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: QuestUiTokens.mutedInk,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              height: 1.55,
             ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('次へ'),
-            ),
-          ],
+          ),
+          actionLabel: '次へ',
+          actionIcon: Icons.arrow_forward_rounded,
+          onAction: () => Navigator.of(dialogContext).pop(true),
+          secondaryActionLabel: 'キャンセル',
+          onSecondaryAction: () => Navigator.of(dialogContext).pop(false),
         );
       },
     );
@@ -402,20 +408,26 @@ class _AccountPageState extends State<AccountPage> {
     final finalConfirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('本当に削除しますか？'),
-          content: const Text('この操作は取り消せません。削除したアカウントでは再ログインできません。'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('戻る'),
+        return QuestDialog(
+          icon: Icons.warning_amber_rounded,
+          title: '本当に削除しますか？',
+          subtitle: 'この操作は取り消せません',
+          content: const Text(
+            '削除したアカウントでは再ログインできません。',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: QuestUiTokens.mutedInk,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              height: 1.55,
             ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              style: FilledButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('完全に削除する'),
-            ),
-          ],
+          ),
+          actionLabel: '完全に削除する',
+          actionIcon: Icons.delete_forever_rounded,
+          onAction: () => Navigator.of(dialogContext).pop(true),
+          secondaryActionLabel: '戻る',
+          onSecondaryAction: () => Navigator.of(dialogContext).pop(false),
+          isDestructive: true,
         );
       },
     );
@@ -471,21 +483,25 @@ class _AccountPageState extends State<AccountPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('ログアウト'),
+        return QuestDialog(
+          icon: Icons.logout_rounded,
+          title: 'ログアウト',
+          subtitle: 'このアカウントからログアウトします',
           content: const Text(
-            'このアカウントからログアウトします。獲得データはアカウントに保存されているため、再ログインすると復元できます。',
+            '獲得データはアカウントに保存されているため、再ログインすると復元できます。',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: QuestUiTokens.mutedInk,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              height: 1.55,
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('キャンセル'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('ログアウト'),
-            ),
-          ],
+          actionLabel: 'ログアウト',
+          actionIcon: Icons.logout_rounded,
+          onAction: () => Navigator.of(dialogContext).pop(true),
+          secondaryActionLabel: 'キャンセル',
+          onSecondaryAction: () => Navigator.of(dialogContext).pop(false),
         );
       },
     );
@@ -541,22 +557,25 @@ class _AccountPageState extends State<AccountPage> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) {
-          return AlertDialog(
-            title: const Text('既存アカウントでログイン'),
+          return QuestDialog(
+            icon: Icons.switch_account_rounded,
+            title: '既存アカウントでログイン',
+            subtitle: 'ゲストアカウントから切り替えます',
             content: const Text(
-              '現在のゲストアカウントから既存アカウントへ切り替えます。'
               'ゲストアカウント側の獲得記録は、既存アカウントへ自動統合されません。',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: QuestUiTokens.mutedInk,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                height: 1.55,
+              ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('キャンセル'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: const Text('ログインする'),
-              ),
-            ],
+            actionLabel: 'ログインする',
+            actionIcon: Icons.login_rounded,
+            onAction: () => Navigator.of(dialogContext).pop(true),
+            secondaryActionLabel: 'キャンセル',
+            onSecondaryAction: () => Navigator.of(dialogContext).pop(false),
           );
         },
       );
