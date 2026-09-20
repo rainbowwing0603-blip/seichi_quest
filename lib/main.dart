@@ -49,6 +49,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import 'services/app_logger.dart';
 import 'services/collection_sync_service.dart';
+import 'services/event_service.dart';
 import 'services/interstitial_ad_service.dart';
 
 // ============================================================
@@ -149,6 +150,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   SharedPreferences? _preferences;
 
   final CollectionHistoryService _historyService = CollectionHistoryService();
+  final EventService _eventService = EventService();
   final StampCacheService _stampCacheService = StampCacheService();
   late final CollectionSyncService _collectionSyncService =
       CollectionSyncService(
@@ -275,159 +277,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _loadCurrentEvent() async {
     try {
-      final client = supabase.Supabase.instance.client;
-      final user = client.auth.currentUser;
+      final selection = await _eventService.loadCurrentEvent();
 
-      final data = await client
-          .from('events')
-          .select(
-            'id, slug, name, description, prefecture, is_active, '
-            'icon_url, cover_image_url, start_at, end_at, updated_at',
-          )
-          .eq('is_active', true)
-          .order('created_at');
-
-      final events = List<Map<String, dynamic>>.from(data)
-          .map(Event.fromMap)
-          .toList(growable: false);
-
-      _events = events;
-
-      if (events.isEmpty) {
-        throw Exception('有効なクエストがありません。');
-      }
-
-      String? savedEventId;
-
-      if (user != null) {
-        try {
-          final preference = await client
-              .from('user_event_preferences')
-              .select('current_event_id')
-              .eq('user_id', user.id)
-              .maybeSingle();
-
-          savedEventId = preference?['current_event_id']?.toString();
-        } catch (error) {
-          appDebugPrint('[EVENT] preference load failed: $error');
-        }
-      }
-
-      Event? currentEvent;
-
-      if (savedEventId != null && savedEventId.isNotEmpty) {
-        for (final event in events) {
-          if (event.id == savedEventId) {
-            currentEvent = event;
-            break;
-          }
-        }
-      }
-
-      if (currentEvent == null) {
-        for (final event in events) {
-          if (event.slug == 'jomo-karuta-gunma') {
-            currentEvent = event;
-            break;
-          }
-        }
-      }
-
-      currentEvent ??= events.first;
-
-      _currentEventId = currentEvent.id;
-      _currentEventName = currentEvent.name;
-
-      if (_currentEventId == null || _currentEventId!.isEmpty) {
-        throw Exception('現在のイベントIDが取得できません。');
-      }
-
-      if (user != null && savedEventId != _currentEventId) {
-        await _saveCurrentEventPreference(_currentEventId!);
-      }
-
-      await _ensureEventParticipation(_currentEventId!);
-
-      appDebugPrint(
-        '[EVENT] current event restored: id=$_currentEventId, name=$_currentEventName',
-      );
+      _events = selection.events;
+      _currentEventId = selection.currentEvent.id;
+      _currentEventName = selection.currentEvent.name;
     } catch (e) {
       appDebugPrint('現在のイベント取得エラー: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> _saveCurrentEventPreference(String eventId) async {
-    final client = supabase.Supabase.instance.client;
-    final user = client.auth.currentUser;
-
-    if (user == null || eventId.isEmpty) {
-      return;
-    }
-
-    try {
-      await client.from('user_event_preferences').upsert({
-        'user_id': user.id,
-        'current_event_id': eventId,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }, onConflict: 'user_id');
-
-      appDebugPrint('[EVENT] preference saved: eventId=$eventId');
-    } catch (error) {
-      appDebugPrint('[EVENT] preference save failed: $error');
-      rethrow;
-    }
-  }
-
-  Future<void> _ensureEventParticipation(String eventId) async {
-    final client = supabase.Supabase.instance.client;
-    final user = client.auth.currentUser;
-
-    if (user == null || eventId.isEmpty) {
-      return;
-    }
-
-    try {
-      final existing = await client
-          .from('user_event_participations')
-          .select('is_active')
-          .eq('user_id', user.id)
-          .eq('event_id', eventId)
-          .maybeSingle();
-
-      if (existing == null) {
-        final now = DateTime.now().toUtc().toIso8601String();
-
-        await client.from('user_event_participations').insert({
-          'user_id': user.id,
-          'event_id': eventId,
-          'joined_at': now,
-          'is_active': true,
-          'left_at': null,
-          'updated_at': now,
-        });
-
-        appDebugPrint('[EVENT] participation created: eventId=$eventId');
-        return;
-      }
-
-      if (existing['is_active'] == true) {
-        return;
-      }
-
-      await client
-          .from('user_event_participations')
-          .update({
-            'is_active': true,
-            'left_at': null,
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
-          })
-          .eq('user_id', user.id)
-          .eq('event_id', eventId);
-
-      appDebugPrint('[EVENT] participation reactivated: eventId=$eventId');
-    } catch (error) {
-      appDebugPrint('[EVENT] participation ensure failed: $error');
       rethrow;
     }
   }
@@ -2807,8 +2663,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _manualNextSeichiId = _activeRecommendedRoute.first.id;
       }
       await _loadMyEventRank();
-      await _saveCurrentEventPreference(eventId);
-      await _ensureEventParticipation(eventId);
+      await _eventService.activateEvent(eventId);
 
       _updateNextDestination();
 
