@@ -4,8 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///
 /// 画面遷移や位置情報初期化はUI層に残し、保存方式をMap画面から分離する。
 class OnboardingService {
-  OnboardingService({SharedPreferences? preferences})
-      : _preferences = preferences;
+  OnboardingService({this._preferences});
 
   static const String _completedKey = 'onboarding_completed_v1';
 
