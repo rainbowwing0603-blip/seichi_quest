@@ -8,49 +8,6 @@ class ContentBlockService {
 
   final SupabaseClient _client;
 
-  Future<List<ContentBlock>> loadForEventContent({
-    required String eventId,
-    required String contentKey,
-  }) async {
-    final normalizedEventId = eventId.trim();
-    final normalizedContentKey = contentKey.trim();
-
-    if (normalizedEventId.isEmpty || normalizedContentKey.isEmpty) {
-      return const <ContentBlock>[];
-    }
-
-    final rows = await _client
-        .from('event_contents')
-        .select('content_id, contents!inner(content_key)')
-        .eq('event_id', normalizedEventId)
-        .eq('is_active', true)
-        .eq('contents.content_key', normalizedContentKey)
-        .limit(2);
-
-    if (rows.isEmpty) {
-      return const <ContentBlock>[];
-    }
-
-    if (rows.length != 1) {
-      throw StateError(
-        'Expected exactly one active event content for '
-        'event=$normalizedEventId, contentKey=$normalizedContentKey, '
-        'but found ${rows.length}.',
-      );
-    }
-
-    final contentId = rows.first['content_id']?.toString().trim() ?? '';
-
-    if (contentId.isEmpty) {
-      throw StateError(
-        'Resolved event content has no content_id for '
-        'event=$normalizedEventId, contentKey=$normalizedContentKey.',
-      );
-    }
-
-    return loadForContent(contentId);
-  }
-
   Future<List<ContentBlock>> loadForContent(String contentId) async {
     final normalizedContentId = contentId.trim();
 
