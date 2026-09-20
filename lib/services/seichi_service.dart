@@ -1,6 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
-import '../domain/jomo_karuta_order.dart';
 import '../models/seichi.dart';
 
 class SeichiService {
@@ -37,22 +36,6 @@ class SeichiService {
               seichi.longitude != 0,
         )
         .toList();
-
-    list.sort((a, b) {
-      final aOrder = JomoKarutaOrder.indexOf(a.card);
-      final bOrder = JomoKarutaOrder.indexOf(b.card);
-      final bothKaruta = aOrder < JomoKarutaOrder.cards.length &&
-          bOrder < JomoKarutaOrder.cards.length;
-
-      if (bothKaruta) {
-        final orderCompare = aOrder.compareTo(bOrder);
-        if (orderCompare != 0) {
-          return orderCompare;
-        }
-      }
-
-      return a.card.compareTo(b.card);
-    });
 
     return list;
   }
