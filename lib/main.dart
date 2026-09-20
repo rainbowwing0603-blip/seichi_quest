@@ -48,6 +48,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import 'services/app_logger.dart';
+import 'services/collection_sync_service.dart';
 import 'services/interstitial_ad_service.dart';
 
 // ============================================================
@@ -149,6 +150,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   final CollectionHistoryService _historyService = CollectionHistoryService();
   final StampCacheService _stampCacheService = StampCacheService();
+  late final CollectionSyncService _collectionSyncService =
+      CollectionSyncService(
+        historyService: _historyService,
+        stampCacheService: _stampCacheService,
+      );
 
   static const LevelService _levelService = LevelService();
   LevelProgress? _levelProgress;
@@ -527,13 +533,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     await _loadDisplayName();
     await _loadCurrentEvent();
     await _loadEventAchievements();
-    await _loadSavedStamps();
-
-    final syncedRows = await _historyService.syncPendingPlaceVisits();
+    final syncResult = await _synchronizeCollection();
 
     await _loadSeichi();
-    await _applyCollectedRows(syncedRows);
-    await _loadCloudHistory();
+    await _applyCollectedRows(syncResult.pendingCollectedRows);
     await _loadManualNextDestination();
     await _loadRecommendedRoute();
 
@@ -757,6 +760,32 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     setState(() {});
+  }
+
+  Future<CollectionSyncResult> _synchronizeCollection() async {
+    final eventId = _currentEventId;
+    final user = supabase.Supabase.instance.client.auth.currentUser;
+
+    if (eventId == null || eventId.isEmpty) {
+      throw Exception('イベントIDが未取得のため、獲得履歴を同期できません。');
+    }
+
+    if (user == null) {
+      throw Exception('ユーザーIDが未取得のため、獲得履歴を同期できません。');
+    }
+
+    final result = await _collectionSyncService.synchronize(
+      userId: user.id,
+      eventId: eventId,
+    );
+
+    _collectedIds
+      ..clear()
+      ..addAll(result.collectedIds);
+
+    await _loadCollectionEventNames();
+
+    return result;
   }
 
   Future<void> _loadCloudHistory() async {
@@ -2788,13 +2817,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _isRecommendedRouteLoaded = false;
 
       await _loadEventAchievements();
-      await _loadSavedStamps();
-
-      final syncedRows = await _historyService.syncPendingPlaceVisits();
+      final syncResult = await _synchronizeCollection();
 
       await _loadSeichi();
-      await _applyCollectedRows(syncedRows);
-      await _loadCloudHistory();
+      await _applyCollectedRows(syncResult.pendingCollectedRows);
       await _loadManualNextDestination();
       await _loadRecommendedRoute();
 
@@ -2947,12 +2973,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
         await _loadDisplayName();
         await _loadEventAchievements();
-        await _loadSavedStamps();
+        final syncResult = await _synchronizeCollection();
 
-        final syncedRows = await _historyService.syncPendingPlaceVisits();
-
-        await _applyCollectedRows(syncedRows);
-        await _loadCloudHistory();
+        await _applyCollectedRows(syncResult.pendingCollectedRows);
         await _loadManualNextDestination();
         await _loadRecommendedRoute();
 
