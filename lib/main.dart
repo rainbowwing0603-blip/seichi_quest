@@ -10,7 +10,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'collection_history_service.dart';
-import 'domain/jomo_karuta_order.dart';
 import 'widgets/banner_ad_widget.dart';
 import 'widgets/collection_page.dart';
 import 'widgets/quest_page.dart';
