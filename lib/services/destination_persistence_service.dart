@@ -5,6 +5,7 @@ class DestinationPersistenceService {
       : _providedPreferences = preferences;
 
   final SharedPreferences? _providedPreferences;
+  Future<SharedPreferences>? _preferencesFuture;
 
   String manualDestinationKey({
     required String userId,
@@ -20,8 +21,13 @@ class DestinationPersistenceService {
     return 'recommended_route_ids_v1_${userId}_$eventId';
   }
 
-  Future<SharedPreferences> _preferences() async {
-    return _providedPreferences ?? SharedPreferences.getInstance();
+  Future<SharedPreferences> _preferences() {
+    final providedPreferences = _providedPreferences;
+    if (providedPreferences != null) {
+      return Future<SharedPreferences>.value(providedPreferences);
+    }
+
+    return _preferencesFuture ??= SharedPreferences.getInstance();
   }
 
   Future<String?> loadManualDestination({
