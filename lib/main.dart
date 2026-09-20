@@ -215,7 +215,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   BitmapDescriptor? _collectedMarkerIcon;
   BitmapDescriptor? _nextMarkerIcon;
   Set<Marker>? _staticMarkerCache;
-  String? _staticMarkerCacheSignature;
+  String? _staticMarkerCacheNextId;
+  BitmapDescriptor? _staticMarkerCacheUncollectedIcon;
+  BitmapDescriptor? _staticMarkerCacheCollectedIcon;
+  int _markerDataVersion = 0;
+  int _staticMarkerCacheDataVersion = -1;
   Seichi? _nextSeichi;
   double? _nextDistance;
 
@@ -361,6 +365,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       }
 
       setState(() {
+        _markerDataVersion++;
         _uncollectedMarkerIcon = icons[0];
         _collectedMarkerIcon = icons[1];
         _nextMarkerIcon = icons[2];
@@ -544,6 +549,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     await _historyService.resetEventCollectionHistory(eventId: eventId);
 
     _collectedIds.clear();
+    _markerDataVersion++;
     _manualNextSeichiId = null;
     _activeRecommendedRoute.clear();
 
@@ -583,6 +589,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _collectedIds
       ..clear()
       ..addAll(result.localCollectedIds);
+    _markerDataVersion++;
 
     return result;
   }
@@ -604,6 +611,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _collectedIds
       ..clear()
       ..addAll(mergedIds);
+    _markerDataVersion++;
 
     await _loadCollectionEventNames();
   }
@@ -872,6 +880,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       setState(() {
         _seichiList = list;
+        _markerDataVersion++;
         _isLoading = false;
       });
 
@@ -1421,6 +1430,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _collectedIds
       ..clear()
       ..addAll(applyPlan.newCollectedIds);
+    _markerDataVersion++;
 
     appDebugPrint(
       '[ROUTE-NEXT] COLLECTED '
@@ -1844,20 +1854,22 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Set<Marker> _buildMarkers() {
     final nextId = _nextSeichi?.id;
 
-    // 静止Markerの状態を表す署名。
-    // アニメーションだけではこの値は変化しない。
-    final sortedCollectedIds = _collectedIds.toList()..sort();
+    // 静止Markerの再構築要否は、毎buildで全IDをソート・連結せず
+    // 明示的なデータ世代と参照状態で判定する。
+    final shouldRebuildStaticMarkers =
+        _staticMarkerCache == null ||
+        _staticMarkerCacheDataVersion != _markerDataVersion ||
+        _staticMarkerCacheNextId != nextId ||
+        !identical(
+          _staticMarkerCacheUncollectedIcon,
+          _uncollectedMarkerIcon,
+        ) ||
+        !identical(
+          _staticMarkerCacheCollectedIcon,
+          _collectedMarkerIcon,
+        );
 
-    final signature = [
-      _seichiList.map((item) => item.id).join(','),
-      sortedCollectedIds.join(','),
-      nextId ?? '',
-      _uncollectedMarkerIcon?.hashCode ?? 0,
-      _collectedMarkerIcon?.hashCode ?? 0,
-    ].join('|');
-
-    if (_staticMarkerCache == null ||
-        _staticMarkerCacheSignature != signature) {
+    if (shouldRebuildStaticMarkers) {
       final staticMarkers = <Marker>{};
 
       for (final seichi in _seichiList) {
@@ -1902,7 +1914,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       }
 
       _staticMarkerCache = staticMarkers;
-      _staticMarkerCacheSignature = signature;
+      _staticMarkerCacheDataVersion = _markerDataVersion;
+      _staticMarkerCacheNextId = nextId;
+      _staticMarkerCacheUncollectedIcon = _uncollectedMarkerIcon;
+      _staticMarkerCacheCollectedIcon = _collectedMarkerIcon;
     }
 
     final markers = <Marker>{...?_staticMarkerCache};
@@ -2509,6 +2524,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _currentEventName = eventName;
 
       _collectedIds.clear();
+      _markerDataVersion++;
       _eventAchievements.clear();
       _myEventRank = null;
       _manualNextSeichiId = null;
