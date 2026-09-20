@@ -29,10 +29,7 @@ class ContentBlockPresentationPolicy {
       showLegacyReading: !roles.contains('reading'),
       showLegacyDescription:
           !roles.contains('description') && !roles.contains('about'),
-      showLegacyImage:
-          !roles.contains('picture_card') &&
-          !roles.contains('reading_card') &&
-          !roles.contains('hero'),
+      showLegacyImage: !roles.contains('picture_card'),
     );
   }
 }
