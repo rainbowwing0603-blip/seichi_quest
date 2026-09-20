@@ -51,6 +51,7 @@ import 'services/app_logger.dart';
 import 'services/collection_sync_service.dart';
 import 'services/event_service.dart';
 import 'services/destination_persistence_service.dart';
+import 'services/recommended_route_policy.dart';
 import 'services/interstitial_ad_service.dart';
 
 // ============================================================
@@ -1314,21 +1315,22 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    final remainingRoute = route
-        .where((seichi) => !_collectedIds.contains(seichi.id))
-        .toList(growable: false);
+    final routeState = RecommendedRoutePolicy.start(
+      route: route,
+      collectedIds: _collectedIds,
+    );
 
-    if (remainingRoute.isEmpty) {
+    if (routeState.route.isEmpty) {
       return;
     }
 
-    final firstSeichi = remainingRoute.first;
+    final firstSeichi = routeState.route.first;
 
     _activeRecommendedRoute
       ..clear()
-      ..addAll(remainingRoute);
+      ..addAll(routeState.route);
 
-    _manualNextSeichiId = firstSeichi.id;
+    _manualNextSeichiId = routeState.manualNextSeichiId;
     _updateNextDestination();
 
     _saveRecommendedRouteInBackground();
@@ -1540,20 +1542,19 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       'manualBefore=$_manualNextSeichiId',
     );
 
-    if (_activeRecommendedRoute.isNotEmpty) {
-      _activeRecommendedRoute.removeWhere(
-        (item) => _collectedIds.contains(item.id),
-      );
+    final routeState = RecommendedRoutePolicy.advanceAfterCollection(
+      activeRoute: _activeRecommendedRoute,
+      manualNextSeichiId: _manualNextSeichiId,
+      collectedIds: _collectedIds,
+      newlyCollectedIds: newlyCollectedSeichi
+          .map((item) => item.id)
+          .toSet(),
+    );
 
-      if (_activeRecommendedRoute.isNotEmpty) {
-        _manualNextSeichiId = _activeRecommendedRoute.first.id;
-      } else {
-        _manualNextSeichiId = null;
-      }
-    } else if (_manualNextSeichiId != null &&
-        newlyCollectedSeichi.any((item) => item.id == _manualNextSeichiId)) {
-      _manualNextSeichiId = null;
-    }
+    _activeRecommendedRoute
+      ..clear()
+      ..addAll(routeState.route);
+    _manualNextSeichiId = routeState.manualNextSeichiId;
 
     appDebugPrint(
       '[ROUTE-NEXT] AFTER ROUTE ADVANCE '
