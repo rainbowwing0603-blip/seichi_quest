@@ -34,6 +34,7 @@ import 'services/achievement_service.dart';
 import 'services/level_service.dart';
 import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
+import 'services/onboarding_service.dart';
 import 'models/real_world_state.dart';
 import 'services/external_navigation_service.dart';
 import 'services/weather_service.dart';
@@ -158,7 +159,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   bool _isLoading = true;
   bool _isLoadingLocation = false;
 
-  static const String _onboardingCompletedKey = 'onboarding_completed_v1';
+  final OnboardingService _onboardingService = OnboardingService();
   bool _isOnboardingReady = false;
   bool _shouldShowOnboarding = false;
 
@@ -536,10 +537,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     await _loadMyEventRank();
     await _loadLevelProgress();
 
-    _preferences ??= await SharedPreferences.getInstance();
-
-    final onboardingCompleted =
-        _preferences!.getBool(_onboardingCompletedKey) ?? false;
+    final onboardingCompleted = await _onboardingService.isCompleted();
 
     if (!mounted) {
       return;
@@ -576,14 +574,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   }
 
   Future<void> _completeOnboarding() async {
-    _preferences ??= await SharedPreferences.getInstance();
-
-    final saved =
-        await _preferences!.setBool(_onboardingCompletedKey, true);
-
-    if (!saved) {
-      throw Exception('チュートリアルの完了状態を保存できませんでした。');
-    }
+    await _onboardingService.markCompleted();
 
     if (!mounted) {
       return;
