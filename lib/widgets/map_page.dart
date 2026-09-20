@@ -148,6 +148,8 @@ class MapPage extends StatelessWidget {
   final Set<String> collectedIds;
   final bool isLoadingLocation;
   final String? errorMessage;
+  final String? errorActionLabel;
+  final Future<void> Function()? onErrorAction;
   final AnimationController sonarController;
   final bool justCollected;
   final String? collectedName;
@@ -173,6 +175,8 @@ class MapPage extends StatelessWidget {
     required this.collectedIds,
     required this.isLoadingLocation,
     required this.errorMessage,
+    required this.errorActionLabel,
+    required this.onErrorAction,
     required this.sonarController,
     required this.justCollected,
     required this.collectedName,
@@ -1024,41 +1028,184 @@ class MapPage extends StatelessWidget {
     return Positioned(
       left: 16,
       right: 16,
-      bottom: 95,
-      child: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.warning_amber_rounded,
-                color: Colors.orange,
-                size: 28,
+      bottom: 158,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 14, 10, 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.92),
+                  const Color(0xFFF2F4FF).withValues(alpha: 0.88),
+                  const Color(0xFFEAF8FC).withValues(alpha: 0.86),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  errorMessage!,
-                  style: const TextStyle(fontSize: 13),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.92),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: QuestUiTokens.primary.withValues(alpha: 0.16),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
-              ),
-              IconButton(
-                onPressed: onDismissError,
-                icon: const Icon(Icons.close),
-              ),
-            ],
+                const BoxShadow(
+                  color: Color(0x26000000),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            QuestUiTokens.cyan.withValues(alpha: 0.20),
+                            QuestUiTokens.primary.withValues(alpha: 0.16),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(13),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.88),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.warning_amber_rounded,
+                        color: QuestUiTokens.primaryDeep,
+                        size: 23,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'LOCATION ALERT',
+                              style: TextStyle(
+                                color: QuestUiTokens.primaryDeep,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              errorMessage!,
+                              style: const TextStyle(
+                                color: QuestUiTokens.ink,
+                                fontSize: 13,
+                                height: 1.35,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      onPressed: onDismissError,
+                      tooltip: '閉じる',
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: QuestUiTokens.mutedInk,
+                        size: 21,
+                      ),
+                    ),
+                  ],
+                ),
+                if (errorActionLabel != null && onErrorAction != null) ...[
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () async {
+                          await onErrorAction!();
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 9,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                QuestUiTokens.primary.withValues(alpha: 0.92),
+                                QuestUiTokens.primaryDeep.withValues(alpha: 0.90),
+                                QuestUiTokens.cyan.withValues(alpha: 0.78),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.76),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: QuestUiTokens.primary.withValues(
+                                  alpha: 0.20,
+                                ),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                errorActionLabel!,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(
+                                Icons.arrow_forward_rounded,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-
   Widget _buildLocationButton() {
     return Positioned(
       right: 14,
@@ -1367,7 +1514,7 @@ class MapPage extends StatelessWidget {
           ),
         _buildQuestHud(),
         _buildLocationButton(),
-        _buildNextButton(),
+        if (errorMessage == null) _buildNextButton(),
         _buildErrorCard(),
         StampAnimation(
           justCollected: justCollected,

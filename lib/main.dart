@@ -114,7 +114,7 @@ class SeichiMapPage extends StatefulWidget {
 }
 
 class _SeichiMapPageState extends State<SeichiMapPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   static const AchievementService _achievementService = AchievementService();
 
   GoogleMapController? _mapController;
@@ -157,6 +157,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   bool _isLoadingLocation = false;
 
   String? _errorMessage;
+  String? _errorActionLabel;
+  Future<void> Function()? _errorAction;
+
+  // スタンプ獲得可否とは別に、地図やNEXT表示にも影響するほど
+  // 現在地の精度が低い状態を表す。
+  bool _hasVeryLowLocationAccuracy = false;
 
   BitmapDescriptor? _uncollectedMarkerIcon;
   BitmapDescriptor? _collectedMarkerIcon;
@@ -266,6 +272,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     InterstitialAdService.instance.preload();
 
     _sonarController = AnimationController(
@@ -275,6 +282,15 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _sonarController.addListener(_onMarkerAnimationTick);
 
     _initialize();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !mounted) {
+      return;
+    }
+
+    _initializeLocation();
   }
 
   @override
@@ -1107,6 +1123,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         setState(() {
           _isLoading = true;
           _errorMessage = null;
+          _errorActionLabel = null;
+          _errorAction = null;
         });
       }
 
@@ -1160,6 +1178,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       setState(() {
         _errorMessage = '聖地データを取得できませんでした。\n$e';
+        _errorActionLabel = null;
+        _errorAction = null;
         _isLoading = false;
       });
     }
@@ -1191,6 +1211,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           _errorMessage =
               '位置情報サービスがOFFになっています。\n'
               '端末の位置情報をONにしてください。';
+          _errorActionLabel = '位置情報設定を開く';
+          _errorAction = () async {
+            await Geolocator.openLocationSettings();
+          };
         });
 
         return;
@@ -1210,6 +1234,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         setState(() {
           _isLoadingLocation = false;
           _errorMessage = '位置情報の利用が許可されていません。';
+          _errorActionLabel = '再試行';
+          _errorAction = _initializeLocation;
         });
 
         return;
@@ -1225,6 +1251,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           _errorMessage =
               '位置情報の利用が永久に拒否されています。\n'
               '端末の設定から位置情報を許可してください。';
+          _errorActionLabel = 'アプリ設定を開く';
+          _errorAction = () async {
+            await Geolocator.openAppSettings();
+          };
         });
 
         return;
@@ -1236,6 +1266,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         ),
       );
 
+
       if (!mounted) {
         return;
       }
@@ -1243,6 +1274,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       setState(() {
         _currentPosition = position;
         _isLoadingLocation = false;
+        _hasVeryLowLocationAccuracy = position.accuracy > 500.0;
+        _errorMessage = null;
+        _errorActionLabel = null;
+        _errorAction = null;
       });
 
       _updateNextDestination();
@@ -1259,6 +1294,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       setState(() {
         _isLoadingLocation = false;
         _errorMessage = '現在地を取得できませんでした。\n$e';
+        _errorActionLabel = '再試行';
+        _errorAction = _initializeLocation;
       });
     }
   }
@@ -1355,8 +1392,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
               return;
             }
 
+
             setState(() {
               _currentPosition = position;
+              _hasVeryLowLocationAccuracy = position.accuracy > 500.0;
             });
 
             _updateNextDestination();
@@ -1370,6 +1409,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
             setState(() {
               _errorMessage = '位置情報の監視でエラーが発生しました。\n$error';
+              _errorActionLabel = '再試行';
+              _errorAction = _initializeLocation;
             });
           },
         );
@@ -2661,7 +2702,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       nextDistance: _nextDistance,
       collectedIds: _collectedIds,
       isLoadingLocation: _isLoadingLocation,
-      errorMessage: _errorMessage,
+      errorMessage: _errorMessage ??
+          (_hasVeryLowLocationAccuracy
+              ? '位置情報の精度が低くなっています。スタンプ獲得や次の目的地の表示を正確にするため、端末の「正確な位置情報」をONにしてください。'
+              : null),
+      errorActionLabel: _errorMessage != null
+          ? _errorActionLabel
+          : (_hasVeryLowLocationAccuracy ? 'アプリ設定を開く' : null),
+      onErrorAction: _errorMessage != null
+          ? _errorAction
+          : (_hasVeryLowLocationAccuracy
+              ? Geolocator.openAppSettings
+              : null),
       sonarController: _sonarController,
       justCollected: _justCollected,
       collectedName: _collectedName,
@@ -2695,6 +2747,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       onDismissError: () {
         setState(() {
           _errorMessage = null;
+          _errorActionLabel = null;
+          _errorAction = null;
         });
       },
     );
@@ -2821,6 +2875,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         setState(() {
           _isLoading = true;
           _errorMessage = null;
+          _errorActionLabel = null;
+          _errorAction = null;
         });
       }
 
@@ -2865,6 +2921,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       if (mounted) {
         setState(() {
           _errorMessage = 'クエストの切り替えに失敗しました。';
+          _errorActionLabel = null;
+          _errorAction = null;
         });
       }
 
@@ -3303,6 +3361,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _positionSubscription?.cancel();
 
     _sonarController.dispose();
