@@ -18,12 +18,17 @@ class SeichiService {
         .from('seichi')
         .select(
           'id, card, reading, name, latitude, longitude, '
-          'stamp_radius_meters, description, icon, card_image_url, is_active, place_id',
+          'stamp_radius_meters, description, icon, card_image_url, is_active, '
+          'place_id, '
+          'event_contents!inner(id, content_id, event_id, place_id, is_active, contents!inner(content_key))',
         )
         .eq('is_active', true)
-        .eq('event_id', eventId);
+        .eq('event_id', eventId)
+        .eq('event_contents.event_id', eventId)
+        .eq('event_contents.is_active', true);
 
     final list = List<Map<String, dynamic>>.from(data)
+        .map(_attachGenericContentIdentity)
         .map(Seichi.fromMap)
         .where(
           (seichi) =>
@@ -46,4 +51,34 @@ class SeichiService {
 
     return list;
   }
+
+  Map<String, dynamic> _attachGenericContentIdentity(
+    Map<String, dynamic> row,
+  ) {
+    final rawEventContents = row['event_contents'];
+    final eventContents = rawEventContents is List
+        ? rawEventContents.whereType<Map>().where((eventContent) {
+            final rawContent = eventContent['contents'];
+            final content = rawContent is Map ? rawContent : null;
+            return content?['content_key']?.toString() == row['card']?.toString();
+          }).toList(growable: false)
+        : const <Map>[];
+
+    if (eventContents.length != 1) {
+      throw StateError(
+        'Expected exactly one event_content for legacy seichi '
+        'id=${row['id']}, card=${row['card']}, '
+        'but found ${eventContents.length}.',
+      );
+    }
+
+    final eventContent = eventContents.single;
+
+    return <String, dynamic>{
+      ...row,
+      'content_id': eventContent['content_id'],
+      'event_content_id': eventContent['id'],
+    };
+  }
+
 }
