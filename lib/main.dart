@@ -30,6 +30,7 @@ import 'widgets/onboarding_page.dart';
 import 'widgets/license_page.dart';
 import 'models/seichi.dart';
 import 'models/achievement.dart';
+import 'models/content_block.dart';
 import 'models/event.dart';
 import 'services/level_service.dart' show LevelProgress;
 import 'services/location_service.dart';
