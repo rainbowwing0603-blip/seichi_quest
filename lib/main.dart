@@ -263,7 +263,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    InterstitialAdService.instance.preload();
 
     _sonarController = AnimationController(
       vsync: this,
@@ -409,6 +408,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         loadLevelProgress: _loadLevelProgress,
       ),
     );
+
+    // 全画面広告は初期表示の必須リソースではないため、起動処理と競合させない。
+    InterstitialAdService.instance.preload();
 
     if (onboardingCompleted) {
       await _initializeLocation();
