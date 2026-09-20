@@ -41,6 +41,7 @@ import 'services/stamp_cache_service.dart';
 import 'models/real_world_state.dart';
 import 'services/external_navigation_service.dart';
 import 'services/weather_service.dart';
+import 'services/weather_refresh_policy.dart';
 import 'services/content_block_service.dart';
 import 'widgets/content_block_renderer.dart';
 
@@ -141,6 +142,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Position? _lastStampCheckPosition;
 
   final WeatherService _weatherService = WeatherService();
+  static const WeatherRefreshPolicy _weatherRefreshPolicy =
+      WeatherRefreshPolicy();
   RealWorldState? _realWorldState;
   DateTime? _lastWeatherFetchAt;
   Position? _lastWeatherFetchPosition;
@@ -1048,35 +1051,23 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     Position position, {
     bool force = false,
   }) async {
-    const refreshInterval = Duration(minutes: 15);
-    const refreshDistanceMeters = 5000.0;
-
     if (_isWeatherFetchInProgress) {
       return;
     }
 
-    final now = DateTime.now();
-    final lastFetchAt = _lastWeatherFetchAt;
-    final lastPosition = _lastWeatherFetchPosition;
-
-    var shouldFetch = force || lastFetchAt == null || lastPosition == null;
-
-    if (!shouldFetch && now.difference(lastFetchAt) >= refreshInterval) {
-      shouldFetch = true;
-    }
-
-    if (!shouldFetch && lastPosition != null) {
-      final distance = _locationService.distanceBetween(
-        startLatitude: lastPosition.latitude,
-        startLongitude: lastPosition.longitude,
-        endLatitude: position.latitude,
-        endLongitude: position.longitude,
-      );
-
-      if (distance >= refreshDistanceMeters) {
-        shouldFetch = true;
-      }
-    }
+    final shouldFetch = _weatherRefreshPolicy.shouldFetch(
+      force: force,
+      now: DateTime.now(),
+      lastFetchAt: _lastWeatherFetchAt,
+      lastPosition: _lastWeatherFetchPosition,
+      currentPosition: position,
+      distanceBetween: (from, to) => _locationService.distanceBetween(
+        startLatitude: from.latitude,
+        startLongitude: from.longitude,
+        endLatitude: to.latitude,
+        endLongitude: to.longitude,
+      ),
+    );
 
     if (!shouldFetch) {
       return;
