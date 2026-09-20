@@ -37,6 +37,7 @@ import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/stamp_eligibility_policy.dart';
+import 'services/stamp_cache_service.dart';
 import 'models/real_world_state.dart';
 import 'services/external_navigation_service.dart';
 import 'services/weather_service.dart';
@@ -147,6 +148,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   SharedPreferences? _preferences;
 
   final CollectionHistoryService _historyService = CollectionHistoryService();
+  final StampCacheService _stampCacheService = StampCacheService();
 
   static const LevelService _levelService = LevelService();
   LevelProgress? _levelProgress;
@@ -809,60 +811,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // 保存済みスタンプ
   // ============================================================
 
-  String _stampStorageKey({required String userId, required String eventId}) {
-    return 'collected_seichi_ids_v2_${userId}_$eventId';
-  }
-
-  Future<void> _migrateLegacyStampCache({
-    required SharedPreferences preferences,
-    required String userId,
-    required String currentEventId,
-  }) async {
-    const legacyGlobalKey = 'collected_seichi_ids';
-    const legacyEventPrefix = 'collected_seichi_ids_';
-    const scopedPrefix = 'collected_seichi_ids_v2_';
-
-    final keys = preferences.getKeys().toList();
-
-    for (final key in keys) {
-      if (!key.startsWith(legacyEventPrefix) || key.startsWith(scopedPrefix)) {
-        continue;
-      }
-
-      final eventId = key.substring(legacyEventPrefix.length);
-
-      if (eventId.isEmpty) {
-        continue;
-      }
-
-      final legacyIds = preferences.getStringList(key);
-      final scopedKey = _stampStorageKey(userId: userId, eventId: eventId);
-      final scopedIds = preferences.getStringList(scopedKey) ?? <String>[];
-
-      final mergedIds = <String>{...scopedIds, ...?legacyIds}.toList();
-
-      await preferences.setStringList(scopedKey, mergedIds);
-      await preferences.remove(key);
-    }
-
-    final legacyGlobalIds = preferences.getStringList(legacyGlobalKey);
-
-    if (legacyGlobalIds != null) {
-      final scopedKey = _stampStorageKey(
-        userId: userId,
-        eventId: currentEventId,
-      );
-      final scopedIds = preferences.getStringList(scopedKey) ?? <String>[];
-
-      final mergedIds = <String>{...scopedIds, ...legacyGlobalIds}.toList();
-
-      await preferences.setStringList(scopedKey, mergedIds);
-      await preferences.remove(legacyGlobalKey);
-    }
-  }
-
   Future<void> _loadSavedStamps() async {
-    _preferences = await SharedPreferences.getInstance();
+    _preferences ??= await SharedPreferences.getInstance();
 
     if (_currentEventId == null || _currentEventId!.isEmpty) {
       throw Exception('イベントIDが未取得のため、獲得スタンプを読み込めません。');
@@ -874,23 +824,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       throw Exception('ユーザーIDが未取得のため、獲得スタンプを読み込めません。');
     }
 
-    final preferences = _preferences!;
-    final eventId = _currentEventId!;
-
-    await _migrateLegacyStampCache(
-      preferences: preferences,
+    final savedIds = await _stampCacheService.load(
       userId: user.id,
-      currentEventId: eventId,
+      eventId: _currentEventId!,
     );
-
-    final eventKey = _stampStorageKey(userId: user.id, eventId: eventId);
-
-    final savedIds = preferences.getStringList(eventKey);
 
     _collectedIds
       ..clear()
-      ..addAll(savedIds ?? <String>[]);
+      ..addAll(savedIds);
   }
+
 
   String _manualNextDestinationStorageKey({
     required String userId,
@@ -1090,14 +1033,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       throw Exception('ユーザーIDが未取得のため、獲得スタンプを保存できません。');
     }
 
-    _preferences ??= await SharedPreferences.getInstance();
-
-    final eventKey = _stampStorageKey(
+    await _stampCacheService.save(
       userId: user.id,
       eventId: _currentEventId!,
+      collectedIds: _collectedIds,
     );
-
-    await _preferences!.setStringList(eventKey, _collectedIds.toList());
   }
 
   // ============================================================
