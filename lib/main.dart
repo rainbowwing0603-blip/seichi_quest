@@ -30,7 +30,6 @@ import 'widgets/license_page.dart';
 import 'models/seichi.dart';
 import 'models/achievement.dart';
 import 'models/event.dart';
-import 'services/achievement_service.dart';
 import 'services/level_service.dart' show LevelProgress;
 import 'services/location_service.dart';
 import 'services/next_destination_service.dart';
@@ -130,7 +129,6 @@ class SeichiMapPage extends StatefulWidget {
 
 class _SeichiMapPageState extends State<SeichiMapPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  static const AchievementService _achievementService = AchievementService();
   static const CollectionApplyPolicy _collectionApplyPolicy =
       CollectionApplyPolicy();
 
@@ -1391,7 +1389,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       seichiList: _seichiList,
       collectedIds: _collectedIds,
       eventAchievements: _eventAchievements,
-      achievementService: _achievementService,
     );
 
     final newlyCollectedSeichi = applyPlan.newlyCollectedSeichi;
