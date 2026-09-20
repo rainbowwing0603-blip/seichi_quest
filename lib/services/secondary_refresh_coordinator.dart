@@ -1,5 +1,3 @@
-import 'dart:async';
-
 class SecondaryRefreshCoordinator {
   const SecondaryRefreshCoordinator();
 
