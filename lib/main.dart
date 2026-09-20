@@ -35,6 +35,7 @@ import 'services/level_service.dart';
 import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
 import 'services/onboarding_service.dart';
+import 'services/stamp_eligibility_policy.dart';
 import 'models/real_world_state.dart';
 import 'services/external_navigation_service.dart';
 import 'services/weather_service.dart';
@@ -1595,14 +1596,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (position == null || _seichiList.isEmpty) {
       return;
     }
-    // GPS位置が短時間で現実的でない距離まで跳んだ場合は、
-    // スタンプ判定を行わない。
-    //
-    // 100m/s = 360km/h。
-    // 誤ったGPS位置によるスタンプ獲得を防ぐための
-    // アプリ側の実装上の閾値。
-    const maxPlausibleSpeedMps = 100.0;
-
     final previousPosition = _lastStampCheckPosition;
 
     if (previousPosition != null) {
@@ -1620,9 +1613,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           position.longitude,
         );
 
-        final calculatedSpeed = movedDistance / elapsedSeconds;
-
-        if (calculatedSpeed > maxPlausibleSpeedMps) {
+        if (!StampEligibilityPolicy.isPlausibleMovement(
+          movedDistanceMeters: movedDistance,
+          elapsedSeconds: elapsedSeconds,
+        )) {
           return;
         }
       }
@@ -1637,19 +1631,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       'timestamp=${position.timestamp}, '
       'seichiCount=${_seichiList.length}',
     );
-
-    // GPS精度が極端に悪い場合は誤獲得を防ぐため判定しない。
-    // 聖地ごとの到達半径が広い場合は、それに応じて許容する。
-    bool hasSufficientAccuracy(Seichi seichi) {
-      final radius = seichi.stampRadiusMeters.toDouble();
-
-      final requiredAccuracy = [
-        radius * 0.5,
-        30.0,
-      ].reduce((a, b) => a > b ? a : b);
-
-      return position.accuracy <= requiredAccuracy;
-    }
 
     Seichi? nearestSeichi;
     double nearestDistance = double.infinity;
@@ -1688,7 +1669,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         continue;
       }
 
-      if (!hasSufficientAccuracy(seichi)) {
+      if (!StampEligibilityPolicy.hasSufficientAccuracy(
+        accuracyMeters: position.accuracy,
+        stampRadiusMeters: seichi.stampRadiusMeters,
+      )) {
         continue;
       }
       final distance = Geolocator.distanceBetween(
@@ -1698,7 +1682,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         seichi.longitude,
       );
 
-      if (distance <= seichi.stampRadiusMeters) {
+      if (StampEligibilityPolicy.isWithinStampRadius(
+        distanceMeters: distance,
+        stampRadiusMeters: seichi.stampRadiusMeters,
+      )) {
         await _collectStamp(seichi);
         break;
       }
