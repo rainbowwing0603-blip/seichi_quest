@@ -156,6 +156,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final Map<String, Set<String>> _collectionEventNamesByCard = {};
 
   final CollectionHistoryService _historyService = CollectionHistoryService();
+  static const NextDestinationService _nextDestinationService =
+      NextDestinationService();
   final EventService _eventService = EventService();
   final ProgressionService _progressionService = ProgressionService();
   final ProfileService _profileService = ProfileService();
@@ -1073,7 +1075,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       'collected=${_collectedIds.length}',
     );
 
-    final result = const NextDestinationService().findNextDestination(
+    final result = _nextDestinationService.findNextDestination(
       position: _currentPosition,
       seichiList: _seichiList,
       collectedIds: _collectedIds,
