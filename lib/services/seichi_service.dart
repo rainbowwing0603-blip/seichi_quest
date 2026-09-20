@@ -18,7 +18,7 @@ class SeichiService {
         .from('event_contents')
         .select(
           'id, event_id, content_id, place_id, display_order, metadata, '
-          'contents!inner(type, content_key, title, description, image_url, metadata, is_active), '
+          'contents!inner(type, content_key, title, description, image_url, metadata, is_active, content_blocks(block_type, role, media_path, display_order, is_active)), '
           'places!inner(name, latitude, longitude, radius_meters, description, icon, image_url, is_active)',
         )
         .eq('event_id', eventId)
@@ -57,6 +57,38 @@ class SeichiService {
     return list;
   }
 
+  String? _firstActiveImageForRole(
+    dynamic rawBlocks,
+    String role,
+  ) {
+    if (rawBlocks is! List) {
+      return null;
+    }
+
+    final candidates = rawBlocks
+        .whereType<Map>()
+        .where(
+          (block) =>
+              block['is_active'] == true &&
+              block['block_type']?.toString() == 'image' &&
+              block['role']?.toString() == role,
+        )
+        .toList(growable: false)
+      ..sort(
+        (a, b) => ((a['display_order'] as num?)?.toInt() ?? 0)
+            .compareTo((b['display_order'] as num?)?.toInt() ?? 0),
+      );
+
+    for (final block in candidates) {
+      final mediaPath = block['media_path']?.toString().trim() ?? '';
+      if (mediaPath.isNotEmpty) {
+        return mediaPath;
+      }
+    }
+
+    return null;
+  }
+
   Map<String, dynamic> _mapEventContentToSeichi(
     Map<String, dynamic> row,
   ) {
@@ -76,6 +108,10 @@ class SeichiService {
         : <String, dynamic>{};
 
     final contentKey = content['content_key']?.toString().trim() ?? '';
+    final pictureCardImageUrl = _firstActiveImageForRole(
+      content['content_blocks'],
+      'picture_card',
+    );
     final legacySeichiId =
         contentMetadata['legacy_seichi_id']?.toString().trim() ?? '';
 
@@ -99,7 +135,8 @@ class SeichiService {
       'stamp_radius_meters': place['radius_meters'],
       'description': content['description'] ?? place['description'],
       'icon': place['icon'] ?? '📍',
-      'card_image_url': content['image_url'] ?? place['image_url'],
+      'card_image_url':
+          pictureCardImageUrl ?? content['image_url'] ?? place['image_url'],
       'is_active': row['is_active'] == true &&
           content['is_active'] == true &&
           place['is_active'] == true,
