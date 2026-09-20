@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
