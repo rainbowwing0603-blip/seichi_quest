@@ -862,32 +862,48 @@ class CollectionPage extends StatelessWidget {
                           ],
                         ),
 
-                        if (seichi.reading.isNotEmpty) ...[
-                          const SizedBox(height: 14),
-                          Text(
-                            seichi.reading,
-                            style: const TextStyle(
-                              color: QuestUiTokens.mutedInk,
-                              fontSize: 13,
-                              height: 1.5,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                        FutureBuilder(
+                          future: contentBlocksFuture,
+                          builder: (context, snapshot) {
+                            final presentation =
+                                _contentBlockPresentationPolicy.resolve(
+                                  snapshot.data ?? const [],
+                                );
 
-                        const SizedBox(height: 14),
-
-                        Text(
-                          collected
-                              ? (seichi.description.isEmpty
-                                    ? 'この聖地のスタンプを獲得しました。'
-                                    : seichi.description)
-                              : 'この聖地を訪れて、スタンプを獲得しよう！',
-                          style: const TextStyle(
-                            color: QuestUiTokens.ink,
-                            fontSize: 14,
-                            height: 1.65,
-                          ),
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (presentation.showLegacyReading &&
+                                    seichi.reading.isNotEmpty) ...[
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    seichi.reading,
+                                    style: const TextStyle(
+                                      color: QuestUiTokens.mutedInk,
+                                      fontSize: 13,
+                                      height: 1.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                                if (presentation.showLegacyDescription) ...[
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    collected
+                                        ? (seichi.description.isEmpty
+                                              ? 'この聖地のスタンプを獲得しました。'
+                                              : seichi.description)
+                                        : 'この聖地を訪れて、スタンプを獲得しよう！',
+                                    style: const TextStyle(
+                                      color: QuestUiTokens.ink,
+                                      fontSize: 14,
+                                      height: 1.65,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            );
+                          },
                         ),
 
                         const SizedBox(height: 16),
