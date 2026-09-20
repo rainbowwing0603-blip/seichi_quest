@@ -2548,7 +2548,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           if (result == null) {
             throw StateError('イベント切替同期結果がありません。');
           }
-          await _applyCollectedRows(result!.pendingCollectedRows);
+          await _applyCollectedRows(result.pendingCollectedRows);
         },
         mergeCloudHistory: _mergeCloudCollectionHistory,
         loadManualNextDestination: _loadManualNextDestination,
