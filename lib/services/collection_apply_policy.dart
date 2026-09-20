@@ -90,5 +90,4 @@ class CollectionApplyPolicy {
           newCollectedCount >= seichiList.length,
     );
   }
-
 }
