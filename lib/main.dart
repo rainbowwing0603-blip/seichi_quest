@@ -56,6 +56,7 @@ import 'services/recommended_route_policy.dart';
 import 'services/progression_service.dart';
 import 'services/profile_service.dart';
 import 'services/session_service.dart';
+import 'services/startup_coordinator.dart';
 import 'services/seichi_service.dart';
 import 'services/app_settings_service.dart';
 import 'services/interstitial_ad_service.dart';
@@ -169,6 +170,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final ProgressionService _progressionService = ProgressionService();
   final ProfileService _profileService = ProfileService();
   final SessionService _sessionService = SessionService();
+  static const StartupCoordinator _startupCoordinator = StartupCoordinator();
   final SeichiService _seichiService = SeichiService();
   final AppSettingsService _appSettingsService = AppSettingsService();
   final DestinationPersistenceService _destinationPersistenceService =
@@ -367,23 +369,28 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   }
 
   Future<void> _initialize() async {
-    await _ensureCloudUser();
-    await _loadDisplayName();
-    await _loadCurrentEvent();
-    await _loadEventAchievements();
-    final syncResult = await _startCollectionSync();
-
-    await _loadSeichi();
-    await _applyCollectedRows(syncResult.pendingCollectedRows);
-    await _mergeCloudCollectionHistory();
-    await _loadManualNextDestination();
-    await _loadRecommendedRoute();
-
-    if (_activeRecommendedRoute.isNotEmpty) {
-      _manualNextSeichiId = _activeRecommendedRoute.first.id;
-    }
-    await _loadMyEventRank();
-    await _loadLevelProgress();
+    await _startupCoordinator.run(
+      ensureCloudUser: _ensureCloudUser,
+      loadDisplayName: _loadDisplayName,
+      loadCurrentEvent: _loadCurrentEvent,
+      loadEventAchievements: _loadEventAchievements,
+      startCollectionSync: () async {
+        final result = await _startCollectionSync();
+        return result.pendingCollectedRows;
+      },
+      loadSeichi: _loadSeichi,
+      applyCollectedRows: _applyCollectedRows,
+      mergeCloudCollectionHistory: _mergeCloudCollectionHistory,
+      loadManualNextDestination: _loadManualNextDestination,
+      loadRecommendedRoute: _loadRecommendedRoute,
+      restoreRecommendedRouteDestination: () {
+        if (_activeRecommendedRoute.isNotEmpty) {
+          _manualNextSeichiId = _activeRecommendedRoute.first.id;
+        }
+      },
+      loadMyEventRank: _loadMyEventRank,
+      loadLevelProgress: _loadLevelProgress,
+    );
 
     final onboardingCompleted = await _onboardingService.isCompleted();
 
