@@ -1,6 +1,7 @@
 import 'quest_destination.dart';
 
 class Seichi implements QuestDestination {
+  @override
   final String id;
   final String? placeId;
   final String? contentId;
@@ -8,7 +9,9 @@ class Seichi implements QuestDestination {
   final String card;
   final String reading;
   final String name;
+  @override
   final double latitude;
+  @override
   final double longitude;
   final int stampRadiusMeters;
   final String description;
