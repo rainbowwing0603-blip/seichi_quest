@@ -2029,14 +2029,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   void _showSeichiDetails(Seichi seichi) {
     final position = _currentPosition;
-    final eventId = _currentEventId;
+    final contentId = seichi.contentId?.trim() ?? '';
 
-    final contentBlocksFuture = eventId == null || eventId.isEmpty
+    final Future<List<ContentBlock>>? contentBlocksFuture = contentId.isEmpty
         ? null
-        : _contentBlockService.loadForEventContent(
-            eventId: eventId,
-            contentKey: seichi.card,
-          );
+        : _contentBlockService.loadForContent(contentId);
 
     double? distance;
 
