@@ -45,6 +45,7 @@ import 'services/external_navigation_service.dart';
 import 'services/weather_service.dart';
 import 'services/weather_refresh_policy.dart';
 import 'services/content_block_service.dart';
+import 'services/content_block_presentation_policy.dart';
 import 'widgets/content_block_renderer.dart';
 
 
@@ -189,6 +190,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       DestinationPersistenceService();
   final StampCacheService _stampCacheService = StampCacheService();
   final ContentBlockService _contentBlockService = ContentBlockService();
+  static const ContentBlockPresentationPolicy _contentBlockPresentationPolicy =
+      ContentBlockPresentationPolicy();
   static const ExternalNavigationService _externalNavigationService =
       ExternalNavigationService();
   late final CollectionSyncService _collectionSyncService =
@@ -2136,68 +2139,72 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                       ],
                     ),
                     const SizedBox(height: 18),
-                    QuestGlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (seichi.reading.isNotEmpty) ...[
-                            Text(
-                              seichi.reading,
-                              style: const TextStyle(
-                                color: QuestUiTokens.mutedInk,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                height: 1.4,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                          ],
-                          Text(
-                            seichi.description.isEmpty
-                                ? '説明は登録されていません。'
-                                : seichi.description,
-                            style: const TextStyle(
-                              color: QuestUiTokens.ink,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              height: 1.55,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (contentBlocksFuture != null) ...[
-                      FutureBuilder(
-                        future: contentBlocksFuture,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState !=
-                              ConnectionState.done) {
-                            return const SizedBox.shrink();
-                          }
-
-                          if (snapshot.hasError) {
-                            appDebugPrint(
-                              '[CONTENT_BLOCKS] detail load failed: '
-                              '${snapshot.error}',
+                    FutureBuilder(
+                      future: contentBlocksFuture,
+                      builder: (context, snapshot) {
+                        final presentation =
+                            _contentBlockPresentationPolicy.resolve(
+                              snapshot.data ?? const [],
                             );
-                            return const SizedBox.shrink();
-                          }
 
-                          final blocks = snapshot.data;
-
-                          if (blocks == null || blocks.isEmpty) {
-                            return const SizedBox.shrink();
-                          }
-
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 14),
-                            child: QuestGlassCard(
-                              child: ContentBlockRenderer(blocks: blocks),
-                            ),
+                        if (snapshot.hasError) {
+                          appDebugPrint(
+                            '[CONTENT_BLOCKS] detail load failed: '
+                            '${snapshot.error}',
                           );
-                        },
-                      ),
-                    ],
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (presentation.showLegacyReading ||
+                                presentation.showLegacyDescription)
+                              QuestGlassCard(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (presentation.showLegacyReading &&
+                                        seichi.reading.isNotEmpty) ...[
+                                      Text(
+                                        seichi.reading,
+                                        style: const TextStyle(
+                                          color: QuestUiTokens.mutedInk,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                      if (presentation.showLegacyDescription)
+                                        const SizedBox(height: 10),
+                                    ],
+                                    if (presentation.showLegacyDescription)
+                                      Text(
+                                        seichi.description.isEmpty
+                                            ? '説明は登録されていません。'
+                                            : seichi.description,
+                                        style: const TextStyle(
+                                          color: QuestUiTokens.ink,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          height: 1.55,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            if (presentation.blocks.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 14),
+                                child: QuestGlassCard(
+                                  child: ContentBlockRenderer(
+                                    blocks: presentation.blocks,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
                     const SizedBox(height: 14),
                     QuestGlassCard(
                       child: Column(
