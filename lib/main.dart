@@ -473,9 +473,23 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         return;
       }
 
-      setState(() {
-        _levelProgress = levelProgress;
-      });
+      final currentLevelProgress = _levelProgress;
+      final levelProgressChanged =
+          currentLevelProgress == null ||
+          currentLevelProgress.totalXp != levelProgress.totalXp ||
+          currentLevelProgress.level != levelProgress.level ||
+          currentLevelProgress.currentLevelXp != levelProgress.currentLevelXp ||
+          currentLevelProgress.nextLevelXp != levelProgress.nextLevelXp ||
+          currentLevelProgress.xpIntoLevel != levelProgress.xpIntoLevel ||
+          currentLevelProgress.xpNeededForNextLevel !=
+              levelProgress.xpNeededForNextLevel ||
+          currentLevelProgress.progress != levelProgress.progress;
+
+      if (levelProgressChanged) {
+        setState(() {
+          _levelProgress = levelProgress;
+        });
+      }
 
       appDebugPrint(
         '[LEVEL] '
