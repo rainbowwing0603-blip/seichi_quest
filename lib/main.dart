@@ -859,9 +859,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // Supabaseから聖地取得
   // ============================================================
 
-  Future<void> _loadSeichi() async {
+  Future<void> _loadSeichi({
+    bool manageLoadingState = true,
+  }) async {
     try {
-      if (mounted) {
+      if (mounted && manageLoadingState) {
         setState(() {
           _isLoading = true;
           _errorMessage = null;
@@ -885,7 +887,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       setState(() {
         _seichiList = list;
         _markerCacheRevision.markChanged();
-        _isLoading = false;
+        if (manageLoadingState) {
+          _isLoading = false;
+        }
       });
 
       // 自動次目的地設定がONの場合のみ更新する。
@@ -901,7 +905,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _errorMessage = '聖地データを取得できませんでした。\n$e';
         _errorActionLabel = null;
         _errorAction = null;
-        _isLoading = false;
+        if (manageLoadingState) {
+          _isLoading = false;
+        }
       });
     }
   }
@@ -2542,7 +2548,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         startCollectionSync: () async {
           syncResult = await _startCollectionSync();
         },
-        loadSeichi: _loadSeichi,
+        loadSeichi: () => _loadSeichi(manageLoadingState: false),
         applyPendingRows: () async {
           final result = syncResult;
           if (result == null) {
@@ -2564,7 +2570,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _updateNextDestination();
 
       if (mounted) {
-        setState(() {});
+        setState(() {
+          _isLoading = false;
+        });
       }
 
       appDebugPrint('[EVENT] selected: id=$eventId, name=$eventName');
@@ -2576,6 +2584,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           _errorMessage = 'クエストの切り替えに失敗しました。';
           _errorActionLabel = null;
           _errorAction = null;
+          _isLoading = false;
         });
       }
 
