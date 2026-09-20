@@ -45,9 +45,11 @@ ContentBlock block({
 Widget app(List<ContentBlock> blocks) {
   return MaterialApp(
     home: Scaffold(
-      body: ContentBlockRenderer(
-        blocks: blocks,
-        mediaResolver: FakeContentMediaResolver(),
+      body: SingleChildScrollView(
+        child: ContentBlockRenderer(
+          blocks: blocks,
+          mediaResolver: FakeContentMediaResolver(),
+        ),
       ),
     ),
   );
