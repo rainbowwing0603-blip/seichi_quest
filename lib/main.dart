@@ -44,7 +44,6 @@ import 'services/weather_refresh_policy.dart';
 import 'services/content_block_service.dart';
 import 'widgets/content_block_renderer.dart';
 
-import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import 'services/app_logger.dart';
 import 'services/collection_sync_service.dart';
@@ -537,18 +536,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<CollectionSyncStartResult> _startCollectionSync() async {
     final eventId = _currentEventId;
-    final user = supabase.Supabase.instance.client.auth.currentUser;
+    final userId = _sessionService.currentUserId;
 
     if (eventId == null || eventId.isEmpty) {
       throw Exception('イベントIDが未取得のため、獲得履歴を同期できません。');
     }
 
-    if (user == null) {
+    if (userId == null) {
       throw Exception('ユーザーIDが未取得のため、獲得履歴を同期できません。');
     }
 
     final result = await _collectionSyncService.start(
-      userId: user.id,
+      userId: userId,
       eventId: eventId,
     );
 
@@ -561,14 +560,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _mergeCloudCollectionHistory() async {
     final eventId = _currentEventId;
-    final user = supabase.Supabase.instance.client.auth.currentUser;
+    final userId = _sessionService.currentUserId;
 
-    if (eventId == null || eventId.isEmpty || user == null) {
+    if (eventId == null || eventId.isEmpty || userId == null) {
       return;
     }
 
     final mergedIds = await _collectionSyncService.mergeCloudHistory(
-      userId: user.id,
+      userId: userId,
       eventId: eventId,
       collectedIds: _collectedIds,
     );
@@ -616,16 +615,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _saveManualNextDestination() async {
     final eventId = _currentEventId;
-    final user = supabase.Supabase.instance.client.auth.currentUser;
+    final userId = _sessionService.currentUserId;
 
-    if (eventId == null || eventId.isEmpty || user == null) {
+    if (eventId == null || eventId.isEmpty || userId == null) {
       return;
     }
 
     final seichiId = _manualNextSeichiId;
 
     await _destinationPersistenceService.saveManualDestination(
-      userId: user.id,
+      userId: userId,
       eventId: eventId,
       seichiId: seichiId,
     );
@@ -642,15 +641,15 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _loadManualNextDestination() async {
     final eventId = _currentEventId;
-    final user = supabase.Supabase.instance.client.auth.currentUser;
+    final userId = _sessionService.currentUserId;
 
-    if (eventId == null || eventId.isEmpty || user == null) {
+    if (eventId == null || eventId.isEmpty || userId == null) {
       _manualNextSeichiId = null;
       return;
     }
 
     final savedId = await _destinationPersistenceService.loadManualDestination(
-      userId: user.id,
+      userId: userId,
       eventId: eventId,
     );
 
@@ -667,7 +666,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _manualNextSeichiId = null;
 
       await _destinationPersistenceService.clearManualDestination(
-        userId: user.id,
+        userId: userId,
         eventId: eventId,
       );
 
@@ -687,9 +686,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _saveRecommendedRoute() async {
     final eventId = _currentEventId;
-    final user = supabase.Supabase.instance.client.auth.currentUser;
+    final userId = _sessionService.currentUserId;
 
-    if (eventId == null || eventId.isEmpty || user == null) {
+    if (eventId == null || eventId.isEmpty || userId == null) {
       return;
     }
 
@@ -699,7 +698,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         .toList(growable: false);
 
     await _destinationPersistenceService.saveRecommendedRoute(
-      userId: user.id,
+      userId: userId,
       eventId: eventId,
       seichiIds: routeIds,
     );
@@ -722,17 +721,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _loadRecommendedRoute() async {
     final eventId = _currentEventId;
-    final user = supabase.Supabase.instance.client.auth.currentUser;
+    final userId = _sessionService.currentUserId;
 
     _isRecommendedRouteLoaded = false;
     _activeRecommendedRoute.clear();
 
-    if (eventId == null || eventId.isEmpty || user == null) {
+    if (eventId == null || eventId.isEmpty || userId == null) {
       return;
     }
 
     final savedIds = await _destinationPersistenceService.loadRecommendedRoute(
-      userId: user.id,
+      userId: userId,
       eventId: eventId,
     );
 
@@ -759,7 +758,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     if (restoredRoute.isEmpty) {
       await _destinationPersistenceService.clearRecommendedRoute(
-        userId: user.id,
+        userId: userId,
         eventId: eventId,
       );
 
@@ -775,7 +774,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     if (restoredRoute.length != savedIds.length) {
       await _destinationPersistenceService.saveRecommendedRoute(
-        userId: user.id,
+        userId: userId,
         eventId: eventId,
         seichiIds: restoredRoute
             .map((item) => item.id)
@@ -797,14 +796,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       throw Exception('イベントIDが未取得のため、獲得スタンプを保存できません。');
     }
 
-    final user = supabase.Supabase.instance.client.auth.currentUser;
+    final userId = _sessionService.currentUserId;
 
-    if (user == null) {
+    if (userId == null) {
       throw Exception('ユーザーIDが未取得のため、獲得スタンプを保存できません。');
     }
 
     await _stampCacheService.save(
-      userId: user.id,
+      userId: userId,
       eventId: _currentEventId!,
       collectedIds: _collectedIds,
     );
