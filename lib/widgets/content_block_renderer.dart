@@ -72,18 +72,36 @@ class ContentBlockRenderer extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final caption = block.body;
+
     return _buildSection(
       context,
       title: block.title,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.network(
-          imageUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return const SizedBox.shrink();
-          },
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              semanticLabel: block.altText,
+              errorBuilder: (context, error, stackTrace) {
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+          if (caption != null && caption.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              caption,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                height: 1.5,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
