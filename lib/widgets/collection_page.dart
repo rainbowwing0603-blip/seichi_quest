@@ -852,6 +852,7 @@ class CollectionPage extends StatelessWidget {
                   QuestItemContentSection(
                     item: seichi,
                     showLegacyText: false,
+                    collected: collected,
                   ),
 
                   if (collected && eventNames.isNotEmpty) ...[
