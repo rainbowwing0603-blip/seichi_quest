@@ -59,6 +59,16 @@ void main() {
     expect(result.showLegacyImage, isTrue);
   });
 
+  test('reading card and hero images are additive to legacy picture card', () {
+    final result = policy.resolve([
+      block(type: ContentBlockType.image, role: 'reading_card'),
+      block(type: ContentBlockType.image, role: 'hero'),
+    ]);
+
+    expect(result.showLegacyImage, isTrue);
+    expect(result.blocks, hasLength(2));
+  });
+
   test('unsupported future blocks cannot suppress legacy fallback', () {
     final result = policy.resolve([
       block(type: ContentBlockType.unsupported, role: 'description'),
