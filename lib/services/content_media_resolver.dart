@@ -2,9 +2,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ContentMediaResolver {
   ContentMediaResolver({
-    SupabaseClient? client,
+    this._client,
     this.defaultBucket = 'event-card-images',
-  }) : _client = client;
+  });
 
   final SupabaseClient? _client;
   final String defaultBucket;
