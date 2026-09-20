@@ -1,4 +1,6 @@
-class Seichi {
+import 'quest_destination.dart';
+
+class Seichi implements QuestDestination {
   final String id;
   final String? placeId;
   final String? contentId;
