@@ -1,20 +1,21 @@
 import '../collection_history_service.dart';
 import 'stamp_cache_service.dart';
 
-class CollectionSyncResult {
-  const CollectionSyncResult({
+class CollectionSyncStartResult {
+  const CollectionSyncStartResult({
     required this.pendingCollectedRows,
-    required this.collectedIds,
+    required this.localCollectedIds,
   });
 
   final List<Map<String, dynamic>> pendingCollectedRows;
-  final Set<String> collectedIds;
+  final Set<String> localCollectedIds;
 }
 
-/// 起動・イベント切替・アカウント切替で共通する
-/// 「端末キャッシュ → pending同期 → クラウド履歴統合」をまとめる。
+/// コレクション同期のデータ処理をまとめる。
 ///
-/// 獲得演出やランキング更新などのUI副作用は呼び出し側に残す。
+/// UI側の獲得演出を壊さないため、pending同期とクラウド履歴統合は
+/// 明示的に2段階で実行する。呼び出し側は pending の獲得反映後に
+/// [mergeCloudHistory] を呼ぶ。
 class CollectionSyncService {
   const CollectionSyncService({
     required CollectionHistoryService historyService,
@@ -25,11 +26,11 @@ class CollectionSyncService {
   final CollectionHistoryService _historyService;
   final StampCacheService _stampCacheService;
 
-  Future<CollectionSyncResult> synchronize({
+  Future<CollectionSyncStartResult> start({
     required String userId,
     required String eventId,
   }) async {
-    final localIds = await _stampCacheService.load(
+    final localCollectedIds = await _stampCacheService.load(
       userId: userId,
       eventId: eventId,
     );
@@ -37,7 +38,18 @@ class CollectionSyncService {
     final pendingCollectedRows =
         await _historyService.syncPendingPlaceVisits();
 
-    final collectedIds = <String>{...localIds};
+    return CollectionSyncStartResult(
+      pendingCollectedRows: pendingCollectedRows,
+      localCollectedIds: localCollectedIds,
+    );
+  }
+
+  Future<Set<String>> mergeCloudHistory({
+    required String userId,
+    required String eventId,
+    required Iterable<String> collectedIds,
+  }) async {
+    final mergedIds = <String>{...collectedIds};
 
     try {
       final history = await _historyService.loadHistory(eventId: eventId);
@@ -45,22 +57,19 @@ class CollectionSyncService {
       for (final item in history) {
         final id = item['seichi_id']?.toString();
         if (id != null && id.isNotEmpty) {
-          collectedIds.add(id);
+          mergedIds.add(id);
         }
       }
 
       await _stampCacheService.save(
         userId: userId,
         eventId: eventId,
-        collectedIds: collectedIds,
+        collectedIds: mergedIds,
       );
     } catch (_) {
       // クラウド履歴取得失敗時は、既存の端末キャッシュを維持する。
     }
 
-    return CollectionSyncResult(
-      pendingCollectedRows: pendingCollectedRows,
-      collectedIds: collectedIds,
-    );
+    return mergedIds;
   }
 }
