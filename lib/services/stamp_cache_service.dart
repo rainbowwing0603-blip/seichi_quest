@@ -92,13 +92,9 @@ class StampCacheService {
     required Iterable<String> collectedIds,
   }) async {
     final preferences = await _prefs();
-    final saved = await preferences.setStringList(
+    await preferences.setStringList(
       storageKey(userId: userId, eventId: eventId),
       collectedIds.toList(growable: false),
     );
-
-    if (!saved) {
-      throw StateError('獲得スタンプの端末キャッシュを保存できませんでした。');
-    }
   }
 }
