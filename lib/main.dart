@@ -369,9 +369,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   }
 
   Future<void> _initialize() async {
-    await _startupCoordinator.run(
+    final onboardingCompletedFuture = _onboardingService.isCompleted();
+
+    await _startupCoordinator.runCritical(
       ensureCloudUser: _ensureCloudUser,
-      loadDisplayName: _loadDisplayName,
       loadCurrentEvent: _loadCurrentEvent,
       loadEventAchievements: _loadEventAchievements,
       startCollectionSync: () async {
@@ -388,11 +389,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           _manualNextSeichiId = _activeRecommendedRoute.first.id;
         }
       },
-      loadMyEventRank: _loadMyEventRank,
-      loadLevelProgress: _loadLevelProgress,
     );
 
-    final onboardingCompleted = await _onboardingService.isCompleted();
+    final onboardingCompleted = await onboardingCompletedFuture;
 
     if (!mounted) {
       return;
@@ -402,6 +401,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _isOnboardingReady = true;
       _shouldShowOnboarding = !onboardingCompleted;
     });
+
+    _startupCoordinator.runDeferred(
+      loadDisplayName: _loadDisplayName,
+      loadMyEventRank: _loadMyEventRank,
+      loadLevelProgress: _loadLevelProgress,
+    );
 
     if (onboardingCompleted) {
       await _initializeLocation();
