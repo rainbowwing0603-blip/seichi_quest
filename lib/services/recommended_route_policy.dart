@@ -1,43 +1,44 @@
-import '../models/seichi.dart';
+import '../models/quest_destination.dart';
 
-class RouteAdvanceResult {
+class RouteAdvanceResult<T extends QuestDestination> {
   const RouteAdvanceResult({
     required this.route,
     required this.manualNextSeichiId,
   });
 
-  final List<Seichi> route;
+  final List<T> route;
   final String? manualNextSeichiId;
 }
 
 /// おすすめルートの開始・獲得後前進を純粋ロジックとして扱う。
 abstract final class RecommendedRoutePolicy {
-  static RouteAdvanceResult start({
-    required Iterable<Seichi> route,
+  static RouteAdvanceResult<T> start<T extends QuestDestination>({
+    required Iterable<T> route,
     required Set<String> collectedIds,
   }) {
     final remaining = route
-        .where((seichi) => !collectedIds.contains(seichi.id))
+        .where((destination) => !collectedIds.contains(destination.id))
         .toList(growable: false);
 
-    return RouteAdvanceResult(
+    return RouteAdvanceResult<T>(
       route: remaining,
       manualNextSeichiId: remaining.isEmpty ? null : remaining.first.id,
     );
   }
 
-  static RouteAdvanceResult advanceAfterCollection({
-    required Iterable<Seichi> activeRoute,
+  static RouteAdvanceResult<T>
+      advanceAfterCollection<T extends QuestDestination>({
+    required Iterable<T> activeRoute,
     required String? manualNextSeichiId,
     required Set<String> collectedIds,
     required Set<String> newlyCollectedIds,
   }) {
     final route = activeRoute
-        .where((seichi) => !collectedIds.contains(seichi.id))
+        .where((destination) => !collectedIds.contains(destination.id))
         .toList(growable: false);
 
     if (route.isNotEmpty) {
-      return RouteAdvanceResult(
+      return RouteAdvanceResult<T>(
         route: route,
         manualNextSeichiId: route.first.id,
       );
@@ -46,7 +47,7 @@ abstract final class RecommendedRoutePolicy {
     final shouldClearManual = manualNextSeichiId != null &&
         newlyCollectedIds.contains(manualNextSeichiId);
 
-    return RouteAdvanceResult(
+    return RouteAdvanceResult<T>(
       route: route,
       manualNextSeichiId: shouldClearManual ? null : manualNextSeichiId,
     );
