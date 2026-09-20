@@ -4,7 +4,9 @@ import 'dart:ui';
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -29,20 +31,40 @@ import 'widgets/license_page.dart';
 import 'models/seichi.dart';
 import 'models/achievement.dart';
 import 'models/event.dart';
-import 'services/achievement_service.dart';
-import 'services/level_service.dart';
+import 'services/level_service.dart' show LevelProgress;
+import 'services/location_service.dart';
+import 'services/marker_cache_revision.dart';
 import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
+import 'services/onboarding_service.dart';
+import 'services/stamp_eligibility_policy.dart';
+import 'services/string_set_equality.dart';
+import 'services/stamp_cache_service.dart';
 import 'models/real_world_state.dart';
 import 'services/external_navigation_service.dart';
 import 'services/weather_service.dart';
+import 'services/weather_refresh_policy.dart';
 import 'services/content_block_service.dart';
 import 'widgets/content_block_renderer.dart';
 
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import 'services/app_logger.dart';
+import 'services/collection_sync_service.dart';
+import 'services/collection_apply_policy.dart';
+import 'services/collection_display_policy.dart';
+import 'services/collection_progress_policy.dart';
+import 'services/event_service.dart';
+import 'services/event_switch_coordinator.dart';
+import 'services/destination_persistence_service.dart';
+import 'services/recommended_route_policy.dart';
+import 'services/progression_service.dart';
+import 'services/profile_service.dart';
+import 'services/session_service.dart';
+import 'services/secondary_refresh_coordinator.dart';
+import 'services/startup_coordinator.dart';
+import 'services/seichi_service.dart';
+import 'services/account_refresh_coordinator.dart';
+import 'services/app_settings_service.dart';
 import 'services/interstitial_ad_service.dart';
 
 // ============================================================
@@ -116,11 +138,18 @@ class SeichiMapPage extends StatefulWidget {
 
 class _SeichiMapPageState extends State<SeichiMapPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  static const AchievementService _achievementService = AchievementService();
+  static const CollectionApplyPolicy _collectionApplyPolicy =
+      CollectionApplyPolicy();
+  static const CollectionDisplayPolicy _collectionDisplayPolicy =
+      CollectionDisplayPolicy();
+  static const CollectionProgressPolicy _collectionProgressPolicy =
+      CollectionProgressPolicy();
 
   GoogleMapController? _mapController;
 
   StreamSubscription<Position>? _positionSubscription;
+
+  static const LocationService _locationService = LocationService();
 
   Position? _currentPosition;
 
@@ -129,6 +158,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Position? _lastStampCheckPosition;
 
   final WeatherService _weatherService = WeatherService();
+  static const WeatherRefreshPolicy _weatherRefreshPolicy =
+      WeatherRefreshPolicy();
   RealWorldState? _realWorldState;
   DateTime? _lastWeatherFetchAt;
   Position? _lastWeatherFetchPosition;
@@ -138,11 +169,34 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final Set<String> _collectedIds = {};
   final Map<String, Set<String>> _collectionEventNamesByCard = {};
 
-  SharedPreferences? _preferences;
-
   final CollectionHistoryService _historyService = CollectionHistoryService();
+  static const NextDestinationService _nextDestinationService =
+      NextDestinationService();
+  final EventService _eventService = EventService();
+  static const EventSwitchCoordinator _eventSwitchCoordinator =
+      EventSwitchCoordinator();
+  final ProgressionService _progressionService = ProgressionService();
+  final ProfileService _profileService = ProfileService();
+  final SessionService _sessionService = SessionService();
+  static const SecondaryRefreshCoordinator _secondaryRefreshCoordinator =
+      SecondaryRefreshCoordinator();
+  static const StartupCoordinator _startupCoordinator = StartupCoordinator();
+  final SeichiService _seichiService = SeichiService();
+  static const AccountRefreshCoordinator _accountRefreshCoordinator =
+      AccountRefreshCoordinator();
+  final AppSettingsService _appSettingsService = AppSettingsService();
+  final DestinationPersistenceService _destinationPersistenceService =
+      DestinationPersistenceService();
+  final StampCacheService _stampCacheService = StampCacheService();
+  final ContentBlockService _contentBlockService = ContentBlockService();
+  static const ExternalNavigationService _externalNavigationService =
+      ExternalNavigationService();
+  late final CollectionSyncService _collectionSyncService =
+      CollectionSyncService(
+        historyService: _historyService,
+        stampCacheService: _stampCacheService,
+      );
 
-  static const LevelService _levelService = LevelService();
   LevelProgress? _levelProgress;
 
   // 現在表示・獲得対象としているイベント。
@@ -157,7 +211,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   bool _isLoading = true;
   bool _isLoadingLocation = false;
 
-  static const String _onboardingCompletedKey = 'onboarding_completed_v1';
+  final OnboardingService _onboardingService = OnboardingService();
   bool _isOnboardingReady = false;
   bool _shouldShowOnboarding = false;
 
@@ -173,7 +227,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   BitmapDescriptor? _collectedMarkerIcon;
   BitmapDescriptor? _nextMarkerIcon;
   Set<Marker>? _staticMarkerCache;
-  String? _staticMarkerCacheSignature;
+  String? _staticMarkerCacheNextId;
+  BitmapDescriptor? _staticMarkerCacheUncollectedIcon;
+  BitmapDescriptor? _staticMarkerCacheCollectedIcon;
+  final MarkerCacheRevision _markerCacheRevision = MarkerCacheRevision();
+  int _staticMarkerCacheRevision = -1;
   Seichi? _nextSeichi;
   double? _nextDistance;
 
@@ -215,60 +273,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   static const LatLng _defaultCenter = LatLng(36.3910, 139.0600);
 
-  // 上毛かるたの札順。
-  // Supabase側の登録順に依存せず、スタンプ帳を必ず札順で表示する。
-  static const List<String> _jomoKarutaOrder = [
-    'あ',
-    'い',
-    'う',
-    'え',
-    'お',
-    'か',
-    'き',
-    'く',
-    'け',
-    'こ',
-    'さ',
-    'し',
-    'す',
-    'せ',
-    'そ',
-    'た',
-    'ち',
-    'つ',
-    'て',
-    'と',
-    'な',
-    'に',
-    'ぬ',
-    'ね',
-    'の',
-    'は',
-    'ひ',
-    'ふ',
-    'へ',
-    'ほ',
-    'ま',
-    'み',
-    'む',
-    'め',
-    'も',
-    'や',
-    'ゆ',
-    'よ',
-    'ら',
-    'り',
-    'る',
-    'れ',
-    'ろ',
-    'わ',
-    'を',
-  ];
-
-  int _cardOrderIndex(String card) {
-    final index = _jomoKarutaOrder.indexOf(card.trim());
-    return index == -1 ? 999 : index;
-  }
 
   // ============================================================
   // 初期化
@@ -278,12 +282,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    InterstitialAdService.instance.preload();
 
     _sonarController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
-    )..repeat();
+    );
     _sonarController.addListener(_onMarkerAnimationTick);
 
     _initialize();
@@ -299,7 +302,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    _initializeLocation();
+    if (_positionSubscription == null) {
+      unawaited(_initializeLocation());
+    }
   }
 
   @override
@@ -315,212 +320,27 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _loadCurrentEvent() async {
     try {
-      final client = supabase.Supabase.instance.client;
-      final user = client.auth.currentUser;
+      final selection = await _eventService.loadCurrentEvent();
 
-      final data = await client
-          .from('events')
-          .select(
-            'id, slug, name, description, prefecture, is_active, '
-            'icon_url, cover_image_url, start_at, end_at, updated_at',
-          )
-          .eq('is_active', true)
-          .order('created_at');
-
-      final events = List<Map<String, dynamic>>.from(data)
-          .map(Event.fromMap)
-          .toList(growable: false);
-
-      _events = events;
-
-      if (events.isEmpty) {
-        throw Exception('有効なクエストがありません。');
-      }
-
-      String? savedEventId;
-
-      if (user != null) {
-        try {
-          final preference = await client
-              .from('user_event_preferences')
-              .select('current_event_id')
-              .eq('user_id', user.id)
-              .maybeSingle();
-
-          savedEventId = preference?['current_event_id']?.toString();
-        } catch (error) {
-          appDebugPrint('[EVENT] preference load failed: $error');
-        }
-      }
-
-      Event? currentEvent;
-
-      if (savedEventId != null && savedEventId.isNotEmpty) {
-        for (final event in events) {
-          if (event.id == savedEventId) {
-            currentEvent = event;
-            break;
-          }
-        }
-      }
-
-      if (currentEvent == null) {
-        for (final event in events) {
-          if (event.slug == 'jomo-karuta-gunma') {
-            currentEvent = event;
-            break;
-          }
-        }
-      }
-
-      currentEvent ??= events.first;
-
-      _currentEventId = currentEvent.id;
-      _currentEventName = currentEvent.name;
-
-      if (_currentEventId == null || _currentEventId!.isEmpty) {
-        throw Exception('現在のイベントIDが取得できません。');
-      }
-
-      if (user != null && savedEventId != _currentEventId) {
-        await _saveCurrentEventPreference(_currentEventId!);
-      }
-
-      await _ensureEventParticipation(_currentEventId!);
-
-      appDebugPrint(
-        '[EVENT] current event restored: id=$_currentEventId, name=$_currentEventName',
-      );
+      _events = selection.events;
+      _currentEventId = selection.currentEvent.id;
+      _currentEventName = selection.currentEvent.name;
     } catch (e) {
       appDebugPrint('現在のイベント取得エラー: $e');
       rethrow;
     }
   }
 
-  Future<void> _saveCurrentEventPreference(String eventId) async {
-    final client = supabase.Supabase.instance.client;
-    final user = client.auth.currentUser;
-
-    if (user == null || eventId.isEmpty) {
-      return;
-    }
-
-    try {
-      await client.from('user_event_preferences').upsert({
-        'user_id': user.id,
-        'current_event_id': eventId,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }, onConflict: 'user_id');
-
-      appDebugPrint('[EVENT] preference saved: eventId=$eventId');
-    } catch (error) {
-      appDebugPrint('[EVENT] preference save failed: $error');
-      rethrow;
-    }
-  }
-
-  Future<void> _ensureEventParticipation(String eventId) async {
-    final client = supabase.Supabase.instance.client;
-    final user = client.auth.currentUser;
-
-    if (user == null || eventId.isEmpty) {
-      return;
-    }
-
-    try {
-      final existing = await client
-          .from('user_event_participations')
-          .select('is_active')
-          .eq('user_id', user.id)
-          .eq('event_id', eventId)
-          .maybeSingle();
-
-      if (existing == null) {
-        final now = DateTime.now().toUtc().toIso8601String();
-
-        await client.from('user_event_participations').insert({
-          'user_id': user.id,
-          'event_id': eventId,
-          'joined_at': now,
-          'is_active': true,
-          'left_at': null,
-          'updated_at': now,
-        });
-
-        appDebugPrint('[EVENT] participation created: eventId=$eventId');
-        return;
-      }
-
-      if (existing['is_active'] == true) {
-        return;
-      }
-
-      await client
-          .from('user_event_participations')
-          .update({
-            'is_active': true,
-            'left_at': null,
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
-          })
-          .eq('user_id', user.id)
-          .eq('event_id', eventId);
-
-      appDebugPrint('[EVENT] participation reactivated: eventId=$eventId');
-    } catch (error) {
-      appDebugPrint('[EVENT] participation ensure failed: $error');
-      rethrow;
-    }
-  }
-
   Future<void> _loadEventAchievements() async {
     try {
-      if (_currentEventId == null || _currentEventId!.isEmpty) {
+      final eventId = _currentEventId;
+
+      if (eventId == null || eventId.isEmpty) {
         throw Exception('イベントIDが未取得のため、チャレンジを読み込めません。');
       }
 
-      final data = await supabase.Supabase.instance.client
-          .from('event_achievements')
-          .select(
-            'sort_order, achievements('
-            'id, title, description, icon, required_count'
-            ')',
-          )
-          .eq('event_id', _currentEventId!)
-          .order('sort_order');
-
-      final rows = List<Map<String, dynamic>>.from(data);
-
-      final achievements = <Achievement>[];
-
-      for (final row in rows) {
-        final raw = row['achievements'];
-
-        if (raw is! Map<String, dynamic>) {
-          continue;
-        }
-
-        final id = raw['id']?.toString() ?? '';
-
-        if (id.isEmpty) {
-          continue;
-        }
-
-        final requiredCount = raw['required_count'] is int
-            ? raw['required_count'] as int
-            : int.tryParse(raw['required_count']?.toString() ?? '') ?? 0;
-
-        achievements.add(
-          Achievement(
-            id: id,
-            title: raw['title']?.toString() ?? '',
-            description: raw['description']?.toString() ?? '',
-            icon: raw['icon']?.toString() ?? '',
-            requiredCount: requiredCount,
-          ),
-        );
-      }
-
-      _eventAchievements = achievements;
+      _eventAchievements =
+          await _progressionService.loadEventAchievements(eventId);
     } catch (error) {
       _eventAchievements = <Achievement>[];
       appDebugPrint('[ACHIEVEMENTS] load failed: $error');
@@ -557,6 +377,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       }
 
       setState(() {
+        _markerCacheRevision.markChanged();
         _uncollectedMarkerIcon = icons[0];
         _collectedMarkerIcon = icons[1];
         _nextMarkerIcon = icons[2];
@@ -569,30 +390,29 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   }
 
   Future<void> _initialize() async {
-    await _ensureCloudUser();
-    await _loadDisplayName();
-    await _loadCurrentEvent();
-    await _loadEventAchievements();
-    await _loadSavedStamps();
+    final onboardingCompletedFuture = _onboardingService.isCompleted();
 
-    final syncedRows = await _historyService.syncPendingPlaceVisits();
+    await _startupCoordinator.runCritical(
+      ensureCloudUser: _ensureCloudUser,
+      loadCurrentEvent: _loadCurrentEvent,
+      loadEventAchievements: _loadEventAchievements,
+      startCollectionSync: () async {
+        final result = await _startCollectionSync();
+        return result.pendingCollectedRows;
+      },
+      loadSeichi: _loadSeichi,
+      applyCollectedRows: _applyCollectedRows,
+      mergeCloudCollectionHistory: _mergeCloudCollectionHistory,
+      loadManualNextDestination: _loadManualNextDestination,
+      loadRecommendedRoute: _loadRecommendedRoute,
+      restoreRecommendedRouteDestination: () {
+        if (_activeRecommendedRoute.isNotEmpty) {
+          _manualNextSeichiId = _activeRecommendedRoute.first.id;
+        }
+      },
+    );
 
-    await _loadSeichi();
-    await _applyCollectedRows(syncedRows);
-    await _loadCloudHistory();
-    await _loadManualNextDestination();
-    await _loadRecommendedRoute();
-
-    if (_activeRecommendedRoute.isNotEmpty) {
-      _manualNextSeichiId = _activeRecommendedRoute.first.id;
-    }
-    await _loadMyEventRank();
-    await _loadLevelProgress();
-
-    _preferences ??= await SharedPreferences.getInstance();
-
-    final onboardingCompleted =
-        _preferences!.getBool(_onboardingCompletedKey) ?? false;
+    final onboardingCompleted = await onboardingCompletedFuture;
 
     if (!mounted) {
       return;
@@ -602,6 +422,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _isOnboardingReady = true;
       _shouldShowOnboarding = !onboardingCompleted;
     });
+
+    unawaited(
+      _startupCoordinator.runDeferred(
+        loadDisplayName: _loadDisplayName,
+        loadMyEventRank: _loadMyEventRank,
+        loadLevelProgress: _loadLevelProgress,
+      ),
+    );
+
+    // 全画面広告は初期表示の必須リソースではないため、起動処理と競合させない。
+    InterstitialAdService.instance.preload();
 
     if (onboardingCompleted) {
       await _initializeLocation();
@@ -629,14 +460,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   }
 
   Future<void> _completeOnboarding() async {
-    _preferences ??= await SharedPreferences.getInstance();
-
-    final saved =
-        await _preferences!.setBool(_onboardingCompletedKey, true);
-
-    if (!saved) {
-      throw Exception('チュートリアルの完了状態を保存できませんでした。');
-    }
+    await _onboardingService.markCompleted();
 
     if (!mounted) {
       return;
@@ -651,22 +475,32 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _loadLevelProgress() async {
     try {
-      final totalCollected = await _historyService.loadTotalCollectionCount();
-
-      final totalXp = _levelService.xpFromCollectedCount(totalCollected);
-
-      final levelProgress = _levelService.progressFromXp(totalXp);
+      final levelProgress = await _progressionService.loadLevelProgress();
 
       if (!mounted) {
         return;
       }
 
-      setState(() {
-        _levelProgress = levelProgress;
-      });
+      final currentLevelProgress = _levelProgress;
+      final levelProgressChanged =
+          currentLevelProgress == null ||
+          currentLevelProgress.totalXp != levelProgress.totalXp ||
+          currentLevelProgress.level != levelProgress.level ||
+          currentLevelProgress.currentLevelXp != levelProgress.currentLevelXp ||
+          currentLevelProgress.nextLevelXp != levelProgress.nextLevelXp ||
+          currentLevelProgress.xpIntoLevel != levelProgress.xpIntoLevel ||
+          currentLevelProgress.xpNeededForNextLevel !=
+              levelProgress.xpNeededForNextLevel ||
+          currentLevelProgress.progress != levelProgress.progress;
+
+      if (levelProgressChanged) {
+        setState(() {
+          _levelProgress = levelProgress;
+        });
+      }
 
       appDebugPrint(
-        '[LEVEL] collected=$totalCollected '
+        '[LEVEL] '
         'xp=${levelProgress.totalXp} '
         'level=${levelProgress.level}',
       );
@@ -676,87 +510,36 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   }
 
   Future<void> _loadDisplayName() async {
-    final client = supabase.Supabase.instance.client;
-    final user = client.auth.currentUser;
-
-    if (user == null) {
-      if (mounted) {
-        setState(() {
-          _displayName = null;
-        });
-      }
-      return;
-    }
-
     try {
-      final data = await client
-          .from('profiles')
-          .select('display_name, avatar_key')
-          .eq('id', user.id)
-          .maybeSingle();
+      final profile = await _profileService.loadCurrentProfile();
 
       if (!mounted) {
         return;
       }
 
-      final displayName = data?['display_name']?.toString().trim();
+      final nextDisplayName = profile?.displayName;
+      final nextAvatarKey = profile?.avatarKey;
 
-      final avatarKey = data?['avatar_key']?.toString().trim();
-
-      setState(() {
-        _displayName = displayName == null || displayName.isEmpty
-            ? null
-            : displayName;
-
-        _avatarKey = avatarKey == null || avatarKey.isEmpty ? null : avatarKey;
-      });
+      if (_displayName != nextDisplayName || _avatarKey != nextAvatarKey) {
+        setState(() {
+          _displayName = nextDisplayName;
+          _avatarKey = nextAvatarKey;
+        });
+      }
     } catch (error) {
       appDebugPrint('[PROFILE] display name load failed: $error');
     }
   }
 
   Future<void> _ensureCloudUser() async {
-    final client = supabase.Supabase.instance.client;
-
-    final existingUser = client.auth.currentUser;
-
-    if (existingUser != null) {
-      appDebugPrint(
-        '[AUTH] existing user: ${existingUser.id}, '
-        'anonymous=${existingUser.isAnonymous}',
-      );
-      return;
-    }
-
-    appDebugPrint('[AUTH] no current user. Starting anonymous sign-in...');
-
-    try {
-      final response = await client.auth.signInAnonymously();
-      final user = response.user;
-
-      if (user != null) {
-        appDebugPrint(
-          '[AUTH] anonymous sign-in success: ${user.id}, '
-          'anonymous=${user.isAnonymous}',
-        );
-      } else {
-        appDebugPrint('[AUTH] anonymous sign-in returned null user');
-      }
-    } on supabase.AuthException catch (error) {
-      appDebugPrint(
-        '[AUTH] anonymous sign-in failed: '
-        'code=${error.statusCode}, message=${error.message}',
-      );
-    } catch (error) {
-      appDebugPrint('[AUTH] anonymous sign-in failed: $error');
-    }
+    await _sessionService.ensureCloudUser();
   }
 
   Future<void> _loadMyEventRank() async {
     final eventId = _currentEventId;
 
     if (eventId == null || eventId.isEmpty) {
-      if (mounted) {
+      if (mounted && _myEventRank != null) {
         setState(() {
           _myEventRank = null;
         });
@@ -765,24 +548,29 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     try {
-      final data = await supabase.Supabase.instance.client.rpc(
-        'get_my_event_rank',
-        params: {'p_event_id': eventId},
-      );
-
-      final rows = List<Map<String, dynamic>>.from(data as List);
-
-      final rank = rows.isEmpty ? null : (rows.first['rank'] as num?)?.toInt();
+      final rank = await _progressionService.loadMyEventRank(eventId);
 
       if (!mounted) {
         return;
       }
 
-      setState(() {
-        _myEventRank = rank;
-      });
+      if (_myEventRank != rank) {
+        setState(() {
+          _myEventRank = rank;
+        });
+      }
     } catch (error) {
-      appDebugPrint('[RANKING] my event rank load failed: $error');
+      appDebugPrint('[RANK] load failed: $error');
+
+      if (!mounted) {
+        return;
+      }
+
+      if (_myEventRank != null) {
+        setState(() {
+          _myEventRank = null;
+        });
+      }
     }
   }
 
@@ -795,9 +583,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     await _historyService.resetEventCollectionHistory(eventId: eventId);
 
-    _collectedIds.clear();
-    _manualNextSeichiId = null;
-    _activeRecommendedRoute.clear();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _collectedIds.clear();
+      _markerCacheRevision.markChanged();
+      _manualNextSeichiId = null;
+      _activeRecommendedRoute.clear();
+    });
 
     await _saveManualNextDestination();
     await _saveRecommendedRoute();
@@ -807,29 +602,57 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _updateNextDestination();
     await _checkStampDistance();
     await _loadMyEventRank();
+  }
 
-    if (!mounted) {
+  Future<CollectionSyncStartResult> _startCollectionSync() async {
+    final eventId = _currentEventId;
+    final userId = _sessionService.currentUserId;
+
+    if (eventId == null || eventId.isEmpty) {
+      throw Exception('イベントIDが未取得のため、獲得履歴を同期できません。');
+    }
+
+    if (userId == null) {
+      throw Exception('ユーザーIDが未取得のため、獲得履歴を同期できません。');
+    }
+
+    final result = await _collectionSyncService.start(
+      userId: userId,
+      eventId: eventId,
+    );
+
+    final localCollectedIdsChanged =
+        !haveSameStringValues(_collectedIds, result.localCollectedIds);
+
+    if (localCollectedIdsChanged) {
+      _collectedIds
+        ..clear()
+        ..addAll(result.localCollectedIds);
+      _markerCacheRevision.markChanged();
+    }
+
+    return result;
+  }
+
+  Future<void> _mergeCloudCollectionHistory() async {
+    final eventId = _currentEventId;
+    final userId = _sessionService.currentUserId;
+
+    if (eventId == null || eventId.isEmpty || userId == null) {
       return;
     }
 
-    setState(() {});
-  }
+    final mergedIds = await _collectionSyncService.mergeCloudHistory(
+      userId: userId,
+      eventId: eventId,
+      collectedIds: _collectedIds,
+    );
 
-  Future<void> _loadCloudHistory() async {
-    try {
-      final history = await _historyService.loadHistory(
-        eventId: _currentEventId!,
-      );
-      for (final item in history) {
-        final id = item['seichi_id']?.toString();
-        if (id != null && id.isNotEmpty) {
-          _collectedIds.add(id);
-        }
-      }
-
-      await _saveStamps();
-    } catch (_) {
-      // DB取得失敗時は端末キャッシュをそのまま使用する。
+    if (!haveSameStringValues(_collectedIds, mergedIds)) {
+      _collectedIds
+        ..clear()
+        ..addAll(mergedIds);
+      _markerCacheRevision.markChanged();
     }
 
     await _loadCollectionEventNames();
@@ -839,21 +662,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     try {
       final history = await _historyService.loadCollectionDisplayHistory();
 
-      final next = <String, Set<String>>{};
-
-      for (final item in history) {
-        final card = item['card']?.toString();
-        final eventName = item['event_name']?.toString();
-
-        if (card == null ||
-            card.isEmpty ||
-            eventName == null ||
-            eventName.isEmpty) {
-          continue;
-        }
-
-        next.putIfAbsent(card, () => <String>{}).add(eventName);
-      }
+      final next = _collectionDisplayPolicy.eventNamesByCard(history);
 
       _collectionEventNamesByCard
         ..clear()
@@ -867,141 +676,47 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // 保存済みスタンプ
   // ============================================================
 
-  String _stampStorageKey({required String userId, required String eventId}) {
-    return 'collected_seichi_ids_v2_${userId}_$eventId';
-  }
 
-  Future<void> _migrateLegacyStampCache({
-    required SharedPreferences preferences,
-    required String userId,
-    required String currentEventId,
-  }) async {
-    const legacyGlobalKey = 'collected_seichi_ids';
-    const legacyEventPrefix = 'collected_seichi_ids_';
-    const scopedPrefix = 'collected_seichi_ids_v2_';
-
-    final keys = preferences.getKeys().toList();
-
-    for (final key in keys) {
-      if (!key.startsWith(legacyEventPrefix) || key.startsWith(scopedPrefix)) {
-        continue;
-      }
-
-      final eventId = key.substring(legacyEventPrefix.length);
-
-      if (eventId.isEmpty) {
-        continue;
-      }
-
-      final legacyIds = preferences.getStringList(key);
-      final scopedKey = _stampStorageKey(userId: userId, eventId: eventId);
-      final scopedIds = preferences.getStringList(scopedKey) ?? <String>[];
-
-      final mergedIds = <String>{...scopedIds, ...?legacyIds}.toList();
-
-      await preferences.setStringList(scopedKey, mergedIds);
-      await preferences.remove(key);
-    }
-
-    final legacyGlobalIds = preferences.getStringList(legacyGlobalKey);
-
-    if (legacyGlobalIds != null) {
-      final scopedKey = _stampStorageKey(
-        userId: userId,
-        eventId: currentEventId,
-      );
-      final scopedIds = preferences.getStringList(scopedKey) ?? <String>[];
-
-      final mergedIds = <String>{...scopedIds, ...legacyGlobalIds}.toList();
-
-      await preferences.setStringList(scopedKey, mergedIds);
-      await preferences.remove(legacyGlobalKey);
-    }
-  }
-
-  Future<void> _loadSavedStamps() async {
-    _preferences = await SharedPreferences.getInstance();
-
-    if (_currentEventId == null || _currentEventId!.isEmpty) {
-      throw Exception('イベントIDが未取得のため、獲得スタンプを読み込めません。');
-    }
-
-    final user = supabase.Supabase.instance.client.auth.currentUser;
-
-    if (user == null) {
-      throw Exception('ユーザーIDが未取得のため、獲得スタンプを読み込めません。');
-    }
-
-    final preferences = _preferences!;
-    final eventId = _currentEventId!;
-
-    await _migrateLegacyStampCache(
-      preferences: preferences,
-      userId: user.id,
-      currentEventId: eventId,
-    );
-
-    final eventKey = _stampStorageKey(userId: user.id, eventId: eventId);
-
-    final savedIds = preferences.getStringList(eventKey);
-
-    _collectedIds
-      ..clear()
-      ..addAll(savedIds ?? <String>[]);
-  }
-
-  String _manualNextDestinationStorageKey({
-    required String userId,
-    required String eventId,
-  }) {
-    return 'manual_next_seichi_id_v1_${userId}_$eventId';
-  }
 
   Future<void> _saveManualNextDestination() async {
     final eventId = _currentEventId;
-    final user = supabase.Supabase.instance.client.auth.currentUser;
+    final userId = _sessionService.currentUserId;
 
-    if (eventId == null || eventId.isEmpty || user == null) {
+    if (eventId == null || eventId.isEmpty || userId == null) {
       return;
     }
 
-    _preferences ??= await SharedPreferences.getInstance();
-
-    final key = _manualNextDestinationStorageKey(
-      userId: user.id,
-      eventId: eventId,
-    );
-
     final seichiId = _manualNextSeichiId;
 
+    await _destinationPersistenceService.saveManualDestination(
+      userId: userId,
+      eventId: eventId,
+      seichiId: seichiId,
+    );
+
     if (seichiId == null || seichiId.isEmpty) {
-      await _preferences!.remove(key);
       appDebugPrint('[NEXT-PERSIST] cleared: event=$eventId');
       return;
     }
 
-    await _preferences!.setString(key, seichiId);
-
-    appDebugPrint('[NEXT-PERSIST] saved: event=$eventId seichi=$seichiId');
+    appDebugPrint(
+      '[NEXT-PERSIST] saved: event=$eventId seichi=$seichiId',
+    );
   }
 
   Future<void> _loadManualNextDestination() async {
     final eventId = _currentEventId;
-    final user = supabase.Supabase.instance.client.auth.currentUser;
+    final userId = _sessionService.currentUserId;
 
-    if (eventId == null || eventId.isEmpty || user == null) {
+    if (eventId == null || eventId.isEmpty || userId == null) {
       _manualNextSeichiId = null;
       return;
     }
 
-    _preferences ??= await SharedPreferences.getInstance();
-
-    final key = _manualNextDestinationStorageKey(
-      userId: user.id,
+    final savedId = await _destinationPersistenceService.loadManualDestination(
+      userId: userId,
       eventId: eventId,
     );
-
-    final savedId = _preferences!.getString(key);
 
     if (savedId == null || savedId.isEmpty) {
       _manualNextSeichiId = null;
@@ -1014,7 +729,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     if (!isValid) {
       _manualNextSeichiId = null;
-      await _preferences!.remove(key);
+
+      await _destinationPersistenceService.clearManualDestination(
+        userId: userId,
+        eventId: eventId,
+      );
 
       appDebugPrint(
         '[NEXT-PERSIST] invalid saved destination removed: '
@@ -1025,43 +744,38 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     _manualNextSeichiId = savedId;
 
-    appDebugPrint('[NEXT-PERSIST] restored: event=$eventId seichi=$savedId');
-  }
-
-  String _recommendedRouteStorageKey({
-    required String userId,
-    required String eventId,
-  }) {
-    return 'recommended_route_ids_v1_${userId}_$eventId';
+    appDebugPrint(
+      '[NEXT-PERSIST] restored: event=$eventId seichi=$savedId',
+    );
   }
 
   Future<void> _saveRecommendedRoute() async {
     final eventId = _currentEventId;
-    final user = supabase.Supabase.instance.client.auth.currentUser;
+    final userId = _sessionService.currentUserId;
 
-    if (eventId == null || eventId.isEmpty || user == null) {
+    if (eventId == null || eventId.isEmpty || userId == null) {
       return;
     }
-
-    _preferences ??= await SharedPreferences.getInstance();
-
-    final key = _recommendedRouteStorageKey(userId: user.id, eventId: eventId);
 
     final routeIds = _activeRecommendedRoute
         .where((seichi) => !_collectedIds.contains(seichi.id))
         .map((seichi) => seichi.id)
         .toList(growable: false);
 
-    if (routeIds.isEmpty) {
-      await _preferences!.remove(key);
+    await _destinationPersistenceService.saveRecommendedRoute(
+      userId: userId,
+      eventId: eventId,
+      seichiIds: routeIds,
+    );
 
+    if (routeIds.isEmpty) {
       appDebugPrint('[ROUTE-PERSIST] cleared: event=$eventId');
       return;
     }
 
-    await _preferences!.setStringList(key, routeIds);
-
-    appDebugPrint('[ROUTE-PERSIST] saved: event=$eventId ids=$routeIds');
+    appDebugPrint(
+      '[ROUTE-PERSIST] saved: event=$eventId ids=$routeIds',
+    );
   }
 
   void _saveRecommendedRouteInBackground() {
@@ -1072,20 +786,19 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _loadRecommendedRoute() async {
     final eventId = _currentEventId;
-    final user = supabase.Supabase.instance.client.auth.currentUser;
+    final userId = _sessionService.currentUserId;
 
     _isRecommendedRouteLoaded = false;
     _activeRecommendedRoute.clear();
 
-    if (eventId == null || eventId.isEmpty || user == null) {
+    if (eventId == null || eventId.isEmpty || userId == null) {
       return;
     }
 
-    _preferences ??= await SharedPreferences.getInstance();
-
-    final key = _recommendedRouteStorageKey(userId: user.id, eventId: eventId);
-
-    final savedIds = _preferences!.getStringList(key);
+    final savedIds = await _destinationPersistenceService.loadRecommendedRoute(
+      userId: userId,
+      eventId: eventId,
+    );
 
     if (savedIds == null || savedIds.isEmpty) {
       _isRecommendedRouteLoaded = true;
@@ -1109,7 +822,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     if (restoredRoute.isEmpty) {
-      await _preferences!.remove(key);
+      await _destinationPersistenceService.clearRecommendedRoute(
+        userId: userId,
+        eventId: eventId,
+      );
 
       appDebugPrint(
         '[ROUTE-PERSIST] invalid or completed route removed: '
@@ -1122,19 +838,24 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _activeRecommendedRoute.addAll(restoredRoute);
 
     if (restoredRoute.length != savedIds.length) {
-      await _preferences!.setStringList(
-        key,
-        restoredRoute.map((item) => item.id).toList(growable: false),
+      await _destinationPersistenceService.saveRecommendedRoute(
+        userId: userId,
+        eventId: eventId,
+        seichiIds: restoredRoute
+            .map((item) => item.id)
+            .toList(growable: false),
       );
     }
 
     _isRecommendedRouteLoaded = true;
 
-    appDebugPrint(
-      '[ROUTE-PERSIST] loaded: '
-      'event=$eventId '
-      'ids=${_activeRecommendedRoute.map((item) => item.id).toList()}',
-    );
+    if (kDebugMode) {
+      appDebugPrint(
+        '[ROUTE-PERSIST] loaded: '
+        'event=$eventId '
+        'ids=${_activeRecommendedRoute.map((item) => item.id).toList()}',
+      );
+    }
   }
 
   Future<void> _saveStamps() async {
@@ -1142,28 +863,25 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       throw Exception('イベントIDが未取得のため、獲得スタンプを保存できません。');
     }
 
-    final user = supabase.Supabase.instance.client.auth.currentUser;
+    final userId = _sessionService.currentUserId;
 
-    if (user == null) {
+    if (userId == null) {
       throw Exception('ユーザーIDが未取得のため、獲得スタンプを保存できません。');
     }
 
-    _preferences ??= await SharedPreferences.getInstance();
-
-    final eventKey = _stampStorageKey(
-      userId: user.id,
+    await _stampCacheService.save(
+      userId: userId,
       eventId: _currentEventId!,
+      collectedIds: _collectedIds,
     );
-
-    await _preferences!.setStringList(eventKey, _collectedIds.toList());
   }
 
   // ============================================================
   // アプリ設定
   // ============================================================
 
-  bool _isAutoNextDestinationEnabled() {
-    return _preferences?.getBool('setting_auto_next_destination') ?? true;
+  Future<bool> _isAutoNextDestinationEnabled() {
+    return _appSettingsService.isAutoNextDestinationEnabled();
   }
 
   // ============================================================
@@ -1171,22 +889,21 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   int _getCollectedCount() {
-    if (_seichiList.isEmpty) {
-      return 0;
-    }
-
-    final validIds = _seichiList.map((seichi) => seichi.id).toSet();
-
-    return _collectedIds.where(validIds.contains).length;
+    return _collectionProgressPolicy.validCollectedCount(
+      seichiList: _seichiList,
+      collectedIds: _collectedIds,
+    );
   }
 
   // ============================================================
   // Supabaseから聖地取得
   // ============================================================
 
-  Future<void> _loadSeichi() async {
+  Future<void> _loadSeichi({
+    bool manageLoadingState = true,
+  }) async {
     try {
-      if (mounted) {
+      if (mounted && manageLoadingState) {
         setState(() {
           _isLoading = true;
           _errorMessage = null;
@@ -1195,35 +912,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         });
       }
 
-      final data = await supabase.Supabase.instance.client
-          .from('seichi')
-          .select(
-            'id, card, reading, name, latitude, longitude, '
-            'stamp_radius_meters, description, icon, card_image_url, is_active, place_id',
-          )
-          .eq('is_active', true)
-          .eq('event_id', _currentEventId!);
+      final eventId = _currentEventId;
 
-      final list = List<Map<String, dynamic>>.from(data)
-          .map(Seichi.fromMap)
-          .where(
-            (seichi) =>
-                seichi.id.isNotEmpty &&
-                seichi.latitude != 0 &&
-                seichi.longitude != 0,
-          )
-          .toList();
+      if (eventId == null || eventId.isEmpty) {
+        throw Exception('イベントIDが未取得のため、聖地を読み込めません。');
+      }
 
-      list.sort((a, b) {
-        final orderCompare = _cardOrderIndex(a.card)
-            .compareTo(_cardOrderIndex(b.card));
-
-        if (orderCompare != 0) {
-          return orderCompare;
-        }
-
-        return a.card.compareTo(b.card);
-      });
+      final list = await _seichiService.loadActiveSeichi(eventId);
 
       if (!mounted) {
         return;
@@ -1231,11 +926,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       setState(() {
         _seichiList = list;
-        _isLoading = false;
+        _markerCacheRevision.markChanged();
+        if (manageLoadingState) {
+          _isLoading = false;
+        }
       });
 
       // 自動次目的地設定がONの場合のみ更新する。
-      if (_isAutoNextDestinationEnabled()) {
+      if (await _isAutoNextDestinationEnabled()) {
         _updateNextDestination();
       }
     } catch (e) {
@@ -1247,7 +945,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _errorMessage = '聖地データを取得できませんでした。\n$e';
         _errorActionLabel = null;
         _errorAction = null;
-        _isLoading = false;
+        if (manageLoadingState) {
+          _isLoading = false;
+        }
       });
     }
   }
@@ -1265,106 +965,76 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _isLoadingLocation = true;
     });
 
-    try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    final result = await _locationService.getInitialPosition();
 
-      if (!serviceEnabled) {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          _isLoadingLocation = false;
-          _errorMessage =
-              '位置情報サービスがOFFになっています。\n'
-              '端末の位置情報をONにしてください。';
-          _errorActionLabel = '位置情報設定を開く';
-          _errorAction = () async {
-            await Geolocator.openLocationSettings();
-          };
-        });
-
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.denied) {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          _isLoadingLocation = false;
-          _errorMessage = '位置情報の利用が許可されていません。';
-          _errorActionLabel = '再試行';
-          _errorAction = _initializeLocation;
-        });
-
-        return;
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          _isLoadingLocation = false;
-          _errorMessage =
-              '位置情報の利用が永久に拒否されています。\n'
-              '端末の設定から位置情報を許可してください。';
-          _errorActionLabel = 'アプリ設定を開く';
-          _errorAction = () async {
-            await Geolocator.openAppSettings();
-          };
-        });
-
-        return;
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
-
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _currentPosition = position;
-        _isLoadingLocation = false;
-        _hasVeryLowLocationAccuracy = position.accuracy > 500.0;
-        _errorMessage = null;
-        _errorActionLabel = null;
-        _errorAction = null;
-      });
-
-      _updateNextDestination();
-      await _updateWeatherIfNeeded(position, force: true);
-
-      await _moveCameraToCurrentLocation();
-
-      _startLocationStream();
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isLoadingLocation = false;
-        _errorMessage = '現在地を取得できませんでした。\n$e';
-        _errorActionLabel = '再試行';
-        _errorAction = _initializeLocation;
-      });
+    if (!mounted) {
+      return;
     }
+
+    final position = result.position;
+
+    if (position == null) {
+      switch (result.failure) {
+        case LocationStartFailure.serviceDisabled:
+          setState(() {
+            _isLoadingLocation = false;
+            _errorMessage =
+                '位置情報サービスがOFFになっています。\n'
+                '端末の位置情報をONにしてください。';
+            _errorActionLabel = '位置情報設定を開く';
+            _errorAction = () async {
+              await _locationService.openLocationSettings();
+            };
+          });
+        case LocationStartFailure.permissionDenied:
+          setState(() {
+            _isLoadingLocation = false;
+            _errorMessage = '位置情報の利用が許可されていません。';
+            _errorActionLabel = '再試行';
+            _errorAction = _initializeLocation;
+          });
+        case LocationStartFailure.permissionDeniedForever:
+          setState(() {
+            _isLoadingLocation = false;
+            _errorMessage =
+                '位置情報の利用が永久に拒否されています。\n'
+                '端末の設定から位置情報を許可してください。';
+            _errorActionLabel = 'アプリ設定を開く';
+            _errorAction = () async {
+              await _locationService.openAppSettings();
+            };
+          });
+        case LocationStartFailure.unavailable:
+        case null:
+          setState(() {
+            _isLoadingLocation = false;
+            _errorMessage =
+                '現在地を取得できませんでした。\n'
+                '${result.error ?? '不明なエラー'}';
+            _errorActionLabel = '再試行';
+            _errorAction = _initializeLocation;
+          });
+      }
+
+      return;
+    }
+
+    setState(() {
+      _currentPosition = position;
+      _isLoadingLocation = false;
+      _hasVeryLowLocationAccuracy = position.accuracy > 500.0;
+      _errorMessage = null;
+      _errorActionLabel = null;
+      _errorAction = null;
+    });
+
+    _updateNextDestination();
+
+    // 天気APIは現在地表示・GPS監視開始の必須条件ではない。
+    // 先に地図と位置ストリームを使える状態にし、通信はバックグラウンドで行う。
+    await _moveCameraToCurrentLocation();
+    _startLocationStream();
+    unawaited(_updateWeatherIfNeeded(position, force: true));
   }
 
   // ============================================================
@@ -1375,35 +1045,23 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     Position position, {
     bool force = false,
   }) async {
-    const refreshInterval = Duration(minutes: 15);
-    const refreshDistanceMeters = 5000.0;
-
     if (_isWeatherFetchInProgress) {
       return;
     }
 
-    final now = DateTime.now();
-    final lastFetchAt = _lastWeatherFetchAt;
-    final lastPosition = _lastWeatherFetchPosition;
-
-    var shouldFetch = force || lastFetchAt == null || lastPosition == null;
-
-    if (!shouldFetch && now.difference(lastFetchAt) >= refreshInterval) {
-      shouldFetch = true;
-    }
-
-    if (!shouldFetch && lastPosition != null) {
-      final distance = Geolocator.distanceBetween(
-        lastPosition.latitude,
-        lastPosition.longitude,
-        position.latitude,
-        position.longitude,
-      );
-
-      if (distance >= refreshDistanceMeters) {
-        shouldFetch = true;
-      }
-    }
+    final shouldFetch = _weatherRefreshPolicy.shouldFetch(
+      force: force,
+      now: DateTime.now(),
+      lastFetchAt: _lastWeatherFetchAt,
+      lastPosition: _lastWeatherFetchPosition,
+      currentPosition: position,
+      distanceBetween: (from, to) => _locationService.distanceBetween(
+        startLatitude: from.latitude,
+        startLongitude: from.longitude,
+        endLatitude: to.latitude,
+        endLongitude: to.longitude,
+      ),
+    );
 
     if (!shouldFetch) {
       return;
@@ -1447,40 +1105,43 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   void _startLocationStream() {
     _positionSubscription?.cancel();
 
-    const locationSettings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 10,
+    _positionSubscription = _locationService.getPositionStream().listen(
+      (position) {
+        if (!mounted) {
+          return;
+        }
+
+        final hasVeryLowLocationAccuracy = position.accuracy > 500.0;
+        final accuracyStateChanged =
+            _hasVeryLowLocationAccuracy != hasVeryLowLocationAccuracy;
+
+        if (accuracyStateChanged) {
+          setState(() {
+            _currentPosition = position;
+            _hasVeryLowLocationAccuracy = hasVeryLowLocationAccuracy;
+          });
+        } else {
+          _currentPosition = position;
+        }
+
+        _updateNextDestination();
+        _updateWeatherIfNeeded(position);
+        _checkStampDistance();
+      },
+      onError: (error) {
+        _positionSubscription = null;
+
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _errorMessage = '位置情報の監視でエラーが発生しました。\n$error';
+          _errorActionLabel = '再試行';
+          _errorAction = _initializeLocation;
+        });
+      },
     );
-
-    _positionSubscription =
-        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-          (position) {
-            if (!mounted) {
-              return;
-            }
-
-
-            setState(() {
-              _currentPosition = position;
-              _hasVeryLowLocationAccuracy = position.accuracy > 500.0;
-            });
-
-            _updateNextDestination();
-            _updateWeatherIfNeeded(position);
-            _checkStampDistance();
-          },
-          onError: (error) {
-            if (!mounted) {
-              return;
-            }
-
-            setState(() {
-              _errorMessage = '位置情報の監視でエラーが発生しました。\n$error';
-              _errorActionLabel = '再試行';
-              _errorAction = _initializeLocation;
-            });
-          },
-        );
   }
 
   // ============================================================
@@ -1488,25 +1149,29 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   void _updateNextDestination() {
-    appDebugPrint(
-      '[ROUTE-NEXT] UPDATE START '
-      'manual=$_manualNextSeichiId '
-      'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
-      'collected=${_collectedIds.length}',
-    );
+    if (kDebugMode) {
+      appDebugPrint(
+        '[ROUTE-NEXT] UPDATE START '
+        'manual=$_manualNextSeichiId '
+        'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+        'collected=${_collectedIds.length}',
+      );
+    }
 
-    final result = const NextDestinationService().findNextDestination(
+    final result = _nextDestinationService.findNextDestination(
       position: _currentPosition,
       seichiList: _seichiList,
       collectedIds: _collectedIds,
       manualNextSeichiId: _manualNextSeichiId,
     );
 
-    appDebugPrint(
-      '[ROUTE-NEXT] SERVICE RESULT '
-      'next=${result.seichi == null ? null : '${result.seichi!.card}:${result.seichi!.name}:${result.seichi!.id}'} '
-      'distance=${result.distance}',
-    );
+    if (kDebugMode) {
+      appDebugPrint(
+        '[ROUTE-NEXT] SERVICE RESULT '
+        'next=${result.seichi == null ? null : '${result.seichi!.card}:${result.seichi!.name}:${result.seichi!.id}'} '
+        'distance=${result.distance}',
+      );
+    }
 
     if (result.seichi == null && _manualNextSeichiId != null) {
       _manualNextSeichiId = null;
@@ -1516,17 +1181,27 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    setState(() {
-      _nextSeichi = result.seichi;
-      _nextDistance = result.distance;
-    });
+    final nextChanged =
+        _nextSeichi?.id != result.seichi?.id ||
+        _nextDistance != result.distance;
 
-    appDebugPrint(
-      '[ROUTE-NEXT] UPDATE END '
-      'next=${_nextSeichi == null ? null : '${_nextSeichi!.card}:${_nextSeichi!.name}:${_nextSeichi!.id}'} '
-      'manual=$_manualNextSeichiId '
-      'distance=$_nextDistance',
-    );
+    if (nextChanged) {
+      setState(() {
+        _nextSeichi = result.seichi;
+        _nextDistance = result.distance;
+      });
+    }
+
+    _syncMarkerAnimation();
+
+    if (kDebugMode) {
+      appDebugPrint(
+        '[ROUTE-NEXT] UPDATE END '
+        'next=${_nextSeichi == null ? null : '${_nextSeichi!.card}:${_nextSeichi!.name}:${_nextSeichi!.id}'} '
+        'manual=$_manualNextSeichiId '
+        'distance=$_nextDistance',
+      );
+    }
   }
 
   Future<void> _setNextDestination(Seichi seichi) async {
@@ -1613,21 +1288,22 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    final remainingRoute = route
-        .where((seichi) => !_collectedIds.contains(seichi.id))
-        .toList(growable: false);
+    final routeState = RecommendedRoutePolicy.start(
+      route: route,
+      collectedIds: _collectedIds,
+    );
 
-    if (remainingRoute.isEmpty) {
+    if (routeState.route.isEmpty) {
       return;
     }
 
-    final firstSeichi = remainingRoute.first;
+    final firstSeichi = routeState.route.first;
 
     _activeRecommendedRoute
       ..clear()
-      ..addAll(remainingRoute);
+      ..addAll(routeState.route);
 
-    _manualNextSeichiId = firstSeichi.id;
+    _manualNextSeichiId = routeState.manualNextSeichiId;
     _updateNextDestination();
 
     _saveRecommendedRouteInBackground();
@@ -1657,14 +1333,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (position == null || _seichiList.isEmpty) {
       return;
     }
-    // GPS位置が短時間で現実的でない距離まで跳んだ場合は、
-    // スタンプ判定を行わない。
-    //
-    // 100m/s = 360km/h。
-    // 誤ったGPS位置によるスタンプ獲得を防ぐための
-    // アプリ側の実装上の閾値。
-    const maxPlausibleSpeedMps = 100.0;
-
     final previousPosition = _lastStampCheckPosition;
 
     if (previousPosition != null) {
@@ -1675,66 +1343,69 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           1000.0;
 
       if (elapsedSeconds > 0) {
-        final movedDistance = Geolocator.distanceBetween(
-          previousPosition.latitude,
-          previousPosition.longitude,
-          position.latitude,
-          position.longitude,
-        );
+        final movedDistance = _locationService.distanceBetween(
+        startLatitude: previousPosition.latitude,
+        startLongitude: previousPosition.longitude,
+        endLatitude: position.latitude,
+        endLongitude: position.longitude,
+      );
 
-        final calculatedSpeed = movedDistance / elapsedSeconds;
-
-        if (calculatedSpeed > maxPlausibleSpeedMps) {
+        if (!StampEligibilityPolicy.isPlausibleMovement(
+          movedDistanceMeters: movedDistance,
+          elapsedSeconds: elapsedSeconds,
+        )) {
           return;
         }
       }
     }
 
     _lastStampCheckPosition = position;
-    appDebugPrint(
-      '[STAMP_GPS] '
-      'lat=${position.latitude}, '
-      'lon=${position.longitude}, '
-      'accuracy=${position.accuracy}m, '
-      'timestamp=${position.timestamp}, '
-      'seichiCount=${_seichiList.length}',
-    );
-
-    // GPS精度が極端に悪い場合は誤獲得を防ぐため判定しない。
-    // 聖地ごとの到達半径が広い場合は、それに応じて許容する。
-    bool hasSufficientAccuracy(Seichi seichi) {
-      final radius = seichi.stampRadiusMeters.toDouble();
-
-      final requiredAccuracy = [
-        radius * 0.5,
-        30.0,
-      ].reduce((a, b) => a > b ? a : b);
-
-      return position.accuracy <= requiredAccuracy;
+    if (kDebugMode) {
+      appDebugPrint(
+        '[STAMP_GPS] '
+        'lat=${position.latitude}, '
+        'lon=${position.longitude}, '
+        'accuracy=${position.accuracy}m, '
+        'timestamp=${position.timestamp}, '
+        'seichiCount=${_seichiList.length}',
+      );
     }
 
     Seichi? nearestSeichi;
     double nearestDistance = double.infinity;
+    Seichi? collectibleSeichi;
 
     for (final seichi in _seichiList) {
       if (_collectedIds.contains(seichi.id)) {
         continue;
       }
 
-      final distance = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        seichi.latitude,
-        seichi.longitude,
+      final distance = _locationService.distanceBetween(
+        startLatitude: position.latitude,
+        startLongitude: position.longitude,
+        endLatitude: seichi.latitude,
+        endLongitude: seichi.longitude,
       );
 
       if (distance < nearestDistance) {
         nearestDistance = distance;
         nearestSeichi = seichi;
       }
+
+      if (collectibleSeichi == null &&
+          StampEligibilityPolicy.hasSufficientAccuracy(
+            accuracyMeters: position.accuracy,
+            stampRadiusMeters: seichi.stampRadiusMeters,
+          ) &&
+          StampEligibilityPolicy.isWithinStampRadius(
+            distanceMeters: distance,
+            stampRadiusMeters: seichi.stampRadiusMeters,
+          )) {
+        collectibleSeichi = seichi;
+      }
     }
 
-    if (nearestSeichi != null) {
+    if (kDebugMode && nearestSeichi != null) {
       appDebugPrint(
         '[STAMP_DISTANCE] '
         'name=${nearestSeichi.name}, '
@@ -1745,25 +1416,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       );
     }
 
-    for (final seichi in _seichiList) {
-      if (_collectedIds.contains(seichi.id)) {
-        continue;
-      }
-
-      if (!hasSufficientAccuracy(seichi)) {
-        continue;
-      }
-      final distance = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        seichi.latitude,
-        seichi.longitude,
-      );
-
-      if (distance <= seichi.stampRadiusMeters) {
-        await _collectStamp(seichi);
-        break;
-      }
+    if (collectibleSeichi != null) {
+      await _collectStamp(collectibleSeichi);
     }
   }
 
@@ -1815,26 +1469,15 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    final previousCollectedCount = _getCollectedCount();
+    final applyPlan = _collectionApplyPolicy.plan(
+      currentEventId: currentEventId,
+      collectedRows: collectedRows,
+      seichiList: _seichiList,
+      collectedIds: _collectedIds,
+      eventAchievements: _eventAchievements,
+    );
 
-    final collectedCards = collectedRows
-        .where((row) => row['event_id']?.toString() == currentEventId)
-        .map((row) => row['card']?.toString())
-        .whereType<String>()
-        .where((card) => card.isNotEmpty)
-        .toSet();
-
-    if (collectedCards.isEmpty) {
-      return;
-    }
-
-    final newlyCollectedSeichi = _seichiList
-        .where(
-          (item) =>
-              collectedCards.contains(item.card) &&
-              !_collectedIds.contains(item.id),
-        )
-        .toList(growable: false);
+    final newlyCollectedSeichi = applyPlan.newlyCollectedSeichi;
 
     if (newlyCollectedSeichi.isEmpty) {
       return;
@@ -1842,37 +1485,41 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     InterstitialAdService.instance.markStampCollected();
 
-    for (final item in newlyCollectedSeichi) {
-      _collectedIds.add(item.id);
-    }
+    _collectedIds
+      ..clear()
+      ..addAll(applyPlan.newCollectedIds);
+    _markerCacheRevision.markChanged();
 
-    appDebugPrint(
-      '[ROUTE-NEXT] COLLECTED '
-      'new=${newlyCollectedSeichi.map((item) => '${item.card}:${item.name}:${item.id}').toList()} '
-      'activeBefore=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
-      'manualBefore=$_manualNextSeichiId',
-    );
-
-    if (_activeRecommendedRoute.isNotEmpty) {
-      _activeRecommendedRoute.removeWhere(
-        (item) => _collectedIds.contains(item.id),
+    if (kDebugMode) {
+      appDebugPrint(
+        '[ROUTE-NEXT] COLLECTED '
+        'new=${newlyCollectedSeichi.map((item) => '${item.card}:${item.name}:${item.id}').toList()} '
+        'activeBefore=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+        'manualBefore=$_manualNextSeichiId',
       );
-
-      if (_activeRecommendedRoute.isNotEmpty) {
-        _manualNextSeichiId = _activeRecommendedRoute.first.id;
-      } else {
-        _manualNextSeichiId = null;
-      }
-    } else if (_manualNextSeichiId != null &&
-        newlyCollectedSeichi.any((item) => item.id == _manualNextSeichiId)) {
-      _manualNextSeichiId = null;
     }
 
-    appDebugPrint(
-      '[ROUTE-NEXT] AFTER ROUTE ADVANCE '
-      'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
-      'manual=$_manualNextSeichiId',
+    final routeState = RecommendedRoutePolicy.advanceAfterCollection(
+      activeRoute: _activeRecommendedRoute,
+      manualNextSeichiId: _manualNextSeichiId,
+      collectedIds: _collectedIds,
+      newlyCollectedIds: newlyCollectedSeichi
+          .map((item) => item.id)
+          .toSet(),
     );
+
+    _activeRecommendedRoute
+      ..clear()
+      ..addAll(routeState.route);
+    _manualNextSeichiId = routeState.manualNextSeichiId;
+
+    if (kDebugMode) {
+      appDebugPrint(
+        '[ROUTE-NEXT] AFTER ROUTE ADVANCE '
+        'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+        'manual=$_manualNextSeichiId',
+      );
+    }
 
     await _saveManualNextDestination();
     if (_isRecommendedRouteLoaded) {
@@ -1881,12 +1528,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       appDebugPrint('[ROUTE-PERSIST] save skipped: route state not loaded yet');
     }
     await _saveStamps();
-    await _loadCollectionEventNames();
-    await _loadMyEventRank();
 
     final previousLevel = _levelProgress?.level;
 
-    await _loadLevelProgress();
+    await _secondaryRefreshCoordinator.refreshAfterCollection(
+      loadCollectionEventNames: _loadCollectionEventNames,
+      loadMyEventRank: _loadMyEventRank,
+      loadLevelProgress: _loadLevelProgress,
+    );
 
     final newLevel = _levelProgress?.level;
 
@@ -1896,30 +1545,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         newLevel != null &&
         newLevel > previousLevel;
 
-    final newCollectedCount = _getCollectedCount();
-
-    final didCompleteQuest =
-        _seichiList.isNotEmpty &&
-        previousCollectedCount < _seichiList.length &&
-        newCollectedCount >= _seichiList.length;
-
-    final previousAchievements = _achievementService.getUnlockedAchievements(
-      _eventAchievements,
-      previousCollectedCount,
-    );
-
-    final newAchievements = _achievementService.getUnlockedAchievements(
-      _eventAchievements,
-      newCollectedCount,
-    );
-
-    final newlyUnlockedAchievements = newAchievements
-        .where(
-          (achievement) => !previousAchievements.any(
-            (previous) => previous.id == achievement.id,
-          ),
-        )
-        .toList(growable: false);
+    final didCompleteQuest = applyPlan.didCompleteQuest;
+    final newlyUnlockedAchievements = applyPlan.newlyUnlockedAchievements;
 
     if (!mounted) {
       return;
@@ -1937,7 +1564,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _collectedName = '${item.card} ${item.name}を獲得！';
       });
 
-      if (_preferences?.getBool('setting_stamp_notification') ?? true) {
+      if (await _appSettingsService.isStampNotificationEnabled()) {
         try {
           final notificationGranted = await NotificationService.instance
               .requestPermission();
@@ -2192,7 +1819,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     try {
-      final launched = await const ExternalNavigationService().openDirections(
+      final launched = await _externalNavigationService.openDirections(
         latitude: seichi.latitude,
         longitude: seichi.longitude,
       );
@@ -2255,6 +1882,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       setState(() {
         _selectedTab = 0;
       });
+      _syncMarkerAnimation();
 
       return;
     }
@@ -2288,20 +1916,22 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Set<Marker> _buildMarkers() {
     final nextId = _nextSeichi?.id;
 
-    // 静止Markerの状態を表す署名。
-    // アニメーションだけではこの値は変化しない。
-    final sortedCollectedIds = _collectedIds.toList()..sort();
+    // 静止Markerの再構築要否は、毎buildで全IDをソート・連結せず
+    // 明示的なデータ世代と参照状態で判定する。
+    final shouldRebuildStaticMarkers =
+        _staticMarkerCache == null ||
+        !_markerCacheRevision.isCurrent(_staticMarkerCacheRevision) ||
+        _staticMarkerCacheNextId != nextId ||
+        !identical(
+          _staticMarkerCacheUncollectedIcon,
+          _uncollectedMarkerIcon,
+        ) ||
+        !identical(
+          _staticMarkerCacheCollectedIcon,
+          _collectedMarkerIcon,
+        );
 
-    final signature = [
-      _seichiList.map((item) => item.id).join(','),
-      sortedCollectedIds.join(','),
-      nextId ?? '',
-      _uncollectedMarkerIcon?.hashCode ?? 0,
-      _collectedMarkerIcon?.hashCode ?? 0,
-    ].join('|');
-
-    if (_staticMarkerCache == null ||
-        _staticMarkerCacheSignature != signature) {
+    if (shouldRebuildStaticMarkers) {
       final staticMarkers = <Marker>{};
 
       for (final seichi in _seichiList) {
@@ -2346,7 +1976,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       }
 
       _staticMarkerCache = staticMarkers;
-      _staticMarkerCacheSignature = signature;
+      _staticMarkerCacheRevision = _markerCacheRevision.value;
+      _staticMarkerCacheNextId = nextId;
+      _staticMarkerCacheUncollectedIcon = _uncollectedMarkerIcon;
+      _staticMarkerCacheCollectedIcon = _collectedMarkerIcon;
     }
 
     final markers = <Marker>{...?_staticMarkerCache};
@@ -2397,7 +2030,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     final contentBlocksFuture = eventId == null || eventId.isEmpty
         ? null
-        : ContentBlockService().loadForEventContent(
+        : _contentBlockService.loadForEventContent(
             eventId: eventId,
             contentKey: seichi.card,
           );
@@ -2405,11 +2038,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     double? distance;
 
     if (position != null) {
-      distance = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        seichi.latitude,
-        seichi.longitude,
+      distance = _locationService.distanceBetween(
+        startLatitude: position.latitude,
+        startLongitude: position.longitude,
+        endLatitude: seichi.latitude,
+        endLongitude: seichi.longitude,
       );
     }
 
@@ -2779,7 +2412,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       onErrorAction: _errorMessage != null
           ? _errorAction
           : (_hasVeryLowLocationAccuracy
-              ? Geolocator.openAppSettings
+              ? _locationService.openAppSettings
               : null),
       sonarController: _sonarController,
       justCollected: _justCollected,
@@ -2910,8 +2543,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           return false;
         }
 
-        await _loadDisplayName();
-        await _loadMyEventRank();
+        await _secondaryRefreshCoordinator.refreshProfileAndRank(
+          loadDisplayName: _loadDisplayName,
+          loadMyEventRank: _loadMyEventRank,
+        );
 
         return true;
       },
@@ -2951,45 +2586,57 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _currentEventName = eventName;
 
       _collectedIds.clear();
+      _markerCacheRevision.markChanged();
       _eventAchievements.clear();
       _myEventRank = null;
       _manualNextSeichiId = null;
       _activeRecommendedRoute.clear();
       _isRecommendedRouteLoaded = false;
 
-      await _loadEventAchievements();
-      await _loadSavedStamps();
+      CollectionSyncStartResult? syncResult;
 
-      final syncedRows = await _historyService.syncPendingPlaceVisits();
-
-      await _loadSeichi();
-      await _applyCollectedRows(syncedRows);
-      await _loadCloudHistory();
-      await _loadManualNextDestination();
-      await _loadRecommendedRoute();
+      await _eventSwitchCoordinator.run(
+        loadEventAchievements: _loadEventAchievements,
+        startCollectionSync: () async {
+          syncResult = await _startCollectionSync();
+        },
+        loadSeichi: () => _loadSeichi(manageLoadingState: false),
+        applyPendingRows: () async {
+          final result = syncResult;
+          if (result == null) {
+            throw StateError('イベント切替同期結果がありません。');
+          }
+          await _applyCollectedRows(result.pendingCollectedRows);
+        },
+        mergeCloudHistory: _mergeCloudCollectionHistory,
+        loadManualNextDestination: _loadManualNextDestination,
+        loadRecommendedRoute: _loadRecommendedRoute,
+        loadMyEventRank: _loadMyEventRank,
+        activateEvent: () => _eventService.activateEvent(eventId),
+      );
 
       if (_activeRecommendedRoute.isNotEmpty) {
         _manualNextSeichiId = _activeRecommendedRoute.first.id;
       }
-      await _loadMyEventRank();
-      await _saveCurrentEventPreference(eventId);
-      await _ensureEventParticipation(eventId);
 
       _updateNextDestination();
 
       if (mounted) {
-        setState(() {});
+        setState(() {
+          _isLoading = false;
+        });
       }
 
-      appDebugPrint('[EVENT] selected: id=, name=');
+      appDebugPrint('[EVENT] selected: id=$eventId, name=$eventName');
     } catch (e) {
-      appDebugPrint('[EVENT] select error: ');
+      appDebugPrint('[EVENT] select error: $e');
 
       if (mounted) {
         setState(() {
           _errorMessage = 'クエストの切り替えに失敗しました。';
           _errorActionLabel = null;
           _errorAction = null;
+          _isLoading = false;
         });
       }
 
@@ -3033,6 +2680,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         setState(() {
           _selectedTab = 0;
         });
+        _syncMarkerAnimation();
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) {
@@ -3049,11 +2697,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         setState(() {
           _selectedTab = 3;
         });
+        _syncMarkerAnimation();
       },
       onShowAchievements: () {
         setState(() {
           _selectedTab = 1;
         });
+        _syncMarkerAnimation();
       },
       onShowAdventureLog: () async {
         final openedAt = DateTime.now();
@@ -3070,19 +2720,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             builder: (_) => SyncStatusPage(
               loadPendingCount: _historyService.pendingPlaceVisitCount,
               syncNow: () async {
-                final syncedRows = await _historyService
-                    .syncPendingPlaceVisits();
+                final syncResult = await _startCollectionSync();
 
-                await _applyCollectedRows(syncedRows);
-                await _loadCloudHistory();
-                await _loadCollectionEventNames();
+                await _applyCollectedRows(syncResult.pendingCollectedRows);
+                await _mergeCloudCollectionHistory();
                 await _loadMyEventRank();
 
                 _updateNextDestination();
-
-                if (mounted) {
-                  setState(() {});
-                }
 
                 return _historyService.pendingPlaceVisitCount();
               },
@@ -3096,8 +2740,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         await Navigator.of(context)
             .push(MaterialPageRoute(builder: (_) => const ProfilePage()));
 
-        await _loadDisplayName();
-        await _loadMyEventRank();
+        await _secondaryRefreshCoordinator.refreshProfileAndRank(
+          loadDisplayName: _loadDisplayName,
+          loadMyEventRank: _loadMyEventRank,
+        );
         _updateNextDestination();
         await _checkStampDistance();
       },
@@ -3109,34 +2755,38 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           return;
         }
 
-        await _ensureCloudUser();
+        CollectionSyncStartResult? syncResult;
 
-        _manualNextSeichiId = null;
-        _activeRecommendedRoute.clear();
-        _isRecommendedRouteLoaded = false;
-
-        await _loadDisplayName();
-        await _loadEventAchievements();
-        await _loadSavedStamps();
-
-        final syncedRows = await _historyService.syncPendingPlaceVisits();
-
-        await _applyCollectedRows(syncedRows);
-        await _loadCloudHistory();
-        await _loadManualNextDestination();
-        await _loadRecommendedRoute();
-
-        if (_activeRecommendedRoute.isNotEmpty) {
-          _manualNextSeichiId = _activeRecommendedRoute.first.id;
-        }
-        await _loadCollectionEventNames();
-        await _loadMyEventRank();
-
-        _updateNextDestination();
-
-        if (mounted) {
-          setState(() {});
-        }
+        await _accountRefreshCoordinator.run(
+          ensureCloudUser: _ensureCloudUser,
+          resetDestinationState: () async {
+            _manualNextSeichiId = null;
+            _activeRecommendedRoute.clear();
+            _isRecommendedRouteLoaded = false;
+          },
+          loadDisplayName: _loadDisplayName,
+          loadEventAchievements: _loadEventAchievements,
+          startCollectionSync: () async {
+            syncResult = await _startCollectionSync();
+          },
+          applyPendingRows: () async {
+            final result = syncResult;
+            if (result == null) {
+              throw StateError('アカウント更新の同期結果がありません。');
+            }
+            await _applyCollectedRows(result.pendingCollectedRows);
+          },
+          mergeCloudHistory: _mergeCloudCollectionHistory,
+          loadManualNextDestination: _loadManualNextDestination,
+          loadRecommendedRoute: _loadRecommendedRoute,
+          loadMyEventRank: _loadMyEventRank,
+          finish: () async {
+            if (_activeRecommendedRoute.isNotEmpty) {
+              _manualNextSeichiId = _activeRecommendedRoute.first.id;
+            }
+            _updateNextDestination();
+          },
+        );
       },
       onShowNotifications: () async {
         final openedAt = DateTime.now();
@@ -3378,6 +3028,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                       setState(() {
                         _selectedTab = index;
                       });
+                      _syncMarkerAnimation();
                     },
                     destinations: const [
                       NavigationDestination(
@@ -3414,6 +3065,22 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         ],
       ),
     );
+  }
+
+  void _syncMarkerAnimation() {
+    final shouldAnimate = _nextSeichi != null && _selectedTab == 0;
+
+    if (shouldAnimate) {
+      if (!_sonarController.isAnimating) {
+        _sonarController.repeat();
+      }
+      return;
+    }
+
+    if (_sonarController.isAnimating) {
+      _sonarController.stop();
+      _lastMarkerAnimationFrame = -1;
+    }
   }
 
   void _onMarkerAnimationTick() {

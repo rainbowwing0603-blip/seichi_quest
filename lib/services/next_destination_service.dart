@@ -29,6 +29,7 @@ class NextDestinationService {
     }
 
     Seichi? target;
+    double? targetDistance;
 
     // 手動指定された未取得の目的地を優先する。
     if (manualNextSeichiId != null) {
@@ -61,13 +62,12 @@ class NextDestinationService {
             distance < nearestDistance) {
           target = seichi;
           nearestDistance = distance;
+          targetDistance = distance;
         }
       }
     }
 
-    double? targetDistance;
-
-    if (target != null) {
+    if (target != null && targetDistance == null) {
       targetDistance = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
