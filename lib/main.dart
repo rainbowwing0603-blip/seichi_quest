@@ -1082,9 +1082,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           _errorAction = _initializeLocation;
         });
       },
-      onDone: () {
-        _positionSubscription = null;
-      },
     );
   }
 
