@@ -845,11 +845,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     _isRecommendedRouteLoaded = true;
 
-    appDebugPrint(
-      '[ROUTE-PERSIST] loaded: '
-      'event=$eventId '
-      'ids=${_activeRecommendedRoute.map((item) => item.id).toList()}',
-    );
+    if (kDebugMode) {
+      appDebugPrint(
+        '[ROUTE-PERSIST] loaded: '
+        'event=$eventId '
+        'ids=${_activeRecommendedRoute.map((item) => item.id).toList()}',
+      );
+    }
   }
 
   Future<void> _saveStamps() async {
