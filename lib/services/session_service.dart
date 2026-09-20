@@ -8,6 +8,8 @@ class SessionService {
 
   final supabase.SupabaseClient _client;
 
+  String? get currentUserId => _client.auth.currentUser?.id;
+
   Future<void> ensureCloudUser() async {
     final existingUser = _client.auth.currentUser;
 
