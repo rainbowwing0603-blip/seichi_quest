@@ -2671,9 +2671,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         setState(() {});
       }
 
-      appDebugPrint('[EVENT] selected: id=, name=');
+      appDebugPrint('[EVENT] selected: id=$eventId, name=$eventName');
     } catch (e) {
-      appDebugPrint('[EVENT] select error: ');
+      appDebugPrint('[EVENT] select error: $e');
 
       if (mounted) {
         setState(() {
