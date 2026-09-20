@@ -1829,20 +1829,23 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Set<Marker> _buildMarkers() {
     final nextId = _nextSeichi?.id;
 
-    // 静止Markerの状態を表す署名。
-    // アニメーションだけではこの値は変化しない。
-    final sortedCollectedIds = _collectedIds.toList()..sort();
+    String? signature;
 
-    final signature = [
-      _seichiList.map((item) => item.id).join(','),
-      sortedCollectedIds.join(','),
-      nextId ?? '',
-      _uncollectedMarkerIcon?.hashCode ?? 0,
-      _collectedMarkerIcon?.hashCode ?? 0,
-    ].join('|');
+    if (_staticMarkerCache == null) {
+      // 静止Markerを作り直す時だけ署名を計算する。
+      // NEXTアニメーションの各フレームでは一覧のsort/joinを行わない。
+      final sortedCollectedIds = _collectedIds.toList()..sort();
 
-    if (_staticMarkerCache == null ||
-        _staticMarkerCacheSignature != signature) {
+      signature = [
+        _seichiList.map((item) => item.id).join(','),
+        sortedCollectedIds.join(','),
+        nextId ?? '',
+        _uncollectedMarkerIcon?.hashCode ?? 0,
+        _collectedMarkerIcon?.hashCode ?? 0,
+      ].join('|');
+    }
+
+    if (_staticMarkerCache == null) {
       final staticMarkers = <Marker>{};
 
       for (final seichi in _seichiList) {
