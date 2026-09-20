@@ -15,20 +15,20 @@ class SeichiService {
     }
 
     final data = await _client
-        .from('seichi')
+        .from('event_contents')
         .select(
-          'id, card, reading, name, latitude, longitude, '
-          'stamp_radius_meters, description, icon, card_image_url, is_active, '
-          'place_id, '
-          'event_contents!inner(id, content_id, event_id, place_id, is_active, contents!inner(content_key))',
+          'id, event_id, content_id, place_id, display_order, metadata, '
+          'contents!inner(type, content_key, title, description, image_url, metadata, is_active), '
+          'places!inner(name, latitude, longitude, radius_meters, description, icon, image_url, is_active)',
         )
-        .eq('is_active', true)
         .eq('event_id', eventId)
-        .eq('event_contents.event_id', eventId)
-        .eq('event_contents.is_active', true);
+        .eq('is_active', true)
+        .eq('contents.is_active', true)
+        .eq('places.is_active', true)
+        .order('display_order');
 
     final list = List<Map<String, dynamic>>.from(data)
-        .map(_attachGenericContentIdentity)
+        .map(_mapEventContentToSeichi)
         .map(Seichi.fromMap)
         .where(
           (seichi) =>
@@ -39,11 +39,16 @@ class SeichiService {
         .toList();
 
     list.sort((a, b) {
-      final orderCompare = JomoKarutaOrder.indexOf(a.card)
-          .compareTo(JomoKarutaOrder.indexOf(b.card));
+      final aOrder = JomoKarutaOrder.indexOf(a.card);
+      final bOrder = JomoKarutaOrder.indexOf(b.card);
+      final bothKaruta = aOrder < JomoKarutaOrder.cards.length &&
+          bOrder < JomoKarutaOrder.cards.length;
 
-      if (orderCompare != 0) {
-        return orderCompare;
+      if (bothKaruta) {
+        final orderCompare = aOrder.compareTo(bOrder);
+        if (orderCompare != 0) {
+          return orderCompare;
+        }
       }
 
       return a.card.compareTo(b.card);
@@ -52,33 +57,52 @@ class SeichiService {
     return list;
   }
 
-  Map<String, dynamic> _attachGenericContentIdentity(
+  Map<String, dynamic> _mapEventContentToSeichi(
     Map<String, dynamic> row,
   ) {
-    final rawEventContents = row['event_contents'];
-    final eventContents = rawEventContents is List
-        ? rawEventContents.whereType<Map>().where((eventContent) {
-            final rawContent = eventContent['contents'];
-            final content = rawContent is Map ? rawContent : null;
-            return content?['content_key']?.toString() == row['card']?.toString();
-          }).toList(growable: false)
-        : const <Map>[];
+    final rawContent = row['contents'];
+    final content = rawContent is Map
+        ? Map<String, dynamic>.from(rawContent)
+        : <String, dynamic>{};
 
-    if (eventContents.length != 1) {
-      throw StateError(
-        'Expected exactly one event_content for legacy seichi '
-        'id=${row['id']}, card=${row['card']}, '
-        'but found ${eventContents.length}.',
-      );
-    }
+    final rawPlace = row['places'];
+    final place = rawPlace is Map
+        ? Map<String, dynamic>.from(rawPlace)
+        : <String, dynamic>{};
 
-    final eventContent = eventContents.single;
+    final rawContentMetadata = content['metadata'];
+    final contentMetadata = rawContentMetadata is Map
+        ? Map<String, dynamic>.from(rawContentMetadata)
+        : <String, dynamic>{};
+
+    final contentKey = content['content_key']?.toString().trim() ?? '';
+    final legacySeichiId =
+        contentMetadata['legacy_seichi_id']?.toString().trim() ?? '';
 
     return <String, dynamic>{
-      ...row,
-      'content_id': eventContent['content_id'],
-      'event_content_id': eventContent['id'],
+      // During the compatibility phase, existing Jomo Karuta content keeps
+      // its legacy seichi id so stamp caches and collection UI remain stable.
+      // Generic content uses event_content_id as its stable runtime identity.
+      'id': legacySeichiId.isNotEmpty ? legacySeichiId : row['id'],
+      'place_id': row['place_id'],
+      'content_id': row['content_id'],
+      'event_content_id': row['id'],
+      'card': contentMetadata['card']?.toString().trim().isNotEmpty == true
+          ? contentMetadata['card'].toString().trim()
+          : contentKey,
+      'reading': contentMetadata['reading']?.toString() ?? '',
+      'name': content['title']?.toString().trim().isNotEmpty == true
+          ? content['title'].toString().trim()
+          : place['name'],
+      'latitude': place['latitude'],
+      'longitude': place['longitude'],
+      'stamp_radius_meters': place['radius_meters'],
+      'description': content['description'] ?? place['description'],
+      'icon': place['icon'] ?? '📍',
+      'card_image_url': content['image_url'] ?? place['image_url'],
+      'is_active': row['is_active'] == true &&
+          content['is_active'] == true &&
+          place['is_active'] == true,
     };
   }
-
 }
