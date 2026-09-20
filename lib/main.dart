@@ -963,11 +963,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     });
 
     _updateNextDestination();
-    await _updateWeatherIfNeeded(position, force: true);
 
+    // 天気APIは現在地表示・GPS監視開始の必須条件ではない。
+    // 先に地図と位置ストリームを使える状態にし、通信はバックグラウンドで行う。
     await _moveCameraToCurrentLocation();
-
     _startLocationStream();
+    unawaited(_updateWeatherIfNeeded(position, force: true));
   }
 
   // ============================================================
