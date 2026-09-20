@@ -613,12 +613,23 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       eventId: eventId,
     );
 
-    _collectedIds
-      ..clear()
-      ..addAll(result.localCollectedIds);
-    _markerCacheRevision.markChanged();
+    final localCollectedIdsChanged =
+        !_sameStringSet(_collectedIds, result.localCollectedIds);
+
+    if (localCollectedIdsChanged) {
+      _collectedIds
+        ..clear()
+        ..addAll(result.localCollectedIds);
+      _markerCacheRevision.markChanged();
+    }
 
     return result;
+  }
+
+  bool _sameStringSet(Set<String> current, Iterable<String> next) {
+    final nextSet = next is Set<String> ? next : next.toSet();
+
+    return current.length == nextSet.length && current.containsAll(nextSet);
   }
 
   Future<void> _mergeCloudCollectionHistory() async {
@@ -635,10 +646,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       collectedIds: _collectedIds,
     );
 
-    _collectedIds
-      ..clear()
-      ..addAll(mergedIds);
-    _markerCacheRevision.markChanged();
+    if (!_sameStringSet(_collectedIds, mergedIds)) {
+      _collectedIds
+        ..clear()
+        ..addAll(mergedIds);
+      _markerCacheRevision.markChanged();
+    }
 
     await _loadCollectionEventNames();
   }
