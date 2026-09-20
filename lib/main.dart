@@ -49,6 +49,7 @@ import 'services/app_logger.dart';
 import 'services/collection_sync_service.dart';
 import 'services/collection_apply_policy.dart';
 import 'services/collection_display_policy.dart';
+import 'services/collection_progress_policy.dart';
 import 'services/event_service.dart';
 import 'services/destination_persistence_service.dart';
 import 'services/recommended_route_policy.dart';
@@ -134,6 +135,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       CollectionApplyPolicy();
   static const CollectionDisplayPolicy _collectionDisplayPolicy =
       CollectionDisplayPolicy();
+  static const CollectionProgressPolicy _collectionProgressPolicy =
+      CollectionProgressPolicy();
 
   GoogleMapController? _mapController;
 
@@ -813,13 +816,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   int _getCollectedCount() {
-    if (_seichiList.isEmpty) {
-      return 0;
-    }
-
-    final validIds = _seichiList.map((seichi) => seichi.id).toSet();
-
-    return _collectedIds.where(validIds.contains).length;
+    return _collectionProgressPolicy.validCollectedCount(
+      seichiList: _seichiList,
+      collectedIds: _collectedIds,
+    );
   }
 
   // ============================================================
