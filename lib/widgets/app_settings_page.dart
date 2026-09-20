@@ -10,11 +10,13 @@ class AppSettingsPage extends StatefulWidget {
     required this.onResetEventCollectionHistory,
     required this.onTestQuestComplete,
     required this.onTestRecommendedRouteNext,
+    required this.onShowOnboarding,
   });
 
   final Future<void> Function() onResetEventCollectionHistory;
   final Future<void> Function() onTestQuestComplete;
   final Future<void> Function() onTestRecommendedRouteNext;
+  final Future<void> Function() onShowOnboarding;
 
   @override
   State<AppSettingsPage> createState() => _AppSettingsPageState();
@@ -194,6 +196,8 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
                   ],
                   const SizedBox(height: 14),
                   _buildSectionTitle('情報'),
+                  _buildOnboardingTile(),
+                  const SizedBox(height: 10),
                   _buildInfoTile(
                     icon: Icons.info_outline_rounded,
                     title: 'アプリバージョン',
@@ -539,6 +543,68 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
           activeTrackColor: QuestUiTokens.primary,
           inactiveThumbColor: Colors.white,
           inactiveTrackColor: QuestUiTokens.mutedInk.withValues(alpha: 0.22),
+        ),
+      ),
+    );
+  }
+  Widget _buildOnboardingTile() {
+    return QuestGlassCard(
+      padding: EdgeInsets.zero,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(QuestUiTokens.cardRadius),
+          onTap: () async {
+            await widget.onShowOnboarding();
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: QuestUiTokens.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: const Icon(
+                    Icons.school_outlined,
+                    color: QuestUiTokens.primary,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'チュートリアルを見る',
+                        style: TextStyle(
+                          color: QuestUiTokens.ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 3),
+                      Text(
+                        '基本操作をもう一度確認できます',
+                        style: TextStyle(
+                          color: QuestUiTokens.mutedInk,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: QuestUiTokens.mutedInk,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

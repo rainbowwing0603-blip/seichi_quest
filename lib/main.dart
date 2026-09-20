@@ -24,6 +24,7 @@ import 'widgets/sync_status_page.dart';
 import 'widgets/notification_settings_page.dart';
 import 'widgets/app_settings_page.dart';
 import 'widgets/quest_ui.dart';
+import 'widgets/onboarding_page.dart';
 import 'widgets/license_page.dart';
 import 'models/seichi.dart';
 import 'models/achievement.dart';
@@ -156,6 +157,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   bool _isLoading = true;
   bool _isLoadingLocation = false;
 
+  static const String _onboardingCompletedKey = 'onboarding_completed_v1';
+  bool _isOnboardingReady = false;
+  bool _shouldShowOnboarding = false;
+
   String? _errorMessage;
   String? _errorActionLabel;
   Future<void> Function()? _errorAction;
@@ -287,6 +292,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed || !mounted) {
+      return;
+    }
+
+    if (!_isOnboardingReady || _shouldShowOnboarding) {
       return;
     }
 
@@ -579,6 +588,64 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
     await _loadMyEventRank();
     await _loadLevelProgress();
+
+    _preferences ??= await SharedPreferences.getInstance();
+
+    final onboardingCompleted =
+        _preferences!.getBool(_onboardingCompletedKey) ?? false;
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isOnboardingReady = true;
+      _shouldShowOnboarding = !onboardingCompleted;
+    });
+
+    if (onboardingCompleted) {
+      await _initializeLocation();
+    }
+  }
+  Future<void> _showOnboardingFromSettings() async {
+    if (!mounted) {
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (tutorialContext) {
+          return OnboardingPage(
+            onComplete: () async {
+              if (tutorialContext.mounted) {
+                Navigator.of(tutorialContext).pop();
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _completeOnboarding() async {
+    _preferences ??= await SharedPreferences.getInstance();
+
+    final saved =
+        await _preferences!.setBool(_onboardingCompletedKey, true);
+
+    if (!saved) {
+      throw Exception('チュートリアルの完了状態を保存できませんでした。');
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _shouldShowOnboarding = false;
+    });
+
     await _initializeLocation();
   }
 
@@ -3091,6 +3158,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                 await _showQuestCompleteDialog(totalCount: _seichiList.length);
               },
               onTestRecommendedRouteNext: _testRecommendedRouteNext,
+              onShowOnboarding: _showOnboardingFromSettings,
             ),
           ),
         );
@@ -3220,8 +3288,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    if (_isLoading || !_isOnboardingReady) {
       return Scaffold(body: _buildLoading());
+    }
+
+    if (_shouldShowOnboarding) {
+      return OnboardingPage(
+        onComplete: _completeOnboarding,
+      );
     }
 
     return Scaffold(
