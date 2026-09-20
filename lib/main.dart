@@ -50,6 +50,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'services/app_logger.dart';
 import 'services/collection_sync_service.dart';
 import 'services/event_service.dart';
+import 'services/destination_persistence_service.dart';
 import 'services/interstitial_ad_service.dart';
 
 // ============================================================
@@ -151,6 +152,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   final CollectionHistoryService _historyService = CollectionHistoryService();
   final EventService _eventService = EventService();
+  final DestinationPersistenceService _destinationPersistenceService =
+      DestinationPersistenceService();
   final StampCacheService _stampCacheService = StampCacheService();
   late final CollectionSyncService _collectionSyncService =
       CollectionSyncService(
@@ -698,13 +701,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
 
 
-  String _manualNextDestinationStorageKey({
-    required String userId,
-    required String eventId,
-  }) {
-    return 'manual_next_seichi_id_v1_${userId}_$eventId';
-  }
-
   Future<void> _saveManualNextDestination() async {
     final eventId = _currentEventId;
     final user = supabase.Supabase.instance.client.auth.currentUser;
@@ -713,24 +709,22 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    _preferences ??= await SharedPreferences.getInstance();
-
-    final key = _manualNextDestinationStorageKey(
-      userId: user.id,
-      eventId: eventId,
-    );
-
     final seichiId = _manualNextSeichiId;
 
+    await _destinationPersistenceService.saveManualDestination(
+      userId: user.id,
+      eventId: eventId,
+      seichiId: seichiId,
+    );
+
     if (seichiId == null || seichiId.isEmpty) {
-      await _preferences!.remove(key);
       appDebugPrint('[NEXT-PERSIST] cleared: event=$eventId');
       return;
     }
 
-    await _preferences!.setString(key, seichiId);
-
-    appDebugPrint('[NEXT-PERSIST] saved: event=$eventId seichi=$seichiId');
+    appDebugPrint(
+      '[NEXT-PERSIST] saved: event=$eventId seichi=$seichiId',
+    );
   }
 
   Future<void> _loadManualNextDestination() async {
@@ -742,14 +736,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    _preferences ??= await SharedPreferences.getInstance();
-
-    final key = _manualNextDestinationStorageKey(
+    final savedId = await _destinationPersistenceService.loadManualDestination(
       userId: user.id,
       eventId: eventId,
     );
-
-    final savedId = _preferences!.getString(key);
 
     if (savedId == null || savedId.isEmpty) {
       _manualNextSeichiId = null;
@@ -762,7 +752,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     if (!isValid) {
       _manualNextSeichiId = null;
-      await _preferences!.remove(key);
+
+      await _destinationPersistenceService.clearManualDestination(
+        userId: user.id,
+        eventId: eventId,
+      );
 
       appDebugPrint(
         '[NEXT-PERSIST] invalid saved destination removed: '
@@ -773,14 +767,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     _manualNextSeichiId = savedId;
 
-    appDebugPrint('[NEXT-PERSIST] restored: event=$eventId seichi=$savedId');
-  }
-
-  String _recommendedRouteStorageKey({
-    required String userId,
-    required String eventId,
-  }) {
-    return 'recommended_route_ids_v1_${userId}_$eventId';
+    appDebugPrint(
+      '[NEXT-PERSIST] restored: event=$eventId seichi=$savedId',
+    );
   }
 
   Future<void> _saveRecommendedRoute() async {
@@ -791,25 +780,25 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    _preferences ??= await SharedPreferences.getInstance();
-
-    final key = _recommendedRouteStorageKey(userId: user.id, eventId: eventId);
-
     final routeIds = _activeRecommendedRoute
         .where((seichi) => !_collectedIds.contains(seichi.id))
         .map((seichi) => seichi.id)
         .toList(growable: false);
 
-    if (routeIds.isEmpty) {
-      await _preferences!.remove(key);
+    await _destinationPersistenceService.saveRecommendedRoute(
+      userId: user.id,
+      eventId: eventId,
+      seichiIds: routeIds,
+    );
 
+    if (routeIds.isEmpty) {
       appDebugPrint('[ROUTE-PERSIST] cleared: event=$eventId');
       return;
     }
 
-    await _preferences!.setStringList(key, routeIds);
-
-    appDebugPrint('[ROUTE-PERSIST] saved: event=$eventId ids=$routeIds');
+    appDebugPrint(
+      '[ROUTE-PERSIST] saved: event=$eventId ids=$routeIds',
+    );
   }
 
   void _saveRecommendedRouteInBackground() {
@@ -829,11 +818,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    _preferences ??= await SharedPreferences.getInstance();
-
-    final key = _recommendedRouteStorageKey(userId: user.id, eventId: eventId);
-
-    final savedIds = _preferences!.getStringList(key);
+    final savedIds = await _destinationPersistenceService.loadRecommendedRoute(
+      userId: user.id,
+      eventId: eventId,
+    );
 
     if (savedIds == null || savedIds.isEmpty) {
       _isRecommendedRouteLoaded = true;
@@ -857,7 +845,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     if (restoredRoute.isEmpty) {
-      await _preferences!.remove(key);
+      await _destinationPersistenceService.clearRecommendedRoute(
+        userId: user.id,
+        eventId: eventId,
+      );
 
       appDebugPrint(
         '[ROUTE-PERSIST] invalid or completed route removed: '
@@ -870,9 +861,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _activeRecommendedRoute.addAll(restoredRoute);
 
     if (restoredRoute.length != savedIds.length) {
-      await _preferences!.setStringList(
-        key,
-        restoredRoute.map((item) => item.id).toList(growable: false),
+      await _destinationPersistenceService.saveRecommendedRoute(
+        userId: user.id,
+        eventId: eventId,
+        seichiIds: restoredRoute
+            .map((item) => item.id)
+            .toList(growable: false),
       );
     }
 
