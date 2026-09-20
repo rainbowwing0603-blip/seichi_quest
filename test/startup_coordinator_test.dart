@@ -5,16 +5,15 @@ import 'package:seichi_quest/services/startup_coordinator.dart';
 void main() {
   const coordinator = StartupCoordinator();
 
-  test('起動処理を既存の依存順で実行する', () async {
+  test('起動必須処理を既存の依存順で実行する', () async {
     final calls = <String>[];
 
     Future<void> step(String name) async {
       calls.add(name);
     }
 
-    await coordinator.run(
+    await coordinator.runCritical(
       ensureCloudUser: () => step('ensureCloudUser'),
-      loadDisplayName: () => step('loadDisplayName'),
       loadCurrentEvent: () => step('loadCurrentEvent'),
       loadEventAchievements: () => step('loadEventAchievements'),
       startCollectionSync: () async {
@@ -34,13 +33,10 @@ void main() {
       restoreRecommendedRouteDestination: () {
         calls.add('restoreRecommendedRouteDestination');
       },
-      loadMyEventRank: () => step('loadMyEventRank'),
-      loadLevelProgress: () => step('loadLevelProgress'),
     );
 
     expect(calls, <String>[
       'ensureCloudUser',
-      'loadDisplayName',
       'loadCurrentEvent',
       'loadEventAchievements',
       'startCollectionSync',
@@ -50,18 +46,15 @@ void main() {
       'loadManualNextDestination',
       'loadRecommendedRoute',
       'restoreRecommendedRouteDestination',
-      'loadMyEventRank',
-      'loadLevelProgress',
     ]);
   });
 
-  test('失敗した処理より後ろは実行しない', () async {
+  test('必須処理の失敗後は後続を実行しない', () async {
     final calls = <String>[];
 
     await expectLater(
-      coordinator.run(
+      coordinator.runCritical(
         ensureCloudUser: () async => calls.add('ensureCloudUser'),
-        loadDisplayName: () async => calls.add('loadDisplayName'),
         loadCurrentEvent: () async {
           calls.add('loadCurrentEvent');
           throw StateError('event load failed');
@@ -77,16 +70,43 @@ void main() {
         loadRecommendedRoute: () async => calls.add('loadRecommendedRoute'),
         restoreRecommendedRouteDestination: () =>
             calls.add('restoreRecommendedRouteDestination'),
-        loadMyEventRank: () async => calls.add('loadMyEventRank'),
-        loadLevelProgress: () async => calls.add('loadLevelProgress'),
       ),
       throwsStateError,
     );
 
-    expect(calls, <String>[
-      'ensureCloudUser',
-      'loadDisplayName',
-      'loadCurrentEvent',
-    ]);
+    expect(calls, <String>['ensureCloudUser', 'loadCurrentEvent']);
+  });
+
+  test('表示を塞がない補助データは並列取得する', () async {
+    final started = <String>[];
+    final gates = <String, Completer<void>>{
+      'profile': Completer<void>(),
+      'rank': Completer<void>(),
+      'level': Completer<void>(),
+    };
+
+    final future = coordinator.runDeferred(
+      loadDisplayName: () {
+        started.add('profile');
+        return gates['profile']!.future;
+      },
+      loadMyEventRank: () {
+        started.add('rank');
+        return gates['rank']!.future;
+      },
+      loadLevelProgress: () {
+        started.add('level');
+        return gates['level']!.future;
+      },
+    );
+
+    await Future<void>.delayed(Duration.zero);
+    expect(started, <String>['profile', 'rank', 'level']);
+
+    for (final gate in gates.values) {
+      gate.complete();
+    }
+
+    await future;
   });
 }
