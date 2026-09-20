@@ -7,6 +7,7 @@ import '../models/event.dart';
 import '../models/seichi.dart';
 import 'quest_ui.dart';
 import '../services/app_logger.dart';
+import '../services/seichi_service.dart';
 
 class EventDetailPage extends StatefulWidget {
   const EventDetailPage({
@@ -65,6 +66,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
   int? _favoriteCount;
   bool _isFavorited = false;
 
+  final SeichiService _seichiService = SeichiService();
+
   supabase.SupabaseClient get _client => supabase.Supabase.instance.client;
 
   @override
@@ -76,22 +79,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   Future<void> _loadSeichiList() async {
     try {
-      final data = await _client
-          .from('seichi')
-          .select(
-            'id, card, reading, name, latitude, longitude, '
-            'stamp_radius_meters, description, icon, '
-            'card_image_url, is_active, place_id',
-          )
-          .eq('event_id', widget.event.id)
-          .eq('is_active', true);
-
-      final list = List<Map<String, dynamic>>.from(data)
-          .map(Seichi.fromMap)
-          .where((seichi) => seichi.id.isNotEmpty)
-          .toList();
-
-      list.sort((a, b) => _cardOrder(a.card).compareTo(_cardOrder(b.card)));
+      final list = await _seichiService.loadActiveSeichi(widget.event.id);
 
       final collectedIds = <String>{};
       final user = _client.auth.currentUser;
@@ -270,63 +258,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
     }
 
     return int.tryParse(value?.toString() ?? '') ?? 0;
-  }
-
-  int _cardOrder(String card) {
-    const cards = <String>[
-      'あ',
-      'い',
-      'う',
-      'え',
-      'お',
-      'か',
-      'き',
-      'く',
-      'け',
-      'こ',
-      'さ',
-      'し',
-      'す',
-      'せ',
-      'そ',
-      'た',
-      'ち',
-      'つ',
-      'て',
-      'と',
-      'な',
-      'に',
-      'ぬ',
-      'ね',
-      'の',
-      'は',
-      'ひ',
-      'ふ',
-      'へ',
-      'ほ',
-      'ま',
-      'み',
-      'む',
-      'め',
-      'も',
-      'や',
-      'ゆ',
-      'よ',
-      'ら',
-      'り',
-      'る',
-      'れ',
-      'ろ',
-      'わ',
-    ];
-
-    final index = cards.indexOf(card);
-
-    if (index < 0) {
-      return cards.length;
-    }
-
-    return index;
   }
 
   Seichi? get _nearestUncollectedSeichi {
