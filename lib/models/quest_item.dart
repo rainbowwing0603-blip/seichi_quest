@@ -1,13 +1,16 @@
 import 'quest_destination.dart';
 
 class QuestItem implements QuestDestination {
+  @override
   final String id;
   final String eventContentId;
   final String contentId;
   final String placeId;
   final String contentKey;
   final String title;
+  @override
   final double latitude;
+  @override
   final double longitude;
   final int radiusMeters;
   final String description;
