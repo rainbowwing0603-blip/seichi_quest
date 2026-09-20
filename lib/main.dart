@@ -52,6 +52,7 @@ import 'services/collection_sync_service.dart';
 import 'services/event_service.dart';
 import 'services/destination_persistence_service.dart';
 import 'services/recommended_route_policy.dart';
+import 'services/progression_service.dart';
 import 'services/interstitial_ad_service.dart';
 
 // ============================================================
@@ -153,6 +154,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   final CollectionHistoryService _historyService = CollectionHistoryService();
   final EventService _eventService = EventService();
+  final ProgressionService _progressionService = ProgressionService();
   final DestinationPersistenceService _destinationPersistenceService =
       DestinationPersistenceService();
   final StampCacheService _stampCacheService = StampCacheService();
@@ -294,53 +296,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _loadEventAchievements() async {
     try {
-      if (_currentEventId == null || _currentEventId!.isEmpty) {
+      final eventId = _currentEventId;
+
+      if (eventId == null || eventId.isEmpty) {
         throw Exception('イベントIDが未取得のため、チャレンジを読み込めません。');
       }
 
-      final data = await supabase.Supabase.instance.client
-          .from('event_achievements')
-          .select(
-            'sort_order, achievements('
-            'id, title, description, icon, required_count'
-            ')',
-          )
-          .eq('event_id', _currentEventId!)
-          .order('sort_order');
-
-      final rows = List<Map<String, dynamic>>.from(data);
-
-      final achievements = <Achievement>[];
-
-      for (final row in rows) {
-        final raw = row['achievements'];
-
-        if (raw is! Map<String, dynamic>) {
-          continue;
-        }
-
-        final id = raw['id']?.toString() ?? '';
-
-        if (id.isEmpty) {
-          continue;
-        }
-
-        final requiredCount = raw['required_count'] is int
-            ? raw['required_count'] as int
-            : int.tryParse(raw['required_count']?.toString() ?? '') ?? 0;
-
-        achievements.add(
-          Achievement(
-            id: id,
-            title: raw['title']?.toString() ?? '',
-            description: raw['description']?.toString() ?? '',
-            icon: raw['icon']?.toString() ?? '',
-            requiredCount: requiredCount,
-          ),
-        );
-      }
-
-      _eventAchievements = achievements;
+      _eventAchievements =
+          await _progressionService.loadEventAchievements(eventId);
     } catch (error) {
       _eventAchievements = <Achievement>[];
       appDebugPrint('[ACHIEVEMENTS] load failed: $error');
@@ -573,14 +536,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     try {
-      final data = await supabase.Supabase.instance.client.rpc(
-        'get_my_event_rank',
-        params: {'p_event_id': eventId},
-      );
-
-      final rows = List<Map<String, dynamic>>.from(data as List);
-
-      final rank = rows.isEmpty ? null : (rows.first['rank'] as num?)?.toInt();
+      final rank = await _progressionService.loadMyEventRank(eventId);
 
       if (!mounted) {
         return;
@@ -590,7 +546,15 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _myEventRank = rank;
       });
     } catch (error) {
-      appDebugPrint('[RANKING] my event rank load failed: $error');
+      appDebugPrint('[RANK] load failed: $error');
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _myEventRank = null;
+      });
     }
   }
 
