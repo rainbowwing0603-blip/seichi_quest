@@ -188,6 +188,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       DestinationPersistenceService();
   final StampCacheService _stampCacheService = StampCacheService();
   final ContentBlockService _contentBlockService = ContentBlockService();
+  static const ExternalNavigationService _externalNavigationService =
+      ExternalNavigationService();
   late final CollectionSyncService _collectionSyncService =
       CollectionSyncService(
         historyService: _historyService,
@@ -1816,7 +1818,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     try {
-      final launched = await const ExternalNavigationService().openDirections(
+      final launched = await _externalNavigationService.openDirections(
         latitude: seichi.latitude,
         longitude: seichi.longitude,
       );
