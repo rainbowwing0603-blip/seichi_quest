@@ -8,6 +8,7 @@ class StampCacheService {
   StampCacheService({this.preferences});
 
   final SharedPreferences? preferences;
+  Future<SharedPreferences>? _preferencesFuture;
 
   String storageKey({
     required String userId,
@@ -16,8 +17,13 @@ class StampCacheService {
     return 'collected_seichi_ids_v2_${userId}_$eventId';
   }
 
-  Future<SharedPreferences> _prefs() async {
-    return preferences ?? await SharedPreferences.getInstance();
+  Future<SharedPreferences> _prefs() {
+    final providedPreferences = preferences;
+    if (providedPreferences != null) {
+      return Future<SharedPreferences>.value(providedPreferences);
+    }
+
+    return _preferencesFuture ??= SharedPreferences.getInstance();
   }
 
   Future<void> migrateLegacyCache({
