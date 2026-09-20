@@ -4,6 +4,7 @@ import '../models/content_block.dart';
 import '../models/seichi.dart';
 import '../services/content_block_presentation_policy.dart';
 import '../services/content_block_service.dart';
+import '../services/content_reveal_policy.dart';
 import 'content_block_renderer.dart';
 import 'quest_ui.dart';
 
@@ -14,6 +15,7 @@ class QuestItemContentSection extends StatelessWidget {
     this.showLegacyImage = true,
     this.showLegacyText = true,
     this.legacyDescriptionOverride,
+    this.collected = false,
     ContentBlockService? contentBlockService,
   }) : _contentBlockService = contentBlockService ?? ContentBlockService();
 
@@ -24,6 +26,7 @@ class QuestItemContentSection extends StatelessWidget {
   final bool showLegacyImage;
   final bool showLegacyText;
   final String? legacyDescriptionOverride;
+  final bool collected;
   final ContentBlockService _contentBlockService;
 
   @override
@@ -51,9 +54,11 @@ class QuestItemContentSection extends StatelessWidget {
           );
         }
 
-        final presentation = _presentationPolicy.resolve(
+        final visibleBlocks = ContentRevealPolicy.visibleBlocks(
           snapshot.data ?? const <ContentBlock>[],
+          collected: collected,
         );
+        final presentation = _presentationPolicy.resolve(visibleBlocks);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
