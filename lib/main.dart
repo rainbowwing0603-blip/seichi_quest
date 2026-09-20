@@ -495,10 +495,15 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         return;
       }
 
-      setState(() {
-        _displayName = profile?.displayName;
-        _avatarKey = profile?.avatarKey;
-      });
+      final nextDisplayName = profile?.displayName;
+      final nextAvatarKey = profile?.avatarKey;
+
+      if (_displayName != nextDisplayName || _avatarKey != nextAvatarKey) {
+        setState(() {
+          _displayName = nextDisplayName;
+          _avatarKey = nextAvatarKey;
+        });
+      }
     } catch (error) {
       appDebugPrint('[PROFILE] display name load failed: $error');
     }
@@ -512,7 +517,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     final eventId = _currentEventId;
 
     if (eventId == null || eventId.isEmpty) {
-      if (mounted) {
+      if (mounted && _myEventRank != null) {
         setState(() {
           _myEventRank = null;
         });
@@ -527,9 +532,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         return;
       }
 
-      setState(() {
-        _myEventRank = rank;
-      });
+      if (_myEventRank != rank) {
+        setState(() {
+          _myEventRank = rank;
+        });
+      }
     } catch (error) {
       appDebugPrint('[RANK] load failed: $error');
 
@@ -537,9 +544,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         return;
       }
 
-      setState(() {
-        _myEventRank = null;
-      });
+      if (_myEventRank != null) {
+        setState(() {
+          _myEventRank = null;
+        });
+      }
     }
   }
 
