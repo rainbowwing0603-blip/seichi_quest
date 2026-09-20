@@ -56,6 +56,7 @@ import 'services/recommended_route_policy.dart';
 import 'services/progression_service.dart';
 import 'services/profile_service.dart';
 import 'services/session_service.dart';
+import 'services/secondary_refresh_coordinator.dart';
 import 'services/startup_coordinator.dart';
 import 'services/seichi_service.dart';
 import 'services/app_settings_service.dart';
@@ -170,6 +171,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final ProgressionService _progressionService = ProgressionService();
   final ProfileService _profileService = ProfileService();
   final SessionService _sessionService = SessionService();
+  static const SecondaryRefreshCoordinator _secondaryRefreshCoordinator =
+      SecondaryRefreshCoordinator();
   static const StartupCoordinator _startupCoordinator = StartupCoordinator();
   final SeichiService _seichiService = SeichiService();
   final AppSettingsService _appSettingsService = AppSettingsService();
@@ -1447,12 +1450,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       appDebugPrint('[ROUTE-PERSIST] save skipped: route state not loaded yet');
     }
     await _saveStamps();
-    await _loadCollectionEventNames();
-    await _loadMyEventRank();
 
     final previousLevel = _levelProgress?.level;
 
-    await _loadLevelProgress();
+    await _secondaryRefreshCoordinator.refreshAfterCollection(
+      loadCollectionEventNames: _loadCollectionEventNames,
+      loadMyEventRank: _loadMyEventRank,
+      loadLevelProgress: _loadLevelProgress,
+    );
 
     final newLevel = _levelProgress?.level;
 
@@ -2454,8 +2459,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           return false;
         }
 
-        await _loadDisplayName();
-        await _loadMyEventRank();
+        await _secondaryRefreshCoordinator.refreshProfileAndRank(
+          loadDisplayName: _loadDisplayName,
+          loadMyEventRank: _loadMyEventRank,
+        );
 
         return true;
       },
