@@ -286,7 +286,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    _initializeLocation();
+    if (_positionSubscription == null) {
+      unawaited(_initializeLocation());
+    }
   }
 
   @override
@@ -1068,6 +1070,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _checkStampDistance();
       },
       onError: (error) {
+        _positionSubscription = null;
+
         if (!mounted) {
           return;
         }
@@ -1077,6 +1081,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           _errorActionLabel = '再試行';
           _errorAction = _initializeLocation;
         });
+      },
+      onDone: () {
+        _positionSubscription = null;
       },
     );
   }
@@ -2679,7 +2686,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         if (_activeRecommendedRoute.isNotEmpty) {
           _manualNextSeichiId = _activeRecommendedRoute.first.id;
         }
-        await _loadCollectionEventNames();
         await _loadMyEventRank();
 
         _updateNextDestination();
