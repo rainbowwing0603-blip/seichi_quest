@@ -37,6 +37,7 @@ import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/stamp_eligibility_policy.dart';
+import 'services/string_set_equality.dart';
 import 'services/stamp_cache_service.dart';
 import 'models/real_world_state.dart';
 import 'services/external_navigation_service.dart';
@@ -614,7 +615,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     );
 
     final localCollectedIdsChanged =
-        !_sameStringSet(_collectedIds, result.localCollectedIds);
+        !haveSameStringValues(_collectedIds, result.localCollectedIds);
 
     if (localCollectedIdsChanged) {
       _collectedIds
@@ -624,12 +625,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     return result;
-  }
-
-  bool _sameStringSet(Set<String> current, Iterable<String> next) {
-    final nextSet = next is Set<String> ? next : next.toSet();
-
-    return current.length == nextSet.length && current.containsAll(nextSet);
   }
 
   Future<void> _mergeCloudCollectionHistory() async {
@@ -646,7 +641,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       collectedIds: _collectedIds,
     );
 
-    if (!_sameStringSet(_collectedIds, mergedIds)) {
+    if (!haveSameStringValues(_collectedIds, mergedIds)) {
       _collectedIds
         ..clear()
         ..addAll(mergedIds);
