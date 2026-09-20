@@ -17,7 +17,11 @@ class CollectionApplyPlan {
 }
 
 class CollectionApplyPolicy {
-  const CollectionApplyPolicy();
+  const CollectionApplyPolicy({
+    this.achievementService = const AchievementService(),
+  });
+
+  final AchievementService achievementService;
 
   CollectionApplyPlan plan({
     required String currentEventId,
@@ -25,7 +29,6 @@ class CollectionApplyPolicy {
     required List<Seichi> seichiList,
     required Set<String> collectedIds,
     required List<Achievement> eventAchievements,
-    required AchievementService achievementService,
   }) {
     final previousCollectedCount = _validCollectedCount(
       seichiList: seichiList,
