@@ -1304,7 +1304,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     if (!shouldFetch && lastPosition != null) {
-      final distance = _locationService.distanceBetween(\n        startLatitude: lastPosition.latitude,\n        startLongitude: lastPosition.longitude,\n        endLatitude: position.latitude,\n        endLongitude: position.longitude,\n      );
+      final distance = _locationService.distanceBetween(
+        startLatitude: lastPosition.latitude,
+        startLongitude: lastPosition.longitude,
+        endLatitude: position.latitude,
+        endLongitude: position.longitude,
+      );
 
       if (distance >= refreshDistanceMeters) {
         shouldFetch = true;
@@ -1566,7 +1571,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           1000.0;
 
       if (elapsedSeconds > 0) {
-        final movedDistance = _locationService.distanceBetween(\n        startLatitude: previousPosition.latitude,\n        startLongitude: previousPosition.longitude,\n        endLatitude: position.latitude,\n        endLongitude: position.longitude,\n      );
+        final movedDistance = _locationService.distanceBetween(
+        startLatitude: previousPosition.latitude,
+        startLongitude: previousPosition.longitude,
+        endLatitude: position.latitude,
+        endLongitude: position.longitude,
+      );
 
         if (!StampEligibilityPolicy.isPlausibleMovement(
           movedDistanceMeters: movedDistance,
@@ -1595,7 +1605,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         continue;
       }
 
-      final distance = _locationService.distanceBetween(\n        startLatitude: position.latitude,\n        startLongitude: position.longitude,\n        endLatitude: seichi.latitude,\n        endLongitude: seichi.longitude,\n      );
+      final distance = _locationService.distanceBetween(
+        startLatitude: position.latitude,
+        startLongitude: position.longitude,
+        endLatitude: seichi.latitude,
+        endLongitude: seichi.longitude,
+      );
 
       if (distance < nearestDistance) {
         nearestDistance = distance;
@@ -1625,7 +1640,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       )) {
         continue;
       }
-      final distance = _locationService.distanceBetween(\n        startLatitude: position.latitude,\n        startLongitude: position.longitude,\n        endLatitude: seichi.latitude,\n        endLongitude: seichi.longitude,\n      );
+      final distance = _locationService.distanceBetween(
+        startLatitude: position.latitude,
+        startLongitude: position.longitude,
+        endLatitude: seichi.latitude,
+        endLongitude: seichi.longitude,
+      );
 
       if (StampEligibilityPolicy.isWithinStampRadius(
         distanceMeters: distance,
@@ -2275,7 +2295,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     double? distance;
 
     if (position != null) {
-      distance = _locationService.distanceBetween(\n        startLatitude: position.latitude,\n        startLongitude: position.longitude,\n        endLatitude: seichi.latitude,\n        endLongitude: seichi.longitude,\n      );
+      distance = _locationService.distanceBetween(
+        startLatitude: position.latitude,
+        startLongitude: position.longitude,
+        endLatitude: seichi.latitude,
+        endLongitude: seichi.longitude,
+      );
     }
 
     final collected = _collectedIds.contains(seichi.id);
