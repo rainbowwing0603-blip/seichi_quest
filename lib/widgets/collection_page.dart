@@ -734,11 +734,11 @@ class CollectionPage extends StatelessWidget {
     final eventNames = eventNamesByCard[seichi.card]?.toList() ?? <String>[];
     eventNames.sort();
 
-    final normalizedEventId = eventId?.trim() ?? '';
+    final contentId = seichi.contentId?.trim() ?? '';
 
-    final contentBlocksFuture = normalizedEventId.isEmpty
+    final contentBlocksFuture = contentId.isEmpty
         ? null
-        : ContentBlockService().loadForContent(seichi.contentId ?? '');
+        : ContentBlockService().loadForContent(contentId);
 
     final imageUrl = seichi.cardImageUrl;
     final hasCardImage = imageUrl != null && imageUrl.isNotEmpty;
