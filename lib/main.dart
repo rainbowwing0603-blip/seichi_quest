@@ -62,6 +62,7 @@ import 'services/session_service.dart';
 import 'services/secondary_refresh_coordinator.dart';
 import 'services/startup_coordinator.dart';
 import 'services/seichi_service.dart';
+import 'services/account_refresh_coordinator.dart';
 import 'services/app_settings_service.dart';
 import 'services/interstitial_ad_service.dart';
 
@@ -180,6 +181,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       SecondaryRefreshCoordinator();
   static const StartupCoordinator _startupCoordinator = StartupCoordinator();
   final SeichiService _seichiService = SeichiService();
+  static const AccountRefreshCoordinator _accountRefreshCoordinator =
+      AccountRefreshCoordinator();
   final AppSettingsService _appSettingsService = AppSettingsService();
   final DestinationPersistenceService _destinationPersistenceService =
       DestinationPersistenceService();
@@ -2734,30 +2737,38 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           return;
         }
 
-        await _ensureCloudUser();
+        CollectionSyncStartResult? syncResult;
 
-        _manualNextSeichiId = null;
-        _activeRecommendedRoute.clear();
-        _isRecommendedRouteLoaded = false;
-
-        final displayNameFuture = _loadDisplayName();
-        await _loadEventAchievements();
-        final syncResult = await _startCollectionSync();
-
-        await _applyCollectedRows(syncResult.pendingCollectedRows);
-        await _mergeCloudCollectionHistory();
-        await _loadManualNextDestination();
-        await _loadRecommendedRoute();
-
-        if (_activeRecommendedRoute.isNotEmpty) {
-          _manualNextSeichiId = _activeRecommendedRoute.first.id;
-        }
-        await Future.wait<void>([
-          displayNameFuture,
-          _loadMyEventRank(),
-        ]);
-
-        _updateNextDestination();
+        await _accountRefreshCoordinator.run(
+          ensureCloudUser: _ensureCloudUser,
+          resetDestinationState: () async {
+            _manualNextSeichiId = null;
+            _activeRecommendedRoute.clear();
+            _isRecommendedRouteLoaded = false;
+          },
+          loadDisplayName: _loadDisplayName,
+          loadEventAchievements: _loadEventAchievements,
+          startCollectionSync: () async {
+            syncResult = await _startCollectionSync();
+          },
+          applyPendingRows: () async {
+            final result = syncResult;
+            if (result == null) {
+              throw StateError('アカウント更新の同期結果がありません。');
+            }
+            await _applyCollectedRows(result.pendingCollectedRows);
+          },
+          mergeCloudHistory: _mergeCloudCollectionHistory,
+          loadManualNextDestination: _loadManualNextDestination,
+          loadRecommendedRoute: _loadRecommendedRoute,
+          loadMyEventRank: _loadMyEventRank,
+          finish: () async {
+            if (_activeRecommendedRoute.isNotEmpty) {
+              _manualNextSeichiId = _activeRecommendedRoute.first.id;
+            }
+            _updateNextDestination();
+          },
+        );
       },
       onShowNotifications: () async {
         final openedAt = DateTime.now();
