@@ -1221,7 +1221,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           setState(() {
             _isLoadingLocation = false;
             _errorMessage =
-                '位置情報サービスがOFFになっています.\n'
+                '位置情報サービスがOFFになっています。\n'
                 '端末の位置情報をONにしてください。';
             _errorActionLabel = '位置情報設定を開く';
             _errorAction = () async {
