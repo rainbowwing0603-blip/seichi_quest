@@ -44,7 +44,6 @@ import 'services/weather_refresh_policy.dart';
 import 'services/content_block_service.dart';
 import 'widgets/content_block_renderer.dart';
 
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import 'services/app_logger.dart';
@@ -56,6 +55,7 @@ import 'services/progression_service.dart';
 import 'services/profile_service.dart';
 import 'services/session_service.dart';
 import 'services/seichi_service.dart';
+import 'services/app_settings_service.dart';
 import 'services/interstitial_ad_service.dart';
 
 // ============================================================
@@ -155,14 +155,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final Set<String> _collectedIds = {};
   final Map<String, Set<String>> _collectionEventNamesByCard = {};
 
-  SharedPreferences? _preferences;
-
   final CollectionHistoryService _historyService = CollectionHistoryService();
   final EventService _eventService = EventService();
   final ProgressionService _progressionService = ProgressionService();
   final ProfileService _profileService = ProfileService();
   final SessionService _sessionService = SessionService();
   final SeichiService _seichiService = SeichiService();
+  final AppSettingsService _appSettingsService = AppSettingsService();
   final DestinationPersistenceService _destinationPersistenceService =
       DestinationPersistenceService();
   final StampCacheService _stampCacheService = StampCacheService();
@@ -818,8 +817,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // アプリ設定
   // ============================================================
 
-  bool _isAutoNextDestinationEnabled() {
-    return _preferences?.getBool('setting_auto_next_destination') ?? true;
+  Future<bool> _isAutoNextDestinationEnabled() {
+    return _appSettingsService.isAutoNextDestinationEnabled();
   }
 
   // ============================================================
@@ -869,7 +868,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       });
 
       // 自動次目的地設定がONの場合のみ更新する。
-      if (_isAutoNextDestinationEnabled()) {
+      if (await _isAutoNextDestinationEnabled()) {
         _updateNextDestination();
       }
     } catch (e) {
@@ -1507,7 +1506,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _collectedName = '${item.card} ${item.name}を獲得！';
       });
 
-      if (_preferences?.getBool('setting_stamp_notification') ?? true) {
+      if (await _appSettingsService.isStampNotificationEnabled()) {
         try {
           final notificationGranted = await NotificationService.instance
               .requestPermission();
