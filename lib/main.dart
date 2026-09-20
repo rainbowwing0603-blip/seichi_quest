@@ -533,10 +533,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     await _loadDisplayName();
     await _loadCurrentEvent();
     await _loadEventAchievements();
-    final syncResult = await _synchronizeCollection();
+    final syncResult = await _startCollectionSync();
 
     await _loadSeichi();
     await _applyCollectedRows(syncResult.pendingCollectedRows);
+    await _mergeCloudCollectionHistory();
     await _loadManualNextDestination();
     await _loadRecommendedRoute();
 
@@ -762,7 +763,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     setState(() {});
   }
 
-  Future<CollectionSyncResult> _synchronizeCollection() async {
+  Future<CollectionSyncStartResult> _startCollectionSync() async {
     final eventId = _currentEventId;
     final user = supabase.Supabase.instance.client.auth.currentUser;
 
@@ -774,20 +775,38 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       throw Exception('ユーザーIDが未取得のため、獲得履歴を同期できません。');
     }
 
-    final result = await _collectionSyncService.synchronize(
+    final result = await _collectionSyncService.start(
       userId: user.id,
       eventId: eventId,
     );
 
     _collectedIds
       ..clear()
-      ..addAll(result.collectedIds);
-
-    await _loadCollectionEventNames();
+      ..addAll(result.localCollectedIds);
 
     return result;
   }
 
+  Future<void> _mergeCloudCollectionHistory() async {
+    final eventId = _currentEventId;
+    final user = supabase.Supabase.instance.client.auth.currentUser;
+
+    if (eventId == null || eventId.isEmpty || user == null) {
+      return;
+    }
+
+    final mergedIds = await _collectionSyncService.mergeCloudHistory(
+      userId: user.id,
+      eventId: eventId,
+      collectedIds: _collectedIds,
+    );
+
+    _collectedIds
+      ..clear()
+      ..addAll(mergedIds);
+
+    await _loadCollectionEventNames();
+  }
 
   Future<void> _loadCollectionEventNames() async {
     try {
@@ -2776,10 +2795,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _isRecommendedRouteLoaded = false;
 
       await _loadEventAchievements();
-      final syncResult = await _synchronizeCollection();
+      final syncResult = await _startCollectionSync();
 
       await _loadSeichi();
       await _applyCollectedRows(syncResult.pendingCollectedRows);
+      await _mergeCloudCollectionHistory();
       await _loadManualNextDestination();
       await _loadRecommendedRoute();
 
@@ -2885,9 +2905,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             builder: (_) => SyncStatusPage(
               loadPendingCount: _historyService.pendingPlaceVisitCount,
               syncNow: () async {
-                final syncResult = await _synchronizeCollection();
+                final syncResult = await _startCollectionSync();
 
                 await _applyCollectedRows(syncResult.pendingCollectedRows);
+                await _mergeCloudCollectionHistory();
                 await _loadMyEventRank();
 
                 _updateNextDestination();
@@ -2929,9 +2950,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
         await _loadDisplayName();
         await _loadEventAchievements();
-        final syncResult = await _synchronizeCollection();
+        final syncResult = await _startCollectionSync();
 
         await _applyCollectedRows(syncResult.pendingCollectedRows);
+        await _mergeCloudCollectionHistory();
         await _loadManualNextDestination();
         await _loadRecommendedRoute();
 
