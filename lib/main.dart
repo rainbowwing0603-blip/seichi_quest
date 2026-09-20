@@ -1044,10 +1044,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           return;
         }
 
-        setState(() {
+        final hasVeryLowLocationAccuracy = position.accuracy > 500.0;
+        final accuracyStateChanged =
+            _hasVeryLowLocationAccuracy != hasVeryLowLocationAccuracy;
+
+        if (accuracyStateChanged) {
+          setState(() {
+            _currentPosition = position;
+            _hasVeryLowLocationAccuracy = hasVeryLowLocationAccuracy;
+          });
+        } else {
           _currentPosition = position;
-          _hasVeryLowLocationAccuracy = position.accuracy > 500.0;
-        });
+        }
 
         _updateNextDestination();
         _updateWeatherIfNeeded(position);
@@ -1100,10 +1108,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    setState(() {
-      _nextSeichi = result.seichi;
-      _nextDistance = result.distance;
-    });
+    final nextChanged =
+        _nextSeichi?.id != result.seichi?.id ||
+        _nextDistance != result.distance;
+
+    if (nextChanged) {
+      setState(() {
+        _nextSeichi = result.seichi;
+        _nextDistance = result.distance;
+      });
+    }
 
     appDebugPrint(
       '[ROUTE-NEXT] UPDATE END '
