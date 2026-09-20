@@ -1294,6 +1294,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     Seichi? nearestSeichi;
     double nearestDistance = double.infinity;
+    Seichi? collectibleSeichi;
 
     for (final seichi in _seichiList) {
       if (_collectedIds.contains(seichi.id)) {
@@ -1311,6 +1312,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         nearestDistance = distance;
         nearestSeichi = seichi;
       }
+
+      if (collectibleSeichi == null &&
+          StampEligibilityPolicy.hasSufficientAccuracy(
+            accuracyMeters: position.accuracy,
+            stampRadiusMeters: seichi.stampRadiusMeters,
+          ) &&
+          StampEligibilityPolicy.isWithinStampRadius(
+            distanceMeters: distance,
+            stampRadiusMeters: seichi.stampRadiusMeters,
+          )) {
+        collectibleSeichi = seichi;
+      }
     }
 
     if (nearestSeichi != null) {
@@ -1324,31 +1337,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       );
     }
 
-    for (final seichi in _seichiList) {
-      if (_collectedIds.contains(seichi.id)) {
-        continue;
-      }
-
-      if (!StampEligibilityPolicy.hasSufficientAccuracy(
-        accuracyMeters: position.accuracy,
-        stampRadiusMeters: seichi.stampRadiusMeters,
-      )) {
-        continue;
-      }
-      final distance = _locationService.distanceBetween(
-        startLatitude: position.latitude,
-        startLongitude: position.longitude,
-        endLatitude: seichi.latitude,
-        endLongitude: seichi.longitude,
-      );
-
-      if (StampEligibilityPolicy.isWithinStampRadius(
-        distanceMeters: distance,
-        stampRadiusMeters: seichi.stampRadiusMeters,
-      )) {
-        await _collectStamp(seichi);
-        break;
-      }
+    if (collectibleSeichi != null) {
+      await _collectStamp(collectibleSeichi);
     }
   }
 
