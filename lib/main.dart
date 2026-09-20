@@ -10,6 +10,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'collection_history_service.dart';
+import 'domain/jomo_karuta_order.dart';
 import 'widgets/banner_ad_widget.dart';
 import 'widgets/collection_page.dart';
 import 'widgets/quest_page.dart';
@@ -215,60 +216,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   static const LatLng _defaultCenter = LatLng(36.3910, 139.0600);
 
-  // 上毛かるたの札順。
-  // Supabase側の登録順に依存せず、スタンプ帳を必ず札順で表示する。
-  static const List<String> _jomoKarutaOrder = [
-    'あ',
-    'い',
-    'う',
-    'え',
-    'お',
-    'か',
-    'き',
-    'く',
-    'け',
-    'こ',
-    'さ',
-    'し',
-    'す',
-    'せ',
-    'そ',
-    'た',
-    'ち',
-    'つ',
-    'て',
-    'と',
-    'な',
-    'に',
-    'ぬ',
-    'ね',
-    'の',
-    'は',
-    'ひ',
-    'ふ',
-    'へ',
-    'ほ',
-    'ま',
-    'み',
-    'む',
-    'め',
-    'も',
-    'や',
-    'ゆ',
-    'よ',
-    'ら',
-    'り',
-    'る',
-    'れ',
-    'ろ',
-    'わ',
-    'を',
-  ];
-
-  int _cardOrderIndex(String card) {
-    final index = _jomoKarutaOrder.indexOf(card.trim());
-    return index == -1 ? 999 : index;
-  }
 
   // ============================================================
   // 初期化
@@ -1215,8 +1162,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           .toList();
 
       list.sort((a, b) {
-        final orderCompare = _cardOrderIndex(a.card)
-            .compareTo(_cardOrderIndex(b.card));
+        final orderCompare = JomoKarutaOrder.indexOf(a.card)
+            .compareTo(JomoKarutaOrder.indexOf(b.card));
 
         if (orderCompare != 0) {
           return orderCompare;
