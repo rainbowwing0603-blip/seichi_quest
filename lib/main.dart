@@ -335,7 +335,22 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (_uncollectedMarkerIcon == null ||
         _collectedMarkerIcon == null ||
         _nextMarkerIcon == null) {
-      _loadMapMarkerIcons();
+      // 初回フレームとネイティブMap生成に画像デコードを重ねない。
+      // 読み込み完了までは既存のdefault markerへ自然にフォールバックする。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+
+        Future<void>.delayed(const Duration(milliseconds: 900), () {
+          if (mounted &&
+              (_uncollectedMarkerIcon == null ||
+                  _collectedMarkerIcon == null ||
+                  _nextMarkerIcon == null)) {
+            unawaited(_loadMapMarkerIcons());
+          }
+        });
+      });
     }
   }
 
