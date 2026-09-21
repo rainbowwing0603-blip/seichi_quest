@@ -30,7 +30,7 @@ class QuestItemService {
         .eq('places.is_active', true)
         .order('display_order');
 
-    return List<Map<String, dynamic>>.from(data)
+    final items = List<Map<String, dynamic>>.from(data)
         .map(mapper.fromEventContentRow)
         .where(
           (item) =>
@@ -40,6 +40,16 @@ class QuestItemService {
               item.latitude != 0 &&
               item.longitude != 0,
         )
-        .toList(growable: false);
+        .toList();
+
+    items.sort((a, b) {
+      final byDisplayOrder = a.displayOrder.compareTo(b.displayOrder);
+      if (byDisplayOrder != 0) {
+        return byDisplayOrder;
+      }
+      return a.eventContentId.compareTo(b.eventContentId);
+    });
+
+    return List<QuestItem>.unmodifiable(items);
   }
 }
