@@ -77,4 +77,59 @@ void main() {
     expect(result.blocks, isEmpty);
     expect(result.showLegacyDescription, isTrue);
   });
+
+  test('empty semantic blocks cannot suppress legacy fallback', () {
+    final result = policy.resolve([
+      ContentBlock(
+        id: 'empty-reading',
+        contentId: 'content-1',
+        type: ContentBlockType.text,
+        role: 'reading',
+        title: '読み',
+        body: '   ',
+        mediaPath: null,
+        altText: null,
+        linkUrl: null,
+        displayOrder: 0,
+        metadata: const <String, dynamic>{},
+      ),
+      ContentBlock(
+        id: 'empty-picture',
+        contentId: 'content-1',
+        type: ContentBlockType.image,
+        role: 'picture_card',
+        title: null,
+        body: null,
+        mediaPath: '   ',
+        altText: null,
+        linkUrl: null,
+        displayOrder: 10,
+        metadata: const <String, dynamic>{},
+      ),
+    ]);
+
+    expect(result.blocks, isEmpty);
+    expect(result.showLegacyReading, isTrue);
+    expect(result.showLegacyImage, isTrue);
+  });
+
+  test('invalid link blocks are excluded from presentation', () {
+    final result = policy.resolve([
+      ContentBlock(
+        id: 'invalid-link',
+        contentId: 'content-1',
+        type: ContentBlockType.link,
+        role: 'official',
+        title: '公式',
+        body: null,
+        mediaPath: null,
+        altText: null,
+        linkUrl: 'not-a-url',
+        displayOrder: 0,
+        metadata: const <String, dynamic>{},
+      ),
+    ]);
+
+    expect(result.blocks, isEmpty);
+  });
 }
