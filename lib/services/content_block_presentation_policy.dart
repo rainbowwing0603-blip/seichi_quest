@@ -35,14 +35,40 @@ class ContentBlockPresentationPolicy {
         .toList(growable: false);
 
     final roles = renderableBlocks.map((block) => block.role).toSet();
+    final orderedBlocks = [...renderableBlocks]..sort(_compareDisplayPriority);
 
     return ContentBlockPresentation(
-      blocks: renderableBlocks,
+      blocks: orderedBlocks,
       showLegacyReading: !roles.contains('reading'),
       showLegacyDescription:
           !roles.contains('description') && !roles.contains('about'),
       showLegacyImage: !roles.contains('picture_card'),
     );
+  }
+
+  int _compareDisplayPriority(ContentBlock a, ContentBlock b) {
+    final priorityCompare = _displayPriority(
+      a.role,
+    ).compareTo(_displayPriority(b.role));
+    if (priorityCompare != 0) {
+      return priorityCompare;
+    }
+
+    final orderCompare = a.displayOrder.compareTo(b.displayOrder);
+    if (orderCompare != 0) {
+      return orderCompare;
+    }
+
+    return a.id.compareTo(b.id);
+  }
+
+  int _displayPriority(String role) {
+    return switch (role) {
+      'picture_card' => 0,
+      'reading_card' => 1,
+      'reading' => 2,
+      _ => 10,
+    };
   }
 
   bool _canRepresentContent(ContentBlock block) {
