@@ -532,6 +532,38 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ),
                 ),
                 const SizedBox(height: 14),
+                QuestGlassCard(
+                  padding: const EdgeInsets.all(16),
+                  borderRadius: 20,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        collected
+                            ? Icons.auto_stories_rounded
+                            : Icons.lock_outline_rounded,
+                        color: collected
+                            ? QuestUiTokens.primary
+                            : QuestUiTokens.mutedInk,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          collected
+                              ? '札の物語を解放済み。読み札・由来・歴史・現地で見るポイントを確認できます。'
+                              : '読み札は確認できます。札の由来・歴史・現地で見るポイントは、現地でスタンプを獲得すると解放されます。',
+                          style: const TextStyle(
+                            color: QuestUiTokens.mutedInk,
+                            fontSize: 12.5,
+                            height: 1.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
                 QuestItemContentSection(
                   item: seichi,
                   collected: collected,
