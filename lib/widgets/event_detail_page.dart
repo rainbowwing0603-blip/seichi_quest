@@ -452,6 +452,19 @@ class _EventDetailPageState extends State<EventDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Semantics(
+                    button: true,
+                    label: '詳細を閉じる',
+                    child: IconButton.filledTonal(
+                      tooltip: '閉じる',
+                      onPressed: () => Navigator.pop(sheetContext),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
                 QuestGlassCard(
                   padding: const EdgeInsets.all(18),
                   child: Column(
