@@ -6,6 +6,7 @@ import 'package:seichi_quest/widgets/quest_spot_detail_sheet.dart';
 void main() {
   const item = Seichi(
     id: 'spot-1',
+    placeId: 'place-1',
     card: 'け',
     reading: 'け',
     name: '群馬県庁本庁舎',
