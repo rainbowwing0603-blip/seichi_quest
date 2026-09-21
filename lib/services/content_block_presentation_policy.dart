@@ -1,4 +1,5 @@
 import '../models/content_block.dart';
+import 'content_reveal_policy.dart';
 
 class ContentBlockPresentation {
   const ContentBlockPresentation({
@@ -16,6 +17,17 @@ class ContentBlockPresentation {
 
 class ContentBlockPresentationPolicy {
   const ContentBlockPresentationPolicy();
+
+  ContentBlockPresentation resolveForCollectionState(
+    List<ContentBlock> blocks, {
+    required bool collected,
+  }) {
+    final visibleBlocks = ContentRevealPolicy.visibleBlocks(
+      blocks,
+      collected: collected,
+    );
+    return resolve(visibleBlocks);
+  }
 
   ContentBlockPresentation resolve(List<ContentBlock> blocks) {
     final renderableBlocks = blocks
