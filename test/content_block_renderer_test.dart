@@ -106,6 +106,29 @@ void main() {
     expect(ratios, everyElement(closeTo(4 / 3, 0.001)));
   });
 
+  testWidgets('multiple gallery images stay generic and ordered', (tester) async {
+    await tester.pumpWidget(
+      app([
+        block(
+          id: 'gallery-1',
+          type: ContentBlockType.image,
+          role: 'gallery',
+          title: '関連画像',
+          mediaPath: 'gallery-1.webp',
+        ),
+        block(
+          id: 'gallery-2',
+          type: ContentBlockType.image,
+          role: 'gallery',
+          mediaPath: 'gallery-2.webp',
+        ),
+      ]),
+    );
+
+    expect(find.byType(Image), findsNWidgets(2));
+    expect(find.text('関連画像'), findsOneWidget);
+  });
+
   testWidgets('hero and product use role-aware media presentation', (
     tester,
   ) async {
