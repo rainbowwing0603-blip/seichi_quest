@@ -90,7 +90,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
               const SizedBox(height: 12),
               QuestItemContentSection(
                 item: item,
-                showLegacyText: !collected,
+                showLegacyText: false,
                 collected: collected,
               ),
               if (collected && eventNames.isNotEmpty) ...[
@@ -175,7 +175,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      collected ? item.name : '未獲得の聖地',
+                      item.name,
                       style: const TextStyle(
                         color: QuestUiTokens.ink,
                         fontSize: 21,
