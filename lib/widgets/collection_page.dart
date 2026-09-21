@@ -849,7 +849,7 @@ class CollectionPage extends StatelessWidget {
                   ),
 
                   const SizedBox(height: 14),
-                  if (collected)
+                  if (collected) ...[
                     QuestGlassCard(
                       padding: const EdgeInsets.all(16),
                       borderRadius: 20,
@@ -861,7 +861,9 @@ class CollectionPage extends StatelessWidget {
                             height: 42,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: QuestUiTokens.primary.withValues(alpha: 0.10),
+                              color: QuestUiTokens.primary.withValues(
+                                alpha: 0.10,
+                              ),
                               borderRadius: BorderRadius.circular(13),
                             ),
                             child: const Icon(
@@ -897,8 +899,14 @@ class CollectionPage extends StatelessWidget {
                           ),
                         ],
                       ),
-                    )
-                  else
+                    ),
+                    const SizedBox(height: 12),
+                    QuestItemContentSection(
+                      item: seichi,
+                      showLegacyText: false,
+                      collected: true,
+                    ),
+                  ] else ...[
                     QuestGlassCard(
                       padding: const EdgeInsets.all(16),
                       borderRadius: 20,
@@ -923,12 +931,13 @@ class CollectionPage extends StatelessWidget {
                         ],
                       ),
                     ),
-                  const SizedBox(height: 12),
-                  QuestItemContentSection(
-                    item: seichi,
-                    showLegacyText: true,
-                    collected: collected,
-                  ),
+                    const SizedBox(height: 12),
+                    QuestItemContentSection(
+                      item: seichi,
+                      showLegacyText: true,
+                      collected: false,
+                    ),
+                  ],
 
                   if (collected && eventNames.isNotEmpty) ...[
                     const SizedBox(height: 14),
