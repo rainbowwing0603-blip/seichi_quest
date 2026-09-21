@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/seichi.dart';
 import '../painters/stamp_ring_painter.dart';
-import '../services/content_block_service.dart';
-import 'content_block_renderer.dart';
+import 'quest_spot_detail_sheet.dart';
 import 'quest_ui.dart';
 
 class CollectionPage extends StatelessWidget {
@@ -495,7 +494,7 @@ class CollectionPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  collected ? 'STAMP GET' : 'LOCKED',
+                  collected ? '詳細を見る' : 'タップで確認',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -517,14 +516,14 @@ class CollectionPage extends StatelessWidget {
             height: 20,
             decoration: BoxDecoration(
               color: collected
-                  ? const Color(0xFF20A77A)
+                  ? QuestUiTokens.primary.withValues(alpha: 0.12)
                   : QuestUiTokens.mutedInk.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              collected ? Icons.check_rounded : Icons.lock_outline_rounded,
-              size: 12,
-              color: collected ? Colors.white : QuestUiTokens.mutedInk,
+              Icons.chevron_right_rounded,
+              size: 15,
+              color: collected ? QuestUiTokens.primary : QuestUiTokens.mutedInk,
             ),
           ),
         ],
@@ -730,322 +729,23 @@ class CollectionPage extends StatelessWidget {
     final eventNames = eventNamesByCard[seichi.card]?.toList() ?? <String>[];
     eventNames.sort();
 
-    final normalizedEventId = eventId?.trim() ?? '';
-
-    final contentBlocksFuture = normalizedEventId.isEmpty
-        ? null
-        : ContentBlockService().loadForEventContent(
-            eventId: normalizedEventId,
-            contentKey: seichi.card,
-          );
-
-    final imageUrl = seichi.cardImageUrl;
-    final hasCardImage = imageUrl != null && imageUrl.isNotEmpty;
-
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        final screenHeight = MediaQuery.sizeOf(sheetContext).height;
-
-        return SafeArea(
-          top: false,
-          child: Container(
-            constraints: BoxConstraints(maxHeight: screenHeight * 0.90),
-            decoration: const BoxDecoration(
-              gradient: QuestUiTokens.glassGradient,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (hasCardImage) ...[
-                    _buildCardImage(seichi),
-                    const SizedBox(height: 16),
-                  ],
-
-                  QuestGlassCard(
-                    padding: const EdgeInsets.all(18),
-                    borderRadius: 22,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                gradient: collected
-                                    ? QuestUiTokens.primaryGradient
-                                    : null,
-                                color: collected
-                                    ? null
-                                    : QuestUiTokens.mutedInk.withValues(
-                                        alpha: 0.10,
-                                      ),
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: Text(
-                                seichi.card,
-                                style: TextStyle(
-                                  color: collected
-                                      ? Colors.white
-                                      : QuestUiTokens.mutedInk,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    collected
-                                        ? 'KARUTA COLLECTION'
-                                        : 'LOCKED COLLECTION',
-                                    style: TextStyle(
-                                      color: collected
-                                          ? QuestUiTokens.primary
-                                          : QuestUiTokens.mutedInk,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 1.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    collected ? seichi.name : '未獲得の聖地',
-                                    style: const TextStyle(
-                                      color: QuestUiTokens.ink,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        if (seichi.reading.isNotEmpty) ...[
-                          const SizedBox(height: 14),
-                          Text(
-                            seichi.reading,
-                            style: const TextStyle(
-                              color: QuestUiTokens.mutedInk,
-                              fontSize: 13,
-                              height: 1.5,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-
-                        const SizedBox(height: 14),
-
-                        Text(
-                          collected
-                              ? (seichi.description.isEmpty
-                                    ? 'この聖地のスタンプを獲得しました。'
-                                    : seichi.description)
-                              : 'この聖地を訪れて、スタンプを獲得しよう！',
-                          style: const TextStyle(
-                            color: QuestUiTokens.ink,
-                            fontSize: 14,
-                            height: 1.65,
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        QuestStatusChip(
-                          label: collected ? 'STAMP GET' : 'LOCKED',
-                          icon: collected
-                              ? Icons.check_circle_rounded
-                              : Icons.lock_outline_rounded,
-                          accentColor: collected
-                              ? const Color(0xFF20A77A)
-                              : QuestUiTokens.mutedInk,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  if (contentBlocksFuture != null) ...[
-                    FutureBuilder(
-                      future: contentBlocksFuture,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState != ConnectionState.done) {
-                          return const SizedBox.shrink();
-                        }
-
-                        if (snapshot.hasError) {
-                          debugPrint(
-                            '[CONTENT_BLOCKS] collection detail load failed: '
-                            '${snapshot.error}',
-                          );
-                          return const SizedBox.shrink();
-                        }
-
-                        final blocks = snapshot.data;
-
-                        if (blocks == null || blocks.isEmpty) {
-                          return const SizedBox.shrink();
-                        }
-
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 14),
-                          child: QuestGlassCard(
-                            padding: const EdgeInsets.all(16),
-                            borderRadius: 20,
-                            child: ContentBlockRenderer(blocks: blocks),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                  if (collected && eventNames.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    QuestGlassCard(
-                      padding: const EdgeInsets.all(16),
-                      borderRadius: 20,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            '獲得イベント',
-                            style: TextStyle(
-                              color: QuestUiTokens.primary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          for (final eventName in eventNames)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Text(
-                                '・$eventName',
-                                style: const TextStyle(
-                                  color: QuestUiTokens.ink,
-                                  fontSize: 13,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 16),
-
-                  QuestPrimaryButton(
-                    label: collected ? '獲得した聖地を地図で見る' : 'この聖地を地図で見る',
-                    icon: Icons.map_rounded,
-                    onPressed: () {
-                      Navigator.pop(sheetContext);
-                      onMoveToSeichi(seichi);
-                    },
-                  ),
-
-                  if (!collected) ...[
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(sheetContext);
-                        onSetNextDestination(seichi);
-                      },
-                      icon: const Icon(Icons.flag_rounded),
-                      label: const Text('次の目的地にする'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: QuestUiTokens.primary,
-                        minimumSize: const Size.fromHeight(50),
-                        side: BorderSide(
-                          color: QuestUiTokens.primary.withValues(alpha: 0.30),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            QuestUiTokens.controlRadius,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+    QuestSpotDetailSheet.show(
+      context,
+      item: seichi,
+      collected: collected,
+      eventNames: eventNames,
+      onShowOnMap: () => onMoveToSeichi(seichi),
+      onSetNextDestination: collected
+          ? null
+          : () => onSetNextDestination(seichi),
     );
   }
+
   // ============================================================
   // 大きなスタンプ
   // ============================================================
 
-  Widget _buildCardImage(Seichi seichi) {
-    final imageUrl = seichi.cardImageUrl;
 
-    if (imageUrl == null || imageUrl.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(maxHeight: 320),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Image.network(
-        imageUrl,
-        fit: BoxFit.contain,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) {
-            return child;
-          }
-
-          return const SizedBox(
-            height: 220,
-            child: Center(child: CircularProgressIndicator()),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return SizedBox(
-            height: 180,
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.broken_image_outlined,
-                    size: 38,
-                    color: Colors.grey.shade400,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '札画像を読み込めませんでした',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
 
   // ============================================================
   // クエスト画面

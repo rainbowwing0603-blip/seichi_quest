@@ -5,8 +5,10 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../models/event.dart';
 import '../models/seichi.dart';
+import 'quest_spot_detail_sheet.dart';
 import 'quest_ui.dart';
 import '../services/app_logger.dart';
+import '../services/seichi_service.dart';
 
 class EventDetailPage extends StatefulWidget {
   const EventDetailPage({
@@ -65,6 +67,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
   int? _favoriteCount;
   bool _isFavorited = false;
 
+  final SeichiService _seichiService = SeichiService();
+
   supabase.SupabaseClient get _client => supabase.Supabase.instance.client;
 
   @override
@@ -76,22 +80,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   Future<void> _loadSeichiList() async {
     try {
-      final data = await _client
-          .from('seichi')
-          .select(
-            'id, card, reading, name, latitude, longitude, '
-            'stamp_radius_meters, description, icon, '
-            'card_image_url, is_active, place_id',
-          )
-          .eq('event_id', widget.event.id)
-          .eq('is_active', true);
-
-      final list = List<Map<String, dynamic>>.from(data)
-          .map(Seichi.fromMap)
-          .where((seichi) => seichi.id.isNotEmpty)
-          .toList();
-
-      list.sort((a, b) => _cardOrder(a.card).compareTo(_cardOrder(b.card)));
+      final list = await _seichiService.loadActiveSeichi(widget.event.id);
 
       final collectedIds = <String>{};
       final user = _client.auth.currentUser;
@@ -272,63 +261,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
     return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
-  int _cardOrder(String card) {
-    const cards = <String>[
-      'あ',
-      'い',
-      'う',
-      'え',
-      'お',
-      'か',
-      'き',
-      'く',
-      'け',
-      'こ',
-      'さ',
-      'し',
-      'す',
-      'せ',
-      'そ',
-      'た',
-      'ち',
-      'つ',
-      'て',
-      'と',
-      'な',
-      'に',
-      'ぬ',
-      'ね',
-      'の',
-      'は',
-      'ひ',
-      'ふ',
-      'へ',
-      'ほ',
-      'ま',
-      'み',
-      'む',
-      'め',
-      'も',
-      'や',
-      'ゆ',
-      'よ',
-      'ら',
-      'り',
-      'る',
-      'れ',
-      'ろ',
-      'わ',
-    ];
-
-    final index = cards.indexOf(card);
-
-    if (index < 0) {
-      return cards.length;
-    }
-
-    return index;
-  }
-
   Seichi? get _nearestUncollectedSeichi {
     final position = widget.currentPosition;
 
@@ -505,248 +437,21 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   void _showSeichiDetail(Seichi seichi) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFFF6F8FC),
-      builder: (sheetContext) {
-        final collected = _collectedSeichiIds.contains(seichi.id);
-        final isNext = widget.currentNextSeichiId == seichi.id;
+    final collected = _collectedSeichiIds.contains(seichi.id);
+    final isNext = widget.currentNextSeichiId == seichi.id;
 
-        return SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (seichi.cardImageUrl != null)
-                  _buildLargeCardImage(seichi)
-                else
-                  _buildCardFallback(seichi),
-                const SizedBox(height: 18),
-                QuestGlassCard(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              gradient: QuestUiTokens.primaryGradient,
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            child: Text(
-                              seichi.card,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'SPOT DETAIL',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    letterSpacing: 1.2,
-                                    fontWeight: FontWeight.w900,
-                                    color: QuestUiTokens.mutedInk,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  seichi.name,
-                                  style: const TextStyle(
-                                    fontSize: 21,
-                                    fontWeight: FontWeight.w900,
-                                    color: QuestUiTokens.ink,
-                                  ),
-                                ),
-                                if (seichi.reading.trim().isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    seichi.reading,
-                                    style: const TextStyle(
-                                      color: QuestUiTokens.mutedInk,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (seichi.description.trim().isNotEmpty) ...[
-                        const SizedBox(height: 17),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: QuestUiTokens.primary.withValues(
-                              alpha: 0.035,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            seichi.description,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              height: 1.65,
-                              color: QuestUiTokens.mutedInk,
-                            ),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          if (collected)
-                            const QuestStatusChip(
-                              label: '獲得済み',
-                              icon: Icons.check_circle,
-                              accentColor: Colors.green,
-                            ),
-                          if (isNext && !collected)
-                            const QuestStatusChip(
-                              label: 'NEXT',
-                              icon: Icons.navigation_rounded,
-                            ),
-                          QuestStatusChip(
-                            label: '獲得範囲 ${seichi.stampRadiusMeters}m',
-                            icon: Icons.place_outlined,
-                            accentColor: QuestUiTokens.cyan,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (widget.onShowOnMap != null) ...[
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(sheetContext).pop();
-                        widget.onShowOnMap!(seichi);
-                      },
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(50),
-                        foregroundColor: QuestUiTokens.primary,
-                        side: BorderSide(
-                          color: QuestUiTokens.primary.withValues(alpha: 0.20),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            QuestUiTokens.controlRadius,
-                          ),
-                        ),
-                      ),
-                      icon: const Icon(Icons.map_outlined),
-                      label: const Text(
-                        'この地点を地図で見る',
-                        style: TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                  ),
-                ],
-                if (widget.onSetNextDestination != null && !collected) ...[
-                  const SizedBox(height: 10),
-                  QuestPrimaryButton(
-                    label: isNext ? '次の目的地に設定済み' : '次の目的地に設定',
-                    icon: isNext ? Icons.flag : Icons.navigation_outlined,
-                    onPressed: isNext
-                        ? null
-                        : () {
-                            widget.onSetNextDestination!(seichi);
-                            Navigator.of(sheetContext).pop();
-                          },
-                  ),
-                ],
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildLargeCardImage(Seichi seichi) {
-    final imageUrl = seichi.cardImageUrl;
-
-    if (imageUrl == null || imageUrl.isEmpty) {
-      return _buildCardFallback(seichi);
-    }
-
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(maxHeight: 420),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: QuestUiTokens.ink.withValues(alpha: 0.07)),
-      ),
-      child: Image.network(
-        imageUrl,
-        fit: BoxFit.contain,
-        cacheWidth: 1200,
-        filterQuality: FilterQuality.medium,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) {
-            return child;
-          }
-
-          return const SizedBox(
-            height: 260,
-            child: Center(
-              child: CircularProgressIndicator(color: QuestUiTokens.primary),
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return _buildCardFallback(seichi);
-        },
-      ),
-    );
-  }
-
-  Widget _buildCardFallback(Seichi seichi) {
-    return Container(
-      width: double.infinity,
-      height: 240,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Colors.deepPurple.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            seichi.card,
-            style: const TextStyle(
-              fontSize: 72,
-              fontWeight: FontWeight.bold,
-              color: Colors.deepPurple,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(seichi.icon, style: const TextStyle(fontSize: 34)),
-        ],
-      ),
+    QuestSpotDetailSheet.show(
+      context,
+      item: seichi,
+      collected: collected,
+      isNext: isNext,
+      onShowOnMap: widget.onShowOnMap == null
+          ? null
+          : () => widget.onShowOnMap!(seichi),
+      onSetNextDestination:
+          widget.onSetNextDestination == null || collected || isNext
+          ? null
+          : () => widget.onSetNextDestination!(seichi),
     );
   }
 

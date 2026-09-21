@@ -2,11 +2,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ContentMediaResolver {
   ContentMediaResolver({
-    SupabaseClient? client,
+    this._client,
     this.defaultBucket = 'event-card-images',
-  }) : _client = client ?? Supabase.instance.client;
+  });
 
-  final SupabaseClient _client;
+  final SupabaseClient? _client;
   final String defaultBucket;
 
   String? resolve(String? mediaPath) {
@@ -30,6 +30,8 @@ class ContentMediaResolver {
       return null;
     }
 
-    return _client.storage.from(normalizedBucket).getPublicUrl(normalizedPath);
+    final client = _client ?? Supabase.instance.client;
+
+    return client.storage.from(normalizedBucket).getPublicUrl(normalizedPath);
   }
 }

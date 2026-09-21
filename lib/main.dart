@@ -30,6 +30,7 @@ import 'widgets/onboarding_page.dart';
 import 'widgets/license_page.dart';
 import 'models/seichi.dart';
 import 'models/achievement.dart';
+import 'models/content_block.dart';
 import 'models/event.dart';
 import 'services/level_service.dart' show LevelProgress;
 import 'services/location_service.dart';
@@ -45,6 +46,7 @@ import 'services/external_navigation_service.dart';
 import 'services/weather_service.dart';
 import 'services/weather_refresh_policy.dart';
 import 'services/content_block_service.dart';
+import 'services/content_block_presentation_policy.dart';
 import 'widgets/content_block_renderer.dart';
 
 
@@ -82,16 +84,33 @@ const supabasePublishableKey = 'sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await MobileAds.instance.initialize();
-
-  await NotificationService.instance.initialize();
-
   await supabase.Supabase.initialize(
     url: supabaseUrl,
     publishableKey: supabasePublishableKey,
   );
 
   runApp(const SeichiQuestApp());
+
+  // 広告と通知は初回フレームの表示には不要。
+  // Google Maps と同時にネイティブSDKを初期化すると起動直後の
+  // main thread 負荷が集中するため、最初の描画後へ逃がす。
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(_initializeDeferredPlatformServices());
+  });
+}
+
+Future<void> _initializeDeferredPlatformServices() async {
+  try {
+    await MobileAds.instance.initialize();
+  } catch (error) {
+    appDebugPrint('[STARTUP] Mobile Ads init failed: $error');
+  }
+
+  try {
+    await NotificationService.instance.initialize();
+  } catch (error) {
+    appDebugPrint('[STARTUP] notification init failed: $error');
+  }
 }
 
 // ============================================================
@@ -189,6 +208,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       DestinationPersistenceService();
   final StampCacheService _stampCacheService = StampCacheService();
   final ContentBlockService _contentBlockService = ContentBlockService();
+  static const ContentBlockPresentationPolicy _contentBlockPresentationPolicy =
+      ContentBlockPresentationPolicy();
   static const ExternalNavigationService _externalNavigationService =
       ExternalNavigationService();
   late final CollectionSyncService _collectionSyncService =
@@ -314,7 +335,22 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (_uncollectedMarkerIcon == null ||
         _collectedMarkerIcon == null ||
         _nextMarkerIcon == null) {
-      _loadMapMarkerIcons();
+      // 初回フレームとネイティブMap生成に画像デコードを重ねない。
+      // 読み込み完了までは既存のdefault markerへ自然にフォールバックする。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+
+        Future<void>.delayed(const Duration(milliseconds: 900), () {
+          if (mounted &&
+              (_uncollectedMarkerIcon == null ||
+                  _collectedMarkerIcon == null ||
+                  _nextMarkerIcon == null)) {
+            unawaited(_loadMapMarkerIcons());
+          }
+        });
+      });
     }
   }
 
@@ -392,25 +428,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Future<void> _initialize() async {
     final onboardingCompletedFuture = _onboardingService.isCompleted();
 
-    await _startupCoordinator.runCritical(
+    appDebugPrint('[STARTUP] critical start');
+    final criticalResult = await _startupCoordinator.runCritical(
       ensureCloudUser: _ensureCloudUser,
       loadCurrentEvent: _loadCurrentEvent,
-      loadEventAchievements: _loadEventAchievements,
       startCollectionSync: () async {
         final result = await _startCollectionSync();
         return result.pendingCollectedRows;
       },
       loadSeichi: _loadSeichi,
-      applyCollectedRows: _applyCollectedRows,
-      mergeCloudCollectionHistory: _mergeCloudCollectionHistory,
-      loadManualNextDestination: _loadManualNextDestination,
-      loadRecommendedRoute: _loadRecommendedRoute,
-      restoreRecommendedRouteDestination: () {
-        if (_activeRecommendedRoute.isNotEmpty) {
-          _manualNextSeichiId = _activeRecommendedRoute.first.id;
-        }
-      },
     );
+    appDebugPrint('[STARTUP] critical complete');
 
     final onboardingCompleted = await onboardingCompletedFuture;
 
@@ -424,6 +452,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     });
 
     unawaited(
+      _runPostRenderStartup(
+        pendingCollectedRows: criticalResult.pendingCollectedRows,
+      ),
+    );
+
+    unawaited(
       _startupCoordinator.runDeferred(
         loadDisplayName: _loadDisplayName,
         loadMyEventRank: _loadMyEventRank,
@@ -431,13 +465,53 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       ),
     );
 
-    // 全画面広告は初期表示の必須リソースではないため、起動処理と競合させない。
-    InterstitialAdService.instance.preload();
+    // 全画面広告の事前ロードは地図初期化と競合させない。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      Future<void>.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          InterstitialAdService.instance.preload();
+        }
+      });
+    });
 
     if (onboardingCompleted) {
       await _initializeLocation();
     }
   }
+  Future<void> _runPostRenderStartup({
+    required List<Map<String, dynamic>> pendingCollectedRows,
+  }) async {
+    try {
+      appDebugPrint('[STARTUP] post-render start');
+      await _startupCoordinator.runPostRender(
+        pendingCollectedRows: pendingCollectedRows,
+        loadEventAchievements: _loadEventAchievements,
+        applyCollectedRows: _applyCollectedRows,
+        mergeCloudCollectionHistory: _mergeCloudCollectionHistory,
+        loadManualNextDestination: _loadManualNextDestination,
+        loadRecommendedRoute: _loadRecommendedRoute,
+        restoreRecommendedRouteDestination: () {
+          if (_activeRecommendedRoute.isNotEmpty) {
+            _manualNextSeichiId = _activeRecommendedRoute.first.id;
+          }
+        },
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      _updateNextDestination();
+      appDebugPrint('[STARTUP] post-render complete');
+    } catch (error) {
+      appDebugPrint('[STARTUP] post-render failed: $error');
+    }
+  }
+
   Future<void> _showOnboardingFromSettings() async {
     if (!mounted) {
       return;
@@ -2026,14 +2100,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   void _showSeichiDetails(Seichi seichi) {
     final position = _currentPosition;
-    final eventId = _currentEventId;
+    final contentId = seichi.contentId?.trim() ?? '';
 
-    final contentBlocksFuture = eventId == null || eventId.isEmpty
+    final Future<List<ContentBlock>>? contentBlocksFuture = contentId.isEmpty
         ? null
-        : _contentBlockService.loadForEventContent(
-            eventId: eventId,
-            contentKey: seichi.card,
-          );
+        : _contentBlockService.loadForContent(contentId);
 
     double? distance;
 
@@ -2136,68 +2207,72 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                       ],
                     ),
                     const SizedBox(height: 18),
-                    QuestGlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (seichi.reading.isNotEmpty) ...[
-                            Text(
-                              seichi.reading,
-                              style: const TextStyle(
-                                color: QuestUiTokens.mutedInk,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                height: 1.4,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                          ],
-                          Text(
-                            seichi.description.isEmpty
-                                ? '説明は登録されていません。'
-                                : seichi.description,
-                            style: const TextStyle(
-                              color: QuestUiTokens.ink,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              height: 1.55,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (contentBlocksFuture != null) ...[
-                      FutureBuilder(
-                        future: contentBlocksFuture,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState !=
-                              ConnectionState.done) {
-                            return const SizedBox.shrink();
-                          }
-
-                          if (snapshot.hasError) {
-                            appDebugPrint(
-                              '[CONTENT_BLOCKS] detail load failed: '
-                              '${snapshot.error}',
+                    FutureBuilder(
+                      future: contentBlocksFuture,
+                      builder: (context, snapshot) {
+                        final presentation =
+                            _contentBlockPresentationPolicy.resolve(
+                              snapshot.data ?? const [],
                             );
-                            return const SizedBox.shrink();
-                          }
 
-                          final blocks = snapshot.data;
-
-                          if (blocks == null || blocks.isEmpty) {
-                            return const SizedBox.shrink();
-                          }
-
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 14),
-                            child: QuestGlassCard(
-                              child: ContentBlockRenderer(blocks: blocks),
-                            ),
+                        if (snapshot.hasError) {
+                          appDebugPrint(
+                            '[CONTENT_BLOCKS] detail load failed: '
+                            '${snapshot.error}',
                           );
-                        },
-                      ),
-                    ],
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (presentation.showLegacyReading ||
+                                presentation.showLegacyDescription)
+                              QuestGlassCard(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (presentation.showLegacyReading &&
+                                        seichi.reading.isNotEmpty) ...[
+                                      Text(
+                                        seichi.reading,
+                                        style: const TextStyle(
+                                          color: QuestUiTokens.mutedInk,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                      if (presentation.showLegacyDescription)
+                                        const SizedBox(height: 10),
+                                    ],
+                                    if (presentation.showLegacyDescription)
+                                      Text(
+                                        seichi.description.isEmpty
+                                            ? '説明は登録されていません。'
+                                            : seichi.description,
+                                        style: const TextStyle(
+                                          color: QuestUiTokens.ink,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          height: 1.55,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            if (presentation.blocks.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 14),
+                                child: QuestGlassCard(
+                                  child: ContentBlockRenderer(
+                                    blocks: presentation.blocks,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
                     const SizedBox(height: 14),
                     QuestGlassCard(
                       child: Column(
@@ -3088,9 +3163,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    // 1.8秒周期を27段階で更新し、
-    // Google MapのMarker再構築を約15fpsに抑える。
-    final frame = (_sonarController.value * 27).floor();
+    // NEXTマーカーの「ふわふわ」は残しつつ、
+    // Google MapへのMarker更新は約8fpsまでに抑える。
+    // ソナー本体はMapPage側のAnimatedBuilderで滑らかに描画される。
+    final frame = (_sonarController.value * 14).floor();
 
     if (frame == _lastMarkerAnimationFrame) {
       return;

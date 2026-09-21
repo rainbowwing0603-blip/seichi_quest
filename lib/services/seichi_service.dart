@@ -1,49 +1,39 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
-import '../domain/jomo_karuta_order.dart';
+import '../models/quest_item.dart';
 import '../models/seichi.dart';
+import 'quest_item_service.dart';
 
 class SeichiService {
-  SeichiService({supabase.SupabaseClient? client})
-      : _client = client ?? supabase.Supabase.instance.client;
+  SeichiService({
+    supabase.SupabaseClient? client,
+    QuestItemService? questItemService,
+  }) : _questItemService =
+           questItemService ?? QuestItemService(client: client);
 
-  final supabase.SupabaseClient _client;
+  final QuestItemService _questItemService;
 
   Future<List<Seichi>> loadActiveSeichi(String eventId) async {
-    if (eventId.isEmpty) {
-      throw Exception('イベントIDが未取得のため、聖地を読み込めません。');
-    }
+    final items = await _questItemService.loadActiveItems(eventId);
+    return items.map(_toLegacySeichi).toList(growable: false);
+  }
 
-    final data = await _client
-        .from('seichi')
-        .select(
-          'id, card, reading, name, latitude, longitude, '
-          'stamp_radius_meters, description, icon, card_image_url, is_active, place_id',
-        )
-        .eq('is_active', true)
-        .eq('event_id', eventId);
-
-    final list = List<Map<String, dynamic>>.from(data)
-        .map(Seichi.fromMap)
-        .where(
-          (seichi) =>
-              seichi.id.isNotEmpty &&
-              seichi.latitude != 0 &&
-              seichi.longitude != 0,
-        )
-        .toList();
-
-    list.sort((a, b) {
-      final orderCompare = JomoKarutaOrder.indexOf(a.card)
-          .compareTo(JomoKarutaOrder.indexOf(b.card));
-
-      if (orderCompare != 0) {
-        return orderCompare;
-      }
-
-      return a.card.compareTo(b.card);
-    });
-
-    return list;
+  Seichi _toLegacySeichi(QuestItem item) {
+    return Seichi(
+      id: item.id,
+      placeId: item.placeId,
+      contentId: item.contentId,
+      eventContentId: item.eventContentId,
+      card: item.legacyCard ?? item.contentKey,
+      reading: item.legacyReading ?? '',
+      name: item.title,
+      latitude: item.latitude,
+      longitude: item.longitude,
+      stampRadiusMeters: item.radiusMeters,
+      description: item.description,
+      icon: item.icon,
+      cardImageUrl: item.primaryImageUrl,
+      isActive: item.isActive,
+    );
   }
 }

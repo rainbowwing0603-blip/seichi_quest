@@ -1,12 +1,34 @@
+class StartupCriticalResult {
+  const StartupCriticalResult({
+    required this.pendingCollectedRows,
+  });
+
+  final List<Map<String, dynamic>> pendingCollectedRows;
+}
+
 class StartupCoordinator {
   const StartupCoordinator();
 
-  Future<void> runCritical({
+  Future<StartupCriticalResult> runCritical({
     required Future<void> Function() ensureCloudUser,
     required Future<void> Function() loadCurrentEvent,
-    required Future<void> Function() loadEventAchievements,
     required Future<List<Map<String, dynamic>>> Function() startCollectionSync,
     required Future<void> Function() loadSeichi,
+  }) async {
+    await ensureCloudUser();
+    await loadCurrentEvent();
+
+    final pendingCollectedRows = await startCollectionSync();
+    await loadSeichi();
+
+    return StartupCriticalResult(
+      pendingCollectedRows: pendingCollectedRows,
+    );
+  }
+
+  Future<void> runPostRender({
+    required List<Map<String, dynamic>> pendingCollectedRows,
+    required Future<void> Function() loadEventAchievements,
     required Future<void> Function(List<Map<String, dynamic>> rows)
         applyCollectedRows,
     required Future<void> Function() mergeCloudCollectionHistory,
@@ -14,18 +36,13 @@ class StartupCoordinator {
     required Future<void> Function() loadRecommendedRoute,
     required void Function() restoreRecommendedRouteDestination,
   }) async {
-    await ensureCloudUser();
-    await loadCurrentEvent();
-    await loadEventAchievements();
-
-    final pendingCollectedRows = await startCollectionSync();
-
-    await loadSeichi();
     await applyCollectedRows(pendingCollectedRows);
     await mergeCloudCollectionHistory();
     await loadManualNextDestination();
     await loadRecommendedRoute();
     restoreRecommendedRouteDestination();
+
+    await loadEventAchievements();
   }
 
   Future<void> runDeferred({
