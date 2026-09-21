@@ -102,6 +102,41 @@ class StampAnimation extends StatelessWidget {
                     const SizedBox(
                       height: 14,
                     ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF2F3FF),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.auto_stories_rounded,
+                            size: 18,
+                            color: Color(0xFF5968E8),
+                          ),
+                          SizedBox(width: 7),
+                          Flexible(
+                            child: Text(
+                              '札の物語が解放されました',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Color(0xFF403A9F),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
                     Text(
                       '$collectedCount / $total 聖地獲得',
                       style:
