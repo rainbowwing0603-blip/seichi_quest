@@ -751,6 +751,19 @@ class CollectionPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Semantics(
+                      button: true,
+                      label: '詳細を閉じる',
+                      child: IconButton.filledTonal(
+                        tooltip: '閉じる',
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   QuestGlassCard(
                     padding: const EdgeInsets.all(18),
                     borderRadius: 22,
