@@ -8,7 +8,7 @@ import 'content_block_renderer.dart';
 import 'quest_ui.dart';
 
 class QuestItemContentSection extends StatelessWidget {
-  QuestItemContentSection({
+  const QuestItemContentSection({
     super.key,
     required this.item,
     this.showLegacyImage = true,
