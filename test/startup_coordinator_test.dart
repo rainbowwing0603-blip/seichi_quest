@@ -7,17 +7,16 @@ import 'package:seichi_quest/services/startup_coordinator.dart';
 void main() {
   const coordinator = StartupCoordinator();
 
-  test('起動必須処理を既存の依存順で実行する', () async {
+  test('起動必須処理は地図表示に必要なデータまでで完了する', () async {
     final calls = <String>[];
 
     Future<void> step(String name) async {
       calls.add(name);
     }
 
-    await coordinator.runCritical(
+    final result = await coordinator.runCritical(
       ensureCloudUser: () => step('ensureCloudUser'),
       loadCurrentEvent: () => step('loadCurrentEvent'),
-      loadEventAchievements: () => step('loadEventAchievements'),
       startCollectionSync: () async {
         calls.add('startCollectionSync');
         return <Map<String, dynamic>>[
@@ -25,6 +24,51 @@ void main() {
         ];
       },
       loadSeichi: () => step('loadSeichi'),
+    );
+
+    expect(result.pendingCollectedRows.single['card'], 'あ');
+    expect(calls, <String>[
+      'ensureCloudUser',
+      'loadCurrentEvent',
+      'startCollectionSync',
+      'loadSeichi',
+    ]);
+  });
+
+  test('起動必須処理の失敗後は後続を実行しない', () async {
+    final calls = <String>[];
+
+    await expectLater(
+      coordinator.runCritical(
+        ensureCloudUser: () async => calls.add('ensureCloudUser'),
+        loadCurrentEvent: () async {
+          calls.add('loadCurrentEvent');
+          throw StateError('event load failed');
+        },
+        startCollectionSync: () async {
+          calls.add('startCollectionSync');
+          return <Map<String, dynamic>>[];
+        },
+        loadSeichi: () async => calls.add('loadSeichi'),
+      ),
+      throwsStateError,
+    );
+
+    expect(calls, <String>['ensureCloudUser', 'loadCurrentEvent']);
+  });
+
+  test('画面表示後の復元処理は既存の依存順を保つ', () async {
+    final calls = <String>[];
+
+    Future<void> step(String name) async {
+      calls.add(name);
+    }
+
+    await coordinator.runPostRender(
+      pendingCollectedRows: <Map<String, dynamic>>[
+        <String, dynamic>{'card': 'あ'},
+      ],
+      loadEventAchievements: () => step('loadEventAchievements'),
       applyCollectedRows: (rows) async {
         expect(rows.single['card'], 'あ');
         calls.add('applyCollectedRows');
@@ -38,45 +82,13 @@ void main() {
     );
 
     expect(calls, <String>[
-      'ensureCloudUser',
-      'loadCurrentEvent',
-      'loadEventAchievements',
-      'startCollectionSync',
-      'loadSeichi',
       'applyCollectedRows',
       'mergeCloudCollectionHistory',
       'loadManualNextDestination',
       'loadRecommendedRoute',
       'restoreRecommendedRouteDestination',
+      'loadEventAchievements',
     ]);
-  });
-
-  test('必須処理の失敗後は後続を実行しない', () async {
-    final calls = <String>[];
-
-    await expectLater(
-      coordinator.runCritical(
-        ensureCloudUser: () async => calls.add('ensureCloudUser'),
-        loadCurrentEvent: () async {
-          calls.add('loadCurrentEvent');
-          throw StateError('event load failed');
-        },
-        loadEventAchievements: () async => calls.add('loadEventAchievements'),
-        startCollectionSync: () async => <Map<String, dynamic>>[],
-        loadSeichi: () async => calls.add('loadSeichi'),
-        applyCollectedRows: (_) async => calls.add('applyCollectedRows'),
-        mergeCloudCollectionHistory: () async =>
-            calls.add('mergeCloudCollectionHistory'),
-        loadManualNextDestination: () async =>
-            calls.add('loadManualNextDestination'),
-        loadRecommendedRoute: () async => calls.add('loadRecommendedRoute'),
-        restoreRecommendedRouteDestination: () =>
-            calls.add('restoreRecommendedRouteDestination'),
-      ),
-      throwsStateError,
-    );
-
-    expect(calls, <String>['ensureCloudUser', 'loadCurrentEvent']);
   });
 
   test('表示を塞がない補助データは並列取得する', () async {
