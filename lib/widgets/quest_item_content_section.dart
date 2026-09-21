@@ -15,8 +15,8 @@ class QuestItemContentSection extends StatelessWidget {
     this.showLegacyText = true,
     this.legacyDescriptionOverride,
     this.collected = false,
-    ContentBlockService? contentBlockService,
-  }) : _contentBlockService = contentBlockService;
+    this._contentBlockService,
+  });
 
   static const ContentBlockPresentationPolicy _presentationPolicy =
       ContentBlockPresentationPolicy();
