@@ -138,6 +138,32 @@ void main() {
     expect(images[1].fit, BoxFit.contain);
   });
 
+  testWidgets('semantic text roles expose clear section cues', (tester) async {
+    await tester.pumpWidget(
+      app([
+        block(
+          id: 'reading',
+          type: ContentBlockType.text,
+          role: 'reading',
+          title: '読み札',
+          body: '県都前橋 生糸の市',
+        ),
+        block(
+          id: 'field-guide',
+          type: ContentBlockType.text,
+          role: 'field_guide',
+          title: '現地で歴史をたどる',
+          body: '現地で見るポイント',
+        ),
+      ]),
+    );
+
+    expect(find.text('読み札'), findsOneWidget);
+    expect(find.text('現地で歴史をたどる'), findsOneWidget);
+    expect(find.byIcon(Icons.format_quote_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.explore_rounded), findsOneWidget);
+  });
+
   testWidgets('metadata can override image aspect ratio generically', (
     tester,
   ) async {
