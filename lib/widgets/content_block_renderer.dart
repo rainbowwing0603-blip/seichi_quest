@@ -68,14 +68,52 @@ class ContentBlockRenderer extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final presentation = _textPresentationFor(block.role);
+
     return _buildSection(
       context,
       title: block.title,
+      leadingIcon: presentation.icon,
+      accentColor: presentation.accentColor,
+      emphasized: presentation.emphasized,
       child: Text(
         body,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.7),
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          height: block.role == 'reading' ? 1.8 : 1.7,
+          fontWeight: block.role == 'reading' ? FontWeight.w700 : null,
+        ),
       ),
     );
+  }
+
+  _ContentTextPresentation _textPresentationFor(String role) {
+    switch (role) {
+      case 'reading':
+        return const _ContentTextPresentation(
+          icon: Icons.format_quote_rounded,
+          accentColor: Color(0xFF5968E8),
+          emphasized: true,
+        );
+      case 'field_guide':
+        return const _ContentTextPresentation(
+          icon: Icons.explore_rounded,
+          accentColor: Color(0xFF167B9B),
+          emphasized: true,
+        );
+      case 'history':
+        return const _ContentTextPresentation(
+          icon: Icons.account_balance_rounded,
+          accentColor: Color(0xFF8A5A2B),
+        );
+      case 'description':
+      case 'about':
+        return const _ContentTextPresentation(
+          icon: Icons.menu_book_rounded,
+          accentColor: Color(0xFF5968E8),
+        );
+      default:
+        return const _ContentTextPresentation();
+    }
   }
 
   Widget _buildImageBlock(BuildContext context, ContentBlock block) {
@@ -203,20 +241,68 @@ class ContentBlockRenderer extends StatelessWidget {
     BuildContext context, {
     required String? title,
     required Widget child,
+    IconData? leadingIcon,
+    Color? accentColor,
+    bool emphasized = false,
   }) {
-    return Column(
+    final section = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (title != null && title.isNotEmpty) ...[
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
+          Row(
+            children: [
+              if (leadingIcon != null) ...[
+                Icon(
+                  leadingIcon,
+                  size: 19,
+                  color: accentColor ?? Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 7),
+              ],
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: accentColor,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
         ],
         child,
       ],
     );
+
+    if (!emphasized) {
+      return section;
+    }
+
+    final color = accentColor ?? Theme.of(context).colorScheme.primary;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.13)),
+      ),
+      child: section,
+    );
   }
+}
+
+class _ContentTextPresentation {
+  const _ContentTextPresentation({
+    this.icon,
+    this.accentColor,
+    this.emphasized = false,
+  });
+
+  final IconData? icon;
+  final Color? accentColor;
+  final bool emphasized;
 }
