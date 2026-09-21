@@ -84,16 +84,33 @@ const supabasePublishableKey = 'sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await MobileAds.instance.initialize();
-
-  await NotificationService.instance.initialize();
-
   await supabase.Supabase.initialize(
     url: supabaseUrl,
     publishableKey: supabasePublishableKey,
   );
 
   runApp(const SeichiQuestApp());
+
+  // 広告と通知は初回フレームの表示には不要。
+  // Google Maps と同時にネイティブSDKを初期化すると起動直後の
+  // main thread 負荷が集中するため、最初の描画後へ逃がす。
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(_initializeDeferredPlatformServices());
+  });
+}
+
+Future<void> _initializeDeferredPlatformServices() async {
+  try {
+    await MobileAds.instance.initialize();
+  } catch (error) {
+    appDebugPrint('[STARTUP] Mobile Ads init failed: $error');
+  }
+
+  try {
+    await NotificationService.instance.initialize();
+  } catch (error) {
+    appDebugPrint('[STARTUP] notification init failed: $error');
+  }
 }
 
 // ============================================================
@@ -433,8 +450,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       ),
     );
 
-    // 全画面広告は初期表示の必須リソースではないため、起動処理と競合させない。
-    InterstitialAdService.instance.preload();
+    // 全画面広告の事前ロードは地図初期化と競合させない。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      Future<void>.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          InterstitialAdService.instance.preload();
+        }
+      });
+    });
 
     if (onboardingCompleted) {
       await _initializeLocation();
