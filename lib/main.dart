@@ -260,7 +260,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   bool _isCollecting = false;
 
   late AnimationController _sonarController;
-  int _lastMarkerAnimationFrame = -1;
 
   int _selectedTab = 0;
 
@@ -291,8 +290,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     );
-    _sonarController.addListener(_onMarkerAnimationTick);
-
     _initialize();
   }
 
@@ -1991,10 +1988,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     final nextSeichi = _nextSeichi;
 
     if (nextSeichi != null && !_collectedIds.contains(nextSeichi.id)) {
-      final animationValue = _sonarController.value;
-      final wave = math.sin(animationValue * math.pi * 2);
-      final nextAnchorY = 0.94 + (wave * 0.035);
-
       markers.add(
         Marker(
           markerId: MarkerId(nextSeichi.id),
@@ -2003,7 +1996,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
               _nextMarkerIcon ??
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
           alpha: 0.90,
-          anchor: Offset(0.5, nextAnchorY),
+          anchor: const Offset(0.5, 0.94),
           zIndexInt: 2,
           infoWindow: InfoWindow(
             title:
@@ -3084,25 +3077,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     if (_sonarController.isAnimating) {
       _sonarController.stop();
-      _lastMarkerAnimationFrame = -1;
     }
-  }
-
-  void _onMarkerAnimationTick() {
-    if (!mounted || _nextSeichi == null || _selectedTab != 0) {
-      return;
-    }
-
-    // 1.8秒周期を27段階で更新し、
-    // Google MapのMarker再構築を約15fpsに抑える。
-    final frame = (_sonarController.value * 27).floor();
-
-    if (frame == _lastMarkerAnimationFrame) {
-      return;
-    }
-
-    _lastMarkerAnimationFrame = frame;
-    setState(() {});
   }
 
   @override
