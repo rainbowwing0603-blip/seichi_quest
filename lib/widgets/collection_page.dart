@@ -494,7 +494,7 @@ class CollectionPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  collected ? 'STAMP GET' : 'LOCKED',
+                  collected ? '詳細を見る' : 'タップで確認',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -516,14 +516,14 @@ class CollectionPage extends StatelessWidget {
             height: 20,
             decoration: BoxDecoration(
               color: collected
-                  ? const Color(0xFF20A77A)
+                  ? QuestUiTokens.primary.withValues(alpha: 0.12)
                   : QuestUiTokens.mutedInk.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              collected ? Icons.check_rounded : Icons.lock_outline_rounded,
-              size: 12,
-              color: collected ? Colors.white : QuestUiTokens.mutedInk,
+              Icons.chevron_right_rounded,
+              size: 15,
+              color: collected ? QuestUiTokens.primary : QuestUiTokens.mutedInk,
             ),
           ),
         ],
@@ -849,9 +849,84 @@ class CollectionPage extends StatelessWidget {
                   ),
 
                   const SizedBox(height: 14),
+                  if (collected)
+                    QuestGlassCard(
+                      padding: const EdgeInsets.all(16),
+                      borderRadius: 20,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: QuestUiTokens.primary.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                            child: const Icon(
+                              Icons.auto_stories_rounded,
+                              color: QuestUiTokens.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '札の物語',
+                                  style: TextStyle(
+                                    color: QuestUiTokens.ink,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  '読み札・由来・歴史・現地で見るポイント',
+                                  style: TextStyle(
+                                    color: QuestUiTokens.mutedInk,
+                                    fontSize: 12,
+                                    height: 1.45,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    QuestGlassCard(
+                      padding: const EdgeInsets.all(16),
+                      borderRadius: 20,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.lock_outline_rounded,
+                            color: QuestUiTokens.mutedInk,
+                          ),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Text(
+                              '現地でスタンプを獲得すると、札の由来や歴史、現地で見るポイントが解放されます。',
+                              style: TextStyle(
+                                color: QuestUiTokens.mutedInk,
+                                fontSize: 12.5,
+                                height: 1.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 12),
                   QuestItemContentSection(
                     item: seichi,
-                    showLegacyText: false,
+                    showLegacyText: true,
                     collected: collected,
                   ),
 
