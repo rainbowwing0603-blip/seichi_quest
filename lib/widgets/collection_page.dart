@@ -67,11 +67,9 @@ class CollectionPage extends StatelessWidget {
           Expanded(
             child: filteredList.isEmpty
                 ? _buildEmptyCollectionState()
-                : Directionality(
-                    textDirection: TextDirection.ltr,
-                    child: GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(14, 4, 14, 28),
-                      itemCount: filteredList.length,
+                : GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(14, 4, 14, 28),
+                    itemCount: filteredList.length,
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 3,
@@ -84,8 +82,7 @@ class CollectionPage extends StatelessWidget {
                       final collected = collectedIds.contains(seichi.id);
 
                       return _buildCollectionCard(context, seichi, collected);
-                      },
-                    ),
+                    },
                   ),
           ),
         ],
