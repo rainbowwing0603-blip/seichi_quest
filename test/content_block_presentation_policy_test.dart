@@ -69,6 +69,40 @@ void main() {
     expect(result.blocks, hasLength(2));
   });
 
+  test('karuta card media is prioritized at the top of detail content', () {
+    ContentBlock orderedBlock(String id, String role, int displayOrder) {
+      return ContentBlock(
+        id: id,
+        contentId: 'content-1',
+        type: role == 'reading' || role == 'description'
+            ? ContentBlockType.text
+            : ContentBlockType.image,
+        role: role,
+        title: null,
+        body: role == 'reading' || role == 'description' ? 'body' : null,
+        mediaPath: role == 'reading' || role == 'description'
+            ? null
+            : '$id.png',
+        altText: null,
+        linkUrl: null,
+        displayOrder: displayOrder,
+        metadata: const <String, dynamic>{},
+      );
+    }
+
+    final result = policy.resolve([
+      orderedBlock('description', 'description', 0),
+      orderedBlock('reading', 'reading', 10),
+      orderedBlock('reading-card', 'reading_card', 40),
+      orderedBlock('picture-card', 'picture_card', 50),
+    ]);
+
+    expect(
+      result.blocks.map((block) => block.role).toList(),
+      ['picture_card', 'reading_card', 'reading', 'description'],
+    );
+  });
+
   test('unsupported future blocks cannot suppress legacy fallback', () {
     final result = policy.resolve([
       block(type: ContentBlockType.unsupported, role: 'description'),
