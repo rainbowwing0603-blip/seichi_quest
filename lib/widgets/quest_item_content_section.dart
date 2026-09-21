@@ -16,7 +16,7 @@ class QuestItemContentSection extends StatelessWidget {
     this.legacyDescriptionOverride,
     this.collected = false,
     ContentBlockService? contentBlockService,
-  }) : _contentBlockService = contentBlockService ?? ContentBlockService();
+  }) : _contentBlockService = contentBlockService;
 
   static const ContentBlockPresentationPolicy _presentationPolicy =
       ContentBlockPresentationPolicy();
@@ -26,7 +26,7 @@ class QuestItemContentSection extends StatelessWidget {
   final bool showLegacyText;
   final String? legacyDescriptionOverride;
   final bool collected;
-  final ContentBlockService _contentBlockService;
+  final ContentBlockService? _contentBlockService;
 
   @override
   Widget build(BuildContext context) {
@@ -44,8 +44,10 @@ class QuestItemContentSection extends StatelessWidget {
       );
     }
 
+    final contentBlockService = _contentBlockService ?? ContentBlockService();
+
     return FutureBuilder<List<ContentBlock>>(
-      future: _contentBlockService.loadForContent(contentId),
+      future: contentBlockService.loadForContent(contentId),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           debugPrint(
