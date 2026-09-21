@@ -132,4 +132,61 @@ void main() {
 
     expect(result.blocks, isEmpty);
   });
+  test('after_collection semantic content preserves legacy fallback before collection', () {
+    final protectedDescription = ContentBlock(
+      id: 'protected-description',
+      contentId: 'content-1',
+      type: ContentBlockType.text,
+      role: 'description',
+      title: '解放後の説明',
+      body: '獲得後だけ表示する説明',
+      mediaPath: null,
+      altText: null,
+      linkUrl: null,
+      displayOrder: 10,
+      metadata: const <String, dynamic>{'visibility': 'after_collection'},
+    );
+
+    final before = policy.resolveForCollectionState(
+      [protectedDescription],
+      collected: false,
+    );
+    final after = policy.resolveForCollectionState(
+      [protectedDescription],
+      collected: true,
+    );
+
+    expect(before.blocks, isEmpty);
+    expect(before.showLegacyDescription, isTrue);
+
+    expect(after.blocks, hasLength(1));
+    expect(after.showLegacyDescription, isFalse);
+  });
+
+  test('hidden semantic content never suppresses legacy fallback', () {
+    final hiddenPicture = ContentBlock(
+      id: 'hidden-picture',
+      contentId: 'content-1',
+      type: ContentBlockType.image,
+      role: 'picture_card',
+      title: null,
+      body: null,
+      mediaPath: 'picture.png',
+      altText: null,
+      linkUrl: null,
+      displayOrder: 10,
+      metadata: const <String, dynamic>{'visibility': 'hidden'},
+    );
+
+    for (final collected in [false, true]) {
+      final result = policy.resolveForCollectionState(
+        [hiddenPicture],
+        collected: collected,
+      );
+
+      expect(result.blocks, isEmpty);
+      expect(result.showLegacyImage, isTrue);
+    }
+  });
+
 }
