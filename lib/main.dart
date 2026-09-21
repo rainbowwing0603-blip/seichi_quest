@@ -396,25 +396,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Future<void> _initialize() async {
     final onboardingCompletedFuture = _onboardingService.isCompleted();
 
-    await _startupCoordinator.runCritical(
+    appDebugPrint('[STARTUP] critical start');
+    final criticalResult = await _startupCoordinator.runCritical(
       ensureCloudUser: _ensureCloudUser,
       loadCurrentEvent: _loadCurrentEvent,
-      loadEventAchievements: _loadEventAchievements,
       startCollectionSync: () async {
         final result = await _startCollectionSync();
         return result.pendingCollectedRows;
       },
       loadSeichi: _loadSeichi,
-      applyCollectedRows: _applyCollectedRows,
-      mergeCloudCollectionHistory: _mergeCloudCollectionHistory,
-      loadManualNextDestination: _loadManualNextDestination,
-      loadRecommendedRoute: _loadRecommendedRoute,
-      restoreRecommendedRouteDestination: () {
-        if (_activeRecommendedRoute.isNotEmpty) {
-          _manualNextSeichiId = _activeRecommendedRoute.first.id;
-        }
-      },
     );
+    appDebugPrint('[STARTUP] critical complete');
 
     final onboardingCompleted = await onboardingCompletedFuture;
 
@@ -426,6 +418,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _isOnboardingReady = true;
       _shouldShowOnboarding = !onboardingCompleted;
     });
+
+    unawaited(
+      _runPostRenderStartup(
+        pendingCollectedRows: criticalResult.pendingCollectedRows,
+      ),
+    );
 
     unawaited(
       _startupCoordinator.runDeferred(
@@ -442,6 +440,36 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       await _initializeLocation();
     }
   }
+  Future<void> _runPostRenderStartup({
+    required List<Map<String, dynamic>> pendingCollectedRows,
+  }) async {
+    try {
+      appDebugPrint('[STARTUP] post-render start');
+      await _startupCoordinator.runPostRender(
+        pendingCollectedRows: pendingCollectedRows,
+        loadEventAchievements: _loadEventAchievements,
+        applyCollectedRows: _applyCollectedRows,
+        mergeCloudCollectionHistory: _mergeCloudCollectionHistory,
+        loadManualNextDestination: _loadManualNextDestination,
+        loadRecommendedRoute: _loadRecommendedRoute,
+        restoreRecommendedRouteDestination: () {
+          if (_activeRecommendedRoute.isNotEmpty) {
+            _manualNextSeichiId = _activeRecommendedRoute.first.id;
+          }
+        },
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      _updateNextDestination();
+      appDebugPrint('[STARTUP] post-render complete');
+    } catch (error) {
+      appDebugPrint('[STARTUP] post-render failed: $error');
+    }
+  }
+
   Future<void> _showOnboardingFromSettings() async {
     if (!mounted) {
       return;
