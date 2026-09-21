@@ -4,7 +4,6 @@ import '../models/content_block.dart';
 import '../models/seichi.dart';
 import '../services/content_block_presentation_policy.dart';
 import '../services/content_block_service.dart';
-import '../services/content_reveal_policy.dart';
 import 'content_block_renderer.dart';
 import 'quest_ui.dart';
 
@@ -54,11 +53,10 @@ class QuestItemContentSection extends StatelessWidget {
           );
         }
 
-        final visibleBlocks = ContentRevealPolicy.visibleBlocks(
+        final presentation = _presentationPolicy.resolveForCollectionState(
           snapshot.data ?? const <ContentBlock>[],
           collected: collected,
         );
-        final presentation = _presentationPolicy.resolve(visibleBlocks);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
