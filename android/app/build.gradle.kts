@@ -87,4 +87,7 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+
+    // Override the old WorkManager pulled in by Google Mobile Ads.
+    implementation("androidx.work:work-runtime:2.11.2")
 }
