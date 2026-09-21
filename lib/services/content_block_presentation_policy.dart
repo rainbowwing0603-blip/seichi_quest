@@ -18,18 +18,36 @@ class ContentBlockPresentationPolicy {
   const ContentBlockPresentationPolicy();
 
   ContentBlockPresentation resolve(List<ContentBlock> blocks) {
-    final visibleBlocks = blocks
-        .where((block) => block.type != ContentBlockType.unsupported)
+    final renderableBlocks = blocks
+        .where(_canRepresentContent)
         .toList(growable: false);
 
-    final roles = visibleBlocks.map((block) => block.role).toSet();
+    final roles = renderableBlocks.map((block) => block.role).toSet();
 
     return ContentBlockPresentation(
-      blocks: visibleBlocks,
+      blocks: renderableBlocks,
       showLegacyReading: !roles.contains('reading'),
       showLegacyDescription:
           !roles.contains('description') && !roles.contains('about'),
       showLegacyImage: !roles.contains('picture_card'),
     );
+  }
+
+  bool _canRepresentContent(ContentBlock block) {
+    return switch (block.type) {
+      ContentBlockType.text => _hasText(block.body),
+      ContentBlockType.image => _hasText(block.mediaPath),
+      ContentBlockType.link => _isValidWebUri(block.linkUrl),
+      ContentBlockType.unsupported => false,
+    };
+  }
+
+  bool _hasText(String? value) => value?.trim().isNotEmpty ?? false;
+
+  bool _isValidWebUri(String? value) {
+    final uri = Uri.tryParse(value?.trim() ?? '');
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
   }
 }
