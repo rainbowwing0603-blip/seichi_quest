@@ -100,10 +100,8 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   Widget build(BuildContext context) {
     if (!_isLoaded || _bannerAd == null) {
-      if (kReleaseMode) {
-        return const SizedBox.shrink();
-      }
-
+      // TEMPORARY: Closed-test diagnostics for the P710, which cannot be
+      // connected through ADB. Remove this panel before production release.
       return Container(
         width: double.infinity,
         constraints: const BoxConstraints(minHeight: 50),
