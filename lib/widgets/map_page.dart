@@ -1636,18 +1636,13 @@ class MapPage extends StatelessWidget {
           top: 14,
           left: 14,
           right: 14,
-          child: AnimatedCrossFade(
-            firstChild: _buildQuestHud(collapsed: false),
-            secondChild: _buildQuestHud(collapsed: true),
-            crossFadeState: isQuestHudCollapsed
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
+          child: AnimatedSize(
             duration: const Duration(milliseconds: 420),
-            reverseDuration: const Duration(milliseconds: 420),
-            firstCurve: Curves.easeInOutCubic,
-            secondCurve: Curves.easeInOutCubic,
-            sizeCurve: Curves.easeInOutCubic,
+            curve: Curves.easeInOutCubic,
             alignment: Alignment.topCenter,
+            child: ClipRect(
+              child: _buildQuestHud(collapsed: isQuestHudCollapsed),
+            ),
           ),
         ),
         _buildLocationButton(),
