@@ -233,7 +233,7 @@ class MapPage extends StatelessWidget {
     return normalized.clamp(0.1, 1.0);
   }
 
-  Widget _buildQuestHud() {
+  Widget _buildQuestHud({required bool collapsed}) {
     final seichi = nextSeichi;
     final distance = nextDistance;
     final state = realWorldState;
@@ -274,7 +274,7 @@ class MapPage extends StatelessWidget {
 
     final intensity = _sonarIntensity();
 
-    if (isQuestHudCollapsed) {
+    if (collapsed) {
       return SafeArea(
         bottom: false,
         child: Material(
@@ -1636,11 +1636,18 @@ class MapPage extends StatelessWidget {
           top: 14,
           left: 14,
           right: 14,
-          child: AnimatedSize(
+          child: AnimatedCrossFade(
+            firstChild: _buildQuestHud(collapsed: false),
+            secondChild: _buildQuestHud(collapsed: true),
+            crossFadeState: isQuestHudCollapsed
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 420),
-            curve: Curves.easeInOutCubic,
+            reverseDuration: const Duration(milliseconds: 420),
+            firstCurve: Curves.easeInOutCubic,
+            secondCurve: Curves.easeInOutCubic,
+            sizeCurve: Curves.easeInOutCubic,
             alignment: Alignment.topCenter,
-            child: _buildQuestHud(),
           ),
         ),
         _buildLocationButton(),
