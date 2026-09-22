@@ -275,19 +275,10 @@ class MapPage extends StatelessWidget {
     final intensity = _sonarIntensity();
 
     if (isQuestHudCollapsed) {
-      return Positioned(
-        top: 14,
-        left: 14,
-        right: 14,
-        child: SafeArea(
-          bottom: false,
-          child: AnimatedSize(
-            duration: const Duration(milliseconds: 320),
-            reverseDuration: const Duration(milliseconds: 420),
-            curve: Curves.easeInOutCubic,
-            alignment: Alignment.topCenter,
-            child: Material(
-              color: Colors.transparent,
+      return SafeArea(
+        bottom: false,
+        child: Material(
+            color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(27),
               onTap: onToggleQuestHud,
@@ -386,8 +377,6 @@ class MapPage extends StatelessWidget {
               ),
             ),
           ),
-          ),
-        ),
       );
     }
 
@@ -397,19 +386,10 @@ class MapPage extends StatelessWidget {
     const ink = Color(0xFF102A43);
     const mutedInk = Color(0xFF60758A);
 
-    return Positioned(
-      top: 14,
-      left: 14,
-      right: 14,
-      child: SafeArea(
-        bottom: false,
-        child: AnimatedSize(
-          duration: const Duration(milliseconds: 320),
-          reverseDuration: const Duration(milliseconds: 420),
-          curve: Curves.easeInOutCubic,
-          alignment: Alignment.topCenter,
-          child: Stack(
-            clipBehavior: Clip.none,
+    return SafeArea(
+      bottom: false,
+      child: Stack(
+          clipBehavior: Clip.none,
           children: [
             Positioned(
               left: 18,
@@ -1157,8 +1137,6 @@ class MapPage extends StatelessWidget {
             ),
           ],
         ),
-        ),
-      ),
     );
   }
 
@@ -1654,7 +1632,17 @@ class MapPage extends StatelessWidget {
             weather: realWorldState!.weather,
             dayPhase: realWorldState!.dayPhase,
           ),
-        _buildQuestHud(),
+        Positioned(
+          top: 14,
+          left: 14,
+          right: 14,
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 360),
+            curve: Curves.easeInOutCubic,
+            alignment: Alignment.topCenter,
+            child: _buildQuestHud(),
+          ),
+        ),
         _buildLocationButton(),
         if (errorMessage == null) _buildNextButton(),
         _buildErrorCard(),
