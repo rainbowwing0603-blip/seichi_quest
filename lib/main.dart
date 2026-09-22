@@ -3024,7 +3024,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     return Scaffold(
-      extendBody: true,
+      // Keep page content above the banner/navigation area. This prevents
+      // bottom actions from being covered when a banner is displayed.
       body: _buildCurrentPage(),
 
       bottomNavigationBar: Column(
