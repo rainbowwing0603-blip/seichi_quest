@@ -1642,7 +1642,30 @@ class MapPage extends StatelessWidget {
             weather: realWorldState!.weather,
             dayPhase: realWorldState!.dayPhase,
           ),
-        _buildQuestHud(),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 280),
+          reverseDuration: const Duration(milliseconds: 240),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) {
+            final curved = CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            );
+            return FadeTransition(
+              opacity: curved,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.97, end: 1.0).animate(curved),
+                alignment: Alignment.topCenter,
+                child: child,
+              ),
+            );
+          },
+          child: KeyedSubtree(
+            key: ValueKey<bool>(isQuestHudCollapsed),
+            child: _buildQuestHud(),
+          ),
+        ),
         _buildLocationButton(),
         if (errorMessage == null) _buildNextButton(),
         _buildErrorCard(),
