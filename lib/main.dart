@@ -255,6 +255,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   int _staticMarkerCacheRevision = -1;
   Seichi? _nextSeichi;
   double? _nextDistance;
+  bool _isQuestHudCollapsed = false;
 
   bool _focusNextDestinationOnMapOpen = false;
   Seichi? _pendingMapSeichi;
@@ -2524,6 +2525,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           _errorMessage = null;
           _errorActionLabel = null;
           _errorAction = null;
+        });
+      },
+      isQuestHudCollapsed: _isQuestHudCollapsed,
+      onToggleQuestHud: () {
+        setState(() {
+          _isQuestHudCollapsed = !_isQuestHudCollapsed;
         });
       },
     );
