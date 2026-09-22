@@ -169,6 +169,8 @@ class MapPage extends StatelessWidget {
   final VoidCallback onStartNavigation;
   final ValueChanged<GoogleMapController> onMapCreated;
   final VoidCallback onDismissError;
+  final bool isQuestHudCollapsed;
+  final VoidCallback? onToggleQuestHud;
 
   const MapPage({
     super.key,
@@ -194,6 +196,8 @@ class MapPage extends StatelessWidget {
     required this.onStartNavigation,
     required this.onMapCreated,
     required this.onDismissError,
+    this.isQuestHudCollapsed = false,
+    this.onToggleQuestHud,
   });
 
   String _formatDistance(double distance) {
@@ -269,6 +273,117 @@ class MapPage extends StatelessWidget {
         : '${temperature.round()}°';
 
     final intensity = _sonarIntensity();
+
+    if (isQuestHudCollapsed) {
+      return Positioned(
+        top: 14,
+        left: 14,
+        right: 14,
+        child: SafeArea(
+          bottom: false,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: onToggleQuestHud,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 54),
+                padding: const EdgeInsets.fromLTRB(14, 9, 8, 9),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: const Color(0xEEF8FAFF),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.82),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF102A43).withValues(alpha: 0.12),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF8994FF), Color(0xFF5968E8)],
+                        ),
+                      ),
+                      child: Text(
+                        seichi?.icon ?? '🧭',
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'NEXT QUEST',
+                            style: TextStyle(
+                              color: Color(0xFF596E82),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            seichi == null
+                                ? (collectedCount >= total && total > 0
+                                    ? '群馬の聖地を完全制覇！'
+                                    : '次の聖地を探しています…')
+                                : '${seichi.card}  ${seichi.name}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF102A43),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (seichi != null && distance != null) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        _formatDistance(distance),
+                        style: const TextStyle(
+                          color: Color(0xFF60758A),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(width: 4),
+                    IconButton(
+                      tooltip: '目的地カードを広げる',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: onToggleQuestHud,
+                      icon: const Icon(
+                        Icons.expand_more_rounded,
+                        color: Color(0xFF5968E8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     const primary = Color(0xFF5968E8);
     const primaryDeep = Color(0xFF403A9F);
@@ -550,6 +665,16 @@ class MapPage extends StatelessWidget {
                                       ),
                                     ),
                                   ],
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                tooltip: '目的地カードを小さくする',
+                                visualDensity: VisualDensity.compact,
+                                onPressed: onToggleQuestHud,
+                                icon: const Icon(
+                                  Icons.expand_less_rounded,
+                                  color: Color(0xFF5968E8),
                                 ),
                               ),
                             ],
