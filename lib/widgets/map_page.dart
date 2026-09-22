@@ -12,6 +12,11 @@ import 'quest_ui.dart';
 import 'weather_effect_overlay.dart';
 
 class MapPage extends StatelessWidget {
+  // Insets are relative to the usable body area. The Scaffold owns the
+  // banner and bottom navigation heights, so this page must not duplicate them.
+  static const double _bottomActionInset = 36;
+  static const double _locationButtonInset = 101;
+
   static const String _nightMapStyle = r'''
 [
   {
@@ -1028,7 +1033,7 @@ class MapPage extends StatelessWidget {
     return Positioned(
       left: 16,
       right: 16,
-      bottom: 158,
+      bottom: _bottomActionInset,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(22),
         child: BackdropFilter(
@@ -1209,7 +1214,7 @@ class MapPage extends StatelessWidget {
   Widget _buildLocationButton() {
     return Positioned(
       right: 14,
-      bottom: 223,
+      bottom: _locationButtonInset,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(22),
         child: BackdropFilter(
@@ -1269,7 +1274,7 @@ class MapPage extends StatelessWidget {
     return Positioned(
       left: 16,
       right: 16,
-      bottom: 158,
+      bottom: _bottomActionInset,
       child: Row(
         children: [
           Expanded(
