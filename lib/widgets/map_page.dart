@@ -1636,13 +1636,20 @@ class MapPage extends StatelessWidget {
           top: 14,
           left: 14,
           right: 14,
-          child: AnimatedSize(
-            duration: const Duration(milliseconds: 420),
-            curve: Curves.easeInOutCubic,
+          child: AnimatedCrossFade(
+            firstChild: _buildQuestHud(collapsed: false),
+            secondChild: _buildQuestHud(collapsed: true),
+            crossFadeState: isQuestHudCollapsed
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 460),
+            reverseDuration: const Duration(milliseconds: 460),
+            sizeCurve: Curves.easeInOutCubicEmphasized,
+            // Keep the outgoing card fully painted while its height is being
+            // clipped. This avoids the "fade away, then swap" look.
+            firstCurve: const Threshold(0.98),
+            secondCurve: const Threshold(0.98),
             alignment: Alignment.topCenter,
-            child: ClipRect(
-              child: _buildQuestHud(collapsed: isQuestHudCollapsed),
-            ),
           ),
         ),
         _buildLocationButton(),
