@@ -281,20 +281,33 @@ class MapPage extends StatelessWidget {
         right: 14,
         child: SafeArea(
           bottom: false,
-          child: AnimatedSize(
-            duration: const Duration(milliseconds: 320),
+          child: TweenAnimationBuilder<double>(
+            key: const ValueKey<String>('quest-hud-compact'),
+            tween: Tween<double>(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 360),
             curve: Curves.easeInOutCubic,
-            alignment: Alignment.topCenter,
+            builder: (context, progress, child) {
+              return ClipRect(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  heightFactor: 0.72 + (0.28 * progress),
+                  child: Opacity(
+                    opacity: progress.clamp(0.0, 1.0),
+                    child: child,
+                  ),
+                ),
+              );
+            },
             child: Material(
               color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(27),
               onTap: onToggleQuestHud,
               child: Container(
                 constraints: const BoxConstraints(minHeight: 54),
                 padding: const EdgeInsets.fromLTRB(14, 9, 8, 9),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(27),
                   color: const Color(0xEEF8FAFF),
                   border: Border.all(
                     color: Colors.white.withValues(alpha: 0.82),
