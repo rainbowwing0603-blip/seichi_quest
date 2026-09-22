@@ -1637,10 +1637,42 @@ class MapPage extends StatelessWidget {
           left: 14,
           right: 14,
           child: AnimatedSize(
-            duration: const Duration(milliseconds: 360),
+            duration: const Duration(milliseconds: 420),
             curve: Curves.easeInOutCubic,
             alignment: Alignment.topCenter,
-            child: _buildQuestHud(),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 260),
+              reverseDuration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              layoutBuilder: (currentChild, previousChildren) {
+                // Only the current HUD contributes to layout size.
+                // AnimatedSize then continuously interpolates between the
+                // expanded and compact heights instead of waiting for the
+                // outgoing child to disappear.
+                return currentChild ?? const SizedBox.shrink();
+              },
+              transitionBuilder: (child, animation) {
+                final curved = CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                );
+                return FadeTransition(
+                  opacity: curved,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, -0.025),
+                      end: Offset.zero,
+                    ).animate(curved),
+                    child: child,
+                  ),
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey<bool>(isQuestHudCollapsed),
+                child: _buildQuestHud(),
+              ),
+            ),
           ),
         ),
         _buildLocationButton(),
