@@ -12,6 +12,7 @@ class BannerAdWidget extends StatefulWidget {
 class _BannerAdWidgetState extends State<BannerAdWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
+  String _debugStatus = '広告: 読み込み開始';
 
   // Debug/ProfileではGoogle公式テスト広告、
   // Releaseでは聖地クエスト本番広告を使用する。
@@ -44,9 +45,11 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
             return;
           }
 
+          debugPrint('[ADS] banner loaded');
           setState(() {
             _bannerAd = ad as BannerAd;
             _isLoaded = true;
+            _debugStatus = '広告: 読み込み成功';
           });
         },
         onAdFailedToLoad: (ad, error) {
@@ -56,9 +59,17 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
             return;
           }
 
+          debugPrint(
+            '[ADS] banner failed: code=${error.code} '
+            'domain=${error.domain} message=${error.message}',
+          );
           setState(() {
             _bannerAd = null;
             _isLoaded = false;
+            _debugStatus =
+                '広告失敗: code=${error.code}\n'
+                '${error.domain}\n'
+                '${error.message}';
           });
         },
       ),
@@ -66,8 +77,17 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
     try {
       banner.load();
-    } catch (_) {
+    } catch (error) {
       banner.dispose();
+      debugPrint('[ADS] banner exception: $error');
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _bannerAd = null;
+        _isLoaded = false;
+        _debugStatus = '広告例外: $error';
+      });
     }
   }
 
@@ -80,7 +100,21 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   Widget build(BuildContext context) {
     if (!_isLoaded || _bannerAd == null) {
-      return const SizedBox.shrink();
+      if (kReleaseMode) {
+        return const SizedBox.shrink();
+      }
+
+      return Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(minHeight: 50),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        alignment: Alignment.center,
+        child: Text(
+          _debugStatus,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 11),
+        ),
+      );
     }
 
     return SizedBox(
