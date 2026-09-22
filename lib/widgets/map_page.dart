@@ -281,8 +281,12 @@ class MapPage extends StatelessWidget {
         right: 14,
         child: SafeArea(
           bottom: false,
-          child: Material(
-            color: Colors.transparent,
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeInOutCubic,
+            alignment: Alignment.topCenter,
+            child: Material(
+              color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
               onTap: onToggleQuestHud,
@@ -381,6 +385,7 @@ class MapPage extends StatelessWidget {
               ),
             ),
           ),
+          ),
         ),
       );
     }
@@ -397,8 +402,12 @@ class MapPage extends StatelessWidget {
       right: 14,
       child: SafeArea(
         bottom: false,
-        child: Stack(
-          clipBehavior: Clip.none,
+        child: AnimatedSize(
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeInOutCubic,
+          alignment: Alignment.topCenter,
+          child: Stack(
+            clipBehavior: Clip.none,
           children: [
             Positioned(
               left: 18,
@@ -1146,6 +1155,7 @@ class MapPage extends StatelessWidget {
             ),
           ],
         ),
+        ),
       ),
     );
   }
@@ -1642,30 +1652,7 @@ class MapPage extends StatelessWidget {
             weather: realWorldState!.weather,
             dayPhase: realWorldState!.dayPhase,
           ),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 280),
-          reverseDuration: const Duration(milliseconds: 240),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          transitionBuilder: (child, animation) {
-            final curved = CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            );
-            return FadeTransition(
-              opacity: curved,
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.97, end: 1.0).animate(curved),
-                alignment: Alignment.topCenter,
-                child: child,
-              ),
-            );
-          },
-          child: KeyedSubtree(
-            key: ValueKey<bool>(isQuestHudCollapsed),
-            child: _buildQuestHud(),
-          ),
-        ),
+        _buildQuestHud(),
         _buildLocationButton(),
         if (errorMessage == null) _buildNextButton(),
         _buildErrorCard(),
