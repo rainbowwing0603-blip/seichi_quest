@@ -2644,6 +2644,55 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // クエスト画面
   // ============================================================
 
+  Future<void> _openAnnouncementEvent(String eventId) async {
+    Event? event;
+
+    for (final candidate in _events) {
+      if (candidate.id == eventId) {
+        event = candidate;
+        break;
+      }
+    }
+
+    if (event == null) {
+      if (mounted) {
+        QuestSnackBar.show(
+          context,
+          message: '関連するクエスト情報を取得できません。',
+          type: QuestNoticeType.warning,
+        );
+      }
+      return;
+    }
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => EventDetailPage(
+          event: event!,
+          currentPosition: _currentPosition,
+          participationLabel:
+              event.id == _currentEventId ? '選択中' : 'クエスト',
+          collectedCount:
+              event.id == _currentEventId ? _getCollectedCount() : null,
+          totalCount:
+              event.id == _currentEventId ? _seichiList.length : null,
+          currentNextSeichiId:
+              event.id == _currentEventId ? _nextSeichi?.id : null,
+          onSetNextDestination:
+              event.id == _currentEventId ? _setNextDestination : null,
+          onShowOnMap: event.id == _currentEventId
+              ? (seichi) {
+                  Navigator.of(context).pop();
+                  _moveCameraToSeichi(seichi);
+                }
+              : null,
+          onStartRecommendedRoute:
+              event.id == _currentEventId ? _startRecommendedRoute : null,
+        ),
+      ),
+    );
+  }
+
   Future<void> _showEventExplore({bool favoriteOnly = false}) async {
     final result = await Navigator.of(context).push<Object?>(
       MaterialPageRoute(
@@ -2990,6 +3039,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           MaterialPageRoute(
             builder: (_) => AnnouncementsPage(
               service: _announcementService,
+              onOpenEvent: _openAnnouncementEvent,
             ),
           ),
         );
