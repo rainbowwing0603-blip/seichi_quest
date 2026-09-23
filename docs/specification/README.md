@@ -27,3 +27,7 @@
 ## 更新ルール
 
 機能変更時はコードだけでなく、該当仕様書と `14_traceability.md` を同じPRで更新する。DB変更は migration、RLS、RPC、Storage、Edge Functionへの影響を記録する。将来案は実装済みと混在させない。秘密情報、DBダンプ、認証ユーザーデータ、署名鍵、API秘密鍵、許諾前画像のバックアップはこの公開可能な文書群へ格納しない。
+
+- [16 お知らせ仕様](16_announcements.md)
+- [17 広告配置Policy](17_ad_placement_policy.md)
+- [18 お知らせ＋広告改善 実装計画](18_feature_plan_announcements_ads.md)
