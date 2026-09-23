@@ -1,0 +1,85 @@
+name: Inject banner ad
+
+on:
+  push:
+    branches:
+      - refactor/modularize
+
+permissions:
+  contents: write
+
+jobs:
+  inject:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fix banner placement
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/main.dart')
+          s = p.read_text(encoding='utf-8')
+          imp = "import 'widgets/banner_ad_widget.dart';"
+          if imp not in s:
+              s = s.replace("import 'models/seichi.dart';", "import 'models/seichi.dart';\n" + imp, 1)
+          start = s.find('      bottomNavigationBar:')
+          end = s.find('  @override\n  void dispose', start)
+          if start < 0 or end < 0:
+              raise SystemExit('navigation block not found')
+          block = '''      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const BannerAdWidget(),
+          NavigationBar(
+            selectedIndex: _selectedTab,
+            onDestinationSelected: (index) {
+              setState(() {
+                _selectedTab = index;
+              });
+            },
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.map_outlined),
+                selectedIcon: Icon(Icons.map),
+                label: 'マップ',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.flag_outlined),
+                selectedIcon: Icon(Icons.flag),
+                label: 'クエスト',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.workspace_premium_outlined),
+                selectedIcon: Icon(Icons.workspace_premium),
+                label: 'スタンプ',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.leaderboard_outlined),
+                selectedIcon: Icon(Icons.leaderboard),
+                label: 'ランキング',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'マイページ',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+'''
+          s = s[:start] + block + s[end:]
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit source change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix AdMob banner placement"
+          git push

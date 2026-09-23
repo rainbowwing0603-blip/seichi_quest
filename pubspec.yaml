@@ -2,8 +2,7 @@ name: seichi_quest
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+1
-
+version: 1.0.0+8
 environment:
   sdk: ^3.13.1
 
@@ -16,7 +15,12 @@ dependencies:
   google_maps_flutter: ^2.18.0
   geolocator: ^14.0.3
   shared_preferences: ^2.5.3
-
+  google_mobile_ads: ^9.1.0
+  flutter_local_notifications: ^22.3.0
+  sign_in_with_apple: ^8.2.0
+  share_plus: ^13.3.0
+  url_launcher: ^6.3.2
+  http: ^1.6.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -25,3 +29,12 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/map_markers/marker_uncollected.png
+    - assets/map_markers/marker_collected.png
+    - assets/map_markers/marker_next.png
+
+  fonts:
+    - family: NotoSansJP
+      fonts:
+        - asset: assets/fonts/NotoSansJP-Variable.ttf

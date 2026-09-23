@@ -1,3 +1,14 @@
+import java.io.FileInputStream
+import java.util.Properties
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+
+if (!keystorePropertiesFile.exists()) {
+    throw GradleException("android/key.properties is required for release signing.")
+}
+
+keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -5,35 +16,61 @@ plugins {
 }
 
 android {
-    namespace = "com.example.seichi_quest"
+    namespace = "jp.seichiquest.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
+        val googleMapsApiKey =
+            keystoreProperties.getProperty("googleMapsApiKey")
+                ?: throw GradleException(
+                    "googleMapsApiKey is required in android/key.properties."
+                )
+
+        manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.seichi_quest"
+        applicationId = "jp.seichiquest.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        // Google Play: 2026-08-31以降の新規アプリ/更新はAPI 36以上が必須。
+        // Flutter SDK既定値の変化に左右されないよう、リリース要件を明示する。
+        targetSdk = 36
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
         // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Debug / ProfileはGoogle公式テスト用AdMob App ID
+        manifestPlaceholders["adMobAppId"] =
+            "ca-app-pub-3940256099942544~3347511713"
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+        }
+    }
     buildTypes {
+
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Releaseは聖地クエスト本番用AdMob App ID
+            manifestPlaceholders["adMobAppId"] =
+                "ca-app-pub-1391846841313915~6472071786"
+
+            // Releaseはupload keystoreで署名
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
@@ -46,4 +83,11 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+
+    // Override the old WorkManager pulled in by Google Mobile Ads.
+    implementation("androidx.work:work-runtime:2.11.2")
 }
