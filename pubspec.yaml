@@ -2,7 +2,7 @@ name: seichi_quest
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+6
+version: 1.0.0+7
 environment:
   sdk: ^3.13.1
 
@@ -33,3 +33,19 @@ flutter:
     - assets/map_markers/marker_uncollected.png
     - assets/map_markers/marker_collected.png
     - assets/map_markers/marker_next.png
+
+  fonts:
+    - family: NotoSansJP
+      fonts:
+        - asset: assets/fonts/NotoSansJP-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansJP-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/NotoSansJP-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/NotoSansJP-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/NotoSansJP-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/NotoSansJP-Black.ttf
+          weight: 900

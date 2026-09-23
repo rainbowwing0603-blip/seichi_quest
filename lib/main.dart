@@ -133,6 +133,7 @@ class SeichiQuestApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        fontFamily: 'NotoSansJP',
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF6A35C8),
           brightness: Brightness.light,
