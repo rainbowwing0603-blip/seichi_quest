@@ -49,7 +49,6 @@ import 'services/content_block_service.dart';
 import 'services/content_block_presentation_policy.dart';
 import 'widgets/content_block_renderer.dart';
 
-
 import 'services/app_logger.dart';
 import 'services/collection_sync_service.dart';
 import 'services/collection_apply_policy.dart';
@@ -245,6 +244,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // 現在地の精度が低い状態を表す。
   bool _hasVeryLowLocationAccuracy = false;
 
+  // 低精度警告をユーザーが閉じた状態。
+  // GPS精度そのものとは分離して管理する。
+  bool _isLowAccuracyWarningDismissed = false;
   BitmapDescriptor? _uncollectedMarkerIcon;
   BitmapDescriptor? _collectedMarkerIcon;
   BitmapDescriptor? _nextMarkerIcon;
@@ -295,7 +297,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ------------------------------------------------------------
 
   static const LatLng _defaultCenter = LatLng(36.3910, 139.0600);
-
 
   // ============================================================
   // 初期化
@@ -377,8 +378,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         throw Exception('イベントIDが未取得のため、チャレンジを読み込めません。');
       }
 
-      _eventAchievements =
-          await _progressionService.loadEventAchievements(eventId);
+      _eventAchievements = await _progressionService.loadEventAchievements(
+        eventId,
+      );
     } catch (error) {
       _eventAchievements = <Achievement>[];
       appDebugPrint('[ACHIEVEMENTS] load failed: $error');
@@ -484,6 +486,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       await _initializeLocation();
     }
   }
+
   Future<void> _runPostRenderStartup({
     required List<Map<String, dynamic>> pendingCollectedRows,
   }) async {
@@ -697,8 +700,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       eventId: eventId,
     );
 
-    final localCollectedIdsChanged =
-        !haveSameStringValues(_collectedIds, result.localCollectedIds);
+    final localCollectedIdsChanged = !haveSameStringValues(
+      _collectedIds,
+      result.localCollectedIds,
+    );
 
     if (localCollectedIdsChanged) {
       _collectedIds
@@ -752,8 +757,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // 保存済みスタンプ
   // ============================================================
 
-
-
   Future<void> _saveManualNextDestination() async {
     final eventId = _currentEventId;
     final userId = _sessionService.currentUserId;
@@ -775,9 +778,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    appDebugPrint(
-      '[NEXT-PERSIST] saved: event=$eventId seichi=$seichiId',
-    );
+    appDebugPrint('[NEXT-PERSIST] saved: event=$eventId seichi=$seichiId');
   }
 
   Future<void> _loadManualNextDestination() async {
@@ -820,9 +821,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     _manualNextSeichiId = savedId;
 
-    appDebugPrint(
-      '[NEXT-PERSIST] restored: event=$eventId seichi=$savedId',
-    );
+    appDebugPrint('[NEXT-PERSIST] restored: event=$eventId seichi=$savedId');
   }
 
   Future<void> _saveRecommendedRoute() async {
@@ -849,9 +848,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    appDebugPrint(
-      '[ROUTE-PERSIST] saved: event=$eventId ids=$routeIds',
-    );
+    appDebugPrint('[ROUTE-PERSIST] saved: event=$eventId ids=$routeIds');
   }
 
   void _saveRecommendedRouteInBackground() {
@@ -917,9 +914,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       await _destinationPersistenceService.saveRecommendedRoute(
         userId: userId,
         eventId: eventId,
-        seichiIds: restoredRoute
-            .map((item) => item.id)
-            .toList(growable: false),
+        seichiIds: restoredRoute.map((item) => item.id).toList(growable: false),
       );
     }
 
@@ -975,9 +970,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // Supabaseから聖地取得
   // ============================================================
 
-  Future<void> _loadSeichi({
-    bool manageLoadingState = true,
-  }) async {
+  Future<void> _loadSeichi({bool manageLoadingState = true}) async {
     try {
       if (mounted && manageLoadingState) {
         setState(() {
@@ -1099,6 +1092,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _currentPosition = position;
       _isLoadingLocation = false;
       _hasVeryLowLocationAccuracy = position.accuracy > 500.0;
+      _isLowAccuracyWarningDismissed = false;
       _errorMessage = null;
       _errorActionLabel = null;
       _errorAction = null;
@@ -1195,6 +1189,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           setState(() {
             _currentPosition = position;
             _hasVeryLowLocationAccuracy = hasVeryLowLocationAccuracy;
+
+            if (!hasVeryLowLocationAccuracy) {
+              _isLowAccuracyWarningDismissed = false;
+            }
           });
         } else {
           _currentPosition = position;
@@ -1420,11 +1418,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       if (elapsedSeconds > 0) {
         final movedDistance = _locationService.distanceBetween(
-        startLatitude: previousPosition.latitude,
-        startLongitude: previousPosition.longitude,
-        endLatitude: position.latitude,
-        endLongitude: position.longitude,
-      );
+          startLatitude: previousPosition.latitude,
+          startLongitude: previousPosition.longitude,
+          endLatitude: position.latitude,
+          endLongitude: position.longitude,
+        );
 
         if (!StampEligibilityPolicy.isPlausibleMovement(
           movedDistanceMeters: movedDistance,
@@ -1579,9 +1577,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       activeRoute: _activeRecommendedRoute,
       manualNextSeichiId: _manualNextSeichiId,
       collectedIds: _collectedIds,
-      newlyCollectedIds: newlyCollectedSeichi
-          .map((item) => item.id)
-          .toSet(),
+      newlyCollectedIds: newlyCollectedSeichi.map((item) => item.id).toSet(),
     );
 
     _activeRecommendedRoute
@@ -1998,14 +1994,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _staticMarkerCache == null ||
         !_markerCacheRevision.isCurrent(_staticMarkerCacheRevision) ||
         _staticMarkerCacheNextId != nextId ||
-        !identical(
-          _staticMarkerCacheUncollectedIcon,
-          _uncollectedMarkerIcon,
-        ) ||
-        !identical(
-          _staticMarkerCacheCollectedIcon,
-          _collectedMarkerIcon,
-        );
+        !identical(_staticMarkerCacheUncollectedIcon, _uncollectedMarkerIcon) ||
+        !identical(_staticMarkerCacheCollectedIcon, _collectedMarkerIcon);
 
     if (shouldRebuildStaticMarkers) {
       final staticMarkers = <Marker>{};
@@ -2212,10 +2202,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                     FutureBuilder(
                       future: contentBlocksFuture,
                       builder: (context, snapshot) {
-                        final presentation =
-                            _contentBlockPresentationPolicy.resolve(
-                              snapshot.data ?? const [],
-                            );
+                        final presentation = _contentBlockPresentationPolicy
+                            .resolve(snapshot.data ?? const []);
 
                         if (snapshot.hasError) {
                           appDebugPrint(
@@ -2479,18 +2467,21 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       nextDistance: _nextDistance,
       collectedIds: _collectedIds,
       isLoadingLocation: _isLoadingLocation,
-      errorMessage: _errorMessage ??
-          (_hasVeryLowLocationAccuracy
+      errorMessage:
+          _errorMessage ??
+          (_hasVeryLowLocationAccuracy && !_isLowAccuracyWarningDismissed
               ? '位置情報の精度が低くなっています。スタンプ獲得や次の目的地の表示を正確にするため、端末の「正確な位置情報」をONにしてください。'
               : null),
       errorActionLabel: _errorMessage != null
           ? _errorActionLabel
-          : (_hasVeryLowLocationAccuracy ? 'アプリ設定を開く' : null),
+          : (_hasVeryLowLocationAccuracy && !_isLowAccuracyWarningDismissed
+                ? 'アプリ設定を開く'
+                : null),
       onErrorAction: _errorMessage != null
           ? _errorAction
-          : (_hasVeryLowLocationAccuracy
-              ? _locationService.openAppSettings
-              : null),
+          : (_hasVeryLowLocationAccuracy && !_isLowAccuracyWarningDismissed
+                ? _locationService.openAppSettings
+                : null),
       sonarController: _sonarController,
       justCollected: _justCollected,
       collectedName: _collectedName,
@@ -2523,9 +2514,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       },
       onDismissError: () {
         setState(() {
-          _errorMessage = null;
-          _errorActionLabel = null;
-          _errorAction = null;
+          if (_errorMessage != null) {
+            _errorMessage = null;
+            _errorActionLabel = null;
+            _errorAction = null;
+          } else if (_hasVeryLowLocationAccuracy) {
+            _isLowAccuracyWarningDismissed = true;
+          }
         });
       },
       isQuestHudCollapsed: _isQuestHudCollapsed,
@@ -3026,9 +3021,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     if (_shouldShowOnboarding) {
-      return OnboardingPage(
-        onComplete: _completeOnboarding,
-      );
+      return OnboardingPage(onComplete: _completeOnboarding);
     }
 
     return Scaffold(
