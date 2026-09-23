@@ -8,10 +8,10 @@ class InterstitialAdService {
 
   static final InterstitialAdService instance = InterstitialAdService._();
 
-  static const Duration _productionStartupGracePeriod = Duration(minutes: 10);
-  static const Duration _productionMinimumInterval = Duration(minutes: 30);
-  static const Duration _productionStampGracePeriod = Duration(minutes: 5);
-  static const Duration _productionMinimumScreenStay = Duration(seconds: 15);
+  static const Duration _productionStartupGracePeriod = Duration(minutes: 3);
+  static const Duration _productionMinimumInterval = Duration(minutes: 15);
+  static const Duration _productionStampGracePeriod = Duration(minutes: 2);
+  static const Duration _productionMinimumScreenStay = Duration(seconds: 10);
 
   static const Duration _debugStartupGracePeriod = Duration.zero;
   static const Duration _debugMinimumInterval = Duration(seconds: 30);
