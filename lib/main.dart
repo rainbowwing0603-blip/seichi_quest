@@ -22,6 +22,7 @@ import 'widgets/profile_page.dart';
 import 'widgets/account_page.dart';
 import 'widgets/adventure_log_page.dart';
 import 'widgets/event_explore_page.dart';
+import 'widgets/event_detail_page.dart';
 import 'widgets/sync_status_page.dart';
 import 'widgets/notification_settings_page.dart';
 import 'widgets/announcements_page.dart';
