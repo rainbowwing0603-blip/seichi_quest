@@ -8,9 +8,11 @@ class AnnouncementsPage extends StatefulWidget {
   const AnnouncementsPage({
     super.key,
     this.service,
+    this.onOpenEvent,
   });
 
   final AnnouncementService? service;
+  final Future<void> Function(String eventId)? onOpenEvent;
 
   @override
   State<AnnouncementsPage> createState() => _AnnouncementsPageState();
@@ -83,6 +85,19 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
             ),
           ),
           actions: [
+            if (announcement.eventId != null && widget.onOpenEvent != null)
+              FilledButton.icon(
+                onPressed: () {
+                  final eventId = announcement.eventId;
+                  if (eventId == null) {
+                    return;
+                  }
+                  Navigator.of(dialogContext).pop();
+                  widget.onOpenEvent!(eventId);
+                },
+                icon: const Icon(Icons.flag_outlined),
+                label: const Text('クエストを見る'),
+              ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('閉じる'),
