@@ -10,8 +10,11 @@ class BannerAdWidget extends StatefulWidget {
 }
 
 class _BannerAdWidgetState extends State<BannerAdWidget> {
+  static const int _maxBannerHeight = 50;
+
   BannerAd? _bannerAd;
   bool _isLoaded = false;
+  double? _lastRequestedWidth;
 
   // Debug/ProfileではGoogle公式テスト広告、
   // Releaseでは聖地クエスト本番広告を使用する。
@@ -27,19 +30,53 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
           : _testBannerAdUnitId;
 
   @override
-  void initState() {
-    super.initState();
-    _loadBanner();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final availableWidth = MediaQuery.sizeOf(context).width;
+    if (availableWidth <= 0) {
+      return;
+    }
+
+    if (_lastRequestedWidth != null &&
+        (_lastRequestedWidth! - availableWidth).abs() < 1) {
+      return;
+    }
+
+    _lastRequestedWidth = availableWidth;
+    _loadBanner(availableWidth);
   }
 
-  void _loadBanner() {
+  Future<void> _loadBanner(double availableWidth) async {
+    _disposeCurrentBanner();
+
+    final width = availableWidth.floor();
+    final adaptiveSize =
+        await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
+
+    if (!mounted || _lastRequestedWidth != availableWidth) {
+      return;
+    }
+
+    // 現行の50dpバナーより高くなるAdaptive Bannerは採用しない。
+    final adSize = adaptiveSize != null &&
+            adaptiveSize.height <= _maxBannerHeight
+        ? adaptiveSize
+        : AdSize.banner;
+
+    debugPrint(
+      '[ADS] banner size selected: '
+      '${adSize.width}x${adSize.height} '
+      '(adaptive=${adaptiveSize?.width}x${adaptiveSize?.height})',
+    );
+
     final banner = BannerAd(
       adUnitId: _bannerAdUnitId,
-      size: AdSize.banner,
+      size: adSize,
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (ad) {
-          if (!mounted) {
+          if (!mounted || _lastRequestedWidth != availableWidth) {
             ad.dispose();
             return;
           }
@@ -53,7 +90,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
 
-          if (!mounted) {
+          if (!mounted || _lastRequestedWidth != availableWidth) {
             return;
           }
 
@@ -74,7 +111,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     } catch (error) {
       banner.dispose();
       debugPrint('[ADS] banner exception: $error');
-      if (!mounted) {
+      if (!mounted || _lastRequestedWidth != availableWidth) {
         return;
       }
       setState(() {
@@ -82,6 +119,12 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
         _isLoaded = false;
       });
     }
+  }
+
+  void _disposeCurrentBanner() {
+    _bannerAd?.dispose();
+    _bannerAd = null;
+    _isLoaded = false;
   }
 
   @override
