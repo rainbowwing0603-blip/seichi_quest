@@ -24,12 +24,14 @@ import 'widgets/adventure_log_page.dart';
 import 'widgets/event_explore_page.dart';
 import 'widgets/sync_status_page.dart';
 import 'widgets/notification_settings_page.dart';
+import 'widgets/announcements_page.dart';
 import 'widgets/app_settings_page.dart';
 import 'widgets/quest_ui.dart';
 import 'widgets/onboarding_page.dart';
 import 'widgets/license_page.dart';
 import 'models/seichi.dart';
 import 'models/achievement.dart';
+import 'models/announcement.dart';
 import 'models/content_block.dart';
 import 'models/event.dart';
 import 'services/level_service.dart' show LevelProgress;
@@ -67,6 +69,7 @@ import 'services/seichi_service.dart';
 import 'services/account_refresh_coordinator.dart';
 import 'services/app_settings_service.dart';
 import 'services/interstitial_ad_service.dart';
+import 'services/announcement_service.dart';
 
 // ============================================================
 // Supabase
@@ -192,6 +195,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   static const NextDestinationService _nextDestinationService =
       NextDestinationService();
   final EventService _eventService = EventService();
+  final AnnouncementService _announcementService = AnnouncementService();
+  int _unreadAnnouncementCount = 0;
+  bool _startupAnnouncementsShown = false;
   static const EventSwitchCoordinator _eventSwitchCoordinator =
       EventSwitchCoordinator();
   final ProgressionService _progressionService = ProgressionService();
@@ -487,6 +493,103 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
   }
 
+  Future<void> _loadUnreadAnnouncementCount() async {
+    try {
+      final count = await _announcementService.loadUnreadCount();
+      if (!mounted || count == _unreadAnnouncementCount) {
+        return;
+      }
+      setState(() {
+        _unreadAnnouncementCount = count;
+      });
+    } catch (error) {
+      appDebugPrint('[ANNOUNCEMENTS] unread count failed: $error');
+    }
+  }
+
+  Future<void> _showStartupAnnouncementsIfNeeded() async {
+    if (_startupAnnouncementsShown || !mounted || _shouldShowOnboarding) {
+      return;
+    }
+
+    _startupAnnouncementsShown = true;
+
+    try {
+      final announcements = await _announcementService.loadUnreadStartup();
+      if (!mounted || announcements.isEmpty) {
+        await _loadUnreadAnnouncementCount();
+        return;
+      }
+
+      var index = 0;
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              final announcement = announcements[index];
+              return AlertDialog(
+                title: Text(announcement.title),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (announcements.length > 1) ...[
+                        Text(
+                          '${index + 1} / ${announcements.length}',
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      Text(
+                        announcement.body,
+                        style: const TextStyle(height: 1.6),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  if (index > 0)
+                    TextButton(
+                      onPressed: () {
+                        setDialogState(() {
+                          index -= 1;
+                        });
+                      },
+                      child: const Text('前へ'),
+                    ),
+                  if (index < announcements.length - 1)
+                    FilledButton(
+                      onPressed: () {
+                        setDialogState(() {
+                          index += 1;
+                        });
+                      },
+                      child: const Text('次へ'),
+                    )
+                  else
+                    FilledButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: const Text('閉じる'),
+                    ),
+                ],
+              );
+            },
+          );
+        },
+      );
+
+      await _announcementService.markAllRead(
+        announcements.map((announcement) => announcement.id),
+      );
+      await _loadUnreadAnnouncementCount();
+    } catch (error) {
+      appDebugPrint('[ANNOUNCEMENTS] startup display failed: $error');
+    }
+  }
+
   Future<void> _runPostRenderStartup({
     required List<Map<String, dynamic>> pendingCollectedRows,
   }) async {
@@ -512,6 +615,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       _updateNextDestination();
       appDebugPrint('[STARTUP] post-render complete');
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          unawaited(_showStartupAnnouncementsIfNeeded());
+        }
+      });
     } catch (error) {
       appDebugPrint('[STARTUP] post-render failed: $error');
     }
@@ -2874,6 +2983,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         );
 
         await _showInterstitialAfterSafeScreen(openedAt: openedAt);
+      },
+      unreadAnnouncementCount: _unreadAnnouncementCount,
+      onShowAnnouncements: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => AnnouncementsPage(
+              service: _announcementService,
+            ),
+          ),
+        );
+
+        await _loadUnreadAnnouncementCount();
       },
       onShowAbout: _showAbout,
       onShowSettings: () async {
