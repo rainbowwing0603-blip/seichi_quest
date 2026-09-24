@@ -2028,11 +2028,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             anchor: const Offset(0.5, 0.94),
             zIndexInt: 1,
             infoWindow: InfoWindow(
-              title: '${seichi.icon} ${seichi.card} ${seichi.name}',
+              title: '${seichi.icon} ${seichi.name}',
               snippet: collected
                   ? '🏆 スタンプ獲得済み'
-                  : '${seichi.reading} ・ '
-                        '到達半径 ${seichi.stampRadiusMeters}m',
+                  : '到達半径 ${seichi.stampRadiusMeters}m',
             ),
             onTap: () {
               _showSeichiDetails(seichi);
@@ -2068,13 +2067,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           anchor: Offset(0.5, nextAnchorY),
           zIndexInt: 2,
           infoWindow: InfoWindow(
-            title:
-                '${nextSeichi.icon} '
-                '${nextSeichi.card} '
-                '${nextSeichi.name}',
+            title: '${nextSeichi.icon} ${nextSeichi.name}',
             snippet:
-                '✨ NEXT ・ ${nextSeichi.reading} ・ '
-                '到達半径 ${nextSeichi.stampRadiusMeters}m',
+                '✨ NEXT ・ 到達半径 ${nextSeichi.stampRadiusMeters}m',
           ),
           onTap: () {
             _showSeichiDetails(nextSeichi);
@@ -2092,7 +2087,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   void _showSeichiDetails(QuestItem seichi) {
     final position = _currentPosition;
-    final contentId = seichi.contentId?.trim() ?? '';
+    final contentId = seichi.contentId.trim();
 
     final Future<List<ContentBlock>>? contentBlocksFuture = contentId.isEmpty
         ? null
@@ -2358,7 +2353,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                     ),
                     const SizedBox(height: 18),
                     QuestPrimaryButton(
-                      label: 'この聖地を地図で見る',
+                      label: 'このスポットを地図で見る',
                       icon: Icons.navigation_rounded,
                       onPressed: () async {
                         Navigator.pop(sheetContext);
@@ -2909,19 +2904,21 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           icon: Icons.explore_rounded,
           title: '聖地クエスト',
           subtitle: 'Version 1.0.0',
-          content: const Column(
+          content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
                 child: QuestStatusChip(
-                  label: '上毛かるた × 群馬',
+                  label: _currentEventName?.trim().isNotEmpty == true
+                      ? _currentEventName!
+                      : '位置情報クエスト',
                   icon: Icons.location_on_outlined,
                 ),
               ),
-              SizedBox(height: 18),
-              Text(
-                '群馬県内の聖地を巡りながら、'
-                '上毛かるたの世界を楽しむ聖地巡礼アプリです。',
+              const SizedBox(height: 18),
+              const Text(
+                '地域や作品、文化、店舗などをテーマにしたクエストを選び、'
+                '現地のスポットを巡ってコレクションを集める位置情報アプリです。',
                 style: TextStyle(
                   color: QuestUiTokens.ink,
                   fontSize: 14,
