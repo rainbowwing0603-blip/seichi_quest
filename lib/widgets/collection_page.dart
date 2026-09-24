@@ -362,7 +362,7 @@ class CollectionPage extends StatelessWidget {
     QuestItem seichi,
     bool collected,
   ) {
-    final imageUrl = seichi.cardImageUrl;
+    final imageUrl = seichi.primaryImageUrl;
     final hasCardImage = imageUrl != null && imageUrl.isNotEmpty;
     final showOriginalCard = collected && hasCardImage;
 
@@ -532,7 +532,7 @@ class CollectionPage extends StatelessWidget {
   }
 
   Widget _buildCollectionImage(QuestItem seichi, bool collected) {
-    final imageUrl = seichi.cardImageUrl;
+    final imageUrl = seichi.primaryImageUrl;
 
     if (!collected || imageUrl == null || imageUrl.isEmpty) {
       return _buildStampVisual(seichi, collected);
