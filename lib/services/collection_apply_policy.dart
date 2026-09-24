@@ -38,17 +38,17 @@ class CollectionApplyPolicy {
       collectedIds: collectedIds,
     );
 
-    final collectedCards = collectedRows
+    final collectedEventContentIds = collectedRows
         .where((row) => row['event_id']?.toString() == currentEventId)
-        .map((row) => row['card']?.toString())
+        .map((row) => row['event_content_id']?.toString())
         .whereType<String>()
-        .where((card) => card.isNotEmpty)
+        .where((id) => id.isNotEmpty)
         .toSet();
 
     final newlyCollectedSeichi = seichiList
         .where(
           (item) =>
-              collectedCards.contains(item.card) &&
+              collectedEventContentIds.contains(item.id) &&
               !collectedIds.contains(item.id),
         )
         .toList(growable: false);
