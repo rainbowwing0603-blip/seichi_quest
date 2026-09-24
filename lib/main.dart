@@ -2160,16 +2160,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                seichi.card,
-                                style: TextStyle(
-                                  color: colorScheme.primary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
                                 seichi.name,
                                 style: const TextStyle(
                                   color: QuestUiTokens.ink,
