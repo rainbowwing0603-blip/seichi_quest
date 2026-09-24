@@ -11,9 +11,9 @@ class QuestItemContentSection extends StatelessWidget {
   const QuestItemContentSection({
     super.key,
     required this.item,
-    this.showLegacyImage = true,
-    this.showLegacyText = true,
-    this.legacyDescriptionOverride,
+    this.showFallbackImage = true,
+    this.showFallbackText = true,
+    this.fallbackDescriptionOverride,
     this.collected = false,
     this._contentBlockService,
   });
@@ -22,9 +22,9 @@ class QuestItemContentSection extends StatelessWidget {
       ContentBlockPresentationPolicy();
 
   final QuestItem item;
-  final bool showLegacyImage;
-  final bool showLegacyText;
-  final String? legacyDescriptionOverride;
+  final bool showFallbackImage;
+  final bool showFallbackText;
+  final String? fallbackDescriptionOverride;
   final bool collected;
   final ContentBlockService? _contentBlockService;
 
@@ -33,12 +33,12 @@ class QuestItemContentSection extends StatelessWidget {
     final contentId = item.contentId.trim();
 
     if (contentId.isEmpty) {
-      return _buildLegacyContent(
+      return _buildFallbackContent(
         context,
         const ContentBlockPresentation(
           blocks: <ContentBlock>[],
-          showLegacyDescription: true,
-          showLegacyImage: true,
+          showFallbackDescription: true,
+          showFallbackImage: true,
         ),
       );
     }
@@ -62,9 +62,9 @@ class QuestItemContentSection extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildLegacyContent(context, presentation),
+            _buildFallbackContent(context, presentation),
             if (presentation.blocks.isNotEmpty) ...[
-              if (_hasVisibleLegacyContent(presentation))
+              if (_hasVisibleFallbackContent(presentation))
                 const SizedBox(height: 14),
               QuestGlassCard(
                 padding: const EdgeInsets.all(16),
@@ -78,28 +78,28 @@ class QuestItemContentSection extends StatelessWidget {
     );
   }
 
-  bool _hasVisibleLegacyContent(ContentBlockPresentation presentation) {
+  bool _hasVisibleFallbackContent(ContentBlockPresentation presentation) {
     final imageUrl = item.primaryImageUrl?.trim() ?? '';
-    final description = legacyDescriptionOverride ?? item.description;
+    final description = fallbackDescriptionOverride ?? item.description;
 
-    return (showLegacyImage &&
-            presentation.showLegacyImage &&
+    return (showFallbackImage &&
+            presentation.showFallbackImage &&
             imageUrl.isNotEmpty) ||
-        (showLegacyText &&
-            presentation.showLegacyDescription &&
+        (showFallbackText &&
+            presentation.showFallbackDescription &&
             description.trim().isNotEmpty);
   }
 
-  Widget _buildLegacyContent(
+  Widget _buildFallbackContent(
     BuildContext context,
     ContentBlockPresentation presentation,
   ) {
     final widgets = <Widget>[];
     final imageUrl = item.primaryImageUrl?.trim() ?? '';
-    final description = legacyDescriptionOverride ?? item.description;
+    final description = fallbackDescriptionOverride ?? item.description;
 
-    if (showLegacyImage &&
-        presentation.showLegacyImage &&
+    if (showFallbackImage &&
+        presentation.showFallbackImage &&
         imageUrl.isNotEmpty) {
       widgets.add(
         ClipRRect(
@@ -115,8 +115,8 @@ class QuestItemContentSection extends StatelessWidget {
       );
     }
 
-    if (showLegacyText &&
-        presentation.showLegacyDescription &&
+    if (showFallbackText &&
+        presentation.showFallbackDescription &&
         description.trim().isNotEmpty) {
       if (widgets.isNotEmpty) {
         widgets.add(const SizedBox(height: 14));
