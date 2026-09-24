@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:seichi_quest/models/seichi.dart';
+import 'package:seichi_quest/models/quest_item.dart';
 import 'package:seichi_quest/widgets/quest_spot_detail_sheet.dart';
 
 void main() {
-  const item = Seichi(
-    id: 'spot-1',
+  const item = QuestItem(
+    id: 'event-content-1',
+    eventContentId: 'event-content-1',
+    contentId: 'content-1',
     placeId: 'place-1',
-    card: 'け',
-    reading: 'け',
-    name: '群馬県庁本庁舎',
+    contentKey: 'け',
+    title: '群馬県庁本庁舎',
     latitude: 36.391,
     longitude: 139.060,
-    stampRadiusMeters: 150,
+    radiusMeters: 150,
     description: 'テスト',
     icon: '🏢',
+    displayOrder: 1,
     isActive: true,
+    contentMetadata: <String, dynamic>{
+      'card': 'け',
+      'reading': 'け',
+    },
   );
 
   testWidgets('shared spot detail exposes an explicit close action', (tester) async {
