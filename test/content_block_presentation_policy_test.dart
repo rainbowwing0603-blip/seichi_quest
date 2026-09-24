@@ -24,16 +24,15 @@ ContentBlock block({
 void main() {
   const policy = ContentBlockPresentationPolicy();
 
-  test('no blocks keeps every legacy fallback visible', () {
+  test('no blocks keeps generic image and description fallback visible', () {
     final result = policy.resolve(const <ContentBlock>[]);
 
     expect(result.blocks, isEmpty);
-    expect(result.showLegacyReading, isTrue);
-    expect(result.showLegacyDescription, isTrue);
-    expect(result.showLegacyImage, isTrue);
+    expect(result.showFallbackDescription, isTrue);
+    expect(result.showFallbackImage, isTrue);
   });
 
-  test('semantic roles replace only matching legacy sections', () {
+  test('semantic roles replace matching generic fallback sections', () {
     final result = policy.resolve([
       block(type: ContentBlockType.text, role: 'reading'),
       block(type: ContentBlockType.text, role: 'description'),
@@ -41,22 +40,20 @@ void main() {
       block(type: ContentBlockType.link, role: 'official'),
     ]);
 
-    expect(result.showLegacyReading, isFalse);
-    expect(result.showLegacyDescription, isFalse);
-    expect(result.showLegacyImage, isFalse);
+    expect(result.showFallbackDescription, isFalse);
+    expect(result.showFallbackImage, isFalse);
     expect(result.blocks, hasLength(4));
   });
 
-  test('supplemental content does not hide legacy content', () {
+  test('supplemental content does not hide generic fallback content', () {
     final result = policy.resolve([
       block(type: ContentBlockType.text, role: 'history'),
       block(type: ContentBlockType.image, role: 'gallery'),
       block(type: ContentBlockType.link, role: 'official'),
     ]);
 
-    expect(result.showLegacyReading, isTrue);
-    expect(result.showLegacyDescription, isTrue);
-    expect(result.showLegacyImage, isTrue);
+    expect(result.showFallbackDescription, isTrue);
+    expect(result.showFallbackImage, isTrue);
   });
 
   test('reading card and hero images are additive to legacy picture card', () {
@@ -65,7 +62,7 @@ void main() {
       block(type: ContentBlockType.image, role: 'hero'),
     ]);
 
-    expect(result.showLegacyImage, isTrue);
+    expect(result.showFallbackImage, isTrue);
     expect(result.blocks, hasLength(2));
   });
 
@@ -103,16 +100,16 @@ void main() {
     );
   });
 
-  test('unsupported future blocks cannot suppress legacy fallback', () {
+  test('unsupported future blocks cannot suppress generic fallback', () {
     final result = policy.resolve([
       block(type: ContentBlockType.unsupported, role: 'description'),
     ]);
 
     expect(result.blocks, isEmpty);
-    expect(result.showLegacyDescription, isTrue);
+    expect(result.showFallbackDescription, isTrue);
   });
 
-  test('empty semantic blocks cannot suppress legacy fallback', () {
+  test('empty semantic blocks cannot suppress generic fallback', () {
     final result = policy.resolve([
       ContentBlock(
         id: 'empty-reading',
@@ -143,8 +140,7 @@ void main() {
     ]);
 
     expect(result.blocks, isEmpty);
-    expect(result.showLegacyReading, isTrue);
-    expect(result.showLegacyImage, isTrue);
+    expect(result.showFallbackImage, isTrue);
   });
 
   test('invalid link blocks are excluded from presentation', () {
@@ -166,7 +162,7 @@ void main() {
 
     expect(result.blocks, isEmpty);
   });
-  test('after_collection semantic content preserves legacy fallback before collection', () {
+  test('after_collection semantic content preserves fallback before collection', () {
     final protectedDescription = ContentBlock(
       id: 'protected-description',
       contentId: 'content-1',
@@ -191,13 +187,13 @@ void main() {
     );
 
     expect(before.blocks, isEmpty);
-    expect(before.showLegacyDescription, isTrue);
+    expect(before.showFallbackDescription, isTrue);
 
     expect(after.blocks, hasLength(1));
-    expect(after.showLegacyDescription, isFalse);
+    expect(after.showFallbackDescription, isFalse);
   });
 
-  test('hidden semantic content never suppresses legacy fallback', () {
+  test('hidden semantic content never suppresses fallback', () {
     final hiddenPicture = ContentBlock(
       id: 'hidden-picture',
       contentId: 'content-1',
@@ -219,7 +215,7 @@ void main() {
       );
 
       expect(result.blocks, isEmpty);
-      expect(result.showLegacyImage, isTrue);
+      expect(result.showFallbackImage, isTrue);
     }
   });
 

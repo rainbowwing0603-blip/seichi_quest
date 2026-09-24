@@ -1,5 +1,5 @@
 import '../models/achievement.dart';
-import '../models/seichi.dart';
+import '../models/quest_item.dart';
 import 'achievement_service.dart';
 import 'collection_progress_policy.dart';
 
@@ -11,7 +11,7 @@ class CollectionApplyPlan {
     required this.didCompleteQuest,
   });
 
-  final List<Seichi> newlyCollectedSeichi;
+  final List<QuestItem> newlyCollectedSeichi;
   final Set<String> newCollectedIds;
   final List<Achievement> newlyUnlockedAchievements;
   final bool didCompleteQuest;
@@ -29,7 +29,7 @@ class CollectionApplyPolicy {
   CollectionApplyPlan plan({
     required String currentEventId,
     required List<Map<String, dynamic>> collectedRows,
-    required List<Seichi> seichiList,
+    required List<QuestItem> seichiList,
     required Set<String> collectedIds,
     required List<Achievement> eventAchievements,
   }) {
@@ -38,17 +38,17 @@ class CollectionApplyPolicy {
       collectedIds: collectedIds,
     );
 
-    final collectedCards = collectedRows
+    final collectedEventContentIds = collectedRows
         .where((row) => row['event_id']?.toString() == currentEventId)
-        .map((row) => row['card']?.toString())
+        .map((row) => row['event_content_id']?.toString())
         .whereType<String>()
-        .where((card) => card.isNotEmpty)
+        .where((id) => id.isNotEmpty)
         .toSet();
 
     final newlyCollectedSeichi = seichiList
         .where(
           (item) =>
-              collectedCards.contains(item.card) &&
+              collectedEventContentIds.contains(item.id) &&
               !collectedIds.contains(item.id),
         )
         .toList(growable: false);

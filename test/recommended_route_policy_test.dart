@@ -1,21 +1,24 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:seichi_quest/models/seichi.dart';
+import 'package:seichi_quest/models/quest_item.dart';
 import 'package:seichi_quest/services/recommended_route_policy.dart';
 
 void main() {
-  Seichi seichi(String id) {
-    return Seichi(
+  QuestItem item(String id) {
+    return QuestItem(
       id: id,
-      placeId: null,
-      card: id,
-      reading: id,
-      name: id,
+      eventContentId: id,
+      contentId: 'content-$id',
+      placeId: 'place-$id',
+      contentKey: id,
+      title: id,
+      
       latitude: 36,
       longitude: 139,
-      stampRadiusMeters: 200,
+      radiusMeters: 200,
       description: '',
       icon: '',
+      displayOrder: 0,
       isActive: true,
     );
   }
@@ -23,7 +26,7 @@ void main() {
   group('RecommendedRoutePolicy', () {
     test('開始時に獲得済み聖地を除外し先頭をNEXTにする', () {
       final result = RecommendedRoutePolicy.start(
-        route: [seichi('a'), seichi('b'), seichi('c')],
+        route: [item('a'), item('b'), item('c')],
         collectedIds: {'a'},
       );
 
@@ -33,7 +36,7 @@ void main() {
 
     test('開始候補がすべて獲得済みなら空ルートになる', () {
       final result = RecommendedRoutePolicy.start(
-        route: [seichi('a')],
+        route: [item('a')],
         collectedIds: {'a'},
       );
 
@@ -43,7 +46,7 @@ void main() {
 
     test('獲得後はルートから獲得済みを除外して次へ進む', () {
       final result = RecommendedRoutePolicy.advanceAfterCollection(
-        activeRoute: [seichi('a'), seichi('b'), seichi('c')],
+        activeRoute: [item('a'), item('b'), item('c')],
         manualNextSeichiId: 'a',
         collectedIds: {'a'},
         newlyCollectedIds: {'a'},
@@ -55,7 +58,7 @@ void main() {
 
     test('ルート終了時は獲得した手動NEXTを解除する', () {
       final result = RecommendedRoutePolicy.advanceAfterCollection(
-        activeRoute: [seichi('a')],
+        activeRoute: [item('a')],
         manualNextSeichiId: 'a',
         collectedIds: {'a'},
         newlyCollectedIds: {'a'},
@@ -67,7 +70,7 @@ void main() {
 
     test('ルートなしで別の聖地を獲得しても手動NEXTを維持する', () {
       final result = RecommendedRoutePolicy.advanceAfterCollection(
-        activeRoute: const <Seichi>[],
+        activeRoute: const <QuestItem>[],
         manualNextSeichiId: 'b',
         collectedIds: {'a'},
         newlyCollectedIds: {'a'},

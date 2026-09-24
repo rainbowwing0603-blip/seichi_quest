@@ -20,14 +20,11 @@ void main() {
     );
 
     expect(item.contentKey, 'shop-a');
-    expect(item.legacySeichiId, isNull);
-    expect(item.legacyCard, isNull);
-    expect(item.legacyReading, isNull);
   });
 
-  test('legacy karuta metadata is optional compatibility information', () {
+  test('karuta metadata can remain data without changing generic QuestItem API', () {
     const item = QuestItem(
-      id: 'legacy-seichi-1',
+      id: 'event-content-1',
       eventContentId: 'event-content-1',
       contentId: 'content-1',
       placeId: 'place-1',
@@ -41,14 +38,12 @@ void main() {
       displayOrder: 1,
       isActive: true,
       contentMetadata: {
-        'legacy_seichi_id': 'legacy-seichi-1',
         'card': 'あ',
         'reading': 'あ',
       },
     );
 
-    expect(item.legacySeichiId, 'legacy-seichi-1');
-    expect(item.legacyCard, 'あ');
-    expect(item.legacyReading, 'あ');
+    expect(item.contentMetadata['card'], 'あ');
+    expect(item.contentMetadata['reading'], 'あ');
   });
 }

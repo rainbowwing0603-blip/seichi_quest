@@ -5,24 +5,24 @@ import 'package:seichi_quest/services/collection_display_policy.dart';
 void main() {
   const policy = CollectionDisplayPolicy();
 
-  test('札ごとにイベント名を重複なくまとめる', () {
-    final result = policy.eventNamesByCard(<Map<String, dynamic>>[
-      <String, dynamic>{'card': 'あ', 'event_name': 'イベントA'},
-      <String, dynamic>{'card': 'あ', 'event_name': 'イベントA'},
-      <String, dynamic>{'card': 'あ', 'event_name': 'イベントB'},
-      <String, dynamic>{'card': 'い', 'event_name': 'イベントA'},
+  test('contentKeyごとにイベント名を重複なくまとめる', () {
+    final result = policy.eventNamesByContentKey(<Map<String, dynamic>>[
+      <String, dynamic>{'content_key': 'spot-a', 'event_name': 'イベントA'},
+      <String, dynamic>{'content_key': 'spot-a', 'event_name': 'イベントA'},
+      <String, dynamic>{'content_key': 'spot-a', 'event_name': 'イベントB'},
+      <String, dynamic>{'content_key': 'spot-b', 'event_name': 'イベントA'},
     ]);
 
-    expect(result['あ'], <String>{'イベントA', 'イベントB'});
-    expect(result['い'], <String>{'イベントA'});
+    expect(result['spot-a'], <String>{'イベントA', 'イベントB'});
+    expect(result['spot-b'], <String>{'イベントA'});
   });
 
   test('表示に使えない履歴は除外する', () {
-    final result = policy.eventNamesByCard(<Map<String, dynamic>>[
-      <String, dynamic>{'card': '', 'event_name': 'イベントA'},
-      <String, dynamic>{'card': 'あ', 'event_name': ''},
-      <String, dynamic>{'card': null, 'event_name': 'イベントA'},
-      <String, dynamic>{'card': 'い', 'event_name': null},
+    final result = policy.eventNamesByContentKey(<Map<String, dynamic>>[
+      <String, dynamic>{'content_key': '', 'event_name': 'イベントA'},
+      <String, dynamic>{'content_key': 'spot-a', 'event_name': ''},
+      <String, dynamic>{'content_key': null, 'event_name': 'イベントA'},
+      <String, dynamic>{'content_key': 'spot-b', 'event_name': null},
     ]);
 
     expect(result, isEmpty);

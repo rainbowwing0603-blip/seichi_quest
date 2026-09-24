@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/achievement.dart';
-import '../models/seichi.dart';
+import '../models/quest_item.dart';
 import '../services/achievement_service.dart';
 import 'quest_ui.dart';
 
@@ -17,7 +17,7 @@ class QuestPage extends StatelessWidget {
     required this.eventAchievements,
   });
 
-  final Seichi? nextSeichi;
+  final QuestItem? nextSeichi;
   final double? nextDistance;
   final int collectedCount;
   final int total;
@@ -189,7 +189,7 @@ class QuestPage extends StatelessWidget {
     );
   }
 
-  Widget _buildQuestMainCard(Seichi seichi) {
+  Widget _buildQuestMainCard(QuestItem seichi) {
     final distance = nextDistance;
 
     return QuestGlassCard(
@@ -297,7 +297,7 @@ class QuestPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              seichi.card,
+                              seichi.icon.isNotEmpty ? seichi.icon : '📍',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -415,7 +415,7 @@ class QuestPage extends StatelessWidget {
           ),
           SizedBox(height: 7),
           Text(
-            'このクエストには聖地が登録されていません。',
+            'このクエストにはスポットが登録されていません。',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: QuestUiTokens.mutedInk,
@@ -444,7 +444,7 @@ class QuestPage extends StatelessWidget {
           ),
           SizedBox(height: 7),
           Text(
-            '登録されている聖地をすべて獲得しました。',
+            '登録されているスポットをすべて獲得しました。',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: QuestUiTokens.mutedInk,

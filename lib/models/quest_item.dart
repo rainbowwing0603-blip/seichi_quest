@@ -40,15 +40,9 @@ class QuestItem implements QuestDestination {
     this.eventContentMetadata = const <String, dynamic>{},
   });
 
-  String? get legacySeichiId =>
-      _nullableString(contentMetadata['legacy_seichi_id']);
+  // Transitional presentation alias. The shared UI uses title/radiusMeters;
+  // legacy metadata remains data-only compatibility until its migration ends.
+  String get name => title;
+  int get stampRadiusMeters => radiusMeters;
 
-  String? get legacyCard => _nullableString(contentMetadata['card']);
-
-  String? get legacyReading => _nullableString(contentMetadata['reading']);
-
-  static String? _nullableString(dynamic value) {
-    final text = value?.toString().trim();
-    return text == null || text.isEmpty ? null : text;
-  }
 }

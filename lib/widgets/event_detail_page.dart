@@ -4,11 +4,11 @@ import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../models/event.dart';
-import '../models/seichi.dart';
+import '../models/quest_item.dart';
 import 'quest_spot_detail_sheet.dart';
 import 'quest_ui.dart';
 import '../services/app_logger.dart';
-import '../services/seichi_service.dart';
+import '../services/quest_item_service.dart';
 
 class EventDetailPage extends StatefulWidget {
   const EventDetailPage({
@@ -41,9 +41,9 @@ class EventDetailPage extends StatefulWidget {
   final Future<void> Function()? onSelectAnotherEvent;
 
   final String? currentNextSeichiId;
-  final ValueChanged<Seichi>? onSetNextDestination;
-  final ValueChanged<Seichi>? onShowOnMap;
-  final ValueChanged<List<Seichi>>? onStartRecommendedRoute;
+  final ValueChanged<QuestItem>? onSetNextDestination;
+  final ValueChanged<QuestItem>? onShowOnMap;
+  final ValueChanged<List<QuestItem>>? onStartRecommendedRoute;
 
   @override
   State<EventDetailPage> createState() => _EventDetailPageState();
@@ -52,10 +52,10 @@ class EventDetailPage extends StatefulWidget {
 class _EventDetailPageState extends State<EventDetailPage> {
   bool _isActionRunning = false;
 
-  bool _isLoadingSeichi = true;
+  bool _isLoadingQuestItem = true;
   String? _seichiErrorMessage;
 
-  List<Seichi> _seichiList = [];
+  List<QuestItem> _seichiList = [];
 
   final Set<String> _collectedSeichiIds = <String>{};
 
@@ -67,7 +67,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
   int? _favoriteCount;
   bool _isFavorited = false;
 
-  final SeichiService _seichiService = SeichiService();
+  final QuestItemService _seichiService = QuestItemService();
 
   supabase.SupabaseClient get _client => supabase.Supabase.instance.client;
 
@@ -80,7 +80,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   Future<void> _loadSeichiList() async {
     try {
-      final list = await _seichiService.loadActiveSeichi(widget.event.id);
+      final list = await _seichiService.loadActiveItems(widget.event.id);
 
       final collectedIds = <String>{};
       final user = _client.auth.currentUser;
@@ -89,12 +89,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
         try {
           final historyData = await _client
               .from('collection_history')
-              .select('seichi_id')
+              .select('event_content_id')
               .eq('user_id', user.id)
               .eq('event_id', widget.event.id);
 
           for (final row in List<Map<String, dynamic>>.from(historyData)) {
-            final seichiId = row['seichi_id']?.toString() ?? '';
+            final seichiId = row['event_content_id']?.toString() ?? '';
 
             if (seichiId.isNotEmpty) {
               collectedIds.add(seichiId);
@@ -121,7 +121,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ..clear()
           ..addAll(collectedIds);
 
-        _isLoadingSeichi = false;
+        _isLoadingQuestItem = false;
         _seichiErrorMessage = null;
       });
     } catch (error, stackTrace) {
@@ -133,7 +133,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
       }
 
       setState(() {
-        _isLoadingSeichi = false;
+        _isLoadingQuestItem = false;
         _seichiErrorMessage = '札情報を読み込めませんでした。';
       });
     }
@@ -261,14 +261,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
     return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
-  Seichi? get _nearestUncollectedSeichi {
+  QuestItem? get _nearestUncollectedQuestItem {
     final position = widget.currentPosition;
 
     if (position == null) {
       return null;
     }
 
-    Seichi? nearest;
+    QuestItem? nearest;
     double? nearestDistance;
 
     for (final seichi in _seichiList) {
@@ -296,7 +296,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     return nearest;
   }
 
-  double? _distanceFromCurrentPosition(Seichi seichi) {
+  double? _distanceFromCurrentPosition(QuestItem seichi) {
     final position = widget.currentPosition;
 
     if (position == null) {
@@ -315,7 +315,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     );
   }
 
-  List<Seichi> get _filteredSeichiList {
+  List<QuestItem> get _filteredSeichiList {
     switch (_galleryFilter) {
       case '獲得済み':
         return _seichiList
@@ -436,7 +436,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     }
   }
 
-  void _showSeichiDetail(Seichi seichi) {
+  void _showSeichiDetail(QuestItem seichi) {
     final collected = _collectedSeichiIds.contains(seichi.id);
     final isNext = widget.currentNextSeichiId == seichi.id;
 
@@ -597,7 +597,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Widget _buildNearestUncollectedCard() {
-    final seichi = _nearestUncollectedSeichi;
+    final seichi = _nearestUncollectedQuestItem;
 
     if (seichi == null) {
       return const SizedBox.shrink();
@@ -689,7 +689,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    seichi.card,
+                    seichi.contentKey,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
@@ -762,11 +762,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
     );
   }
 
-  List<Seichi> _buildRecommendedRoute() {
+  List<QuestItem> _buildRecommendedRoute() {
     final position = widget.currentPosition;
 
     if (position == null) {
-      return const <Seichi>[];
+      return const <QuestItem>[];
     }
 
     final remaining = _seichiList
@@ -778,16 +778,16 @@ class _EventDetailPageState extends State<EventDetailPage> {
         .toList();
 
     if (remaining.isEmpty) {
-      return const <Seichi>[];
+      return const <QuestItem>[];
     }
 
-    final route = <Seichi>[];
+    final route = <QuestItem>[];
 
     var currentLatitude = position.latitude;
     var currentLongitude = position.longitude;
 
     while (remaining.isNotEmpty) {
-      Seichi? nearest;
+      QuestItem? nearest;
       double? nearestDistance;
 
       for (final seichi in remaining) {
@@ -982,7 +982,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
-                                      seichi.card,
+                                      seichi.contentKey,
                                       style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w900,
@@ -1048,7 +1048,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           Navigator.of(sheetContext).pop();
 
                           widget.onStartRecommendedRoute!(
-                            List<Seichi>.unmodifiable(route),
+                            List<QuestItem>.unmodifiable(route),
                           );
                         },
                       ),
@@ -1199,7 +1199,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
               icon: Icons.flag_rounded,
               onPressed: () {
                 widget.onStartRecommendedRoute!(
-                  List<Seichi>.unmodifiable(route),
+                  List<QuestItem>.unmodifiable(route),
                 );
               },
             ),
@@ -1258,7 +1258,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ],
                 ),
               ),
-              if (!_isLoadingSeichi && _seichiList.isNotEmpty)
+              if (!_isLoadingQuestItem && _seichiList.isNotEmpty)
                 QuestStatusChip(
                   label: '${filteredList.length} / ${_seichiList.length}札',
                   accentColor: QuestUiTokens.cyan,
@@ -1270,7 +1270,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
             '札をタップすると詳細を確認できます',
             style: TextStyle(fontSize: 12, color: QuestUiTokens.mutedInk),
           ),
-          if (!_isLoadingSeichi &&
+          if (!_isLoadingQuestItem &&
               _seichiErrorMessage == null &&
               _seichiList.isNotEmpty) ...[
             const SizedBox(height: 14),
@@ -1353,7 +1353,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
             ),
           ],
           const SizedBox(height: 16),
-          if (_isLoadingSeichi)
+          if (_isLoadingQuestItem)
             const SizedBox(
               height: 120,
               child: Center(
@@ -1380,7 +1380,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   TextButton.icon(
                     onPressed: () {
                       setState(() {
-                        _isLoadingSeichi = true;
+                        _isLoadingQuestItem = true;
                         _seichiErrorMessage = null;
                       });
 
@@ -1440,8 +1440,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
     );
   }
 
-  Widget _buildGalleryCard(Seichi seichi) {
-    final imageUrl = seichi.cardImageUrl;
+  Widget _buildGalleryCard(QuestItem seichi) {
+    final imageUrl = seichi.primaryImageUrl;
     final collected = _collectedSeichiIds.contains(seichi.id);
     final isNext = widget.currentNextSeichiId == seichi.id;
 
@@ -1509,7 +1509,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        seichi.card,
+                        seichi.contentKey,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w900,
@@ -1568,12 +1568,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
     );
   }
 
-  Widget _buildGalleryFallback(Seichi seichi) {
+  Widget _buildGalleryFallback(QuestItem seichi) {
     return Container(
       color: QuestUiTokens.primary.withValues(alpha: 0.045),
       alignment: Alignment.center,
       child: Text(
-        seichi.card,
+        seichi.contentKey,
         style: const TextStyle(
           fontSize: 38,
           fontWeight: FontWeight.w900,

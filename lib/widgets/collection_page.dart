@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/seichi.dart';
+import '../models/quest_item.dart';
 import '../painters/stamp_ring_painter.dart';
 import 'quest_spot_detail_sheet.dart';
 import 'quest_ui.dart';
@@ -11,7 +11,7 @@ class CollectionPage extends StatelessWidget {
     required this.eventId,
     required this.seichiList,
     required this.collectedIds,
-    required this.eventNamesByCard,
+    required this.eventNamesByContentKey,
     required this.collectionFilter,
     required this.onFilterChanged,
     required this.onMoveToSeichi,
@@ -19,13 +19,13 @@ class CollectionPage extends StatelessWidget {
   });
 
   final String? eventId;
-  final List<Seichi> seichiList;
+  final List<QuestItem> seichiList;
   final Set<String> collectedIds;
-  final Map<String, Set<String>> eventNamesByCard;
+  final Map<String, Set<String>> eventNamesByContentKey;
   final int collectionFilter;
   final ValueChanged<int> onFilterChanged;
-  final Future<void> Function(Seichi seichi) onMoveToSeichi;
-  final void Function(Seichi seichi) onSetNextDestination;
+  final Future<void> Function(QuestItem seichi) onMoveToSeichi;
+  final void Function(QuestItem seichi) onSetNextDestination;
   @override
   Widget build(BuildContext context) {
     return _buildCollectionPage(context);
@@ -37,7 +37,7 @@ class CollectionPage extends StatelessWidget {
     final remaining = (total - collected).clamp(0, total);
     final progress = total == 0 ? 0.0 : collected / total;
 
-    List<Seichi> filteredList;
+    List<QuestItem> filteredList;
 
     switch (collectionFilter) {
       case 1:
@@ -51,7 +51,7 @@ class CollectionPage extends StatelessWidget {
             .toList();
         break;
       default:
-        filteredList = List<Seichi>.from(seichiList);
+        filteredList = List<QuestItem>.from(seichiList);
     }
 
     return SafeArea(
@@ -135,7 +135,7 @@ class CollectionPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'KARUTA COLLECTION',
+                        'QUEST COLLECTION',
                         style: TextStyle(
                           color: QuestUiTokens.primary,
                           fontSize: 9,
@@ -145,7 +145,7 @@ class CollectionPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       const Text(
-                        '上毛かるた スタンプ帳',
+                        'コレクション',
                         style: TextStyle(
                           color: QuestUiTokens.ink,
                           fontSize: 19,
@@ -154,7 +154,7 @@ class CollectionPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        total == 44 ? '群馬を巡って、44札を集めよう' : '群馬を巡って、$total札を集めよう',
+                        '$total個のスポットを巡って集めよう',
                         style: const TextStyle(
                           color: QuestUiTokens.mutedInk,
                           fontSize: 10.5,
@@ -189,7 +189,7 @@ class CollectionPage extends StatelessWidget {
                   child: Text(
                     remaining == 0 && total > 0
                         ? 'COMPLETE!'
-                        : 'あと $remaining 札',
+                        : 'あと $remaining 個',
                     style: TextStyle(
                       color: remaining == 0 && total > 0
                           ? const Color(0xFF24A77A)
@@ -343,7 +343,7 @@ class CollectionPage extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              isCollectedFilter ? 'まだ獲得した聖地がありません' : '未獲得の札はありません！',
+              isCollectedFilter ? 'まだ獲得したスポットがありません' : '未獲得のスポットはありません！',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
             ),
@@ -359,10 +359,10 @@ class CollectionPage extends StatelessWidget {
 
   Widget _buildCollectionCard(
     BuildContext context,
-    Seichi seichi,
+    QuestItem seichi,
     bool collected,
   ) {
-    final imageUrl = seichi.cardImageUrl;
+    final imageUrl = seichi.primaryImageUrl;
     final hasCardImage = imageUrl != null && imageUrl.isNotEmpty;
     final showOriginalCard = collected && hasCardImage;
 
@@ -423,7 +423,7 @@ class CollectionPage extends StatelessWidget {
             children: [
               Expanded(
                 child: showOriginalCard
-                    ? _buildCollectionKarutaImage(seichi, collected)
+                    ? _buildCollectionImage(seichi, collected)
                     : _buildStampVisual(seichi, collected),
               ),
               const SizedBox(height: 5),
@@ -435,7 +435,7 @@ class CollectionPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCollectionCardStatus(Seichi seichi, bool collected) {
+  Widget _buildCollectionCardStatus(QuestItem seichi, bool collected) {
     return Container(
       constraints: const BoxConstraints(minHeight: 31),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -463,7 +463,7 @@ class CollectionPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(7),
             ),
             child: Text(
-              seichi.card,
+              seichi.icon.isNotEmpty ? seichi.icon : '📍',
               style: TextStyle(
                 color: collected
                     ? QuestUiTokens.primary
@@ -531,8 +531,8 @@ class CollectionPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCollectionKarutaImage(Seichi seichi, bool collected) {
-    final imageUrl = seichi.cardImageUrl;
+  Widget _buildCollectionImage(QuestItem seichi, bool collected) {
+    final imageUrl = seichi.primaryImageUrl;
 
     if (!collected || imageUrl == null || imageUrl.isEmpty) {
       return _buildStampVisual(seichi, collected);
@@ -589,7 +589,7 @@ class CollectionPage extends StatelessWidget {
   // スタンプビジュアル
   // ============================================================
 
-  Widget _buildStampVisual(Seichi seichi, bool collected) {
+  Widget _buildStampVisual(QuestItem seichi, bool collected) {
     if (!collected) {
       return Container(
         margin: const EdgeInsets.all(2),
@@ -613,18 +613,6 @@ class CollectionPage extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Text(
-                  seichi.card,
-                  style: TextStyle(
-                    color: QuestUiTokens.mutedInk.withValues(alpha: 0.68),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -697,16 +685,9 @@ class CollectionPage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    seichi.card,
-                    style: const TextStyle(
-                      color: QuestUiTokens.primary,
-                      fontSize: 25,
-                      height: 1,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    seichi.icon.isNotEmpty ? seichi.icon : '📍',
+                    style: const TextStyle(fontSize: 28),
                   ),
-                  const SizedBox(height: 3),
-                  Text(seichi.icon, style: const TextStyle(fontSize: 16)),
                 ],
               ),
             ],
@@ -723,10 +704,10 @@ class CollectionPage extends StatelessWidget {
   // COLLECTION DETAIL 2.0
   void _showCollectionStampDetail(
     BuildContext context,
-    Seichi seichi,
+    QuestItem seichi,
     bool collected,
   ) {
-    final eventNames = eventNamesByCard[seichi.card]?.toList() ?? <String>[];
+    final eventNames = eventNamesByContentKey[seichi.contentKey]?.toList() ?? <String>[];
     eventNames.sort();
 
     QuestSpotDetailSheet.show(

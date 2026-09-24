@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/seichi.dart';
+import '../models/quest_item.dart';
 import 'quest_item_content_section.dart';
 import 'quest_ui.dart';
 
@@ -15,7 +15,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
     this.onSetNextDestination,
   });
 
-  final Seichi item;
+  final QuestItem item;
   final bool collected;
   final bool isNext;
   final List<String> eventNames;
@@ -24,7 +24,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
 
   static Future<void> show(
     BuildContext context, {
-    required Seichi item,
+    required QuestItem item,
     required bool collected,
     bool isNext = false,
     List<String> eventNames = const <String>[],
@@ -89,9 +89,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
               _buildStoryNotice(),
               const SizedBox(height: 12),
               QuestItemContentSection(
-                item: item,
-                showLegacyText: false,
-                collected: collected,
+                item: item,                collected: collected,
               ),
               if (collected && eventNames.isNotEmpty) ...[
                 const SizedBox(height: 14),
@@ -100,7 +98,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
               if (onShowOnMap != null) ...[
                 const SizedBox(height: 16),
                 QuestPrimaryButton(
-                  label: collected ? '獲得した聖地を地図で見る' : 'この聖地を地図で見る',
+                  label: collected ? '獲得したスポットを地図で見る' : 'このスポットを地図で見る',
                   icon: Icons.map_rounded,
                   onPressed: onShowOnMap,
                 ),
@@ -151,7 +149,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Text(
-                  item.card,
+                  item.icon.isNotEmpty ? item.icon : '📍',
                   style: TextStyle(
                     color: collected ? Colors.white : QuestUiTokens.mutedInk,
                     fontSize: 20,
@@ -228,7 +226,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  collected ? '札の物語' : '獲得すると物語が解放',
+                  collected ? 'スポットの物語' : '獲得すると物語が解放',
                   style: const TextStyle(
                     color: QuestUiTokens.ink,
                     fontSize: 15,
@@ -238,8 +236,8 @@ class QuestSpotDetailSheet extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   collected
-                      ? '絵札・読み札・由来・歴史・現地で見るポイント'
-                      : '読み札などの基本情報を確認できます。現地でスタンプを獲得すると、由来・歴史・現地で見るポイントが解放されます。',
+                      ? '由来・歴史・関連画像・現地で見るポイント'
+                      : '基本情報を確認できます。現地でスタンプを獲得すると、由来・歴史・関連情報が解放されます。',
                   style: const TextStyle(
                     color: QuestUiTokens.mutedInk,
                     fontSize: 12.5,

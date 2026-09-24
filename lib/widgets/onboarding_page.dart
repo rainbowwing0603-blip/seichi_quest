@@ -161,7 +161,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                   ),
                 ),
                 Text(
-                  'GUNMA ADVENTURE',
+                  'LOCATION ADVENTURE',
                   style: TextStyle(
                     color: QuestUiTokens.mutedInk,
                     fontSize: 9,
@@ -207,8 +207,8 @@ class _OnboardingPageState extends State<OnboardingPage>
   Widget _buildExplorePage() {
     return _buildTutorialPage(
       eyebrow: 'EXPLORE',
-      title: '次の聖地を見つけよう',
-      description: 'MAPには次に向かう聖地と距離が表示されます。',
+      title: '次のスポットを見つけよう',
+      description: 'MAPには次に向かうスポットと距離が表示されます。',
       demo: _buildMapDemo(
         animateTravel: false,
       ),
@@ -221,7 +221,7 @@ class _OnboardingPageState extends State<OnboardingPage>
     return _buildTutorialPage(
       eyebrow: 'GO',
       title: '現地へ向かおう',
-      description: '現在地を使って聖地までの距離をリアルタイムに確認します。',
+      description: '現在地を使ってスポットまでの距離をリアルタイムに確認します。',
       demo: _buildMapDemo(
         animateTravel: true,
       ),
@@ -245,12 +245,12 @@ class _OnboardingPageState extends State<OnboardingPage>
     return _buildTutorialPage(
       eyebrow: 'CHALLENGE',
       title: '集めるほど冒険が広がる',
-      description: 'スタンプ数に応じて実績が解除されます。群馬44札の制覇を目指そう。',
+      description: 'スタンプ数に応じて実績が解除されます。クエストの完全制覇を目指そう。',
       demo: _buildAchievementDemo(),
       hintIcon: Icons.my_location_rounded,
       hint: '正確な位置情報をONにしよう',
       footer:
-          '次の画面で位置情報の利用を確認します。聖地への到着判定には位置情報を使用します。',
+          '次の画面で位置情報の利用を確認します。スポットへの到着判定には位置情報を使用します。',
     );
   }
 
@@ -488,7 +488,7 @@ class _OnboardingPageState extends State<OnboardingPage>
           SizedBox(width: 8),
           Expanded(
             child: Text(
-              'GUNMA QUEST',
+              'ACTIVE QUEST',
               style: TextStyle(
                 color: QuestUiTokens.ink,
                 fontSize: 11,
@@ -504,7 +504,7 @@ class _OnboardingPageState extends State<OnboardingPage>
           ),
           SizedBox(width: 4),
           Text(
-            '7 / 44',
+            '7 / 12',
             style: TextStyle(
               color: QuestUiTokens.primaryDeep,
               fontSize: 10,
@@ -620,7 +620,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                     ),
                   ),
                   Text(
-                    '7 / 44',
+                    '7 / 12',
                     style: TextStyle(
                       color: QuestUiTokens.primaryDeep,
                       fontSize: 11,
@@ -732,8 +732,8 @@ class _OnboardingPageState extends State<OnboardingPage>
               const SizedBox(height: 13),
               const _DemoAchievementTile(
                 icon: Icons.flag_rounded,
-                title: '群馬ビギナー',
-                detail: '5か所の聖地を巡る',
+                title: 'クエストビギナー',
+                detail: '5か所のスポットを巡る',
                 value: 1,
                 unlocked: true,
               ),
@@ -741,7 +741,7 @@ class _OnboardingPageState extends State<OnboardingPage>
               _DemoAchievementTile(
                 icon: Icons.auto_awesome_rounded,
                 title: 'コレクター',
-                detail: '10か所の聖地を巡る',
+                detail: '10か所のスポットを巡る',
                 value:
                     (collected / 10).clamp(0.0, 1.0),
                 unlocked: collected >= 10,
@@ -792,7 +792,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                                 BorderRadius.circular(10),
                             child:
                                 LinearProgressIndicator(
-                              value: collected / 44,
+                              value: collected / 12,
                               minHeight: 6,
                               backgroundColor:
                                   Colors.white.withValues(
@@ -805,7 +805,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      '$collected / 44',
+                      '$collected / 12',
                       style: const TextStyle(
                         color:
                             QuestUiTokens.primaryDeep,
@@ -1336,7 +1336,7 @@ class _DemoApproachBanner
           ),
           SizedBox(width: 6),
           Text(
-            '聖地へ接近中…',
+            'スポットへ接近中…',
             style: TextStyle(
               color: QuestUiTokens.mutedInk,
               fontSize: 10,

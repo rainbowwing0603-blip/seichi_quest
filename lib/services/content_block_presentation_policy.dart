@@ -4,15 +4,13 @@ import 'content_reveal_policy.dart';
 class ContentBlockPresentation {
   const ContentBlockPresentation({
     required this.blocks,
-    required this.showLegacyReading,
-    required this.showLegacyDescription,
-    required this.showLegacyImage,
+    required this.showFallbackDescription,
+    required this.showFallbackImage,
   });
 
   final List<ContentBlock> blocks;
-  final bool showLegacyReading;
-  final bool showLegacyDescription;
-  final bool showLegacyImage;
+  final bool showFallbackDescription;
+  final bool showFallbackImage;
 }
 
 class ContentBlockPresentationPolicy {
@@ -39,10 +37,9 @@ class ContentBlockPresentationPolicy {
 
     return ContentBlockPresentation(
       blocks: orderedBlocks,
-      showLegacyReading: !roles.contains('reading'),
-      showLegacyDescription:
+      showFallbackDescription:
           !roles.contains('description') && !roles.contains('about'),
-      showLegacyImage: !roles.contains('picture_card'),
+      showFallbackImage: !roles.contains('picture_card'),
     );
   }
 
