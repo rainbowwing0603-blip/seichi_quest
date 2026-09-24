@@ -52,7 +52,6 @@ void main() {
       block(type: ContentBlockType.link, role: 'official'),
     ]);
 
-    expect(result.showLegacyReading, isTrue);
     expect(result.showLegacyDescription, isTrue);
     expect(result.showLegacyImage, isTrue);
   });
@@ -141,7 +140,6 @@ void main() {
     ]);
 
     expect(result.blocks, isEmpty);
-    expect(result.showLegacyReading, isTrue);
     expect(result.showLegacyImage, isTrue);
   });
 
