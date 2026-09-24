@@ -54,7 +54,7 @@ class CollectionSyncService {
       final history = await _historyService.loadHistory(eventId: eventId);
 
       for (final item in history) {
-        final id = item['seichi_id']?.toString();
+        final id = item['event_content_id']?.toString();
         if (id != null && id.isNotEmpty) {
           mergedIds.add(id);
         }
