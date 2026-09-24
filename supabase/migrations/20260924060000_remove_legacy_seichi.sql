@@ -389,4 +389,10 @@ drop index if exists public.collection_history_user_event_seichi_unique;
 alter table public.collection_history
   drop column if exists seichi_id;
 
+-- Keep card/reading presentation metadata, but remove the obsolete database ID
+-- once the device migration no longer needs public.seichi itself.
+update public.contents
+set metadata = metadata - 'legacy_seichi_id'
+where metadata ? 'legacy_seichi_id';
+
 drop table public.seichi;
