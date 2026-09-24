@@ -1227,7 +1227,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       appDebugPrint(
         '[ROUTE-NEXT] UPDATE START '
         'manual=$_manualNextSeichiId '
-        'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+        'active=${_activeRecommendedRoute.map((item) => '${item.contentKey}:${item.id}').toList()} '
         'collected=${_collectedIds.length}',
       );
     }
@@ -1242,7 +1242,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (kDebugMode) {
       appDebugPrint(
         '[ROUTE-NEXT] SERVICE RESULT '
-        'next=${result.seichi == null ? null : '${result.seichi!.card}:${result.seichi!.name}:${result.seichi!.id}'} '
+        'next=${result.seichi == null ? null : '${result.seichi!.contentKey}:${result.seichi!.name}:${result.seichi!.id}'} '
         'distance=${result.distance}',
       );
     }
@@ -1271,7 +1271,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (kDebugMode) {
       appDebugPrint(
         '[ROUTE-NEXT] UPDATE END '
-        'next=${_nextSeichi == null ? null : '${_nextSeichi!.card}:${_nextSeichi!.name}:${_nextSeichi!.id}'} '
+        'next=${_nextSeichi == null ? null : '${_nextSeichi!.contentKey}:${_nextSeichi!.name}:${_nextSeichi!.id}'} '
         'manual=$_manualNextSeichiId '
         'distance=$_nextDistance',
       );
@@ -1298,7 +1298,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     QuestSnackBar.show(
       context,
-      message: '${seichi.card} ${seichi.name} を次の目的地に設定しました。',
+      message: '${seichi.name} を次の目的地に設定しました。',
       type: QuestNoticeType.success,
     );
   }
@@ -1334,7 +1334,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       QuestSnackBar.show(
         context,
         message:
-            'テスト: ${previousSeichi.card} ${previousSeichi.name} の次で巡回ルート終了です。',
+            'テスト: ${previousSeichi.name} の次で巡回ルート終了です。',
         type: QuestNoticeType.info,
       );
       return;
@@ -1351,8 +1351,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     QuestSnackBar.show(
       context,
       message:
-          'テスト: ${previousSeichi.card} ${previousSeichi.name} → '
-          '${nextSeichi.card} ${nextSeichi.name}',
+          'テスト: ${previousSeichi.name} → '
+          '${nextSeichi.name}',
       type: QuestNoticeType.info,
     );
   }
@@ -1388,7 +1388,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       context,
       message:
           '巡回ルートを開始しました。最初の目的地は '
-          '${firstSeichi.card} ${firstSeichi.name} です。',
+          '${firstSeichi.name} です。',
       type: QuestNoticeType.success,
     );
   }
@@ -1483,7 +1483,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       appDebugPrint(
         '[STAMP_DISTANCE] '
         'name=${nearestSeichi.name}, '
-        'card=${nearestSeichi.card}, '
+        'contentKey=${nearestSeichi.contentKey}, '
         'distance=${nearestDistance.toStringAsFixed(1)}m, '
         'radius=${nearestSeichi.stampRadiusMeters}m, '
         'accuracy=${position.accuracy}m',
@@ -1505,7 +1505,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     appDebugPrint(
-      '[STAMP_COLLECT] name=${seichi.name}, card=${seichi.card}, id=${seichi.id}',
+      '[STAMP_COLLECT] name=${seichi.name}, contentKey=${seichi.contentKey}, id=${seichi.id}',
     );
     _isCollecting = true;
 
@@ -1567,8 +1567,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (kDebugMode) {
       appDebugPrint(
         '[ROUTE-NEXT] COLLECTED '
-        'new=${newlyCollectedSeichi.map((item) => '${item.card}:${item.name}:${item.id}').toList()} '
-        'activeBefore=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+        'new=${newlyCollectedSeichi.map((item) => '${item.contentKey}:${item.name}:${item.id}').toList()} '
+        'activeBefore=${_activeRecommendedRoute.map((item) => '${item.contentKey}:${item.id}').toList()} '
         'manualBefore=$_manualNextSeichiId',
       );
     }
@@ -1588,7 +1588,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (kDebugMode) {
       appDebugPrint(
         '[ROUTE-NEXT] AFTER ROUTE ADVANCE '
-        'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+        'active=${_activeRecommendedRoute.map((item) => '${item.contentKey}:${item.id}').toList()} '
         'manual=$_manualNextSeichiId',
       );
     }
@@ -1633,7 +1633,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       setState(() {
         _justCollected = true;
-        _collectedName = '${item.card} ${item.name}を獲得！';
+        _collectedName = '${item.name}を獲得！';
       });
 
       if (await _appSettingsService.isStampNotificationEnabled()) {
@@ -1643,7 +1643,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
           if (notificationGranted) {
             await NotificationService.instance.showStampCollected(
-              seichiName: '${item.card} ${item.name}',
+              seichiName: item.name,
             );
           }
         } catch (_) {
@@ -2740,7 +2740,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       total: _seichiList.length,
       currentEventName: _currentEventName,
       nextDestinationName: _nextSeichi?.name,
-      nextDestinationCard: _nextSeichi?.card,
+      nextDestinationCard: _nextSeichi?.contentKey,
       nextDestinationIcon: _nextSeichi?.icon,
       nextDestinationDistance: _nextDistance,
       onShowNextDestination: () {
