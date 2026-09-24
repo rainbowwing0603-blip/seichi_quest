@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/achievement.dart';
-import '../models/seichi.dart';
+import '../models/quest_item.dart';
 import '../services/achievement_service.dart';
 import 'quest_ui.dart';
 
@@ -17,7 +17,7 @@ class QuestPage extends StatelessWidget {
     required this.eventAchievements,
   });
 
-  final Seichi? nextSeichi;
+  final QuestItem? nextSeichi;
   final double? nextDistance;
   final int collectedCount;
   final int total;
@@ -112,7 +112,7 @@ class QuestPage extends StatelessWidget {
             const SizedBox(height: 18),
             if (total == 0)
               _buildEmptyQuestCard()
-            else if (nextSeichi != null)
+            else if (nextQuestItem != null)
               _buildQuestMainCard(nextSeichi!)
             else
               _buildAllClearCard(),
@@ -189,13 +189,13 @@ class QuestPage extends StatelessWidget {
     );
   }
 
-  Widget _buildQuestMainCard(Seichi seichi) {
+  Widget _buildQuestMainCard(QuestItem seichi) {
     final distance = nextDistance;
 
     return QuestGlassCard(
       padding: EdgeInsets.zero,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(QuestUiTokens.cardRadius),
+        borderRadius: BorderRadius.circular(QuestUiTokens.contentKeyRadius),
         child: Stack(
           children: [
             Positioned(
@@ -297,7 +297,7 @@ class QuestPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              seichi.card,
+                              seichi.contentKey,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -308,7 +308,7 @@ class QuestPage extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              seichi.name,
+                              seichi.title,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
