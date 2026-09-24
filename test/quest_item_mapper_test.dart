@@ -49,7 +49,6 @@ void main() {
     expect(item.title, 'コラボ店舗A');
     expect(item.radiusMeters, 150);
     expect(item.displayOrder, 7);
-    expect(item.legacySeichiId, isNull);
     expect(item.legacyCard, isNull);
     expect(item.legacyReading, isNull);
   });
@@ -89,7 +88,7 @@ void main() {
     expect(item.isActive, isTrue);
   });
 
-  test('上毛かるたではlegacy idとpicture_cardを互換情報として維持する', () {
+  test('上毛かるたではかるた表示情報とpicture_cardを維持する', () {
     final item = mapper.fromEventContentRow({
       'id': 'event-content-karuta',
       'content_id': 'content-karuta',
@@ -103,7 +102,6 @@ void main() {
         'description': '説明',
         'image_url': 'https://example.com/fallback.jpg',
         'metadata': {
-          'legacy_seichi_id': 'legacy-a',
           'card': 'あ',
           'reading': 'あさまのいたずら おにのおしだし',
         },
@@ -137,7 +135,7 @@ void main() {
       },
     });
 
-    expect(item.id, 'legacy-a');
+    expect(item.id, 'event-content-karuta');
     expect(item.legacyCard, 'あ');
     expect(item.legacyReading, 'あさまのいたずら おにのおしだし');
     expect(item.primaryImageUrl, 'https://example.com/card-first.jpg');
