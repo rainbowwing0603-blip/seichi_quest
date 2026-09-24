@@ -371,7 +371,7 @@ returns table (
   content_id uuid,
   event_content_id uuid,
   place_id uuid,
-  card text,
+  content_key text,
   collected_at timestamptz
 )
 language sql
@@ -384,7 +384,7 @@ as $function$
     ch.content_id,
     ch.event_content_id,
     ch.place_id,
-    c.content_key as card,
+    c.content_key,
     ch.collected_at
   from public.collection_history ch
   join public.events e
