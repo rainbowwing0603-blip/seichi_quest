@@ -2200,12 +2200,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            if (presentation.showLegacyDescription)
+                            if (presentation.showFallbackDescription)
                               QuestGlassCard(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    if (presentation.showLegacyDescription)
+                                    if (presentation.showFallbackDescription)
                                       Text(
                                         seichi.description.isEmpty
                                             ? '説明は登録されていません。'
