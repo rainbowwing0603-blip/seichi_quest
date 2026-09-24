@@ -1,24 +1,30 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:seichi_quest/models/achievement.dart';
-import 'package:seichi_quest/models/seichi.dart';
+import 'package:seichi_quest/models/quest_item.dart';
 import 'package:seichi_quest/services/collection_apply_policy.dart';
 
 void main() {
   const policy = CollectionApplyPolicy();
 
-  Seichi seichi(String id, String card) => Seichi(
+  QuestItem seichi(String id, String card) => QuestItem(
         id: id,
+        eventContentId: id,
+        contentId: 'content-$id',
         placeId: 'place-$id',
-        card: card,
-        reading: card,
-        name: '聖地$id',
+        contentKey: card,
+        title: '聖地$id',
         latitude: 36,
         longitude: 139,
-        stampRadiusMeters: 200,
+        radiusMeters: 200,
         description: '',
         icon: '📍',
+        displayOrder: int.parse(id),
         isActive: true,
+        contentMetadata: <String, dynamic>{
+          'card': card,
+          'reading': card,
+        },
       );
 
   const achievements = <Achievement>[
@@ -39,13 +45,13 @@ void main() {
   ];
 
   test('現在イベントの新規獲得だけを反映する', () {
-    final list = <Seichi>[seichi('1', 'あ'), seichi('2', 'い')];
+    final list = <QuestItem>[seichi('1', 'あ'), seichi('2', 'い')];
 
     final result = policy.plan(
       currentEventId: 'event-a',
       collectedRows: <Map<String, dynamic>>[
-        <String, dynamic>{'event_id': 'event-a', 'card': 'あ'},
-        <String, dynamic>{'event_id': 'event-b', 'card': 'い'},
+        <String, dynamic>{'event_id': 'event-a', 'event_content_id': '1'},
+        <String, dynamic>{'event_id': 'event-b', 'event_content_id': '2'},
       ],
       seichiList: list,
       collectedIds: <String>{},
@@ -59,13 +65,13 @@ void main() {
   });
 
   test('既獲得は再獲得せず最後の札で完全制覇を判定する', () {
-    final list = <Seichi>[seichi('1', 'あ'), seichi('2', 'い')];
+    final list = <QuestItem>[seichi('1', 'あ'), seichi('2', 'い')];
 
     final result = policy.plan(
       currentEventId: 'event-a',
       collectedRows: <Map<String, dynamic>>[
-        <String, dynamic>{'event_id': 'event-a', 'card': 'あ'},
-        <String, dynamic>{'event_id': 'event-a', 'card': 'い'},
+        <String, dynamic>{'event_id': 'event-a', 'event_content_id': '1'},
+        <String, dynamic>{'event_id': 'event-a', 'event_content_id': '2'},
       ],
       seichiList: list,
       collectedIds: <String>{'1'},
@@ -82,12 +88,12 @@ void main() {
   });
 
   test('対象カードがなければ状態を変えない', () {
-    final list = <Seichi>[seichi('1', 'あ')];
+    final list = <QuestItem>[seichi('1', 'あ')];
 
     final result = policy.plan(
       currentEventId: 'event-a',
       collectedRows: <Map<String, dynamic>>[
-        <String, dynamic>{'event_id': 'event-a', 'card': 'い'},
+        <String, dynamic>{'event_id': 'event-a', 'event_content_id': '2'},
       ],
       seichiList: list,
       collectedIds: <String>{},
