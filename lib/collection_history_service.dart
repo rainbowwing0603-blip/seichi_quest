@@ -271,7 +271,7 @@ class CollectionHistoryService {
     try {
       final data = await _client
           .from('collection_history')
-          .select('event_id, seichi_id, collected_at, latitude, longitude')
+          .select('event_id, event_content_id, content_id, place_id, collected_at, latitude, longitude')
           .eq('user_id', user.id)
           .eq('event_id', eventId)
           .order('collected_at', ascending: false);
@@ -281,7 +281,7 @@ class CollectionHistoryService {
 
       for (final item in local) {
         final eventIdValue = item['event_id']?.toString();
-        final id = item['seichi_id']?.toString();
+        final id = item['event_content_id']?.toString();
         if (eventIdValue != null &&
             eventIdValue.isNotEmpty &&
             id != null &&
@@ -291,7 +291,7 @@ class CollectionHistoryService {
       }
       for (final item in remote) {
         final eventIdValue = item['event_id']?.toString();
-        final id = item['seichi_id']?.toString();
+        final id = item['event_content_id']?.toString();
         if (eventIdValue != null &&
             eventIdValue.isNotEmpty &&
             id != null &&
@@ -313,7 +313,7 @@ class CollectionHistoryService {
 
       for (final item in allLocal) {
         final eventIdValue = item['event_id']?.toString();
-        final id = item['seichi_id']?.toString();
+        final id = item['event_content_id']?.toString();
 
         if (eventIdValue != null &&
             eventIdValue.isNotEmpty &&
@@ -325,7 +325,7 @@ class CollectionHistoryService {
 
       for (final item in result) {
         final eventIdValue = item['event_id']?.toString();
-        final id = item['seichi_id']?.toString();
+        final id = item['event_content_id']?.toString();
 
         if (eventIdValue != null &&
             eventIdValue.isNotEmpty &&
