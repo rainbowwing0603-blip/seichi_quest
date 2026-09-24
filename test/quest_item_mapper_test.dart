@@ -136,6 +136,7 @@ void main() {
     });
 
     expect(item.id, 'event-content-karuta');
+    expect(item.eventContentId, 'event-content-karuta');
     expect(item.legacyCard, 'あ');
     expect(item.legacyReading, 'あさまのいたずら おにのおしだし');
     expect(item.primaryImageUrl, 'https://example.com/card-first.jpg');
