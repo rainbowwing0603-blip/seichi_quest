@@ -463,7 +463,7 @@ class CollectionPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(7),
             ),
             child: Text(
-              seichi.card,
+              seichi.icon.isNotEmpty ? seichi.icon : '📍',
               style: TextStyle(
                 color: collected
                     ? QuestUiTokens.primary
@@ -613,18 +613,6 @@ class CollectionPage extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Text(
-                  seichi.card,
-                  style: TextStyle(
-                    color: QuestUiTokens.mutedInk.withValues(alpha: 0.68),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -697,16 +685,9 @@ class CollectionPage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    seichi.card,
-                    style: const TextStyle(
-                      color: QuestUiTokens.primary,
-                      fontSize: 25,
-                      height: 1,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    seichi.icon.isNotEmpty ? seichi.icon : '📍',
+                    style: const TextStyle(fontSize: 28),
                   ),
-                  const SizedBox(height: 3),
-                  Text(seichi.icon, style: const TextStyle(fontSize: 16)),
                 ],
               ),
             ],
