@@ -88,7 +88,7 @@ class QuestItemContentSection extends StatelessWidget {
             imageUrl.isNotEmpty) ||
         (showLegacyText &&
             presentation.showLegacyReading &&
-            item.reading.trim().isNotEmpty) ||
+            false) ||
         (showLegacyText &&
             presentation.showLegacyDescription &&
             description.trim().isNotEmpty);
@@ -115,20 +115,6 @@ class QuestItemContentSection extends StatelessWidget {
             errorBuilder: (context, error, stackTrace) =>
                 const SizedBox.shrink(),
           ),
-        ),
-      );
-    }
-
-    if (showLegacyText &&
-        presentation.showLegacyReading &&
-        item.reading.trim().isNotEmpty) {
-      if (widgets.isNotEmpty) {
-        widgets.add(const SizedBox(height: 14));
-      }
-      widgets.add(
-        Text(
-          item.reading,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.6),
         ),
       );
     }
