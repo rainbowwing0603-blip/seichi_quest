@@ -26,6 +26,7 @@ import 'widgets/event_detail_page.dart';
 import 'widgets/sync_status_page.dart';
 import 'widgets/notification_settings_page.dart';
 import 'widgets/announcements_page.dart';
+import 'widgets/announcement_carousel_dialog.dart';
 import 'widgets/app_settings_page.dart';
 import 'widgets/quest_ui.dart';
 import 'widgets/onboarding_page.dart';
@@ -512,50 +513,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         await _loadUnreadAnnouncementCount();
         return;
       }
-      var index = 0;
+
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
-        builder: (dialogContext) => StatefulBuilder(
-          builder: (context, setDialogState) {
-            final announcement = announcements[index];
-            return AlertDialog(
-              title: Text(announcement.title),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (announcements.length > 1) ...[
-                      Text('${index + 1} / ${announcements.length}',
-                          style: Theme.of(context).textTheme.labelMedium),
-                      const SizedBox(height: 10),
-                    ],
-                    Text(announcement.body, style: const TextStyle(height: 1.6)),
-                  ],
-                ),
-              ),
-              actions: [
-                if (index > 0)
-                  TextButton(
-                    onPressed: () => setDialogState(() => index -= 1),
-                    child: const Text('前へ'),
-                  ),
-                if (index < announcements.length - 1)
-                  FilledButton(
-                    onPressed: () => setDialogState(() => index += 1),
-                    child: const Text('次へ'),
-                  )
-                else
-                  FilledButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    child: const Text('閉じる'),
-                  ),
-              ],
-            );
-          },
+        builder: (_) => AnnouncementCarouselDialog(
+          announcements: announcements,
+          onOpenEvent: _openAnnouncementEvent,
         ),
       );
+
       await _announcementService.markAllRead(
         announcements.map((announcement) => announcement.id),
       );
