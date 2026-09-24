@@ -20,11 +20,9 @@ void main() {
     );
 
     expect(item.contentKey, 'shop-a');
-    expect(item.legacyCard, isNull);
-    expect(item.legacyReading, isNull);
   });
 
-  test('legacy karuta metadata is optional compatibility information', () {
+  test('karuta metadata can remain data without changing generic QuestItem API', () {
     const item = QuestItem(
       id: 'event-content-1',
       eventContentId: 'event-content-1',
@@ -45,7 +43,7 @@ void main() {
       },
     );
 
-    expect(item.legacyCard, 'あ');
-    expect(item.legacyReading, 'あ');
+    expect(item.contentMetadata['card'], 'あ');
+    expect(item.contentMetadata['reading'], 'あ');
   });
 }
