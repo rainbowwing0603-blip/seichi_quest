@@ -228,7 +228,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  collected ? '札の物語' : '獲得すると物語が解放',
+                  collected ? 'スポットの物語' : '獲得すると物語が解放',
                   style: const TextStyle(
                     color: QuestUiTokens.ink,
                     fontSize: 15,
@@ -238,8 +238,8 @@ class QuestSpotDetailSheet extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   collected
-                      ? '絵札・読み札・由来・歴史・現地で見るポイント'
-                      : '読み札などの基本情報を確認できます。現地でスタンプを獲得すると、由来・歴史・現地で見るポイントが解放されます。',
+                      ? '由来・歴史・関連画像・現地で見るポイント'
+                      : '基本情報を確認できます。現地でスタンプを獲得すると、由来・歴史・関連情報が解放されます。',
                   style: const TextStyle(
                     color: QuestUiTokens.mutedInk,
                     fontSize: 12.5,
