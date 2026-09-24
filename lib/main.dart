@@ -2807,7 +2807,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       total: _seichiList.length,
       currentEventName: _currentEventName,
       nextDestinationName: _nextSeichi?.name,
-      nextDestinationCard: _nextSeichi?.contentKey,
       nextDestinationIcon: _nextSeichi?.icon,
       nextDestinationDistance: _nextDistance,
       onShowNextDestination: () {
