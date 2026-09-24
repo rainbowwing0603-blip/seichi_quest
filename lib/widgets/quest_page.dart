@@ -297,7 +297,7 @@ class QuestPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              seichi.card,
+                              seichi.icon.isNotEmpty ? seichi.icon : '📍',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
