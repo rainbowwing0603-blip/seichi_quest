@@ -48,27 +48,30 @@ class CollectionSyncService {
     required String eventId,
     required Iterable<String> collectedIds,
   }) async {
-    final mergedIds = <String>{...collectedIds};
-
     try {
       final history = await _historyService.loadHistory(eventId: eventId);
+      final cloudIds = <String>{};
 
       for (final item in history) {
         final id = item['event_content_id']?.toString();
         if (id != null && id.isNotEmpty) {
-          mergedIds.add(id);
+          cloudIds.add(id);
         }
       }
 
+      // クラウド履歴が取得できた場合は、event_contents.id を正とする。
+      // これにより旧 seichi.id が端末キャッシュに残っていても、
+      // 既存の獲得履歴を失わず新IDへ収束できる。
       await _stampCacheService.save(
         userId: userId,
         eventId: eventId,
-        collectedIds: mergedIds,
+        collectedIds: cloudIds,
       );
-    } catch (_) {
-      // クラウド履歴取得失敗時は、既存の端末キャッシュを維持する。
-    }
 
-    return mergedIds;
+      return cloudIds;
+    } catch (_) {
+      // クラウド履歴取得失敗時だけ既存の端末キャッシュを維持する。
+      return <String>{...collectedIds};
+    }
   }
 }
