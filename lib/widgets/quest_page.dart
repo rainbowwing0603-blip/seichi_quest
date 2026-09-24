@@ -112,7 +112,7 @@ class QuestPage extends StatelessWidget {
             const SizedBox(height: 18),
             if (total == 0)
               _buildEmptyQuestCard()
-            else if (nextQuestItem != null)
+            else if (nextSeichi != null)
               _buildQuestMainCard(nextSeichi!)
             else
               _buildAllClearCard(),
@@ -195,7 +195,7 @@ class QuestPage extends StatelessWidget {
     return QuestGlassCard(
       padding: EdgeInsets.zero,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(QuestUiTokens.contentKeyRadius),
+        borderRadius: BorderRadius.circular(QuestUiTokens.cardRadius),
         child: Stack(
           children: [
             Positioned(
@@ -297,7 +297,7 @@ class QuestPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              seichi.contentKey,
+                              seichi.card,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -308,7 +308,7 @@ class QuestPage extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              seichi.title,
+                              seichi.name,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
