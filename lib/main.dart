@@ -2200,8 +2200,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            if (presentation.showLegacyReading ||
-                                presentation.showLegacyDescription)
+                            if (presentation.showLegacyDescription)
                               QuestGlassCard(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
