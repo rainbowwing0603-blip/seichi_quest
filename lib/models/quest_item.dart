@@ -50,7 +50,6 @@ class QuestItem implements QuestDestination {
   String get reading => legacyReading ?? '';
   String get name => title;
   int get stampRadiusMeters => radiusMeters;
-  String? get cardImageUrl => primaryImageUrl;
 
   static String? _nullableString(dynamic value) {
     final text = value?.toString().trim();
