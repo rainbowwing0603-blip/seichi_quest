@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/announcement.dart';
 import '../services/announcement_service.dart';
 import 'quest_ui.dart';
+import 'announcement_carousel_dialog.dart';
 
 class AnnouncementsPage extends StatefulWidget {
   const AnnouncementsPage({
@@ -75,36 +76,10 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
 
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(announcement.title),
-          content: SingleChildScrollView(
-            child: Text(
-              announcement.body,
-              style: const TextStyle(height: 1.6),
-            ),
-          ),
-          actions: [
-            if (announcement.eventId != null && widget.onOpenEvent != null)
-              FilledButton.icon(
-                onPressed: () {
-                  final eventId = announcement.eventId;
-                  if (eventId == null) {
-                    return;
-                  }
-                  Navigator.of(dialogContext).pop();
-                  widget.onOpenEvent!(eventId);
-                },
-                icon: const Icon(Icons.flag_outlined),
-                label: const Text('クエストを見る'),
-              ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('閉じる'),
-            ),
-          ],
-        );
-      },
+      builder: (_) => AnnouncementCarouselDialog(
+        announcements: [announcement.copyWith(isRead: true)],
+        onOpenEvent: widget.onOpenEvent,
+      ),
     );
   }
 
@@ -113,7 +88,13 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5FB),
       appBar: AppBar(
-        title: const Text('お知らせ'),
+        title: const Text(
+          'お知らせ',
+          style: TextStyle(
+            color: QuestUiTokens.ink,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
         backgroundColor: const Color(0xFFF7F5FB),
       ),
       body: RefreshIndicator(
@@ -134,18 +115,17 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
         padding: const EdgeInsets.all(24),
         children: [
           const SizedBox(height: 80),
-          const Icon(Icons.cloud_off_outlined, size: 42),
+          const Icon(Icons.cloud_off_outlined, size: 42, color: QuestUiTokens.mutedInk),
           const SizedBox(height: 16),
           Text(
             _errorMessage!,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          Center(
-            child: FilledButton(
-              onPressed: _load,
-              child: const Text('再読み込み'),
-            ),
+          QuestPrimaryButton(
+            label: '再読み込み',
+            icon: Icons.refresh_rounded,
+            onPressed: _load,
           ),
         ],
       );
@@ -157,7 +137,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
         padding: const EdgeInsets.all(24),
         children: const [
           SizedBox(height: 80),
-          Icon(Icons.notifications_none_rounded, size: 44),
+          Icon(Icons.notifications_none_rounded, size: 44, color: QuestUiTokens.mutedInk),
           SizedBox(height: 16),
           Text(
             '現在のお知らせはありません。',
