@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/seichi.dart';
+import '../models/quest_item.dart';
 import 'quest_item_content_section.dart';
 import 'quest_ui.dart';
 
@@ -15,7 +15,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
     this.onSetNextDestination,
   });
 
-  final Seichi item;
+  final QuestItem item;
   final bool collected;
   final bool isNext;
   final List<String> eventNames;
@@ -24,7 +24,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
 
   static Future<void> show(
     BuildContext context, {
-    required Seichi item,
+    required QuestItem item,
     required bool collected,
     bool isNext = false,
     List<String> eventNames = const <String>[],
