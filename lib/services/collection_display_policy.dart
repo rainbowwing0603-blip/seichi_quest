@@ -7,7 +7,7 @@ class CollectionDisplayPolicy {
     final result = <String, Set<String>>{};
 
     for (final item in history) {
-      final contentKey = item['content_key']?.toString() ?? item['card']?.toString();
+      final contentKey = item['content_key']?.toString();
       final eventName = item['event_name']?.toString();
 
       if (contentKey == null ||
