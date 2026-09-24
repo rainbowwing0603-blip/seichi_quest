@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/content_block.dart';
-import '../models/seichi.dart';
+import '../models/quest_item.dart';
 import '../services/content_block_presentation_policy.dart';
 import '../services/content_block_service.dart';
 import 'content_block_renderer.dart';
@@ -21,7 +21,7 @@ class QuestItemContentSection extends StatelessWidget {
   static const ContentBlockPresentationPolicy _presentationPolicy =
       ContentBlockPresentationPolicy();
 
-  final Seichi item;
+  final QuestItem item;
   final bool showLegacyImage;
   final bool showLegacyText;
   final String? legacyDescriptionOverride;
@@ -30,7 +30,7 @@ class QuestItemContentSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final contentId = item.contentId?.trim() ?? '';
+    final contentId = item.contentId.trim();
 
     if (contentId.isEmpty) {
       return _buildLegacyContent(
