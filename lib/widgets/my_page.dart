@@ -28,6 +28,8 @@ class MyPage extends StatelessWidget {
   final VoidCallback onShowProfile;
   final VoidCallback onShowAccount;
   final VoidCallback onShowNotifications;
+  final VoidCallback onShowAnnouncements;
+  final int unreadAnnouncementCount;
   final VoidCallback onShowSettings;
   final VoidCallback onShowAbout;
 
@@ -52,6 +54,8 @@ class MyPage extends StatelessWidget {
     required this.onShowProfile,
     required this.onShowAccount,
     required this.onShowNotifications,
+    required this.onShowAnnouncements,
+    required this.unreadAnnouncementCount,
     required this.onShowSettings,
     required this.onShowAbout,
   });
@@ -187,6 +191,17 @@ class MyPage extends StatelessWidget {
               title: 'アカウント',
               subtitle: 'データを引き継ぐ',
               onTap: onShowAccount,
+              compact: true,
+            ),
+            _buildSettingsTile(
+              icon: unreadAnnouncementCount > 0
+                  ? Icons.notifications_active_rounded
+                  : Icons.notifications_none_rounded,
+              title: unreadAnnouncementCount > 0
+                  ? 'お知らせ  未読 $unreadAnnouncementCount件'
+                  : 'お知らせ',
+              subtitle: '運営からのお知らせを確認',
+              onTap: onShowAnnouncements,
               compact: true,
             ),
             _buildSettingsTile(

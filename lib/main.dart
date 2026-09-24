@@ -22,8 +22,11 @@ import 'widgets/profile_page.dart';
 import 'widgets/account_page.dart';
 import 'widgets/adventure_log_page.dart';
 import 'widgets/event_explore_page.dart';
+import 'widgets/event_detail_page.dart';
 import 'widgets/sync_status_page.dart';
 import 'widgets/notification_settings_page.dart';
+import 'widgets/announcements_page.dart';
+import 'widgets/announcement_carousel_dialog.dart';
 import 'widgets/app_settings_page.dart';
 import 'widgets/quest_ui.dart';
 import 'widgets/onboarding_page.dart';
@@ -67,6 +70,7 @@ import 'services/quest_item_service.dart';
 import 'services/account_refresh_coordinator.dart';
 import 'services/app_settings_service.dart';
 import 'services/interstitial_ad_service.dart';
+import 'services/announcement_service.dart';
 
 // ============================================================
 // Supabase
@@ -192,6 +196,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   static const NextDestinationService _nextDestinationService =
       NextDestinationService();
   final EventService _eventService = EventService();
+  final AnnouncementService _announcementService = AnnouncementService();
+  int _unreadAnnouncementCount = 0;
+  bool _startupAnnouncementsShown = false;
   static const EventSwitchCoordinator _eventSwitchCoordinator =
       EventSwitchCoordinator();
   final ProgressionService _progressionService = ProgressionService();
@@ -487,6 +494,44 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
   }
 
+  Future<void> _loadUnreadAnnouncementCount() async {
+    try {
+      final count = await _announcementService.loadUnreadCount();
+      if (!mounted || count == _unreadAnnouncementCount) return;
+      setState(() => _unreadAnnouncementCount = count);
+    } catch (error) {
+      appDebugPrint('[ANNOUNCEMENTS] unread count failed: $error');
+    }
+  }
+
+  Future<void> _showStartupAnnouncementsIfNeeded() async {
+    if (_startupAnnouncementsShown || !mounted || _shouldShowOnboarding) return;
+    _startupAnnouncementsShown = true;
+    try {
+      final announcements = await _announcementService.loadUnreadStartup();
+      if (!mounted || announcements.isEmpty) {
+        await _loadUnreadAnnouncementCount();
+        return;
+      }
+
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AnnouncementCarouselDialog(
+          announcements: announcements,
+          onOpenEvent: _openAnnouncementEvent,
+        ),
+      );
+
+      await _announcementService.markAllRead(
+        announcements.map((announcement) => announcement.id),
+      );
+      await _loadUnreadAnnouncementCount();
+    } catch (error) {
+      appDebugPrint('[ANNOUNCEMENTS] startup display failed: $error');
+    }
+  }
+
   Future<void> _runPostRenderStartup({
     required List<Map<String, dynamic>> pendingCollectedRows,
   }) async {
@@ -512,6 +557,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       _updateNextDestination();
       appDebugPrint('[STARTUP] post-render complete');
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          unawaited(_showStartupAnnouncementsIfNeeded());
+        }
+      });
     } catch (error) {
       appDebugPrint('[STARTUP] post-render failed: $error');
     }
@@ -2505,6 +2556,47 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // クエスト画面
   // ============================================================
 
+  Future<void> _openAnnouncementEvent(String eventId) async {
+    Event? event;
+    for (final candidate in _events) {
+      if (candidate.id == eventId) {
+        event = candidate;
+        break;
+      }
+    }
+    if (event == null) {
+      if (mounted) {
+        QuestSnackBar.show(
+          context,
+          message: '関連するクエスト情報を取得できません。',
+          type: QuestNoticeType.warning,
+        );
+      }
+      return;
+    }
+    final targetEvent = event;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => EventDetailPage(
+          event: targetEvent,
+          currentPosition: _currentPosition,
+          participationLabel: targetEvent.id == _currentEventId ? '選択中' : 'クエスト',
+          collectedCount: targetEvent.id == _currentEventId ? _getCollectedCount() : null,
+          totalCount: targetEvent.id == _currentEventId ? _seichiList.length : null,
+          currentNextSeichiId: targetEvent.id == _currentEventId ? _nextSeichi?.id : null,
+          onSetNextDestination: targetEvent.id == _currentEventId ? _setNextDestination : null,
+          onShowOnMap: targetEvent.id == _currentEventId
+              ? (item) {
+                  Navigator.of(context).pop();
+                  _moveCameraToSeichi(item);
+                }
+              : null,
+          onStartRecommendedRoute: targetEvent.id == _currentEventId ? _startRecommendedRoute : null,
+        ),
+      ),
+    );
+  }
+
   Future<void> _showEventExplore({bool favoriteOnly = false}) async {
     final result = await Navigator.of(context).push<Object?>(
       MaterialPageRoute(
@@ -2843,6 +2935,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         );
 
         await _showInterstitialAfterSafeScreen(openedAt: openedAt);
+      },
+      unreadAnnouncementCount: _unreadAnnouncementCount,
+      onShowAnnouncements: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => AnnouncementsPage(
+              service: _announcementService,
+              onOpenEvent: _openAnnouncementEvent,
+            ),
+          ),
+        );
+        await _loadUnreadAnnouncementCount();
       },
       onShowAbout: _showAbout,
       onShowSettings: () async {
