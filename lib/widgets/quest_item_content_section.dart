@@ -80,7 +80,7 @@ class QuestItemContentSection extends StatelessWidget {
   }
 
   bool _hasVisibleLegacyContent(ContentBlockPresentation presentation) {
-    final imageUrl = item.cardImageUrl?.trim() ?? '';
+    final imageUrl = item.primaryImageUrl?.trim() ?? '';
     final description = legacyDescriptionOverride ?? item.description;
 
     return (showLegacyImage &&
@@ -99,7 +99,7 @@ class QuestItemContentSection extends StatelessWidget {
     ContentBlockPresentation presentation,
   ) {
     final widgets = <Widget>[];
-    final imageUrl = item.cardImageUrl?.trim() ?? '';
+    final imageUrl = item.primaryImageUrl?.trim() ?? '';
     final description = legacyDescriptionOverride ?? item.description;
 
     if (showLegacyImage &&
