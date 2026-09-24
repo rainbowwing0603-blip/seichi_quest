@@ -89,9 +89,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
               _buildStoryNotice(),
               const SizedBox(height: 12),
               QuestItemContentSection(
-                item: item,
-                showLegacyText: false,
-                collected: collected,
+                item: item,                collected: collected,
               ),
               if (collected && eventNames.isNotEmpty) ...[
                 const SizedBox(height: 14),
