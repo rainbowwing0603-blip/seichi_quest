@@ -151,7 +151,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Text(
-                  item.card,
+                  item.icon.isNotEmpty ? item.icon : '📍',
                   style: TextStyle(
                     color: collected ? Colors.white : QuestUiTokens.mutedInk,
                     fontSize: 20,
