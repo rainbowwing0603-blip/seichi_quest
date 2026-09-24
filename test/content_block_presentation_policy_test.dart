@@ -28,8 +28,8 @@ void main() {
     final result = policy.resolve(const <ContentBlock>[]);
 
     expect(result.blocks, isEmpty);
-    expect(result.showLegacyDescription, isTrue);
-    expect(result.showLegacyImage, isTrue);
+    expect(result.showFallbackDescription, isTrue);
+    expect(result.showFallbackImage, isTrue);
   });
 
   test('semantic roles replace matching generic fallback sections', () {
@@ -40,8 +40,8 @@ void main() {
       block(type: ContentBlockType.link, role: 'official'),
     ]);
 
-    expect(result.showLegacyDescription, isFalse);
-    expect(result.showLegacyImage, isFalse);
+    expect(result.showFallbackDescription, isFalse);
+    expect(result.showFallbackImage, isFalse);
     expect(result.blocks, hasLength(4));
   });
 
@@ -52,8 +52,8 @@ void main() {
       block(type: ContentBlockType.link, role: 'official'),
     ]);
 
-    expect(result.showLegacyDescription, isTrue);
-    expect(result.showLegacyImage, isTrue);
+    expect(result.showFallbackDescription, isTrue);
+    expect(result.showFallbackImage, isTrue);
   });
 
   test('reading card and hero images are additive to legacy picture card', () {
@@ -62,7 +62,7 @@ void main() {
       block(type: ContentBlockType.image, role: 'hero'),
     ]);
 
-    expect(result.showLegacyImage, isTrue);
+    expect(result.showFallbackImage, isTrue);
     expect(result.blocks, hasLength(2));
   });
 
@@ -106,7 +106,7 @@ void main() {
     ]);
 
     expect(result.blocks, isEmpty);
-    expect(result.showLegacyDescription, isTrue);
+    expect(result.showFallbackDescription, isTrue);
   });
 
   test('empty semantic blocks cannot suppress generic fallback', () {
@@ -140,7 +140,7 @@ void main() {
     ]);
 
     expect(result.blocks, isEmpty);
-    expect(result.showLegacyImage, isTrue);
+    expect(result.showFallbackImage, isTrue);
   });
 
   test('invalid link blocks are excluded from presentation', () {
@@ -187,10 +187,10 @@ void main() {
     );
 
     expect(before.blocks, isEmpty);
-    expect(before.showLegacyDescription, isTrue);
+    expect(before.showFallbackDescription, isTrue);
 
     expect(after.blocks, hasLength(1));
-    expect(after.showLegacyDescription, isFalse);
+    expect(after.showFallbackDescription, isFalse);
   });
 
   test('hidden semantic content never suppresses fallback', () {
@@ -215,7 +215,7 @@ void main() {
       );
 
       expect(result.blocks, isEmpty);
-      expect(result.showLegacyImage, isTrue);
+      expect(result.showFallbackImage, isTrue);
     }
   });
 
