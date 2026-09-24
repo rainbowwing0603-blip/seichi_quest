@@ -37,7 +37,6 @@ class QuestItemContentSection extends StatelessWidget {
         context,
         const ContentBlockPresentation(
           blocks: <ContentBlock>[],
-          showLegacyReading: true,
           showLegacyDescription: true,
           showLegacyImage: true,
         ),
