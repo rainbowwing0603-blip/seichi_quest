@@ -100,7 +100,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
               if (onShowOnMap != null) ...[
                 const SizedBox(height: 16),
                 QuestPrimaryButton(
-                  label: collected ? '獲得した聖地を地図で見る' : 'この聖地を地図で見る',
+                  label: collected ? '獲得したスポットを地図で見る' : 'このスポットを地図で見る',
                   icon: Icons.map_rounded,
                   onPressed: onShowOnMap,
                 ),
