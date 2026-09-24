@@ -28,7 +28,7 @@ import 'widgets/app_settings_page.dart';
 import 'widgets/quest_ui.dart';
 import 'widgets/onboarding_page.dart';
 import 'widgets/license_page.dart';
-import 'models/seichi.dart';
+import 'models/quest_item.dart';
 import 'models/achievement.dart';
 import 'models/content_block.dart';
 import 'models/event.dart';
@@ -63,7 +63,7 @@ import 'services/profile_service.dart';
 import 'services/session_service.dart';
 import 'services/secondary_refresh_coordinator.dart';
 import 'services/startup_coordinator.dart';
-import 'services/seichi_service.dart';
+import 'services/quest_item_service.dart';
 import 'services/account_refresh_coordinator.dart';
 import 'services/app_settings_service.dart';
 import 'services/interstitial_ad_service.dart';
@@ -184,7 +184,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Position? _lastWeatherFetchPosition;
   bool _isWeatherFetchInProgress = false;
 
-  List<Seichi> _seichiList = [];
+  List<QuestItem> _seichiList = [];
   final Set<String> _collectedIds = {};
   final Map<String, Set<String>> _collectionEventNamesByCard = {};
 
@@ -200,7 +200,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   static const SecondaryRefreshCoordinator _secondaryRefreshCoordinator =
       SecondaryRefreshCoordinator();
   static const StartupCoordinator _startupCoordinator = StartupCoordinator();
-  final SeichiService _seichiService = SeichiService();
+  final QuestItemService _questItemService = QuestItemService();
   static const AccountRefreshCoordinator _accountRefreshCoordinator =
       AccountRefreshCoordinator();
   final AppSettingsService _appSettingsService = AppSettingsService();
@@ -256,12 +256,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   BitmapDescriptor? _staticMarkerCacheCollectedIcon;
   final MarkerCacheRevision _markerCacheRevision = MarkerCacheRevision();
   int _staticMarkerCacheRevision = -1;
-  Seichi? _nextSeichi;
+  QuestItem? _nextSeichi;
   double? _nextDistance;
   bool _isQuestHudCollapsed = false;
 
   bool _focusNextDestinationOnMapOpen = false;
-  Seichi? _pendingMapSeichi;
+  QuestItem? _pendingMapSeichi;
 
   // ユーザーが「次の目的地にする」で指定した聖地。
   // 未指定時は従来どおり、現在地から最も近い未獲得聖地を自動選択する。
@@ -269,7 +269,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   // おすすめ巡回ルート開始中の未完了ルート。
   // 先頭要素が現在のNEXT目的地になる。
-  final List<Seichi> _activeRecommendedRoute = <Seichi>[];
+  final List<QuestItem> _activeRecommendedRoute = <QuestItem>[];
 
   // 現在のユーザー・イベントについて、
   // おすすめルートの永続化状態を読み込み済みかどうか。
@@ -363,7 +363,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       _events = selection.events;
       _currentEventId = selection.currentEvent.id;
-      _currentEventName = selection.currentEvent.name;
+      _currentEventName = selection.currentEvent.title;
     } catch (e) {
       appDebugPrint('現在のイベント取得エラー: $e');
       rethrow;
@@ -882,7 +882,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       for (final seichi in _seichiList) seichi.id: seichi,
     };
 
-    final restoredRoute = <Seichi>[];
+    final restoredRoute = <QuestItem>[];
 
     for (final id in savedIds) {
       final seichi = seichiById[id];
@@ -987,7 +987,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         throw Exception('イベントIDが未取得のため、聖地を読み込めません。');
       }
 
-      final list = await _seichiService.loadActiveSeichi(eventId);
+      final list = await _questItemService.loadActiveItems(eventId);
 
       if (!mounted) {
         return;
@@ -1159,10 +1159,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       appDebugPrint(
         '[WEATHER] '
-        'weather=${currentState?.weather.name}, '
+        'weather=${currentState?.weather.title}, '
         'temperature=${currentState?.temperatureCelsius}, '
-        'season=${currentState?.season.name}, '
-        'dayPhase=${currentState?.dayPhase.name}, '
+        'season=${currentState?.season.title}, '
+        'dayPhase=${currentState?.dayPhase.title}, '
         'observedAt=${currentState?.observedAt}',
       );
     } catch (error) {
@@ -1227,7 +1227,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       appDebugPrint(
         '[ROUTE-NEXT] UPDATE START '
         'manual=$_manualNextSeichiId '
-        'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+        'active=${_activeRecommendedRoute.map((item) => '${item.contentKey}:${item.id}').toList()} '
         'collected=${_collectedIds.length}',
       );
     }
@@ -1242,7 +1242,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (kDebugMode) {
       appDebugPrint(
         '[ROUTE-NEXT] SERVICE RESULT '
-        'next=${result.seichi == null ? null : '${result.seichi!.card}:${result.seichi!.name}:${result.seichi!.id}'} '
+        'next=${result.seichi == null ? null : '${result.seichi!.contentKey}:${result.seichi!.title}:${result.seichi!.id}'} '
         'distance=${result.distance}',
       );
     }
@@ -1256,12 +1256,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     final nextChanged =
-        _nextSeichi?.id != result.seichi?.id ||
+        _nextQuestItem?.id != result.seichi?.id ||
         _nextDistance != result.distance;
 
     if (nextChanged) {
       setState(() {
-        _nextSeichi = result.seichi;
+        _nextQuestItem = result.seichi;
         _nextDistance = result.distance;
       });
     }
@@ -1271,21 +1271,21 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (kDebugMode) {
       appDebugPrint(
         '[ROUTE-NEXT] UPDATE END '
-        'next=${_nextSeichi == null ? null : '${_nextSeichi!.card}:${_nextSeichi!.name}:${_nextSeichi!.id}'} '
+        'next=${_nextQuestItem == null ? null : '${_nextSeichi!.contentKey}:${_nextSeichi!.title}:${_nextSeichi!.id}'} '
         'manual=$_manualNextSeichiId '
         'distance=$_nextDistance',
       );
     }
   }
 
-  Future<void> _setNextDestination(Seichi seichi) async {
+  Future<void> _setNextDestination(QuestItem seichi) async {
     if (_collectedIds.contains(seichi.id)) {
       return;
     }
 
     setState(() {
       _manualNextSeichiId = seichi.id;
-      _nextSeichi = seichi;
+      _nextQuestItem = seichi;
     });
 
     await _saveManualNextDestination();
@@ -1298,7 +1298,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     QuestSnackBar.show(
       context,
-      message: '${seichi.card} ${seichi.name} を次の目的地に設定しました。',
+      message: '${seichi.contentKey} ${seichi.title} を次の目的地に設定しました。',
       type: QuestNoticeType.success,
     );
   }
@@ -1317,7 +1317,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    final previousSeichi = _activeRecommendedRoute.first;
+    final previousQuestItem = _activeRecommendedRoute.first;
 
     _activeRecommendedRoute.removeAt(0);
 
@@ -1334,13 +1334,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       QuestSnackBar.show(
         context,
         message:
-            'テスト: ${previousSeichi.card} ${previousSeichi.name} の次で巡回ルート終了です。',
+            'テスト: ${previousSeichi.contentKey} ${previousSeichi.title} の次で巡回ルート終了です。',
         type: QuestNoticeType.info,
       );
       return;
     }
 
-    final nextSeichi = _activeRecommendedRoute.first;
+    final nextQuestItem = _activeRecommendedRoute.first;
     _manualNextSeichiId = nextSeichi.id;
     _updateNextDestination();
 
@@ -1351,13 +1351,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     QuestSnackBar.show(
       context,
       message:
-          'テスト: ${previousSeichi.card} ${previousSeichi.name} → '
-          '${nextSeichi.card} ${nextSeichi.name}',
+          'テスト: ${previousSeichi.contentKey} ${previousSeichi.title} → '
+          '${nextSeichi.contentKey} ${nextSeichi.title}',
       type: QuestNoticeType.info,
     );
   }
 
-  void _startRecommendedRoute(List<Seichi> route) {
+  void _startRecommendedRoute(List<QuestItem> route) {
     if (route.isEmpty) {
       return;
     }
@@ -1371,7 +1371,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
 
-    final firstSeichi = routeState.route.first;
+    final firstQuestItem = routeState.route.first;
 
     _activeRecommendedRoute
       ..clear()
@@ -1388,7 +1388,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       context,
       message:
           '巡回ルートを開始しました。最初の目的地は '
-          '${firstSeichi.card} ${firstSeichi.name} です。',
+          '${firstSeichi.contentKey} ${firstSeichi.title} です。',
       type: QuestNoticeType.success,
     );
   }
@@ -1445,9 +1445,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       );
     }
 
-    Seichi? nearestSeichi;
+    QuestItem? nearestSeichi;
     double nearestDistance = double.infinity;
-    Seichi? collectibleSeichi;
+    QuestItem? collectibleSeichi;
 
     for (final seichi in _seichiList) {
       if (_collectedIds.contains(seichi.id)) {
@@ -1463,34 +1463,34 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       if (distance < nearestDistance) {
         nearestDistance = distance;
-        nearestSeichi = seichi;
+        nearestQuestItem = seichi;
       }
 
-      if (collectibleSeichi == null &&
+      if (collectibleQuestItem == null &&
           StampEligibilityPolicy.hasSufficientAccuracy(
             accuracyMeters: position.accuracy,
-            stampRadiusMeters: seichi.stampRadiusMeters,
+            stampRadiusMeters: seichi.radiusMeters,
           ) &&
           StampEligibilityPolicy.isWithinStampRadius(
             distanceMeters: distance,
-            stampRadiusMeters: seichi.stampRadiusMeters,
+            stampRadiusMeters: seichi.radiusMeters,
           )) {
-        collectibleSeichi = seichi;
+        collectibleQuestItem = seichi;
       }
     }
 
-    if (kDebugMode && nearestSeichi != null) {
+    if (kDebugMode && nearestQuestItem != null) {
       appDebugPrint(
         '[STAMP_DISTANCE] '
-        'name=${nearestSeichi.name}, '
-        'card=${nearestSeichi.card}, '
+        'name=${nearestSeichi.title}, '
+        'card=${nearestSeichi.contentKey}, '
         'distance=${nearestDistance.toStringAsFixed(1)}m, '
-        'radius=${nearestSeichi.stampRadiusMeters}m, '
+        'radius=${nearestSeichi.radiusMeters}m, '
         'accuracy=${position.accuracy}m',
       );
     }
 
-    if (collectibleSeichi != null) {
+    if (collectibleQuestItem != null) {
       await _collectStamp(collectibleSeichi);
     }
   }
@@ -1499,13 +1499,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // スタンプ獲得
   // ============================================================
 
-  Future<void> _collectStamp(Seichi seichi) async {
+  Future<void> _collectStamp(QuestItem seichi) async {
     if (_isCollecting || _collectedIds.contains(seichi.id)) {
       return;
     }
 
     appDebugPrint(
-      '[STAMP_COLLECT] name=${seichi.name}, card=${seichi.card}, id=${seichi.id}',
+      '[STAMP_COLLECT] name=${seichi.title}, card=${seichi.contentKey}, id=${seichi.id}',
     );
     _isCollecting = true;
 
@@ -1551,7 +1551,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       eventAchievements: _eventAchievements,
     );
 
-    final newlyCollectedSeichi = applyPlan.newlyCollectedSeichi;
+    final newlyCollectedQuestItem = applyPlan.newlyCollectedSeichi;
 
     if (newlyCollectedSeichi.isEmpty) {
       return;
@@ -1567,8 +1567,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (kDebugMode) {
       appDebugPrint(
         '[ROUTE-NEXT] COLLECTED '
-        'new=${newlyCollectedSeichi.map((item) => '${item.card}:${item.name}:${item.id}').toList()} '
-        'activeBefore=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+        'new=${newlyCollectedSeichi.map((item) => '${item.contentKey}:${item.title}:${item.id}').toList()} '
+        'activeBefore=${_activeRecommendedRoute.map((item) => '${item.contentKey}:${item.id}').toList()} '
         'manualBefore=$_manualNextSeichiId',
       );
     }
@@ -1588,7 +1588,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (kDebugMode) {
       appDebugPrint(
         '[ROUTE-NEXT] AFTER ROUTE ADVANCE '
-        'active=${_activeRecommendedRoute.map((item) => '${item.card}:${item.id}').toList()} '
+        'active=${_activeRecommendedRoute.map((item) => '${item.contentKey}:${item.id}').toList()} '
         'manual=$_manualNextSeichiId',
       );
     }
@@ -1633,7 +1633,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       setState(() {
         _justCollected = true;
-        _collectedName = '${item.card} ${item.name}を獲得！';
+        _collectedName = '${item.contentKey} ${item.title}を獲得！';
       });
 
       if (await _appSettingsService.isStampNotificationEnabled()) {
@@ -1643,7 +1643,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
           if (notificationGranted) {
             await NotificationService.instance.showStampCollected(
-              seichiName: '${item.card} ${item.name}',
+              seichiName: '${item.contentKey} ${item.title}',
             );
           }
         } catch (_) {
@@ -1941,8 +1941,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // 特定聖地へ移動
   // ============================================================
 
-  Future<void> _moveCameraToSeichi(Seichi seichi) async {
-    _pendingMapSeichi = seichi;
+  Future<void> _moveCameraToSeichi(QuestItem seichi) async {
+    _pendingMapQuestItem = seichi;
 
     // 別タブからマップへ戻る場合、現在の controller は
     // 破棄される旧Mapに属している可能性がある。
@@ -1976,8 +1976,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     );
 
     // この地点への移動が完了した場合だけ pending を解除。
-    if (_pendingMapSeichi?.id == seichi.id) {
-      _pendingMapSeichi = null;
+    if (_pendingMapQuestItem?.id == seichi.id) {
+      _pendingMapQuestItem = null;
     }
   }
 
@@ -1986,7 +1986,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   Set<Marker> _buildMarkers() {
-    final nextId = _nextSeichi?.id;
+    final nextId = _nextQuestItem?.id;
 
     // 静止Markerの再構築要否は、毎buildで全IDをソート・連結せず
     // 明示的なデータ世代と参照状態で判定する。
@@ -2028,11 +2028,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             anchor: const Offset(0.5, 0.94),
             zIndexInt: 1,
             infoWindow: InfoWindow(
-              title: '${seichi.icon} ${seichi.card} ${seichi.name}',
+              title: '${seichi.icon} ${seichi.contentKey} ${seichi.title}',
               snippet: collected
                   ? '🏆 スタンプ獲得済み'
-                  : '${seichi.reading} ・ '
-                        '到達半径 ${seichi.stampRadiusMeters}m',
+                  : '${seichi.legacyReading} ・ '
+                        '到達半径 ${seichi.radiusMeters}m',
             ),
             onTap: () {
               _showSeichiDetails(seichi);
@@ -2050,9 +2050,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     final markers = <Marker>{...?_staticMarkerCache};
 
-    final nextSeichi = _nextSeichi;
+    final nextQuestItem = _nextSeichi;
 
-    if (nextSeichi != null && !_collectedIds.contains(nextSeichi.id)) {
+    if (nextQuestItem != null && !_collectedIds.contains(nextSeichi.id)) {
       final animationValue = _sonarController.value;
       final wave = math.sin(animationValue * math.pi * 2);
       final nextAnchorY = 0.94 + (wave * 0.035);
@@ -2070,11 +2070,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           infoWindow: InfoWindow(
             title:
                 '${nextSeichi.icon} '
-                '${nextSeichi.card} '
-                '${nextSeichi.name}',
+                '${nextSeichi.contentKey} '
+                '${nextSeichi.title}',
             snippet:
-                '✨ NEXT ・ ${nextSeichi.reading} ・ '
-                '到達半径 ${nextSeichi.stampRadiusMeters}m',
+                '✨ NEXT ・ ${nextSeichi.legacyReading} ・ '
+                '到達半径 ${nextSeichi.radiusMeters}m',
           ),
           onTap: () {
             _showSeichiDetails(nextSeichi);
@@ -2090,7 +2090,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // 聖地詳細
   // ============================================================
 
-  void _showSeichiDetails(Seichi seichi) {
+  void _showSeichiDetails(QuestItem seichi) {
     final position = _currentPosition;
     final contentId = seichi.contentId?.trim() ?? '';
 
@@ -2165,7 +2165,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                seichi.card,
+                                seichi.contentKey,
                                 style: TextStyle(
                                   color: colorScheme.primary,
                                   fontSize: 13,
@@ -2175,7 +2175,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                seichi.name,
+                                seichi.title,
                                 style: const TextStyle(
                                   color: QuestUiTokens.ink,
                                   fontSize: 22,
@@ -2222,9 +2222,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     if (presentation.showLegacyReading &&
-                                        seichi.reading.isNotEmpty) ...[
+                                        seichi.legacyReading.isNotEmpty) ...[
                                       Text(
-                                        seichi.reading,
+                                        seichi.legacyReading,
                                         style: const TextStyle(
                                           color: QuestUiTokens.mutedInk,
                                           fontSize: 13,
@@ -2296,7 +2296,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                                 ),
                               ),
                               Text(
-                                '${seichi.stampRadiusMeters}m',
+                                '${seichi.radiusMeters}m',
                                 style: const TextStyle(
                                   color: QuestUiTokens.ink,
                                   fontSize: 15,
@@ -2495,14 +2495,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       onMapCreated: (controller) {
         _mapController = controller;
 
-        if (_pendingMapSeichi != null) {
+        if (_pendingMapQuestItem != null) {
           final seichi = _pendingMapSeichi!;
-          _pendingMapSeichi = null;
+          _pendingMapQuestItem = null;
           _moveCameraToSeichi(seichi);
           return;
         }
 
-        if (_focusNextDestinationOnMapOpen && _nextSeichi != null) {
+        if (_focusNextDestinationOnMapOpen && _nextQuestItem != null) {
           _focusNextDestinationOnMapOpen = false;
           _moveCameraToNextSeichi();
           return;
@@ -2545,7 +2545,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           currentEventId: _currentEventId,
           currentCollectedCount: _getCollectedCount(),
           currentTotalCount: _seichiList.length,
-          currentNextSeichiId: _nextSeichi?.id,
+          currentNextSeichiId: _nextQuestItem?.id,
           onSetNextDestination: _setNextDestination,
           onShowOnMap: (seichi) {
             Navigator.of(context).pop(seichi);
@@ -2640,7 +2640,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Future<void> _selectEvent(Event event) async {
     final eventId = event.id;
-    final eventName = event.name;
+    final eventName = event.title;
 
     if (eventId.isEmpty) {
       throw Exception('選択したイベントのIDが取得できません。');
@@ -2744,12 +2744,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       count: _getCollectedCount(),
       total: _seichiList.length,
       currentEventName: _currentEventName,
-      nextDestinationName: _nextSeichi?.name,
-      nextDestinationCard: _nextSeichi?.card,
-      nextDestinationIcon: _nextSeichi?.icon,
+      nextDestinationName: _nextQuestItem?.title,
+      nextDestinationCard: _nextQuestItem?.contentKey,
+      nextDestinationIcon: _nextQuestItem?.icon,
       nextDestinationDistance: _nextDistance,
       onShowNextDestination: () {
-        if (_nextSeichi == null) {
+        if (_nextQuestItem == null) {
           return;
         }
 
@@ -3145,7 +3145,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   }
 
   void _syncMarkerAnimation() {
-    final shouldAnimate = _nextSeichi != null && _selectedTab == 0;
+    final shouldAnimate = _nextQuestItem != null && _selectedTab == 0;
 
     if (shouldAnimate) {
       if (!_sonarController.isAnimating) {
@@ -3161,7 +3161,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   }
 
   void _onMarkerAnimationTick() {
-    if (!mounted || _nextSeichi == null || _selectedTab != 0) {
+    if (!mounted || _nextQuestItem == null || _selectedTab != 0) {
       return;
     }
 
