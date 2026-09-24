@@ -10,13 +10,19 @@ do $$
 begin
   if exists (
     select 1
-    from public.collection_history
-    where event_content_id is null
-       or content_id is null
-       or place_id is null
+    from public.collection_history ch
+    left join public.event_contents ec
+      on ec.id = ch.event_content_id
+    where ch.event_content_id is null
+       or ch.content_id is null
+       or ch.place_id is null
+       or ec.id is null
+       or ec.event_id is distinct from ch.event_id
+       or ec.content_id is distinct from ch.content_id
+       or ec.place_id is distinct from ch.place_id
   ) then
     raise exception
-      'legacy seichi removal aborted: collection_history contains rows not migrated to generic ids';
+      'legacy seichi removal aborted: collection_history is not fully consistent with event_contents';
   end if;
 end;
 $$;
