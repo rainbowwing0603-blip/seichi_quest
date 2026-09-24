@@ -338,8 +338,8 @@ class MapPage extends StatelessWidget {
                             seichi == null
                                 ? (collectedCount >= total && total > 0
                                     ? '群馬の聖地を完全制覇！'
-                                    : '次の聖地を探しています…')
-                                : '${seichi.card}  ${seichi.name}',
+                                    : '次のスポットを探しています…')
+                                : seichi.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -881,7 +881,7 @@ class MapPage extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 5),
                                       Text(
-                                        '${seichi.card}  ${seichi.name}',
+                                        seichi.name,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
