@@ -10,11 +10,10 @@ class QuestItemMapper {
     final eventContentMetadata = _map(row['metadata']);
 
     final eventContentId = _string(row['id']);
-    final legacySeichiId = _string(contentMetadata['legacy_seichi_id']);
     final title = _firstNonEmpty(content['title'], place['name']);
 
     return QuestItem(
-      id: legacySeichiId.isNotEmpty ? legacySeichiId : eventContentId,
+      id: eventContentId,
       eventContentId: eventContentId,
       contentId: _string(row['content_id']),
       placeId: _string(row['place_id']),
