@@ -11,7 +11,7 @@ class CollectionPage extends StatelessWidget {
     required this.eventId,
     required this.seichiList,
     required this.collectedIds,
-    required this.eventNamesByCard,
+    required this.eventNamesByContentKey,
     required this.collectionFilter,
     required this.onFilterChanged,
     required this.onMoveToSeichi,
@@ -21,7 +21,7 @@ class CollectionPage extends StatelessWidget {
   final String? eventId;
   final List<QuestItem> seichiList;
   final Set<String> collectedIds;
-  final Map<String, Set<String>> eventNamesByCard;
+  final Map<String, Set<String>> eventNamesByContentKey;
   final int collectionFilter;
   final ValueChanged<int> onFilterChanged;
   final Future<void> Function(QuestItem seichi) onMoveToSeichi;
@@ -135,7 +135,7 @@ class CollectionPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'KARUTA COLLECTION',
+                        'QUEST COLLECTION',
                         style: TextStyle(
                           color: QuestUiTokens.primary,
                           fontSize: 9,
@@ -145,7 +145,7 @@ class CollectionPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       const Text(
-                        '上毛かるた スタンプ帳',
+                        'コレクション',
                         style: TextStyle(
                           color: QuestUiTokens.ink,
                           fontSize: 19,
@@ -154,7 +154,7 @@ class CollectionPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        total == 44 ? '群馬を巡って、44札を集めよう' : '群馬を巡って、$total札を集めよう',
+                        '$total個のスポットを巡って集めよう',
                         style: const TextStyle(
                           color: QuestUiTokens.mutedInk,
                           fontSize: 10.5,
@@ -189,7 +189,7 @@ class CollectionPage extends StatelessWidget {
                   child: Text(
                     remaining == 0 && total > 0
                         ? 'COMPLETE!'
-                        : 'あと $remaining 札',
+                        : 'あと $remaining 個',
                     style: TextStyle(
                       color: remaining == 0 && total > 0
                           ? const Color(0xFF24A77A)
@@ -343,7 +343,7 @@ class CollectionPage extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              isCollectedFilter ? 'まだ獲得した聖地がありません' : '未獲得の札はありません！',
+              isCollectedFilter ? 'まだ獲得したスポットがありません' : '未獲得のスポットはありません！',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
             ),
@@ -423,7 +423,7 @@ class CollectionPage extends StatelessWidget {
             children: [
               Expanded(
                 child: showOriginalCard
-                    ? _buildCollectionKarutaImage(seichi, collected)
+                    ? _buildCollectionImage(seichi, collected)
                     : _buildStampVisual(seichi, collected),
               ),
               const SizedBox(height: 5),
@@ -531,7 +531,7 @@ class CollectionPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCollectionKarutaImage(QuestItem seichi, bool collected) {
+  Widget _buildCollectionImage(QuestItem seichi, bool collected) {
     final imageUrl = seichi.cardImageUrl;
 
     if (!collected || imageUrl == null || imageUrl.isEmpty) {
@@ -726,7 +726,7 @@ class CollectionPage extends StatelessWidget {
     QuestItem seichi,
     bool collected,
   ) {
-    final eventNames = eventNamesByCard[seichi.card]?.toList() ?? <String>[];
+    final eventNames = eventNamesByContentKey[seichi.contentKey]?.toList() ?? <String>[];
     eventNames.sort();
 
     QuestSpotDetailSheet.show(
