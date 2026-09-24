@@ -415,7 +415,7 @@ class QuestPage extends StatelessWidget {
           ),
           SizedBox(height: 7),
           Text(
-            'このクエストには聖地が登録されていません。',
+            'このクエストにはスポットが登録されていません。',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: QuestUiTokens.mutedInk,
@@ -444,7 +444,7 @@ class QuestPage extends StatelessWidget {
           ),
           SizedBox(height: 7),
           Text(
-            '登録されている聖地をすべて獲得しました。',
+            '登録されているスポットをすべて獲得しました。',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: QuestUiTokens.mutedInk,
