@@ -186,7 +186,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   List<QuestItem> _seichiList = [];
   final Set<String> _collectedIds = {};
-  final Map<String, Set<String>> _collectionEventNamesByCard = {};
+  final Map<String, Set<String>> _collectionEventNamesByContentKey = {};
 
   final CollectionHistoryService _historyService = CollectionHistoryService();
   static const NextDestinationService _nextDestinationService =
@@ -743,9 +743,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     try {
       final history = await _historyService.loadCollectionDisplayHistory();
 
-      final next = _collectionDisplayPolicy.eventNamesByCard(history);
+      final next = _collectionDisplayPolicy.eventNamesByContentKey(history);
 
-      _collectionEventNamesByCard
+      _collectionEventNamesByContentKey
         ..clear()
         ..addAll(next);
     } catch (_) {
@@ -2965,7 +2965,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           eventId: _currentEventId,
           seichiList: _seichiList,
           collectedIds: _collectedIds,
-          eventNamesByCard: _collectionEventNamesByCard,
+          eventNamesByContentKey: _collectionEventNamesByContentKey,
           collectionFilter: _collectionFilter,
           onFilterChanged: (value) {
             setState(() {
