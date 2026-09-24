@@ -5,7 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../models/real_world_state.dart';
-import '../models/seichi.dart';
+import '../models/quest_item.dart';
 import '../painters/sonar_painter.dart';
 import 'stamp_animation.dart';
 import 'quest_ui.dart';
@@ -148,7 +148,7 @@ class MapPage extends StatelessWidget {
   final GoogleMapController? mapController;
   final Position? currentPosition;
   final RealWorldState? realWorldState;
-  final Seichi? nextSeichi;
+  final QuestItem? nextSeichi;
   final double? nextDistance;
   final Set<String> collectedIds;
   final bool isLoadingLocation;
@@ -215,7 +215,7 @@ class MapPage extends StatelessWidget {
       return 0.15;
     }
 
-    final radius = nextSeichi?.stampRadiusMeters ?? 200;
+    final radius = nextQuestItem?.radiusMeters ?? 200;
 
     if (distance <= radius) {
       return 1.0;
@@ -339,7 +339,7 @@ class MapPage extends StatelessWidget {
                                 ? (collectedCount >= total && total > 0
                                     ? '群馬の聖地を完全制覇！'
                                     : '次の聖地を探しています…')
-                                : '${seichi.card}  ${seichi.name}',
+                                : '${seichi.contentKey}  ${seichi.title}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -881,7 +881,7 @@ class MapPage extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 5),
                                       Text(
-                                        '${seichi.card}  ${seichi.name}',
+                                        '${seichi.contentKey}  ${seichi.title}',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
@@ -1117,7 +1117,7 @@ class MapPage extends StatelessWidget {
                                     ],
                                   ),
                                   child: Text(
-                                    '到達 ${seichi.stampRadiusMeters}m',
+                                    '到達 ${seichi.radiusMeters}m',
                                     style: const TextStyle(
                                       color: mutedInk,
                                       fontSize: 10,
@@ -1382,7 +1382,7 @@ class MapPage extends StatelessWidget {
   }
 
   Widget _buildNextButton() {
-    if (nextSeichi == null) {
+    if (nextQuestItem == null) {
       return const SizedBox.shrink();
     }
 
