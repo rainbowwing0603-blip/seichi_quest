@@ -49,8 +49,6 @@ void main() {
     expect(item.title, 'コラボ店舗A');
     expect(item.radiusMeters, 150);
     expect(item.displayOrder, 7);
-    expect(item.legacyCard, isNull);
-    expect(item.legacyReading, isNull);
   });
 
   test('picture_cardがなくても画像なしのQuestItemとして成立する', () {
@@ -137,8 +135,11 @@ void main() {
 
     expect(item.id, 'event-content-karuta');
     expect(item.eventContentId, 'event-content-karuta');
-    expect(item.legacyCard, 'あ');
-    expect(item.legacyReading, 'あさまのいたずら おにのおしだし');
+    expect(item.contentMetadata['card'], 'あ');
+    expect(
+      item.contentMetadata['reading'],
+      'あさまのいたずら おにのおしだし',
+    );
     expect(item.primaryImageUrl, 'https://example.com/card-first.jpg');
   });
 }
