@@ -45,7 +45,7 @@ class CollectionApplyPolicy {
         .where((id) => id.isNotEmpty)
         .toSet();
 
-    final newlyCollectedQuestItem = seichiList
+    final newlyCollectedSeichi = seichiList
         .where(
           (item) =>
               collectedEventContentIds.contains(item.id) &&
