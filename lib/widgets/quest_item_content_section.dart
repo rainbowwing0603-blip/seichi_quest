@@ -87,9 +87,6 @@ class QuestItemContentSection extends StatelessWidget {
             presentation.showLegacyImage &&
             imageUrl.isNotEmpty) ||
         (showLegacyText &&
-            presentation.showLegacyReading &&
-            false) ||
-        (showLegacyText &&
             presentation.showLegacyDescription &&
             description.trim().isNotEmpty);
   }
