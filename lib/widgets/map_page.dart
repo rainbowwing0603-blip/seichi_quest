@@ -215,7 +215,7 @@ class MapPage extends StatelessWidget {
       return 0.15;
     }
 
-    final radius = nextQuestItem?.radiusMeters ?? 200;
+    final radius = nextSeichi?.stampRadiusMeters ?? 200;
 
     if (distance <= radius) {
       return 1.0;
@@ -339,7 +339,7 @@ class MapPage extends StatelessWidget {
                                 ? (collectedCount >= total && total > 0
                                     ? '群馬の聖地を完全制覇！'
                                     : '次の聖地を探しています…')
-                                : '${seichi.contentKey}  ${seichi.title}',
+                                : '${seichi.card}  ${seichi.name}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -881,7 +881,7 @@ class MapPage extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 5),
                                       Text(
-                                        '${seichi.contentKey}  ${seichi.title}',
+                                        '${seichi.card}  ${seichi.name}',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
@@ -1117,7 +1117,7 @@ class MapPage extends StatelessWidget {
                                     ],
                                   ),
                                   child: Text(
-                                    '到達 ${seichi.radiusMeters}m',
+                                    '到達 ${seichi.stampRadiusMeters}m',
                                     style: const TextStyle(
                                       color: mutedInk,
                                       fontSize: 10,
@@ -1382,7 +1382,7 @@ class MapPage extends StatelessWidget {
   }
 
   Widget _buildNextButton() {
-    if (nextQuestItem == null) {
+    if (nextSeichi == null) {
       return const SizedBox.shrink();
     }
 
