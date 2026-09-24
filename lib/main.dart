@@ -989,6 +989,21 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       final list = await _questItemService.loadActiveItems(eventId);
 
+      // 旧Seichi IDで保存済みの端末キャッシュを event_contents.id へ
+      // 一度だけ読み替える。オフライン起動でも既存スタンプを失わない。
+      var migratedLegacyIds = false;
+      for (final item in list) {
+        final legacyId = item.legacySeichiId;
+        if (legacyId != null && _collectedIds.remove(legacyId)) {
+          _collectedIds.add(item.id);
+          migratedLegacyIds = true;
+        }
+      }
+
+      if (migratedLegacyIds) {
+        await _saveStamps();
+      }
+
       if (!mounted) {
         return;
       }
