@@ -2206,20 +2206,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    if (presentation.showLegacyReading &&
-                                        seichi.reading.isNotEmpty) ...[
-                                      Text(
-                                        seichi.reading,
-                                        style: const TextStyle(
-                                          color: QuestUiTokens.mutedInk,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                      if (presentation.showLegacyDescription)
-                                        const SizedBox(height: 10),
-                                    ],
                                     if (presentation.showLegacyDescription)
                                       Text(
                                         seichi.description.isEmpty
