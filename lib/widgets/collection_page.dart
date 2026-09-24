@@ -362,7 +362,7 @@ class CollectionPage extends StatelessWidget {
     QuestItem seichi,
     bool collected,
   ) {
-    final imageUrl = seichi.primaryImageUrl;
+    final imageUrl = seichi.cardImageUrl;
     final hasCardImage = imageUrl != null && imageUrl.isNotEmpty;
     final showOriginalCard = collected && hasCardImage;
 
@@ -463,7 +463,7 @@ class CollectionPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(7),
             ),
             child: Text(
-              seichi.contentKey,
+              seichi.card,
               style: TextStyle(
                 color: collected
                     ? QuestUiTokens.primary
@@ -480,7 +480,7 @@ class CollectionPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  collected ? seichi.title : '未獲得',
+                  collected ? seichi.name : '未獲得',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -532,7 +532,7 @@ class CollectionPage extends StatelessWidget {
   }
 
   Widget _buildCollectionKarutaImage(QuestItem seichi, bool collected) {
-    final imageUrl = seichi.primaryImageUrl;
+    final imageUrl = seichi.cardImageUrl;
 
     if (!collected || imageUrl == null || imageUrl.isEmpty) {
       return _buildStampVisual(seichi, collected);
@@ -617,7 +617,7 @@ class CollectionPage extends StatelessWidget {
                 top: 8,
                 left: 8,
                 child: Text(
-                  seichi.contentKey,
+                  seichi.card,
                   style: TextStyle(
                     color: QuestUiTokens.mutedInk.withValues(alpha: 0.68),
                     fontSize: 12,
@@ -697,7 +697,7 @@ class CollectionPage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    seichi.contentKey,
+                    seichi.card,
                     style: const TextStyle(
                       color: QuestUiTokens.primary,
                       fontSize: 25,
@@ -726,7 +726,7 @@ class CollectionPage extends StatelessWidget {
     QuestItem seichi,
     bool collected,
   ) {
-    final eventNames = eventNamesByCard[seichi.contentKey]?.toList() ?? <String>[];
+    final eventNames = eventNamesByCard[seichi.card]?.toList() ?? <String>[];
     eventNames.sort();
 
     QuestSpotDetailSheet.show(
