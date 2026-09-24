@@ -47,6 +47,14 @@ class QuestItem implements QuestDestination {
 
   String? get legacyReading => _nullableString(contentMetadata['reading']);
 
+  // Transitional presentation aliases. These keep the existing UI stable while
+  // the data identity has already moved to event_contents.id.
+  String get card => legacyCard ?? contentKey;
+  String get reading => legacyReading ?? '';
+  String get name => title;
+  int get stampRadiusMeters => radiusMeters;
+  String? get cardImageUrl => primaryImageUrl;
+
   static String? _nullableString(dynamic value) {
     final text = value?.toString().trim();
     return text == null || text.isEmpty ? null : text;
