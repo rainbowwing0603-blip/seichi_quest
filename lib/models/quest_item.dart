@@ -40,9 +40,6 @@ class QuestItem implements QuestDestination {
     this.eventContentMetadata = const <String, dynamic>{},
   });
 
-  String? get legacySeichiId =>
-      _nullableString(contentMetadata['legacy_seichi_id']);
-
   String? get legacyCard => _nullableString(contentMetadata['card']);
 
   String? get legacyReading => _nullableString(contentMetadata['reading']);
