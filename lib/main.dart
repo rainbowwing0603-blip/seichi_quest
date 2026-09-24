@@ -32,7 +32,6 @@ import 'widgets/onboarding_page.dart';
 import 'widgets/license_page.dart';
 import 'models/quest_item.dart';
 import 'models/achievement.dart';
-import 'models/announcement.dart';
 import 'models/content_block.dart';
 import 'models/event.dart';
 import 'services/level_service.dart' show LevelProgress;
@@ -2841,6 +2840,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       total: _seichiList.length,
       currentEventName: _currentEventName,
       nextDestinationName: _nextSeichi?.name,
+      nextDestinationCard: _nextSeichi?.contentKey,
       nextDestinationIcon: _nextSeichi?.icon,
       nextDestinationDistance: _nextDistance,
       onShowNextDestination: () {
