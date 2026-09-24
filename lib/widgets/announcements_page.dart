@@ -111,10 +111,10 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: QuestUiTokens.background,
+      backgroundColor: const Color(0xFFF7F5FB),
       appBar: AppBar(
         title: const Text('お知らせ'),
-        backgroundColor: QuestUiTokens.background,
+        backgroundColor: const Color(0xFFF7F5FB),
       ),
       body: RefreshIndicator(
         onRefresh: _load,
