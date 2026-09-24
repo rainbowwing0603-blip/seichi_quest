@@ -25,7 +25,25 @@ begin
       'legacy seichi removal aborted: collection_history is not fully consistent with event_contents';
   end if;
 end;
-$$;
+$;
+
+do $
+begin
+  if exists (
+    select 1
+    from public.event_contents ec
+    left join public.events e on e.id = ec.event_id
+    left join public.contents c on c.id = ec.content_id
+    left join public.places p on p.id = ec.place_id
+    where e.id is null
+       or c.id is null
+       or p.id is null
+  ) then
+    raise exception
+      'legacy seichi removal aborted: event_contents contains broken generic references';
+  end if;
+end;
+$;
 
 -- ============================================================
 -- collection RPC: PostGIS geography 型の完全修飾
