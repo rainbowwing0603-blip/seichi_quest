@@ -1513,7 +1513,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       final position = _currentPosition;
       final placeId = seichi.placeId;
 
-      if (position == null || placeId == null || placeId.isEmpty) {
+      if (position == null || placeId.isEmpty) {
         return;
       }
 
