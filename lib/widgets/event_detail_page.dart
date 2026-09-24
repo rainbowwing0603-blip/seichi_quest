@@ -597,7 +597,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Widget _buildNearestUncollectedCard() {
-    final seichi = _nearestUncollectedSeichi;
+    final seichi = _nearestUncollectedQuestItem;
 
     if (seichi == null) {
       return const SizedBox.shrink();
@@ -1353,7 +1353,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
             ),
           ],
           const SizedBox(height: 16),
-          if (_isLoadingSeichi)
+          if (_isLoadingQuestItem)
             const SizedBox(
               height: 120,
               child: Center(
@@ -1441,7 +1441,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Widget _buildGalleryCard(QuestItem seichi) {
-    final imageUrl = seichi.contentKeyImageUrl;
+    final imageUrl = seichi.primaryImageUrl;
     final collected = _collectedSeichiIds.contains(seichi.id);
     final isNext = widget.currentNextSeichiId == seichi.id;
 
