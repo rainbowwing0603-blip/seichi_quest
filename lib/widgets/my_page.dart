@@ -18,7 +18,6 @@ class MyPage extends StatelessWidget {
   final int total;
   final String? currentEventName;
   final String? nextDestinationName;
-  final String? nextDestinationCard;
   final String? nextDestinationIcon;
   final double? nextDestinationDistance;
   final VoidCallback onShowNextDestination;
@@ -43,7 +42,6 @@ class MyPage extends StatelessWidget {
     required this.total,
     required this.currentEventName,
     required this.nextDestinationName,
-    required this.nextDestinationCard,
     required this.nextDestinationIcon,
     required this.nextDestinationDistance,
     required this.onShowNextDestination,
@@ -608,7 +606,6 @@ class MyPage extends StatelessWidget {
           : 'あと ${(distance / 1000).toStringAsFixed(1)}km';
     }
 
-    final card = nextDestinationCard?.trim();
     final icon = nextDestinationIcon?.trim();
 
     return Material(
@@ -669,9 +666,7 @@ class MyPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        card == null || card.isEmpty
-                            ? destinationName
-                            : '$card  $destinationName',
+                        destinationName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
