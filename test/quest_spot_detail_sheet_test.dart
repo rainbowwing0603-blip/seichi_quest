@@ -7,7 +7,7 @@ void main() {
   const item = QuestItem(
     id: 'event-content-1',
     eventContentId: 'event-content-1',
-    contentId: 'content-1',
+    contentId: '',
     placeId: 'place-1',
     contentKey: 'け',
     title: '群馬県庁本庁舎',
