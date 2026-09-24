@@ -3,7 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../models/event.dart';
-import '../models/seichi.dart';
+import '../models/quest_item.dart';
 import 'event_detail_page.dart';
 import 'quest_ui.dart';
 import '../services/app_logger.dart';
@@ -29,9 +29,9 @@ class EventExplorePage extends StatefulWidget {
   final int currentCollectedCount;
   final int currentTotalCount;
   final String? currentNextSeichiId;
-  final ValueChanged<Seichi>? onSetNextDestination;
-  final ValueChanged<Seichi>? onShowOnMap;
-  final ValueChanged<List<Seichi>>? onStartRecommendedRoute;
+  final ValueChanged<QuestItem>? onSetNextDestination;
+  final ValueChanged<QuestItem>? onShowOnMap;
+  final ValueChanged<List<QuestItem>>? onStartRecommendedRoute;
   final bool initialFavoriteOnly;
 
   @override
@@ -516,7 +516,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
       return;
     }
 
-    if (result is Seichi) {
+    if (result is QuestItem) {
       Navigator.of(context).pop(result);
       return;
     }
