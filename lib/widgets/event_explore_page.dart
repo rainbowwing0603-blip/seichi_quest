@@ -333,7 +333,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
   Color _statusColor(String label) {
     switch (label) {
       case '選択中':
-        return Colors.deepPurple;
+        return QuestUiTokens.primary;
 
       case '参加中':
         return Colors.green;
@@ -529,7 +529,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: QuestUiTokens.background,
       appBar: AppBar(
         title: Text(
           widget.initialFavoriteOnly ? 'お気に入りクエスト' : 'クエストを探す',
@@ -727,7 +727,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
               heightFactor: 0.92,
               child: Container(
                 decoration: const BoxDecoration(
-                  color: Color(0xFFF6F8FC),
+                  color: QuestUiTokens.background,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                 ),
                 child: Column(
@@ -1385,7 +1385,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
 
                           return Container(
                             decoration: const BoxDecoration(
-                              color: Color(0xFFF6F8FC),
+                              color: QuestUiTokens.background,
                               borderRadius: BorderRadius.vertical(
                                 top: Radius.circular(30),
                               ),
@@ -1980,7 +1980,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
                         builder: (sheetContext) {
                           return Container(
                             decoration: const BoxDecoration(
-                              color: Color(0xFFF6F8FC),
+                              color: QuestUiTokens.background,
                               borderRadius: BorderRadius.vertical(
                                 top: Radius.circular(30),
                               ),

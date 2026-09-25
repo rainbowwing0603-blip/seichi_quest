@@ -371,7 +371,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
   Color _participationColor() {
     switch (widget.participationLabel) {
       case '選択中':
-        return Colors.deepPurple;
+        return QuestUiTokens.primary;
 
       case '参加中':
         return Colors.green;
@@ -837,7 +837,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: QuestUiTokens.background,
       builder: (sheetContext) {
         return SafeArea(
           child: DraggableScrollableSheet(
@@ -1639,7 +1639,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     final participationColor = _participationColor();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: QuestUiTokens.background,
       appBar: AppBar(
         title: const Text(
           'クエスト詳細',

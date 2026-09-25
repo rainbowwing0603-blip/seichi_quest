@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 
-class StampAnimation extends StatelessWidget {
-  final bool justCollected;
-  final String? collectedName;
-  final int collectedCount;
-  final int total;
+import 'quest_ui.dart';
 
+class StampAnimation extends StatelessWidget {
   const StampAnimation({
     super.key,
     required this.justCollected,
@@ -14,134 +11,77 @@ class StampAnimation extends StatelessWidget {
     required this.total,
   });
 
+  final bool justCollected;
+  final String? collectedName;
+  final int collectedCount;
+  final int total;
+
   @override
   Widget build(BuildContext context) {
-    if (!justCollected) {
-      return const SizedBox.shrink();
-    }
+    if (!justCollected) return const SizedBox.shrink();
 
     return Positioned.fill(
       child: IgnorePointer(
         child: Center(
-          child:
-              TweenAnimationBuilder<double>(
-            tween: Tween(
-              begin: 0.7,
-              end: 1.0,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.7, end: 1),
+            duration: const Duration(milliseconds: 500),
+            builder: (context, scale, child) => Transform.scale(
+              scale: scale,
+              child: child,
             ),
-            duration:
-                const Duration(
-              milliseconds: 500,
-            ),
-            builder: (
-              context,
-              scale,
-              child,
-            ) {
-              return Transform.scale(
-                scale: scale,
-                child: child,
-              );
-            },
-            child: Material(
-              elevation: 16,
-              borderRadius:
-                  BorderRadius.circular(
-                28,
-              ),
-              child: Container(
-                width: 290,
-                padding:
-                    const EdgeInsets.all(
-                  24,
-                ),
-                decoration:
-                    BoxDecoration(
-                  color: Colors.white,
-                  borderRadius:
-                      BorderRadius.circular(
-                    28,
-                  ),
-                ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 310),
+              child: QuestGlassCard(
+                padding: const EdgeInsets.all(24),
                 child: Column(
-                  mainAxisSize:
-                      MainAxisSize.min,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    Container(
+                      width: 82,
+                      height: 82,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: QuestUiTokens.primaryGradient,
+                      ),
+                      child: const Icon(
+                        Icons.workspace_premium_rounded,
+                        size: 48,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
                     const Text(
-                      '🏆',
+                      'スポット到達！',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 64,
+                        color: QuestUiTokens.ink,
+                        fontSize: 25,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    const Text(
-                      '聖地到達！',
-                      style:
-                          TextStyle(
-                        fontSize: 27,
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 8,
-                    ),
+                    const SizedBox(height: 8),
                     Text(
                       collectedName ?? '',
-                      textAlign:
-                          TextAlign.center,
-                      style:
-                          const TextStyle(
-                        fontSize: 17,
-                        fontWeight:
-                            FontWeight.w600,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: QuestUiTokens.ink,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(
-                      height: 14,
+                    const SizedBox(height: 14),
+                    const QuestStatusChip(
+                      label: 'スポットの物語が解放されました',
+                      icon: Icons.auto_stories_rounded,
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF2F3FF),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.auto_stories_rounded,
-                            size: 18,
-                            color: Color(0xFF5968E8),
-                          ),
-                          SizedBox(width: 7),
-                          Flexible(
-                            child: Text(
-                              '札の物語が解放されました',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Color(0xFF403A9F),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
+                    const SizedBox(height: 10),
                     Text(
-                      '$collectedCount / $total 聖地獲得',
-                      style:
-                          const TextStyle(
-                        color: Colors.grey,
+                      '$collectedCount / $total スポット獲得',
+                      style: const TextStyle(
+                        color: QuestUiTokens.mutedInk,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],

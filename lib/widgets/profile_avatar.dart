@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'quest_ui.dart';
 
 class ProfileAvatarOption {
   const ProfileAvatarOption({
@@ -79,12 +80,7 @@ class ProfileAvatar extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF6A35C8),
-            Color(0xFF9B72E8),
-          ],
-        ),
+        gradient: QuestUiTokens.primaryGradient,
         shape: BoxShape.circle,
         border: selected
             ? Border.all(
@@ -94,7 +90,7 @@ class ProfileAvatar extends StatelessWidget {
             : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.deepPurple.withValues(alpha: 0.25),
+            color: QuestUiTokens.primary.withValues(alpha: 0.25),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),

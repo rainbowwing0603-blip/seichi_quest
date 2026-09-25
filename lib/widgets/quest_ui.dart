@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 /// MAP UI 2.0を基準に、各画面で色・角丸・影の表現が
 /// バラバラにならないための共通値を定義する。
 abstract final class QuestUiTokens {
+  static const Color background = Color(0xFFF6F8FC);
   static const Color primary = Color(0xFF5968E8);
   static const Color primaryDeep = Color(0xFF403A9F);
   static const Color cyan = Color(0xFF25A9C7);
@@ -31,6 +32,35 @@ abstract final class QuestUiTokens {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [Color(0xFF42C8DC), Color(0xFF167B9B)],
+  );
+}
+
+/// 画面共通の背景と標準部品の配色。
+ThemeData questTheme() {
+  final scheme = ColorScheme.fromSeed(
+    seedColor: QuestUiTokens.primary,
+    brightness: Brightness.light,
+  );
+  return ThemeData(
+    useMaterial3: true,
+    fontFamily: 'NotoSansJP',
+    colorScheme: scheme.copyWith(
+      primary: QuestUiTokens.primary,
+      onPrimary: Colors.white,
+      surface: QuestUiTokens.background,
+      onSurface: QuestUiTokens.ink,
+      onSurfaceVariant: QuestUiTokens.mutedInk,
+    ),
+    scaffoldBackgroundColor: QuestUiTokens.background,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: QuestUiTokens.background,
+      foregroundColor: QuestUiTokens.ink,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+    ),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(
+      color: QuestUiTokens.primary,
+    ),
   );
 }
 

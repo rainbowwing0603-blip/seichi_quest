@@ -115,7 +115,7 @@ class MyPage extends StatelessWidget {
     return QuestGlassCard(
       padding: EdgeInsets.zero,
       child: Theme(
-        data: ThemeData(
+        data: Theme.of(context).copyWith(
           dividerColor: Colors.transparent,
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,

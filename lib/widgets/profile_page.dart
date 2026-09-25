@@ -219,7 +219,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: QuestUiTokens.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
@@ -459,7 +459,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                           0.82,
                                     ),
                                     decoration: const BoxDecoration(
-                                      color: Color(0xFFF6F8FC),
+                                      color: QuestUiTokens.background,
                                       borderRadius: BorderRadius.vertical(
                                         top: Radius.circular(30),
                                       ),

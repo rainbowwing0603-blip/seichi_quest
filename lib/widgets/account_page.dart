@@ -669,7 +669,7 @@ class _AccountPageState extends State<AccountPage> {
     final email = user?.email ?? _pendingEmail;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: QuestUiTokens.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,

@@ -10,6 +10,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
     required this.item,
     required this.collected,
     this.isNext = false,
+    this.distanceMeters,
     this.eventNames = const <String>[],
     this.onShowOnMap,
     this.onSetNextDestination,
@@ -18,6 +19,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
   final QuestItem item;
   final bool collected;
   final bool isNext;
+  final double? distanceMeters;
   final List<String> eventNames;
   final VoidCallback? onShowOnMap;
   final VoidCallback? onSetNextDestination;
@@ -27,6 +29,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
     required QuestItem item,
     required bool collected,
     bool isNext = false,
+    double? distanceMeters,
     List<String> eventNames = const <String>[],
     VoidCallback? onShowOnMap,
     VoidCallback? onSetNextDestination,
@@ -41,6 +44,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
           item: item,
           collected: collected,
           isNext: isNext,
+          distanceMeters: distanceMeters,
           eventNames: eventNames,
           onShowOnMap: onShowOnMap == null ? null : () {
             Navigator.of(sheetContext).pop();
@@ -202,6 +206,13 @@ class QuestSpotDetailSheet extends StatelessWidget {
                 icon: Icons.place_outlined,
                 accentColor: QuestUiTokens.cyan,
               ),
+              if (distanceMeters != null)
+                QuestStatusChip(
+                  label: distanceMeters! < 1000
+                      ? '現在地から ${distanceMeters!.round()}m'
+                      : '現在地から ${(distanceMeters! / 1000).toStringAsFixed(1)}km',
+                  icon: Icons.near_me_rounded,
+                ),
             ],
           ),
         ],

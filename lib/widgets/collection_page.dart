@@ -332,13 +332,13 @@ class CollectionPage extends StatelessWidget {
               width: 90,
               height: 90,
               decoration: BoxDecoration(
-                color: Colors.deepPurple.withValues(alpha: 0.08),
+                color: QuestUiTokens.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 isCollectedFilter ? Icons.workspace_premium : Icons.celebration,
                 size: 44,
-                color: Colors.deepPurple,
+                color: QuestUiTokens.primary,
               ),
             ),
             const SizedBox(height: 18),

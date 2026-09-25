@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/content_block.dart';
 import '../services/content_media_resolver.dart';
+import 'quest_ui.dart';
 
 class ContentBlockRenderer extends StatelessWidget {
   ContentBlockRenderer({
@@ -154,7 +155,7 @@ class ContentBlockRenderer extends StatelessWidget {
               caption,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 height: 1.5,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: QuestUiTokens.mutedInk,
               ),
             ),
           ],
@@ -255,7 +256,7 @@ class ContentBlockRenderer extends StatelessWidget {
                 Icon(
                   leadingIcon,
                   size: 19,
-                  color: accentColor ?? Theme.of(context).colorScheme.primary,
+                  color: accentColor ?? QuestUiTokens.primary,
                 ),
                 const SizedBox(width: 7),
               ],
@@ -280,7 +281,7 @@ class ContentBlockRenderer extends StatelessWidget {
       return section;
     }
 
-    final color = accentColor ?? Theme.of(context).colorScheme.primary;
+    final color = accentColor ?? QuestUiTokens.primary;
 
     return Container(
       width: double.infinity,

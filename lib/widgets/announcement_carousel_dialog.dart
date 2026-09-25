@@ -8,10 +8,12 @@ class AnnouncementCarouselDialog extends StatefulWidget {
     super.key,
     required this.announcements,
     this.onOpenEvent,
+    this.onViewed,
   });
 
   final List<Announcement> announcements;
   final Future<void> Function(String eventId)? onOpenEvent;
+  final ValueChanged<String>? onViewed;
 
   @override
   State<AnnouncementCarouselDialog> createState() =>
@@ -27,6 +29,9 @@ class _AnnouncementCarouselDialogState
   void initState() {
     super.initState();
     _controller = PageController();
+    if (widget.announcements.isNotEmpty) {
+      widget.onViewed?.call(widget.announcements.first.id);
+    }
   }
 
   @override
@@ -154,7 +159,10 @@ class _AnnouncementCarouselDialogState
                   child: PageView.builder(
                     controller: _controller,
                     itemCount: announcements.length,
-                    onPageChanged: (index) => setState(() => _index = index),
+                    onPageChanged: (index) {
+                      setState(() => _index = index);
+                      widget.onViewed?.call(announcements[index].id);
+                    },
                     itemBuilder: (context, index) {
                       final item = announcements[index];
                       return SingleChildScrollView(
