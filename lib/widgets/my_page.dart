@@ -104,14 +104,14 @@ class MyPage extends StatelessWidget {
 
             const SizedBox(height: 18),
 
-            _buildSettingsExpansion(),
+            _buildSettingsExpansion(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSettingsExpansion() {
+  Widget _buildSettingsExpansion(BuildContext context) {
     return QuestGlassCard(
       padding: EdgeInsets.zero,
       child: Theme(
