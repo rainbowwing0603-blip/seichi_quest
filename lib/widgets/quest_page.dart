@@ -49,7 +49,7 @@ class QuestPage extends StatelessWidget {
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildPageHeader(collected: safeCollected, totalCount: safeTotal),
             const SizedBox(height: 14),

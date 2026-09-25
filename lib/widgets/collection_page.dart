@@ -56,6 +56,7 @@ class CollectionPage extends StatelessWidget {
 
     return SafeArea(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildCollectionHeader(
             collected: collected,

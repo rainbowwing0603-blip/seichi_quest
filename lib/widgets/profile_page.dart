@@ -245,7 +245,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: Form(
                   key: _formKey,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       QuestGlassCard(
                         padding: const EdgeInsets.all(22),
