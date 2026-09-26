@@ -180,62 +180,84 @@ class _WeatherEffectPainter extends CustomPainter {
   void _paintDirectionalSunlight(Canvas canvas, Size size) {
     final angle = sunScreenAngleRadians;
     final elevation = sunElevationDegrees;
-    if (angle == null || elevation == null || elevation <= 0) return;
+    if (angle == null ||
+        elevation == null ||
+        elevation <= 0 ||
+        size.width <= 0 ||
+        size.height <= 0) {
+      return;
+    }
 
     final elevationFactor = (elevation / 70.0).clamp(0.0, 1.0);
-    final edgeDistance = math.max(size.width, size.height) * 0.72;
     final center = Offset(size.width / 2, size.height / 2);
-    // 0 rad means north/top. The light source sits toward the real sun.
-    final source = Offset(
-      center.dx + math.sin(angle) * edgeDistance,
-      center.dy - math.cos(angle) * edgeDistance,
-    );
-    final target = Offset(
-      center.dx - math.sin(angle) * size.width * 0.16,
-      center.dy + math.cos(angle) * size.height * 0.16,
-    );
-    final beam = target - source;
-    final length = beam.distance;
-    if (length <= 1) return;
-    final normal = Offset(-beam.dy / length, beam.dx / length);
-    final width = size.width * (0.18 + (1.0 - elevationFactor) * 0.16);
-    final path = Path()
-      ..moveTo(source.dx + normal.dx * width, source.dy + normal.dy * width)
-      ..lineTo(source.dx - normal.dx * width, source.dy - normal.dy * width)
-      ..lineTo(target.dx - normal.dx * width * 1.8,
-          target.dy - normal.dy * width * 1.8)
-      ..lineTo(target.dx + normal.dx * width * 1.8,
-          target.dy + normal.dy * width * 1.8)
-      ..close();
 
-    final strength = 0.10 + (1.0 - elevationFactor) * 0.08;
+    // Place the source beyond the viewport in the real sun direction.
+    // Only the shafts enter the map, so no flashlight-like hotspot appears.
+    final sunVector = Offset(math.sin(angle), -math.cos(angle));
+    final lightDirection = Offset(-sunVector.dx, -sunVector.dy);
+    final normal = Offset(-lightDirection.dy, lightDirection.dx);
+    final diagonal = math.sqrt(
+      size.width * size.width + size.height * size.height,
+    );
+    final source = center + sunVector * (diagonal * 0.78);
+
     final warm = elevation < 22;
-    final color = warm ? const Color(0xFFFFC46B) : const Color(0xFFFFF1B8);
-    final paint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          color.withValues(alpha: strength),
-          color.withValues(alpha: strength * 0.42),
-          Colors.transparent,
-        ],
-      ).createShader(Rect.fromPoints(source, target));
-    canvas.drawPath(path, paint);
+    final color =
+        warm ? const Color(0xFFFFC66F) : const Color(0xFFFFF3C4);
+    final baseStrength = 0.095 + (1.0 - elevationFactor) * 0.045;
 
-    final glowRect = Rect.fromCircle(
-      center: source,
-      radius: size.width * (0.34 + elevationFactor * 0.10),
-    );
-    final glow = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          color.withValues(alpha: strength * 0.75),
-          color.withValues(alpha: strength * 0.20),
-          Colors.transparent,
-        ],
-      ).createShader(glowRect);
-    canvas.drawCircle(source, glowRect.width / 2, glow);
+    const offsets = <double>[-0.20, 0.00, 0.18];
+    const startWidths = <double>[0.010, 0.016, 0.008];
+    const endWidths = <double>[0.052, 0.075, 0.043];
+    const strengths = <double>[0.46, 1.00, 0.34];
+
+    for (var i = 0; i < offsets.length; i++) {
+      final raySource = source + normal * (size.width * offsets[i]);
+      final rayEnd =
+          raySource + lightDirection * (diagonal * 1.80);
+      final startHalfWidth = size.width * startWidths[i];
+      final endHalfWidth = size.width * endWidths[i];
+
+      final path = Path()
+        ..moveTo(
+          raySource.dx + normal.dx * startHalfWidth,
+          raySource.dy + normal.dy * startHalfWidth,
+        )
+        ..lineTo(
+          raySource.dx - normal.dx * startHalfWidth,
+          raySource.dy - normal.dy * startHalfWidth,
+        )
+        ..lineTo(
+          rayEnd.dx - normal.dx * endHalfWidth,
+          rayEnd.dy - normal.dy * endHalfWidth,
+        )
+        ..lineTo(
+          rayEnd.dx + normal.dx * endHalfWidth,
+          rayEnd.dy + normal.dy * endHalfWidth,
+        )
+        ..close();
+
+      final strength = baseStrength * strengths[i];
+      final shaderRect =
+          Rect.fromPoints(raySource, rayEnd).inflate(size.width * 0.10);
+
+      // Align the fade with the actual ray direction rather than the screen's
+      // vertical axis. This keeps diagonal sunlight visually coherent.
+      final paint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment(-lightDirection.dx, -lightDirection.dy),
+          end: Alignment(lightDirection.dx, lightDirection.dy),
+          colors: [
+            color.withValues(alpha: strength),
+            color.withValues(alpha: strength * 0.82),
+            color.withValues(alpha: strength * 0.36),
+            Colors.transparent,
+          ],
+          stops: const [0.00, 0.24, 0.64, 1.00],
+        ).createShader(shaderRect);
+
+      canvas.drawPath(path, paint);
+    }
   }
 
   void _paintSunSparkles(Canvas canvas, Size size) {
