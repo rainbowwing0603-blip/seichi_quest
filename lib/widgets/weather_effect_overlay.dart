@@ -507,25 +507,11 @@ class _WeatherEffectPainter extends CustomPainter {
     }
 
     final baseWashPaint = Paint()
-      ..color = atmosphereColor.withValues(alpha: atmosphereOpacity);
+      ..color = atmosphereColor.withValues(
+        alpha: partlyCloudy ? atmosphereOpacity : 0.045,
+      );
 
     canvas.drawRect(Offset.zero & size, baseWashPaint);
-
-    if (!partlyCloudy) {
-      // 上空の曇りを目立たせ、地図の下半分は読みやすく残す。
-      final canopyPaint = Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            shadowCoreColor.withValues(alpha: 0.22),
-            shadowMidColor.withValues(alpha: 0.10),
-            Colors.transparent,
-          ],
-          stops: const [0.0, 0.48, 0.88],
-        ).createShader(Offset.zero & size);
-      canvas.drawRect(Offset.zero & size, canopyPaint);
-    }
 
     // 晴れ時々曇りでは雲間の光を時間帯に合わせる。
     // 夜だけは太陽光を完全に出さない。
@@ -829,35 +815,7 @@ class _WeatherEffectPainter extends CustomPainter {
         horizontalRange: 24,
         verticalRange: 8,
       );
-
-      return;
     }
-
-    paintShadowField(
-      count: 5,
-      seedOffset: 83,
-      minWidthFactor: 0.82,
-      maxWidthFactor: 1.28,
-      minHeightFactor: 0.28,
-      maxHeightFactor: 0.48,
-      minOpacity: 0.095,
-      maxOpacity: 0.180,
-      horizontalRange: 20,
-      verticalRange: 6,
-    );
-
-    paintShadowField(
-      count: 3,
-      seedOffset: 97,
-      minWidthFactor: 1.02,
-      maxWidthFactor: 1.46,
-      minHeightFactor: 0.38,
-      maxHeightFactor: 0.60,
-      minOpacity: 0.060,
-      maxOpacity: 0.120,
-      horizontalRange: 14,
-      verticalRange: 4,
-    );
   }
 
   void _paintRain(Canvas canvas, Size size, {required bool heavy}) {
