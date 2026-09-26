@@ -47,6 +47,16 @@ class RealWorldState {
     );
   }
 
+  /// Keep the weather observation while advancing the locally displayed time.
+  RealWorldState atLocalTime(DateTime localTime) => RealWorldState(
+        season: seasonFromMonth(localTime.month),
+        dayPhase: dayPhaseFromHour(localTime.hour),
+        weather: weather,
+        temperatureCelsius: temperatureCelsius,
+        strongWindExpected: strongWindExpected,
+        observedAt: observedAt,
+      );
+
   static Season seasonFromMonth(int month) {
     if (month >= 3 && month <= 5) {
       return Season.spring;

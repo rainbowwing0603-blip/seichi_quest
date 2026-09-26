@@ -167,6 +167,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   GoogleMapController? _mapController;
 
   StreamSubscription<Position>? _positionSubscription;
+  Timer? _environmentClockTimer;
 
   static const LocationService _locationService = LocationService();
 
@@ -179,7 +180,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final WeatherService _weatherService = WeatherService();
   static const WeatherRefreshPolicy _weatherRefreshPolicy =
       WeatherRefreshPolicy();
-  RealWorldState? _realWorldState;
+  RealWorldState? _realWorldState = RealWorldState.fromLocalTime(DateTime.now());
   DateTime? _lastWeatherFetchAt;
   Position? _lastWeatherFetchPosition;
   bool _isWeatherFetchInProgress = false;
@@ -309,6 +310,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _startEnvironmentClock();
 
     _sonarController = AnimationController(
       vsync: this,
@@ -320,9 +322,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed || !mounted) {
+    if (!mounted) {
       return;
     }
+
+    if (state != AppLifecycleState.resumed) {
+      _environmentClockTimer?.cancel();
+      return;
+    }
+
+    _startEnvironmentClock();
+    _refreshEnvironmentTime();
 
     if (!_isOnboardingReady || _shouldShowOnboarding) {
       return;
@@ -331,6 +341,25 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (_positionSubscription == null) {
       unawaited(_initializeLocation());
     }
+  }
+
+  void _startEnvironmentClock() {
+    _environmentClockTimer?.cancel();
+    _environmentClockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (!mounted) return;
+      _refreshEnvironmentTime();
+    });
+  }
+
+  void _refreshEnvironmentTime() {
+    final current = _realWorldState;
+    if (current == null) return;
+    final updated = current.atLocalTime(DateTime.now());
+    if (updated.season == current.season &&
+        updated.dayPhase == current.dayPhase) {
+      return;
+    }
+    setState(() => _realWorldState = updated);
   }
 
   @override
@@ -1258,7 +1287,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       }
 
       setState(() {
-        _realWorldState = state;
+        _realWorldState = state.atLocalTime(DateTime.now());
         _weatherLoadFailed = false;
       });
 
@@ -3055,6 +3084,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _environmentClockTimer?.cancel();
     _positionSubscription?.cancel();
 
     _sonarController.dispose();
