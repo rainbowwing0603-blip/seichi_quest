@@ -67,6 +67,33 @@ void main() {
       );
     });
 
+    test('accepts collection speed at about 20km/h', () {
+      expect(
+        StampEligibilityPolicy.hasAcceptableCollectionSpeed(
+          speedMetersPerSecond: 5.56,
+        ),
+        isTrue,
+      );
+    });
+
+    test('rejects drive-by collection above about 20km/h', () {
+      expect(
+        StampEligibilityPolicy.hasAcceptableCollectionSpeed(
+          speedMetersPerSecond: 5.57,
+        ),
+        isFalse,
+      );
+    });
+
+    test('does not reject collection when platform speed is unavailable', () {
+      expect(
+        StampEligibilityPolicy.hasAcceptableCollectionSpeed(
+          speedMetersPerSecond: -1,
+        ),
+        isTrue,
+      );
+    });
+
     test('stamp radius remains inclusive', () {
       expect(
         StampEligibilityPolicy.isWithinStampRadius(

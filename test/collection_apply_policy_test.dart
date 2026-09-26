@@ -53,8 +53,10 @@ void main() {
         <String, dynamic>{'event_id': 'event-a', 'event_content_id': '1'},
         <String, dynamic>{'event_id': 'event-b', 'event_content_id': '2'},
       ],
-      seichiList: list,
+      resolvedItems: list,
       collectedIds: <String>{},
+      previousCollectedCount: 0,
+      totalCount: 2,
       eventAchievements: achievements,
     );
 
@@ -73,8 +75,10 @@ void main() {
         <String, dynamic>{'event_id': 'event-a', 'event_content_id': '1'},
         <String, dynamic>{'event_id': 'event-a', 'event_content_id': '2'},
       ],
-      seichiList: list,
+      resolvedItems: list,
       collectedIds: <String>{'1'},
+      previousCollectedCount: 1,
+      totalCount: 2,
       eventAchievements: achievements,
     );
 
@@ -87,6 +91,24 @@ void main() {
     expect(result.didCompleteQuest, isTrue);
   });
 
+  test('部分カタログでもイベント全体件数で実績と制覇を判定する', () {
+    final result = policy.plan(
+      currentEventId: 'event-a',
+      collectedRows: <Map<String, dynamic>>[
+        <String, dynamic>{'event_id': 'event-a', 'event_content_id': '2'},
+      ],
+      resolvedItems: <QuestItem>[seichi('2', 'い')],
+      collectedIds: <String>{'1'},
+      previousCollectedCount: 1,
+      totalCount: 1231,
+      eventAchievements: achievements,
+    );
+
+    expect(result.newlyCollectedSeichi.map((item) => item.id), <String>['2']);
+    expect(result.newlyUnlockedAchievements.map((item) => item.id), <String>['complete']);
+    expect(result.didCompleteQuest, isFalse);
+  });
+
   test('対象カードがなければ状態を変えない', () {
     final list = <QuestItem>[seichi('1', 'あ')];
 
@@ -95,8 +117,10 @@ void main() {
       collectedRows: <Map<String, dynamic>>[
         <String, dynamic>{'event_id': 'event-a', 'event_content_id': '2'},
       ],
-      seichiList: list,
+      resolvedItems: list,
       collectedIds: <String>{},
+      previousCollectedCount: 0,
+      totalCount: 1,
       eventAchievements: achievements,
     );
 
