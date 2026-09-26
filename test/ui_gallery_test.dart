@@ -35,16 +35,18 @@ void main() {
   );
 
   Future<void> capture(WidgetTester tester, String name) async {
-    final boundary = tester.renderObject<RenderRepaintBoundary>(
-      find.byKey(screenshotKey),
-    );
-    final image = await boundary.toImage(pixelRatio: 1);
-    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-    image.dispose();
-    if (bytes == null) throw StateError('Unable to render $name');
-    final file = File('build/ui_gallery/$name.png');
-    await file.parent.create(recursive: true);
-    await file.writeAsBytes(bytes.buffer.asUint8List());
+    await tester.runAsync(() async {
+      final boundary = tester.renderObject<RenderRepaintBoundary>(
+        find.byKey(screenshotKey),
+      );
+      final image = await boundary.toImage(pixelRatio: 1);
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+      image.dispose();
+      if (bytes == null) throw StateError('Unable to render $name');
+      final file = File('build/ui_gallery/$name.png');
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(bytes.buffer.asUint8List());
+    });
   }
 
   Future<void> show(WidgetTester tester, Widget child) async {
