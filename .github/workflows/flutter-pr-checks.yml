@@ -39,3 +39,11 @@ jobs:
 
       - name: Test
         run: flutter test
+
+      - name: Upload UI gallery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-gallery
+          path: build/ui_gallery/*.png
+          if-no-files-found: ignore
