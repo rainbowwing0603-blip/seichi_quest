@@ -2605,20 +2605,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   void _showSeichiDetails(QuestItem seichi) {
-    final position = _currentPosition;
     QuestSpotDetailSheet.show(
       context,
       item: seichi,
       collected: _collectedIds.contains(seichi.id),
       isNext: _nextSeichi?.id == seichi.id,
-      distanceMeters: position == null
-          ? null
-          : _locationService.distanceBetween(
-              startLatitude: position.latitude,
-              startLongitude: position.longitude,
-              endLatitude: seichi.latitude,
-              endLongitude: seichi.longitude,
-            ),
       onShowOnMap: () => _moveCameraToSeichi(seichi),
       onSetNextDestination: () => _setNextDestination(seichi),
     );
