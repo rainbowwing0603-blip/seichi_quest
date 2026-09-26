@@ -783,69 +783,58 @@ class _WeatherEffectPainter extends CustomPainter {
           end: Alignment.bottomCenter,
           colors: [
             cloudColor.withValues(
-              alpha: dayPhase == DayPhase.night ? 0.34 : 0.30,
+              alpha: dayPhase == DayPhase.night ? 0.24 : 0.22,
             ),
             cloudColor.withValues(
-              alpha: dayPhase == DayPhase.night ? 0.30 : 0.26,
+              alpha: dayPhase == DayPhase.night ? 0.20 : 0.18,
             ),
             cloudShade.withValues(
-              alpha: dayPhase == DayPhase.night ? 0.24 : 0.20,
+              alpha: dayPhase == DayPhase.night ? 0.15 : 0.13,
             ),
           ],
           stops: const [0.0, 0.52, 1.0],
         ).createShader(bounds);
         canvas.drawPath(path, cloudPaint);
 
-        // 外周をぼかすフィルタは使わず、同じPathを薄く大きく感じさせる
-        // ソフトな縁取りで境界だけを馴染ませる。
-        final edgePaint = Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = math.max(8.0, w * 0.035)
-          ..strokeJoin = StrokeJoin.round
-          ..strokeCap = StrokeCap.round
-          ..color = cloudColor.withValues(
-            alpha: dayPhase == DayPhase.night ? 0.10 : 0.08,
-          );
-        canvas.drawPath(path, edgePaint);
       }
 
       // 上端の大きな雲海。HUDの背後から地図へ少しだけ入り込む。
       paintEdgeCloud(
         center: Offset(
           size.width * 0.28 + math.sin(loopAngle * 0.5) * size.width * 0.025,
-          size.height * 0.055,
+          -size.height * 0.015,
         ),
-        width: size.width * 0.72,
-        height: size.height * 0.16,
+        width: size.width * 0.92,
+        height: size.height * 0.21,
         phase: loopAngle,
       );
       paintEdgeCloud(
         center: Offset(
           size.width * 0.82 + math.sin(loopAngle * 0.5 + 2.0) * size.width * 0.02,
-          size.height * 0.11,
+          size.height * 0.045,
         ),
-        width: size.width * 0.58,
-        height: size.height * 0.14,
+        width: size.width * 0.76,
+        height: size.height * 0.19,
         phase: loopAngle + 2.0,
       );
 
       // 左右の縁にも薄い雲を置き、画面中央は空ける。
       paintEdgeCloud(
         center: Offset(
-          -size.width * 0.08,
+          -size.width * 0.25,
           size.height * 0.42 + math.sin(loopAngle * 0.5 + 1.0) * size.height * 0.018,
         ),
-        width: size.width * 0.46,
-        height: size.height * 0.13,
+        width: size.width * 0.62,
+        height: size.height * 0.17,
         phase: loopAngle + 1.0,
       );
       paintEdgeCloud(
         center: Offset(
-          size.width * 1.08,
+          size.width * 1.24,
           size.height * 0.62 + math.sin(loopAngle * 0.5 + 3.0) * size.height * 0.018,
         ),
-        width: size.width * 0.48,
-        height: size.height * 0.14,
+        width: size.width * 0.66,
+        height: size.height * 0.18,
         phase: loopAngle + 3.0,
       );
     }
