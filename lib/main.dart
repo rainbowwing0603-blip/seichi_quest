@@ -194,7 +194,15 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final WeatherService _weatherService = WeatherService();
   static const WeatherRefreshPolicy _weatherRefreshPolicy =
       WeatherRefreshPolicy();
-  RealWorldState? _realWorldState = RealWorldState.fromLocalTime(DateTime.now());
+
+  // 雨エフェクトの性能・見た目確認用。リリース前に false へ戻すこと。
+  static const bool _forceRainForVisualTest = true;
+  RealWorldState? _realWorldState = RealWorldState.fromLocalTime(
+    DateTime.now(),
+    weather: _forceRainForVisualTest
+        ? WeatherCondition.rain
+        : WeatherCondition.unknown,
+  );
   DateTime? _lastWeatherFetchAt;
   Position? _lastWeatherFetchPosition;
   bool _isWeatherFetchInProgress = false;
@@ -1557,7 +1565,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       }
 
       setState(() {
-        _realWorldState = state.atCurrentTime(DateTime.now());
+        final currentState = state.atCurrentTime(DateTime.now());
+        _realWorldState = _forceRainForVisualTest
+            ? RealWorldState(
+                season: currentState.season,
+                dayPhase: currentState.dayPhase,
+                weather: WeatherCondition.rain,
+                temperatureCelsius: currentState.temperatureCelsius,
+                strongWindExpected: currentState.strongWindExpected,
+                observedAt: currentState.observedAt,
+                utcOffsetSeconds: currentState.utcOffsetSeconds,
+              )
+            : currentState;
         _weatherLoadFailed = false;
       });
 
