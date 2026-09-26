@@ -692,114 +692,75 @@ class _WeatherEffectPainter extends CustomPainter {
     }
 
     if (!partlyCloudy) {
-      // 楕円を並べた「水たまり」表現ではなく、少数の大きな雲群を
-      // 複数ローブで一体化して描く。画面外から横切らせることで、
-      // 地図を覆う低い曇天として読めるシルエットにする。
-      final cloudBasePaint = Paint();
-      final cloudTopPaint = Paint();
-      final cloudBottomPaint = Paint();
+      // 曇りは「雲の形」を画面上に描かず、頭上の厚い雲による
+      // 地表の明暗変化として表現する。巨大なグラデーションなので
+      // 境界や楕円形が認識されず、地図の可読性も保ちやすい。
+      final shadeColor = switch (dayPhase) {
+        DayPhase.morning => const Color(0xFF53606C),
+        DayPhase.daytime => const Color(0xFF4D5E69),
+        DayPhase.evening => const Color(0xFF565563),
+        DayPhase.night => const Color(0xFF263A4D),
+      };
 
-      void paintCloudMass({
-        required double centerX,
-        required double centerY,
-        required double scale,
-        required double phase,
-      }) {
-        final baseColor = switch (dayPhase) {
-          DayPhase.morning => const Color(0xFF77828C),
-          DayPhase.daytime => const Color(0xFF73808A),
-          DayPhase.evening => const Color(0xFF74727D),
-          DayPhase.night => const Color(0xFF5F7080),
-        };
-        final topColor = switch (dayPhase) {
-          DayPhase.morning => const Color(0xFFAAB3BA),
-          DayPhase.daytime => const Color(0xFFACB6BC),
-          DayPhase.evening => const Color(0xFFA39FA8),
-          DayPhase.night => const Color(0xFF8394A3),
-        };
-        final bottomColor = switch (dayPhase) {
-          DayPhase.morning => const Color(0xFF58646F),
-          DayPhase.daytime => const Color(0xFF53636E),
-          DayPhase.evening => const Color(0xFF595966),
-          DayPhase.night => const Color(0xFF405363),
-        };
+      final lightColor = switch (dayPhase) {
+        DayPhase.morning => const Color(0xFFB7C0C5),
+        DayPhase.daytime => const Color(0xFFB9C5CA),
+        DayPhase.evening => const Color(0xFFB2ADB6),
+        DayPhase.night => const Color(0xFF718596),
+      };
 
-        final baseAlpha = dayPhase == DayPhase.night ? 0.34 : 0.30;
-        cloudBasePaint.color = baseColor.withValues(alpha: baseAlpha);
-        cloudTopPaint.color = topColor.withValues(
-          alpha: dayPhase == DayPhase.night ? 0.20 : 0.17,
-        );
-        cloudBottomPaint.color = bottomColor.withValues(
-          alpha: dayPhase == DayPhase.night ? 0.24 : 0.20,
-        );
+      // 8秒周期のアニメーションでも、振幅を小さくして
+      // 雲影が「横滑り」して見えない速度に抑える。
+      final driftX = math.sin(loopAngle) * size.width * 0.10;
+      final driftY = math.cos(loopAngle * 0.5) * size.height * 0.025;
+      final breathe = 0.88 + math.sin(loopAngle * 0.5 + 0.7) * 0.12;
 
-        final lobes = <({double x, double y, double w, double h})>[
-          (x: -0.43, y: 0.05, w: 0.52, h: 0.54),
-          (x: -0.18, y: -0.16, w: 0.62, h: 0.72),
-          (x: 0.10, y: -0.24, w: 0.72, h: 0.82),
-          (x: 0.39, y: -0.08, w: 0.58, h: 0.64),
-          (x: 0.56, y: 0.10, w: 0.42, h: 0.46),
-        ];
+      final shadowRect = Rect.fromCenter(
+        center: Offset(
+          size.width * 0.48 + driftX,
+          size.height * 0.38 + driftY,
+        ),
+        width: size.width * 2.35,
+        height: size.height * 1.05,
+      );
 
-        final cloudWidth = size.width * 0.82 * scale;
-        final cloudHeight = size.height * 0.15 * scale;
-        final breathe = 1.0 + math.sin(phase) * 0.025;
+      final shadowPaint = Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.10, -0.12),
+          radius: 0.92,
+          colors: [
+            shadeColor.withValues(alpha: 0.16 * breathe),
+            shadeColor.withValues(alpha: 0.105 * breathe),
+            shadeColor.withValues(alpha: 0.035 * breathe),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.44, 0.76, 1.0],
+        ).createShader(shadowRect);
+      canvas.drawOval(shadowRect, shadowPaint);
 
-        // 暗い雲底を先に描き、塊全体に重さを出す。
-        canvas.drawOval(
-          Rect.fromCenter(
-            center: Offset(centerX, centerY + cloudHeight * 0.22),
-            width: cloudWidth * 1.02,
-            height: cloudHeight * 0.50,
-          ),
-          cloudBottomPaint,
-        );
-
-        for (var i = 0; i < lobes.length; i++) {
-          final lobe = lobes[i];
-          final wobble = math.sin(phase + i * 1.17) * cloudHeight * 0.035;
-          final rect = Rect.fromCenter(
-            center: Offset(
-              centerX + lobe.x * cloudWidth,
-              centerY + lobe.y * cloudHeight + wobble,
+      // 雲の薄い場所から漏れる拡散光。輪郭は作らない。
+      final lightRect = Rect.fromCenter(
+        center: Offset(
+          size.width * 0.76 - driftX * 0.42,
+          size.height * 0.24 - driftY,
+        ),
+        width: size.width * 1.75,
+        height: size.height * 0.78,
+      );
+      final lightPaint = Paint()
+        ..shader = RadialGradient(
+          radius: 1.0,
+          colors: [
+            lightColor.withValues(
+              alpha: (dayPhase == DayPhase.night ? 0.045 : 0.065) *
+                  (1.08 - breathe * 0.18),
             ),
-            width: lobe.w * cloudWidth * breathe,
-            height: lobe.h * cloudHeight,
-          );
-          canvas.drawOval(rect, cloudBasePaint);
-
-          if (i >= 1 && i <= 3) {
-            canvas.drawOval(
-              Rect.fromCenter(
-                center: Offset(
-                  rect.center.dx - rect.width * 0.07,
-                  rect.center.dy - rect.height * 0.18,
-                ),
-                width: rect.width * 0.68,
-                height: rect.height * 0.42,
-              ),
-              cloudTopPaint,
-            );
-          }
-        }
-      }
-
-      // 3つだけ。数ではなくサイズと重なりで曇天を作る。
-      for (var i = 0; i < 3; i++) {
-        final phase = loopAngle + i * 2.17;
-        final travelWidth = size.width * 1.85;
-        final normalized = (progress + i * 0.37) % 1.0;
-        final x = -size.width * 0.48 + normalized * travelWidth;
-        final y =
-            size.height * (0.16 + i * 0.19) +
-            math.sin(phase) * size.height * 0.018;
-        paintCloudMass(
-          centerX: x,
-          centerY: y,
-          scale: 0.92 + i * 0.10,
-          phase: phase,
-        );
-      }
+            lightColor.withValues(alpha: 0.018),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.55, 1.0],
+        ).createShader(lightRect);
+      canvas.drawOval(lightRect, lightPaint);
     }
 
     if (partlyCloudy) {
