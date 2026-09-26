@@ -287,7 +287,7 @@ class SeichiMapPage extends StatefulWidget {
 }
 
 class _SeichiMapPageState extends State<SeichiMapPage>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final Stopwatch _startupWatch = Stopwatch()..start();
   static const CollectionApplyPolicy _collectionApplyPolicy =
       CollectionApplyPolicy();
@@ -477,7 +477,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   bool _isCollecting = false;
 
   late AnimationController _sonarController;
+  late AnimationController _mapSonarController;
   int _lastMarkerAnimationFrame = -1;
+  int _lastMapSonarAnimationFrame = -1;
 
   int _selectedTab = 0;
 
@@ -509,6 +511,15 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       duration: const Duration(milliseconds: 1800),
     );
     _sonarController.addListener(_onMarkerAnimationTick);
+
+    // Map destination sonar has its own clock so card/pin animation tuning
+    // never changes the map pulse cadence.
+    _mapSonarController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 5400),
+    );
+    _mapSonarController.addListener(_onMapSonarAnimationTick);
+
     unawaited(_loadMapOrientationPreference());
 
     _initialize();
@@ -2764,54 +2775,52 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     final center = LatLng(destination.latitude, destination.longitude);
     final radius = destination.stampRadiusMeters.toDouble();
-    final cycle = _sonarController.value;
+    final cycle = _mapSonarController.value;
 
-    double wavePhase(double offset) => (cycle + offset) % 1.0;
-
-    Circle waveCircle(int index, double offset) {
-      final phase = wavePhase(offset);
-      final eased = Curves.easeOut.transform(phase);
-      final waveRadius = radius * (0.18 + 0.82 * eased);
-      final opacity = 0.48 * (1.0 - phase) * (1.0 - phase);
-
-      return Circle(
-        circleId: CircleId('destination-sonar-$index:${destination.id}'),
-        center: center,
-        radius: waveRadius,
-        fillColor: Colors.transparent,
-        strokeColor: const Color(0xFF806DFF).withValues(alpha: opacity),
-        strokeWidth: 1,
-        zIndex: 2,
-      );
-    }
-
-    return <Circle>{
-      // The translucent field communicates the exact acquisition area without
-      // turning its edge into a heavy boundary line.
+    // One quiet pulse per 5.4-second cycle. The pulse is active for roughly
+    // two seconds, then rests so the destination reads as a gentle beacon.
+    const activeFraction = 0.38;
+    final circles = <Circle>{
       Circle(
         circleId: CircleId('destination-range:${destination.id}'),
         center: center,
         radius: radius,
-        fillColor: const Color(0xFF806DFF).withValues(alpha: 0.075),
-        strokeColor: const Color(0xFF806DFF).withValues(alpha: 0.16),
+        fillColor: const Color(0xFF806DFF).withValues(alpha: 0.045),
+        strokeColor: const Color(0xFF806DFF).withValues(alpha: 0.10),
         strokeWidth: 1,
         zIndex: 1,
       ),
-      waveCircle(0, 0.00),
-      waveCircle(1, 0.34),
-      waveCircle(2, 0.67),
       Circle(
         circleId: CircleId('destination-halo:${destination.id}'),
         center: center,
-        radius: math.min(radius * 0.18, 34.0),
-        fillColor: const Color(0xFF9B8CFF).withValues(
-          alpha: 0.10 + 0.06 * math.sin(cycle * math.pi * 2).abs(),
-        ),
+        radius: math.min(radius * 0.16, 30.0),
+        fillColor: const Color(0xFF9B8CFF).withValues(alpha: 0.065),
         strokeColor: Colors.transparent,
         strokeWidth: 0,
         zIndex: 1,
       ),
     };
+
+    if (cycle < activeFraction) {
+      final phase = cycle / activeFraction;
+      final eased = Curves.easeInOut.transform(phase);
+      final waveRadius = radius * (0.30 + 0.58 * eased);
+      final opacity = 0.13 * math.pow(1.0 - phase, 1.6).toDouble();
+
+      circles.add(
+        Circle(
+          circleId: CircleId('destination-sonar:${destination.id}'),
+          center: center,
+          radius: waveRadius,
+          fillColor: Colors.transparent,
+          strokeColor: const Color(0xFF806DFF).withValues(alpha: opacity),
+          strokeWidth: 1,
+          zIndex: 2,
+        ),
+      );
+    }
+
+    return circles;
   }
 
   Set<Marker> _buildClusterMarkers() {
@@ -3807,23 +3816,41 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       if (!_sonarController.isAnimating) {
         _sonarController.repeat();
       }
+      if (!_mapSonarController.isAnimating) {
+        _mapSonarController.repeat();
+      }
       return;
     }
 
     if (_sonarController.isAnimating) {
       _sonarController.stop();
-      _lastMarkerAnimationFrame = -1;
     }
+    if (_mapSonarController.isAnimating) {
+      _mapSonarController.stop();
+    }
+    _lastMarkerAnimationFrame = -1;
+    _lastMapSonarAnimationFrame = -1;
   }
 
   void _onMarkerAnimationTick() {
     if (!mounted || _nextSeichi == null || _selectedTab != 0) return;
 
-    // NEXT marker floats while native Google Map updates stay near 8fps.
+    // NEXT marker/card keep their original 1.8-second clock.
     final frame = (_sonarController.value * 14).floor();
     if (frame == _lastMarkerAnimationFrame) return;
 
     _lastMarkerAnimationFrame = frame;
+    setState(() {});
+  }
+
+  void _onMapSonarAnimationTick() {
+    if (!mounted || _nextSeichi == null || _selectedTab != 0) return;
+
+    // 43 steps over 5.4 seconds keeps native map updates near 8 fps.
+    final frame = (_mapSonarController.value * 43).floor();
+    if (frame == _lastMapSonarAnimationFrame) return;
+
+    _lastMapSonarAnimationFrame = frame;
     setState(() {});
   }
 
@@ -3834,6 +3861,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _positionSubscription?.cancel();
 
     _sonarController.dispose();
+    _mapSonarController.dispose();
 
     _mapController = null;
 
