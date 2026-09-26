@@ -80,11 +80,15 @@ const supabasePublishableKey = 'sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w';
 // ============================================================
 
 Future<void> main() async {
+  final startupWatch = Stopwatch()..start();
   WidgetsFlutterBinding.ensureInitialized();
 
   await supabase.Supabase.initialize(
     url: supabaseUrl,
     publishableKey: supabasePublishableKey,
+  );
+  appDebugPrint(
+    '[STARTUP_TIME] Supabase ready: ${startupWatch.elapsedMilliseconds}ms',
   );
 
   runApp(const SeichiQuestApp());
@@ -93,6 +97,9 @@ Future<void> main() async {
   // Google Maps と同時にネイティブSDKを初期化すると起動直後の
   // main thread 負荷が集中するため、最初の描画後へ逃がす。
   WidgetsBinding.instance.addPostFrameCallback((_) {
+    appDebugPrint(
+      '[STARTUP_TIME] first Flutter frame: ${startupWatch.elapsedMilliseconds}ms',
+    );
     unawaited(_initializeDeferredPlatformServices());
   });
 }
@@ -148,6 +155,7 @@ class SeichiMapPage extends StatefulWidget {
 
 class _SeichiMapPageState extends State<SeichiMapPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  final Stopwatch _startupWatch = Stopwatch()..start();
   static const CollectionApplyPolicy _collectionApplyPolicy =
       CollectionApplyPolicy();
   static const CollectionDisplayPolicy _collectionDisplayPolicy =
@@ -439,6 +447,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       loadSeichi: _loadSeichi,
     );
     appDebugPrint('[STARTUP] critical complete');
+    appDebugPrint(
+      '[STARTUP_TIME] map data ready: ${_startupWatch.elapsedMilliseconds}ms',
+    );
 
     final onboardingCompleted = await onboardingCompletedFuture;
 
@@ -450,6 +461,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _isOnboardingReady = true;
       _shouldShowOnboarding = !onboardingCompleted;
     });
+    appDebugPrint(
+      '[STARTUP_TIME] loading view done: ${_startupWatch.elapsedMilliseconds}ms',
+    );
 
     unawaited(
       _runPostRenderStartup(
@@ -1147,6 +1161,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _errorActionLabel = null;
       _errorAction = null;
     });
+    appDebugPrint(
+      '[STARTUP_TIME] location ready: ${_startupWatch.elapsedMilliseconds}ms',
+    );
 
     _updateNextDestination();
 
@@ -2776,16 +2793,25 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Widget _buildLoading() {
     return Container(
-      color: Colors.white,
-      child: const Center(
-        child: Column(
+      color: QuestUiTokens.background,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(24),
+      child: QuestGlassCard(
+        child: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(width: 42, height: 42, child: CircularProgressIndicator()),
+            Icon(Icons.explore_rounded, size: 42, color: QuestUiTokens.primary),
+            SizedBox(height: 20),
+            CircularProgressIndicator(),
             SizedBox(height: 20),
             Text(
               '聖地クエストを起動中…',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: QuestUiTokens.ink,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
