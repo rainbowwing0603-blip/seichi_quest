@@ -40,8 +40,14 @@ class SessionService {
         '[AUTH] anonymous sign-in failed: '
         'code=${error.statusCode}, message=${error.message}',
       );
+      rethrow;
     } catch (error) {
       appDebugPrint('[AUTH] anonymous sign-in failed: $error');
+      rethrow;
+    }
+
+    if (_client.auth.currentUser == null) {
+      throw StateError('Cloud user session could not be established.');
     }
   }
 }

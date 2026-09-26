@@ -4,6 +4,7 @@
 /// そのためFlutterや位置情報プラグインなしで単体テストできる。
 abstract final class StampEligibilityPolicy {
   static const double maxPlausibleSpeedMps = 100.0;
+  static const double maxCollectionSpeedMps = 5.56;
   static const double minimumAllowedAccuracyMeters = 30.0;
   static const double radiusAccuracyRatio = 0.5;
 
@@ -30,6 +31,18 @@ abstract final class StampEligibilityPolicy {
     }
 
     return movedDistanceMeters / elapsedSeconds <= maxPlausibleSpeedMps;
+  }
+
+  static bool hasAcceptableCollectionSpeed({
+    required double speedMetersPerSecond,
+  }) {
+    // Some platforms may report a negative value when speed is unavailable.
+    // In that case, do not block collection solely because speed is unknown.
+    if (speedMetersPerSecond < 0) {
+      return true;
+    }
+
+    return speedMetersPerSecond <= maxCollectionSpeedMps;
   }
 
   static bool isWithinStampRadius({
