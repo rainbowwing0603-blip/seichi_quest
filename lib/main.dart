@@ -222,6 +222,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   bool _isLoading = true;
   bool _isLoadingLocation = false;
+  bool _markerIconsLoadScheduled = false;
 
   final OnboardingService _onboardingService = OnboardingService();
   bool _isOnboardingReady = false;
@@ -324,9 +325,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    if (_uncollectedMarkerIcon == null ||
+    if (!_markerIconsLoadScheduled &&
+        (_uncollectedMarkerIcon == null ||
         _collectedMarkerIcon == null ||
-        _nextMarkerIcon == null) {
+        _nextMarkerIcon == null)) {
+      _markerIconsLoadScheduled = true;
       // 初回フレームとネイティブMap生成に画像デコードを重ねない。
       // 読み込み完了までは既存のdefault markerへ自然にフォールバックする。
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -415,6 +418,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       appDebugPrint('[MARKER] crystal icons loaded');
     } catch (error) {
       appDebugPrint('[MARKER] crystal icon load failed: $error');
+    } finally {
+      _markerIconsLoadScheduled = false;
     }
   }
 
@@ -1059,7 +1064,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   Future<void> _initializeLocation() async {
-    if (!mounted) {
+    if (!mounted || _isLoadingLocation) {
       return;
     }
 

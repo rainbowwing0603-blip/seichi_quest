@@ -57,6 +57,36 @@ void main() {
     expect(calls, <String>['ensureCloudUser', 'loadCurrentEvent']);
   });
 
+  test('イベント確定後は獲得履歴とスポットを同時に読み込む', () async {
+    final syncGate = Completer<List<Map<String, dynamic>>>();
+    final spotGate = Completer<void>();
+    final started = <String>[];
+
+    final startup = coordinator.runCritical(
+      ensureCloudUser: () async {},
+      loadCurrentEvent: () async {},
+      startCollectionSync: () {
+        started.add('sync');
+        return syncGate.future;
+      },
+      loadSeichi: () {
+        started.add('spots');
+        return spotGate.future;
+      },
+    );
+
+    await Future<void>.delayed(Duration.zero);
+    expect(started, <String>['sync', 'spots']);
+    syncGate.complete(<Map<String, dynamic>>[]);
+    var completed = false;
+    startup.then((_) => completed = true);
+    await Future<void>.delayed(Duration.zero);
+    expect(completed, isFalse);
+    spotGate.complete();
+    await startup;
+    expect(completed, isTrue);
+  });
+
   test('画面表示後の復元処理は既存の依存順を保つ', () async {
     final calls = <String>[];
 
