@@ -376,6 +376,15 @@ class _WeatherEffectPainter extends CustomPainter {
       ..close();
 
     canvas.drawPath(rayPath, rayPaint);
+
+    _paintClearLightParticles(
+      canvas,
+      size,
+      loopAngle,
+      count: 8,
+      baseOpacity: 0.27,
+      warm: true,
+    );
   }
 
   void _paintClearNight(Canvas canvas, Size size, double loopAngle) {
@@ -409,52 +418,57 @@ class _WeatherEffectPainter extends CustomPainter {
     required double baseOpacity,
     required bool warm,
   }) {
-    final particlePaint = Paint()..strokeCap = StrokeCap.round;
-    final travelHeight = size.height + 110.0;
+    final travelHeight = size.height + 140.0;
+    final cycle = loopAngle / (math.pi * 2.0);
 
-    // Clear weather should feel alive rather than merely tinted. Particles
-    // descend slowly and sway sideways, while remaining sparse enough that
-    // map labels and markers stay readable.
-    for (var i = 0; i < count + 5; i++) {
+    // Sunlit dust: large enough to be perceived on a pale map, but soft and
+    // sparse enough not to compete with labels or quest markers.
+    for (var i = 0; i < count + 10; i++) {
       final xSeed = ((i * 83 + 41) % 997) / 997.0;
       final ySeed = ((i * 137 + 73) % 991) / 991.0;
       final speedSeed = ((i * 61 + 29) % 983) / 983.0;
       final phaseSeed = ((i * 173 + 17) % 977) / 977.0;
 
-      final cycle = loopAngle / (math.pi * 2.0);
-      final fall = (ySeed + cycle * (0.42 + speedSeed * 0.34)) % 1.0;
-      final y = fall * travelHeight - 45.0;
+      final fall = (ySeed + cycle * (0.78 + speedSeed * 0.52)) % 1.0;
+      final y = fall * travelHeight - 55.0;
 
-      final swayPhase = loopAngle * (0.55 + speedSeed * 0.35) +
-          phaseSeed * math.pi * 2.0;
-      final sway = math.sin(swayPhase) * (7.0 + speedSeed * 9.0) +
-          math.sin(swayPhase * 0.47 + i) * 3.5;
-      final x = 14 + xSeed * math.max(size.width - 28, 1.0) + sway;
+      final swayPhase =
+          loopAngle * (0.45 + speedSeed * 0.34) + phaseSeed * math.pi * 2;
+      final x = 12 +
+          xSeed * math.max(size.width - 24, 1.0) +
+          math.sin(swayPhase) * (10 + speedSeed * 13) +
+          math.sin(swayPhase * 0.43 + i * 0.9) * 4.5;
 
-      final pulse = 0.72 + math.sin(loopAngle * 1.7 + i * 1.31) * 0.28;
-      final radius = 1.0 + speedSeed * 1.65;
+      final pulse = 0.78 + 0.22 * math.sin(loopAngle * 1.4 + i * 1.17);
+      final radius = 1.35 + speedSeed * 2.05;
       final opacity =
-          (baseOpacity * (0.52 + pulse * 0.48)).clamp(0.0, 1.0);
-      final color = warm ? const Color(0xFFFFE4B5) : Colors.white;
+          (baseOpacity * (0.78 + pulse * 0.38)).clamp(0.0, 0.52);
+      final color =
+          warm ? const Color(0xFFFFC96B) : const Color(0xFFFFE29A);
 
-      particlePaint
-        ..color = color.withValues(alpha: opacity * 0.28)
+      final glowPaint = Paint()
+        ..color = color.withValues(alpha: opacity * 0.22)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 1.5);
+      canvas.drawCircle(Offset(x, y), radius * 3.2, glowPaint);
+
+      final bodyPaint = Paint()
+        ..color = color.withValues(alpha: opacity * 0.88)
         ..style = PaintingStyle.fill;
-      canvas.drawCircle(Offset(x, y), radius * 2.4, particlePaint);
+      canvas.drawCircle(Offset(x, y), radius, bodyPaint);
 
-      particlePaint
-        ..color = color.withValues(alpha: opacity)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.8 + speedSeed * 0.45;
+      final glintPaint = Paint()
+        ..color = Colors.white.withValues(alpha: opacity * 0.72)
+        ..strokeWidth = 0.85
+        ..strokeCap = StrokeCap.round;
       canvas.drawLine(
-        Offset(x - radius, y),
-        Offset(x + radius, y),
-        particlePaint,
+        Offset(x - radius * 1.55, y),
+        Offset(x + radius * 1.55, y),
+        glintPaint,
       );
       canvas.drawLine(
-        Offset(x, y - radius),
-        Offset(x, y + radius),
-        particlePaint,
+        Offset(x, y - radius * 1.55),
+        Offset(x, y + radius * 1.55),
+        glintPaint,
       );
     }
   }
