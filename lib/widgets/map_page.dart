@@ -8,6 +8,7 @@ import '../models/real_world_state.dart';
 import '../models/quest_item.dart';
 import '../painters/sonar_painter.dart';
 import '../services/app_error_report.dart';
+import '../models/regional_map_progress.dart';
 import '../services/weather_safety_policy.dart';
 import 'stamp_animation.dart';
 import 'season_effect_overlay.dart';
@@ -168,6 +169,9 @@ class MapPage extends StatelessWidget {
   final LatLng defaultCenter;
 
   final Set<Marker> markers;
+  final List<RegionalMapProgress> regionalProgress;
+  final bool showRegionalProgress;
+  final ValueChanged<RegionalMapProgress>? onRegionalProgressTap;
   final ValueChanged<CameraPosition> onCameraMove;
   final VoidCallback onCameraIdle;
 
@@ -199,6 +203,9 @@ class MapPage extends StatelessWidget {
     required this.total,
     required this.defaultCenter,
     required this.markers,
+    this.regionalProgress = const [],
+    this.showRegionalProgress = false,
+    this.onRegionalProgressTap,
     required this.onCameraMove,
     required this.onCameraIdle,
     required this.onMoveToCurrentLocation,
@@ -1626,6 +1633,46 @@ class MapPage extends StatelessWidget {
     );
   }
 
+
+  Widget _buildRegionalProgressOverlay() {
+    if (!showRegionalProgress || regionalProgress.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned(
+      left: 14,
+      right: 14,
+      bottom: 118,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.90),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: const [BoxShadow(blurRadius: 12, offset: Offset(0, 4))],
+          ),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            alignment: WrapAlignment.center,
+            children: regionalProgress.map((item) {
+              return ActionChip(
+                onPressed: onRegionalProgressTap == null
+                    ? null
+                    : () => onRegionalProgressTap!(item),
+                label: Text(
+                  '${item.name} ${item.collectedCount}/${item.totalCount}',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+                ),
+              );
+            }).toList(growable: false),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMap() {
     LatLng initialTarget = defaultCenter;
 
@@ -1663,6 +1710,7 @@ class MapPage extends StatelessWidget {
         _buildMap(),
         _buildEnvironmentOverlay(),
         _buildSeasonOverlay(),
+        _buildRegionalProgressOverlay(),
         if (realWorldState != null)
           SeasonEffectOverlay(
             season: realWorldState!.season,
