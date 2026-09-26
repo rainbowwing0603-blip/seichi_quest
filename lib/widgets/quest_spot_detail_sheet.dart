@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/quest_item.dart';
+import '../policies/quest_event_theme_policy.dart';
 import 'quest_item_content_section.dart';
 import 'quest_ui.dart';
 
@@ -10,29 +11,29 @@ class QuestSpotDetailSheet extends StatelessWidget {
     required this.item,
     required this.collected,
     this.isNext = false,
-    this.distanceMeters,
     this.eventNames = const <String>[],
     this.onShowOnMap,
     this.onSetNextDestination,
+    this.eventTheme = QuestEventThemePolicy.sharedTheme,
   });
 
   final QuestItem item;
   final bool collected;
   final bool isNext;
-  final double? distanceMeters;
   final List<String> eventNames;
   final VoidCallback? onShowOnMap;
   final VoidCallback? onSetNextDestination;
+  final QuestEventTheme eventTheme;
 
   static Future<void> show(
     BuildContext context, {
     required QuestItem item,
     required bool collected,
     bool isNext = false,
-    double? distanceMeters,
     List<String> eventNames = const <String>[],
     VoidCallback? onShowOnMap,
     VoidCallback? onSetNextDestination,
+    QuestEventTheme eventTheme = QuestEventThemePolicy.sharedTheme,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -44,12 +45,12 @@ class QuestSpotDetailSheet extends StatelessWidget {
           item: item,
           collected: collected,
           isNext: isNext,
-          distanceMeters: distanceMeters,
           eventNames: eventNames,
           onShowOnMap: onShowOnMap == null ? null : () {
             Navigator.of(sheetContext).pop();
             onShowOnMap();
           },
+          eventTheme: eventTheme,
           onSetNextDestination: onSetNextDestination == null ? null : () {
             Navigator.of(sheetContext).pop();
             onSetNextDestination();
@@ -148,7 +149,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
                 height: 48,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  gradient: collected ? QuestUiTokens.primaryGradient : null,
+                  gradient: collected ? eventTheme.primaryGradient : null,
                   color: collected ? null : QuestUiTokens.mutedInk.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(15),
                 ),
@@ -204,15 +205,8 @@ class QuestSpotDetailSheet extends StatelessWidget {
               QuestStatusChip(
                 label: '獲得範囲 ${item.stampRadiusMeters}m',
                 icon: Icons.place_outlined,
-                accentColor: QuestUiTokens.cyan,
+                accentColor: eventTheme.accent,
               ),
-              if (distanceMeters != null)
-                QuestStatusChip(
-                  label: distanceMeters! < 1000
-                      ? '現在地から ${distanceMeters!.round()}m'
-                      : '現在地から ${(distanceMeters! / 1000).toStringAsFixed(1)}km',
-                  icon: Icons.near_me_rounded,
-                ),
             ],
           ),
         ],
@@ -229,7 +223,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
         children: [
           Icon(
             collected ? Icons.auto_stories_rounded : Icons.lock_outline_rounded,
-            color: collected ? QuestUiTokens.primary : QuestUiTokens.mutedInk,
+            color: collected ? eventTheme.primary : QuestUiTokens.mutedInk,
           ),
           const SizedBox(width: 10),
           Expanded(

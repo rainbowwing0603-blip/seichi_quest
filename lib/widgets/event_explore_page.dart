@@ -3,11 +3,12 @@ import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../models/event.dart';
+import '../policies/quest_event_presentation_policy.dart';
+import '../policies/quest_event_theme_policy.dart';
 import '../models/quest_item.dart';
 import 'event_detail_page.dart';
 import 'quest_ui.dart';
 import '../services/app_logger.dart';
-import '../services/app_error_report.dart';
 
 class EventExplorePage extends StatefulWidget {
   const EventExplorePage({
@@ -40,6 +41,8 @@ class EventExplorePage extends StatefulWidget {
 }
 
 class _EventExplorePageState extends State<EventExplorePage> {
+  static const QuestEventThemePolicy _eventThemePolicy = QuestEventThemePolicy();
+
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -310,79 +313,33 @@ class _EventExplorePageState extends State<EventExplorePage> {
 
       setState(() {
         _isLoading = false;
-        _errorMessage = AppErrorReport.message(
-          AppErrorCodes.eventExplore,
-          'クエスト情報を読み込めませんでした。',
-          error: error,
-          stackTrace: stackTrace,
-        );
+        _errorMessage = 'クエスト情報を読み込めませんでした。';
       });
     }
   }
 
-  String _participationLabel(Event event) {
-    if (event.id == widget.currentEventId) {
-      return '選択中';
-    }
+  static const QuestEventPresentationPolicy _eventPresentationPolicy =
+      QuestEventPresentationPolicy();
 
-    if (_participationStates[event.id] == true) {
-      return '参加中';
-    }
-
-    if (_participationStates.containsKey(event.id)) {
-      return '過去に参加';
-    }
-
-    return '未参加';
+  QuestEventPresentation _eventPresentation(Event event) {
+    final hasRecord = _participationStates.containsKey(event.id);
+    return _eventPresentationPolicy.resolve(
+      isSelected: event.id == widget.currentEventId,
+      hasParticipationRecord: hasRecord,
+      isParticipating: _participationStates[event.id] == true,
+    );
   }
 
-  Color _statusColor(String label) {
-    switch (label) {
-      case '選択中':
-        return QuestUiTokens.primary;
+  String _participationLabel(Event event) => _eventPresentation(event).label;
 
-      case '参加中':
-        return Colors.green;
+  Color _statusColor(String label) =>
+      _eventPresentationPolicy.fromLabel(label).color;
 
-      case '過去に参加':
-        return Colors.orange;
+  IconData _statusIcon(String label) =>
+      _eventPresentationPolicy.fromLabel(label).icon;
 
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData _statusIcon(String label) {
-    switch (label) {
-      case '選択中':
-        return Icons.check_circle;
-
-      case '参加中':
-        return Icons.flag_outlined;
-
-      case '過去に参加':
-        return Icons.history_outlined;
-
-      default:
-        return Icons.add_circle_outline;
-    }
-  }
-
-  String? _primaryActionLabel(String label) {
-    switch (label) {
-      case '参加中':
-        return 'このクエストを選ぶ';
-
-      case '過去に参加':
-        return '再参加して選ぶ';
-
-      case '未参加':
-        return '参加して選ぶ';
-
-      default:
-        return null;
-    }
-  }
+  String? _primaryActionLabel(String label) =>
+      _eventPresentationPolicy.fromLabel(label).primaryActionLabel;
 
   Future<void> _confirmLeaveEvent(Event event) async {
     if (event.id == widget.currentEventId) {
@@ -535,7 +492,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: QuestUiTokens.background,
+      backgroundColor: const Color(0xFFF6F8FC),
       appBar: AppBar(
         title: Text(
           widget.initialFavoriteOnly ? 'お気に入りクエスト' : 'クエストを探す',
@@ -733,7 +690,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
               heightFactor: 0.92,
               child: Container(
                 decoration: const BoxDecoration(
-                  color: QuestUiTokens.background,
+                  color: Color(0xFFF6F8FC),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                 ),
                 child: Column(
@@ -1391,7 +1348,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
 
                           return Container(
                             decoration: const BoxDecoration(
-                              color: QuestUiTokens.background,
+                              color: Color(0xFFF6F8FC),
                               borderRadius: BorderRadius.vertical(
                                 top: Radius.circular(30),
                               ),
@@ -1835,6 +1792,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
     }
 
     final isCurrent = label == '選択中';
+    final eventTheme = _eventThemePolicy.resolve(event);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 11),
@@ -1844,8 +1802,8 @@ class _EventExplorePageState extends State<EventExplorePage> {
           end: Alignment.bottomRight,
           colors: isCurrent
               ? [
-                  QuestUiTokens.primary.withValues(alpha: 0.12),
-                  QuestUiTokens.cyan.withValues(alpha: 0.055),
+                  eventTheme.primary.withValues(alpha: 0.12),
+                  eventTheme.accent.withValues(alpha: 0.055),
                 ]
               : [
                   Colors.white.withValues(alpha: 0.86),
@@ -1855,7 +1813,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: isCurrent
-              ? QuestUiTokens.primary.withValues(alpha: 0.28)
+              ? eventTheme.primary.withValues(alpha: 0.28)
               : QuestUiTokens.primary.withValues(alpha: 0.07),
           width: isCurrent ? 1.3 : 1,
         ),
@@ -1883,7 +1841,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    gradient: isCurrent ? QuestUiTokens.primaryGradient : null,
+                    gradient: isCurrent ? eventTheme.primaryGradient : null,
                     color: isCurrent ? null : color.withValues(alpha: 0.09),
                     borderRadius: BorderRadius.circular(17),
                   ),
@@ -1986,7 +1944,7 @@ class _EventExplorePageState extends State<EventExplorePage> {
                         builder: (sheetContext) {
                           return Container(
                             decoration: const BoxDecoration(
-                              color: QuestUiTokens.background,
+                              color: Color(0xFFF6F8FC),
                               borderRadius: BorderRadius.vertical(
                                 top: Radius.circular(30),
                               ),
