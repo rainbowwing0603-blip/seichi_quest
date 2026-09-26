@@ -139,6 +139,10 @@ class ContentBlockRenderer extends StatelessWidget {
               aspectRatio: _aspectRatioFor(block),
               child: Image.network(
                 imageUrl,
+                cacheWidth: (MediaQuery.sizeOf(context).width *
+                        MediaQuery.devicePixelRatioOf(context))
+                    .ceil()
+                    .clamp(1, 2048),
                 width: double.infinity,
                 height: double.infinity,
                 fit: _imageFitFor(block),

@@ -106,6 +106,10 @@ class QuestItemContentSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           child: Image.network(
             imageUrl,
+            cacheWidth: (MediaQuery.sizeOf(context).width *
+                    MediaQuery.devicePixelRatioOf(context))
+                .ceil()
+                .clamp(1, 2048),
             width: double.infinity,
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) =>
