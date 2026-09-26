@@ -225,6 +225,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   List<QuestItem> get _mapQuestItems =>
       _eventTotalCount > 200 ? _mapVisibleSeichiList : _seichiList;
 
+  List<QuestItem> get _knownQuestItems {
+    final byId = <String, QuestItem>{};
+    for (final item in _seichiList) { byId[item.id] = item; }
+    for (final item in _nearbyQuestItems) { byId[item.id] = item; }
+    for (final item in _mapVisibleSeichiList) { byId[item.id] = item; }
+    return List<QuestItem>.unmodifiable(byId.values);
+  }
+
   final Set<String> _collectedIds = {};
   final Map<String, Set<String>> _collectionEventNamesByContentKey = {};
 
@@ -1180,7 +1188,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   int _getCollectedCount() {
     return _eventProgressSummary?.collectedCount ??
         _collectionProgressPolicy.validCollectedCount(
-          seichiList: _seichiList,
+          seichiList: _knownQuestItems,
           collectedIds: _collectedIds,
         );
   }
@@ -1983,7 +1991,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     final applyPlan = _collectionApplyPolicy.plan(
       currentEventId: currentEventId,
       collectedRows: collectedRows,
-      seichiList: _seichiList,
+      seichiList: _knownQuestItems,
       collectedIds: _collectedIds,
       eventAchievements: _eventAchievements,
       itemLabel: _currentEventItemLabel,
@@ -2550,7 +2558,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     // Prepare every icon, including count=1, before switching the rendered
     // zoom into cluster mode. This makes the marker-set replacement atomic.
     final counts = _clusterService
-        .build(items: _seichiList, zoom: targetZoom)
+        .build(items: _mapQuestItems, zoom: targetZoom)
         .map((cluster) => cluster.count)
         .toSet();
 
@@ -2851,7 +2859,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       nextSeichi: _nextSeichi,
       nextDistance: _nextDistance,
       collectedCount: _getCollectedCount(),
-      total: _seichiList.length,
+      total: _eventTotalCount,
       onShowDestination: _moveCameraToNextSeichi,
       onExploreEvents: _showEventExplore,
       eventAchievements: _eventAchievements,
@@ -2886,7 +2894,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       myRank: _myEventRank,
 
       myCount: _getCollectedCount(),
-      total: _seichiList.length,
+      total: _eventTotalCount,
       itemLabel: _currentEventItemLabel,
     );
   }
@@ -3002,7 +3010,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       levelProgress: _levelProgress,
       eventAchievements: _eventAchievements,
       count: _getCollectedCount(),
-      total: _seichiList.length,
+      total: _eventTotalCount,
       currentEventName: _currentEventName,
       nextDestinationName: _nextSeichi?.name,
       nextDestinationIcon: _nextSeichi?.icon,
