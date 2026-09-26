@@ -1233,7 +1233,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       );
       if (!mounted || eventId != _currentEventId ||
           generation != _collectionRequestGeneration ||
-          requestedState != _collectionState) return;
+          requestedState != _collectionState) {
+        return;
+      }
       setState(() {
         _seichiList = items;
         _collectionPageOffset = items.length;
