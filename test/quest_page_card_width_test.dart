@@ -18,7 +18,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: QuestPage(
-              nextSeichi: null,
+              nextItem: null,
               nextDistance: null,
               collectedCount: state.collected,
               total: state.total,
