@@ -707,9 +707,7 @@ class _WeatherEffectPainter extends CustomPainter {
         DayPhase.night => const Color(0xFF42586A),
       };
 
-      final breathe = 1.0 + math.sin(loopAngle * 0.5) * 0.035;
       final cloudPaint = Paint();
-      final shadePaint = Paint();
 
       void paintEdgeCloud({
         required Offset center,
@@ -717,55 +715,98 @@ class _WeatherEffectPainter extends CustomPainter {
         required double height,
         required double phase,
       }) {
-        // 影を先に置き、その上へ大きさの違う柔らかいローブを重ねる。
-        shadePaint.color = cloudShade.withValues(
-          alpha: dayPhase == DayPhase.night ? 0.30 : 0.24,
-        );
-        canvas.drawOval(
-          Rect.fromCenter(
-            center: Offset(center.dx, center.dy + height * 0.16),
-            width: width * 1.04,
-            height: height * 0.62,
-          ),
-          shadePaint,
-        );
+        // 1つの連続Pathで雲の外形を作る。
+        // 個別の楕円を重ねないため、内部にローブの継ぎ目は存在しない。
+        final breathe = 1.0 + math.sin(phase * 0.5) * 0.025;
+        final w = width * breathe;
+        final h = height;
+        final left = center.dx - w * 0.58;
+        final right = center.dx + w * 0.58;
+        final top = center.dy - h * 0.56;
+        final bottom = center.dy + h * 0.48;
 
-        final lobes = <({double x, double y, double w, double h})>[
-          (x: -0.42, y: 0.08, w: 0.48, h: 0.54),
-          (x: -0.20, y: -0.10, w: 0.56, h: 0.70),
-          (x: 0.04, y: -0.18, w: 0.64, h: 0.82),
-          (x: 0.29, y: -0.08, w: 0.58, h: 0.68),
-          (x: 0.49, y: 0.10, w: 0.44, h: 0.50),
-        ];
+        final path = Path()
+          ..moveTo(left, bottom * 0.98)
+          ..cubicTo(
+            left - w * 0.03,
+            center.dy + h * 0.18,
+            left + w * 0.04,
+            center.dy - h * 0.02,
+            left + w * 0.13,
+            center.dy - h * 0.02,
+          )
+          ..cubicTo(
+            left + w * 0.16,
+            center.dy - h * 0.28,
+            left + w * 0.28,
+            top + h * 0.10,
+            left + w * 0.38,
+            center.dy - h * 0.20,
+          )
+          ..cubicTo(
+            left + w * 0.43,
+            top - h * 0.10,
+            left + w * 0.58,
+            top - h * 0.08,
+            left + w * 0.64,
+            center.dy - h * 0.22,
+          )
+          ..cubicTo(
+            left + w * 0.76,
+            center.dy - h * 0.34,
+            left + w * 0.86,
+            center.dy - h * 0.10,
+            left + w * 0.88,
+            center.dy + h * 0.02,
+          )
+          ..cubicTo(
+            right + w * 0.03,
+            center.dy + h * 0.05,
+            right + w * 0.02,
+            center.dy + h * 0.26,
+            right - w * 0.03,
+            bottom,
+          )
+          ..cubicTo(
+            center.dx + w * 0.28,
+            bottom + h * 0.10,
+            center.dx - w * 0.26,
+            bottom + h * 0.10,
+            left,
+            bottom * 0.98,
+          )
+          ..close();
 
-        for (var i = 0; i < lobes.length; i++) {
-          final lobe = lobes[i];
-          final wobble = math.sin(phase + i * 1.31) * height * 0.025;
-          final rect = Rect.fromCenter(
-            center: Offset(
-              center.dx + lobe.x * width,
-              center.dy + lobe.y * height + wobble,
+        final bounds = path.getBounds();
+        cloudPaint.shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            cloudColor.withValues(
+              alpha: dayPhase == DayPhase.night ? 0.34 : 0.30,
             ),
-            width: lobe.w * width * breathe,
-            height: lobe.h * height,
+            cloudColor.withValues(
+              alpha: dayPhase == DayPhase.night ? 0.30 : 0.26,
+            ),
+            cloudShade.withValues(
+              alpha: dayPhase == DayPhase.night ? 0.24 : 0.20,
+            ),
+          ],
+          stops: const [0.0, 0.52, 1.0],
+        ).createShader(bounds);
+        canvas.drawPath(path, cloudPaint);
+
+        // 外周をぼかすフィルタは使わず、同じPathを薄く大きく感じさせる
+        // ソフトな縁取りで境界だけを馴染ませる。
+        final edgePaint = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(8.0, w * 0.035)
+          ..strokeJoin = StrokeJoin.round
+          ..strokeCap = StrokeCap.round
+          ..color = cloudColor.withValues(
+            alpha: dayPhase == DayPhase.night ? 0.10 : 0.08,
           );
-          cloudPaint.shader = RadialGradient(
-            center: const Alignment(-0.18, -0.28),
-            radius: 0.88,
-            colors: [
-              cloudColor.withValues(
-                alpha: dayPhase == DayPhase.night ? 0.42 : 0.36,
-              ),
-              cloudColor.withValues(
-                alpha: dayPhase == DayPhase.night ? 0.30 : 0.25,
-              ),
-              cloudShade.withValues(alpha: 0.13),
-              Colors.transparent,
-            ],
-            stops: const [0.0, 0.48, 0.78, 1.0],
-          ).createShader(rect);
-          canvas.drawOval(rect, cloudPaint);
-        }
+        canvas.drawPath(path, edgePaint);
       }
 
       // 上端の大きな雲海。HUDの背後から地図へ少しだけ入り込む。
