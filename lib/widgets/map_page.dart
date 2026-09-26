@@ -10,6 +10,7 @@ import '../painters/sonar_painter.dart';
 import '../services/app_error_report.dart';
 import '../services/weather_safety_policy.dart';
 import 'stamp_animation.dart';
+import 'season_effect_overlay.dart';
 import 'quest_ui.dart';
 import 'weather_effect_overlay.dart';
 import 'weather_safety_banner.dart';
@@ -1656,6 +1657,12 @@ class MapPage extends StatelessWidget {
         _buildMap(),
         _buildEnvironmentOverlay(),
         _buildSeasonOverlay(),
+        if (realWorldState != null)
+          SeasonEffectOverlay(
+            season: realWorldState!.season,
+            dayPhase: realWorldState!.dayPhase,
+            weather: realWorldState!.weather,
+          ),
         if (realWorldState != null)
           WeatherEffectOverlay(
             weather: realWorldState!.weather,
