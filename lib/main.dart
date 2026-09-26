@@ -58,6 +58,7 @@ import 'services/collection_apply_policy.dart';
 import 'services/collection_display_policy.dart';
 import 'services/collection_progress_policy.dart';
 import 'services/event_service.dart';
+import 'services/event_progress_service.dart';
 import 'services/event_switch_coordinator.dart';
 import 'services/destination_persistence_service.dart';
 import 'services/recommended_route_policy.dart';
@@ -196,6 +197,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   bool _weatherLoadFailed = false;
 
   List<QuestItem> _seichiList = [];
+  final EventProgressService _eventProgressService = EventProgressService();
+  EventProgressSummary? _eventProgressSummary;
+  bool _isLoadingMoreCollectionItems = false;
+  int _collectionPageOffset = 0;
+  bool _collectionPagingExhausted = false;
+  int _collectionRequestGeneration = 0;
   final Set<String> _collectedIds = {};
   final Map<String, Set<String>> _collectionEventNamesByContentKey = {};
 
@@ -1149,10 +1156,93 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _currentEvent?.itemLabelSingular ?? 'スポット';
 
   int _getCollectedCount() {
-    return _collectionProgressPolicy.validCollectedCount(
-      seichiList: _seichiList,
-      collectedIds: _collectedIds,
-    );
+    return _eventProgressSummary?.collectedCount ??
+        _collectionProgressPolicy.validCollectedCount(
+          seichiList: _seichiList,
+          collectedIds: _collectedIds,
+        );
+  }
+
+  int get _eventTotalCount =>
+      _eventProgressSummary?.totalCount ?? _seichiList.length;
+
+  int get _collectionFilteredTotal {
+    switch (_collectionFilter) {
+      case 1:
+        return _getCollectedCount();
+      case 2:
+        return (_eventTotalCount - _getCollectedCount()).clamp(0, _eventTotalCount);
+      default:
+        return _eventTotalCount;
+    }
+  }
+
+  String get _collectionState {
+    switch (_collectionFilter) {
+      case 1: return 'collected';
+      case 2: return 'uncollected';
+      default: return 'all';
+    }
+  }
+
+  bool get _hasMoreCollectionItems =>
+      !_collectionPagingExhausted &&
+      _collectionFilteredTotal > _collectionPageOffset;
+
+  Future<void> _reloadCollectionForFilter() async {
+    final eventId = _currentEventId;
+    if (eventId == null || eventId.isEmpty) return;
+    final generation = ++_collectionRequestGeneration;
+    final requestedState = _collectionState;
+    setState(() => _isLoadingMoreCollectionItems = true);
+    try {
+      final items = await _questItemService.loadActiveItemsPage(
+        eventId: eventId, offset: 0, limit: 100,
+        collectionState: requestedState,
+      );
+      if (!mounted || eventId != _currentEventId ||
+          generation != _collectionRequestGeneration ||
+          requestedState != _collectionState) return;
+      setState(() {
+        _seichiList = items;
+        _collectionPageOffset = items.length;
+        _collectionPagingExhausted = items.isEmpty || items.length >= _collectionFilteredTotal;
+        _markerCacheRevision.markChanged();
+      });
+    } catch (error) {
+      appDebugPrint('[COLLECTION] filter reload failed: $error');
+    } finally {
+      if (mounted && generation == _collectionRequestGeneration) {
+        setState(() => _isLoadingMoreCollectionItems = false);
+      }
+    }
+  }
+
+  Future<void> _loadMoreCollectionItems() async {
+    final eventId = _currentEventId;
+    if (eventId == null || eventId.isEmpty || _isLoadingMoreCollectionItems || !_hasMoreCollectionItems) return;
+    final generation = _collectionRequestGeneration;
+    final requestedState = _collectionState;
+    setState(() => _isLoadingMoreCollectionItems = true);
+    try {
+      final next = await _questItemService.loadActiveItemsPage(
+        eventId: eventId, offset: _collectionPageOffset, limit: 100,
+        collectionState: requestedState,
+      );
+      if (!mounted || eventId != _currentEventId || generation != _collectionRequestGeneration || requestedState != _collectionState) return;
+      final byId = <String, QuestItem>{for (final item in _seichiList) item.id: item, for (final item in next) item.id: item};
+      final merged = byId.values.toList()..sort((a,b) { final d=a.displayOrder.compareTo(b.displayOrder); return d != 0 ? d : a.eventContentId.compareTo(b.eventContentId); });
+      setState(() {
+        _seichiList = List<QuestItem>.unmodifiable(merged);
+        _collectionPageOffset += next.length;
+        if (next.isEmpty || _collectionPageOffset >= _collectionFilteredTotal) _collectionPagingExhausted = true;
+        _markerCacheRevision.markChanged();
+      });
+    } catch (error) {
+      appDebugPrint('[COLLECTION] load more failed: $error');
+    } finally {
+      if (mounted && generation == _collectionRequestGeneration) setState(() => _isLoadingMoreCollectionItems = false);
+    }
   }
 
   // ============================================================
@@ -1176,7 +1266,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         throw Exception('イベントIDが未取得のため、聖地を読み込めません。');
       }
 
-      final list = await _questItemService.loadActiveItems(eventId);
+      final summary = await _eventProgressService.load(eventId);
+      final list = summary.totalCount > 200
+          ? await _questItemService.loadActiveItemsPage(eventId: eventId, limit: 100)
+          : await _questItemService.loadActiveItems(eventId);
 
       if (!mounted) {
         return;
@@ -1184,6 +1277,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       setState(() {
         _seichiList = list;
+        _eventProgressSummary = summary;
+        _collectionPageOffset = list.length;
+        _collectionPagingExhausted = list.isEmpty || list.length >= summary.totalCount;
         _markerCacheRevision.markChanged();
         if (manageLoadingState) {
           _isLoading = false;
@@ -3026,16 +3122,21 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       case 2:
         return CollectionPage(
           eventId: _currentEventId,
-          seichiList: _seichiList,
+          questItems: _seichiList,
           collectedIds: _collectedIds,
+          totalCount: _eventTotalCount,
+          collectedCount: _getCollectedCount(),
+          hasMore: _hasMoreCollectionItems,
+          isLoadingMore: _isLoadingMoreCollectionItems,
+          onLoadMore: _loadMoreCollectionItems,
           eventNamesByContentKey: _collectionEventNamesByContentKey,
           collectionFilter: _collectionFilter,
           onFilterChanged: (value) {
-            setState(() {
-              _collectionFilter = value;
-            });
+            if (_collectionFilter == value) return;
+            setState(() => _collectionFilter = value);
+            unawaited(_reloadCollectionForFilter());
           },
-          onMoveToSeichi: _moveCameraToSeichi,
+          onMoveToQuestItem: _moveCameraToSeichi,
           onSetNextDestination: _setNextDestination,
           itemLabel: _currentEventItemLabel,
         );
