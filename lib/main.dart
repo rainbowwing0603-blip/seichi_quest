@@ -30,6 +30,7 @@ import 'widgets/quest_ui.dart';
 import 'widgets/quest_spot_detail_sheet.dart';
 import 'widgets/onboarding_page.dart';
 import 'widgets/license_page.dart';
+import 'widgets/legal_info_page.dart';
 import 'models/quest_item.dart';
 import 'models/achievement.dart';
 import 'models/event.dart';
@@ -3169,6 +3170,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           ),
         );
         await _loadUnreadAnnouncementCount();
+      },
+      onShowLegal: () async {
+        await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LegalInfoPage()));
       },
       onShowAbout: _showAbout,
       onShowSettings: () async {
