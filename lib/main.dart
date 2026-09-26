@@ -2667,14 +2667,45 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return const <Circle>{};
     }
 
+    final center = LatLng(destination.latitude, destination.longitude);
+    final radius = destination.stampRadiusMeters.toDouble();
+    final pulse = 0.5 + 0.5 * math.sin(_sonarController.value * math.pi * 2);
+
     return <Circle>{
+      // Exact acquisition boundary. This radius always matches the server
+      // configured stamp radius and never changes with the visual pulse.
       Circle(
         circleId: CircleId('destination-range:${destination.id}'),
-        center: LatLng(destination.latitude, destination.longitude),
-        radius: destination.stampRadiusMeters.toDouble(),
-        fillColor: const Color(0xFF6750A4).withValues(alpha: 0.14),
-        strokeColor: const Color(0xFF6750A4).withValues(alpha: 0.82),
+        center: center,
+        radius: radius,
+        fillColor: const Color(0xFF6750A4).withValues(alpha: 0.10),
+        strokeColor: const Color(0xFF6750A4).withValues(alpha: 0.90),
         strokeWidth: 3,
+        zIndex: 2,
+      ),
+      // A soft outer pulse gives the destination area a game-like sonar feel
+      // without changing the actual acquisition boundary above.
+      Circle(
+        circleId: CircleId('destination-pulse:${destination.id}'),
+        center: center,
+        radius: radius * (1.05 + pulse * 0.12),
+        fillColor: Colors.transparent,
+        strokeColor: const Color(0xFF8B7CFF).withValues(
+          alpha: 0.34 * (1.0 - pulse) + 0.10,
+        ),
+        strokeWidth: 2,
+        zIndex: 1,
+      ),
+      // Inner halo visually ties the NEXT crystal to its acquisition zone.
+      Circle(
+        circleId: CircleId('destination-halo:${destination.id}'),
+        center: center,
+        radius: math.min(radius * 0.24, 42.0),
+        fillColor: const Color(0xFF8B7CFF).withValues(
+          alpha: 0.08 + pulse * 0.08,
+        ),
+        strokeColor: Colors.transparent,
+        strokeWidth: 0,
         zIndex: 1,
       ),
     };
