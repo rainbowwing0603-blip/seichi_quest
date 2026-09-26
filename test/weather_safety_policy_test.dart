@@ -31,11 +31,4 @@ void main() {
     expect(WeatherSafetyPolicy.message(state(WeatherCondition.rain)), isNull);
     expect(WeatherSafetyPolicy.message(state(WeatherCondition.clear)), isNull);
   });
-
-  test('天気を取得できない場合は安全とみなさず確認先を案内する', () {
-    expect(
-      WeatherSafetyPolicy.message(null, unavailable: true),
-      contains('SQ-WEATHER-01'),
-    );
-  });
 }

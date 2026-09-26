@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/real_world_state.dart';
 import '../models/quest_item.dart';
 import '../painters/sonar_painter.dart';
+import '../services/app_error_report.dart';
 import '../services/weather_safety_policy.dart';
 import 'stamp_animation.dart';
 import 'quest_ui.dart';
@@ -1624,10 +1625,9 @@ class MapPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final safetyMessage = WeatherSafetyPolicy.message(
-      realWorldState,
-      unavailable: weatherUnavailable,
-    );
+    final safetyMessage = weatherUnavailable
+        ? null
+        : WeatherSafetyPolicy.message(realWorldState);
     return Stack(
       children: [
         _buildMap(),
@@ -1665,6 +1665,28 @@ class MapPage extends StatelessWidget {
               if (safetyMessage != null) ...[
                 const SizedBox(height: 8),
                 WeatherSafetyBanner(message: safetyMessage),
+              ],
+              if (weatherUnavailable) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xF4F6F8FC),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '天気を更新できませんでした。しばらくして再試行します。'
+                    ' (${AppErrorCodes.weatherFetch})',
+                    style: const TextStyle(
+                      color: QuestUiTokens.mutedInk,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
               ],
             ],
           ),
