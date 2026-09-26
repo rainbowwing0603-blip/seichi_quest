@@ -183,6 +183,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   static const NextDestinationService _nextDestinationService =
       NextDestinationService();
   final EventService _eventService = EventService();
+  EventSelection? _startupEventSelection;
   final AnnouncementService _announcementService = AnnouncementService();
   int _unreadAnnouncementCount = 0;
   bool _startupAnnouncementsShown = false;
@@ -353,6 +354,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     try {
       final selection = await _eventService.loadCurrentEvent();
 
+      _startupEventSelection = selection;
       _events = selection.events;
       _currentEventId = selection.currentEvent.id;
       _currentEventName = selection.currentEvent.name;
@@ -458,7 +460,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     unawaited(
       _startupCoordinator.runDeferred(
         loadDisplayName: _loadDisplayName,
-        loadMyEventRank: _loadMyEventRank,
+        loadMyEventRank: () async {
+          final selection = _startupEventSelection;
+          if (selection != null) {
+            try {
+              await _eventService.completeCurrentEventSelection(selection);
+            } catch (error) {
+              appDebugPrint('[EVENT] startup participation failed: $error');
+            }
+          }
+          await _loadMyEventRank();
+        },
         loadLevelProgress: _loadLevelProgress,
       ),
     );

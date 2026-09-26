@@ -8,10 +8,12 @@ class EventSelection {
   const EventSelection({
     required this.events,
     required this.currentEvent,
+    required this.needsPreferenceSave,
   });
 
   final List<Event> events;
   final Event currentEvent;
+  final bool needsPreferenceSave;
 }
 
 /// イベント一覧・現在イベント設定・参加状態のSupabaseアクセスをまとめる。
@@ -68,12 +70,6 @@ class EventService {
       throw Exception('現在のイベントIDが取得できません。');
     }
 
-    if (user != null && savedEventId != currentEvent.id) {
-      await saveCurrentEventPreference(currentEvent.id);
-    }
-
-    await ensureParticipation(currentEvent.id);
-
     appDebugPrint(
       '[EVENT] current event restored: '
       'id=${currentEvent.id}, name=${currentEvent.name}',
@@ -82,7 +78,15 @@ class EventService {
     return EventSelection(
       events: events,
       currentEvent: currentEvent,
+      needsPreferenceSave: user != null && savedEventId != currentEvent.id,
     );
+  }
+
+  Future<void> completeCurrentEventSelection(EventSelection selection) async {
+    if (selection.needsPreferenceSave) {
+      await saveCurrentEventPreference(selection.currentEvent.id);
+    }
+    await ensureParticipation(selection.currentEvent.id);
   }
 
   Future<void> activateEvent(String eventId) async {
