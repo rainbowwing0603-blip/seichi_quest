@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'quest_ui.dart';
+import '../services/app_error_report.dart';
 
 class AppSettingsPage extends StatefulWidget {
   const AppSettingsPage({
@@ -453,7 +454,11 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
 
       QuestSnackBar.show(
         context,
-        message: 'リセットに失敗しました: $error',
+        message: AppErrorReport.message(
+          AppErrorCodes.resetHistory,
+          '獲得履歴のリセットに失敗しました。',
+          error: error,
+        ),
         type: QuestNoticeType.error,
       );
     }

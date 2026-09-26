@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import 'profile_avatar.dart';
 import 'quest_ui.dart';
-import '../services/app_logger.dart';
+import '../services/app_error_report.dart';
 
 class RankingPage extends StatefulWidget {
   final String eventId;
@@ -77,8 +77,7 @@ class _RankingPageState extends State<RankingPage> {
         _isLoading = false;
         _errorMessage = null;
       });
-    } catch (error) {
-      appDebugPrint('[RANKING] load failed: $error');
+    } catch (error, stackTrace) {
 
       if (!mounted) {
         return;
@@ -86,7 +85,12 @@ class _RankingPageState extends State<RankingPage> {
 
       setState(() {
         _isLoading = false;
-        _errorMessage = 'ランキングを取得できませんでした。';
+        _errorMessage = AppErrorReport.message(
+          AppErrorCodes.ranking,
+          'ランキングを取得できませんでした。',
+          error: error,
+          stackTrace: stackTrace,
+        );
       });
     }
   }

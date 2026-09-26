@@ -22,6 +22,14 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
+  int get _framesPerCycle => switch (widget.weather) {
+    WeatherCondition.rain ||
+    WeatherCondition.heavyRain ||
+    WeatherCondition.snow ||
+    WeatherCondition.thunderstorm => 192, // 24画面/秒
+    _ => 120, // ゆっくり動く雲・霧・光は15画面/秒
+  };
+
   bool get _needsAnimation {
     return switch (widget.weather) {
       WeatherCondition.clear ||
@@ -85,7 +93,9 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
                 painter: _WeatherEffectPainter(
                   weather: widget.weather,
                   dayPhase: widget.dayPhase,
-                  progress: _controller.value,
+                  progress:
+                      (_controller.value * _framesPerCycle).floor() /
+                      _framesPerCycle,
                 ),
               );
             },
@@ -833,6 +843,32 @@ class _WeatherEffectPainter extends CustomPainter {
     );
 
     _paintGlassRaindrops(canvas, size, heavy: heavy);
+    _paintRainRipples(canvas, size, heavy: heavy);
+  }
+
+  void _paintRainRipples(Canvas canvas, Size size, {required bool heavy}) {
+    final count = heavy ? 12 : 7;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    for (var i = 0; i < count; i++) {
+      final phase = (progress * (heavy ? 7.0 : 5.0) + i * 0.618) % 1.0;
+      final x = size.width * (((i * 73 + 19) % 101) / 101.0);
+      final y = size.height * (0.72 + ((i * 29 + 11) % 23) / 100.0);
+      final radius = 2.0 + phase * (heavy ? 13.0 : 9.0);
+      paint.color = const Color(0xFFDEF5FF).withValues(
+        alpha: (1.0 - phase) * (heavy ? 0.32 : 0.20),
+      );
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(x, y),
+          width: radius * 2.0,
+          height: radius * 0.8,
+        ),
+        paint,
+      );
+    }
   }
 
   void _paintGlassRaindrops(Canvas canvas, Size size, {required bool heavy}) {

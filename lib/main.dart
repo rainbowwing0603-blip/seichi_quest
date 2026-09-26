@@ -48,6 +48,7 @@ import 'services/weather_service.dart';
 import 'services/weather_refresh_policy.dart';
 
 import 'services/app_logger.dart';
+import 'services/app_error_report.dart';
 import 'services/collection_sync_service.dart';
 import 'services/collection_apply_policy.dart';
 import 'services/collection_display_policy.dart';
@@ -238,6 +239,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   bool _shouldShowOnboarding = false;
 
   String? _errorMessage;
+  String? _startupErrorMessage;
   String? _errorActionLabel;
   Future<void> Function()? _errorAction;
 
@@ -434,18 +436,41 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   }
 
   Future<void> _initialize() async {
+    if (_startupErrorMessage != null) {
+      setState(() {
+        _startupErrorMessage = null;
+        _isLoading = true;
+      });
+    }
     final onboardingCompletedFuture = _onboardingService.isCompleted();
 
     appDebugPrint('[STARTUP] critical start');
-    final criticalResult = await _startupCoordinator.runCritical(
-      ensureCloudUser: _ensureCloudUser,
-      loadCurrentEvent: _loadCurrentEvent,
-      startCollectionSync: () async {
-        final result = await _startCollectionSync();
-        return result.pendingCollectedRows;
-      },
-      loadSeichi: _loadSeichi,
-    );
+    StartupCriticalResult criticalResult;
+    try {
+      criticalResult = await _startupCoordinator.runCritical(
+        ensureCloudUser: _ensureCloudUser,
+        loadCurrentEvent: _loadCurrentEvent,
+        startCollectionSync: () async {
+          final result = await _startCollectionSync();
+          return result.pendingCollectedRows;
+        },
+        loadSeichi: _loadSeichi,
+      );
+    } catch (error, stackTrace) {
+      if (mounted) {
+        setState(() {
+          _startupErrorMessage = AppErrorReport.message(
+            AppErrorCodes.startup,
+            '起動に必要な情報を読み込めませんでした。',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          _isLoading = false;
+          _isOnboardingReady = true;
+        });
+      }
+      return;
+    }
     appDebugPrint('[STARTUP] critical complete');
     appDebugPrint(
       '[STARTUP_TIME] map data ready: ${_startupWatch.elapsedMilliseconds}ms',
@@ -1069,13 +1094,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       if (await _isAutoNextDestinationEnabled()) {
         _updateNextDestination();
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _errorMessage = '聖地データを取得できませんでした。\n$e';
+        _errorMessage = AppErrorReport.message(
+          AppErrorCodes.spots,
+          '聖地データを取得できませんでした。',
+          error: e,
+          stackTrace: stackTrace,
+        );
         _errorActionLabel = null;
         _errorAction = null;
         if (manageLoadingState) {
@@ -1111,9 +1141,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         case LocationStartFailure.serviceDisabled:
           setState(() {
             _isLoadingLocation = false;
-            _errorMessage =
-                '位置情報サービスがOFFになっています。\n'
-                '端末の位置情報をONにしてください。';
+            _errorMessage = AppErrorReport.message(
+              AppErrorCodes.locationDisabled,
+              '位置情報サービスがOFFになっています。\n端末の位置情報をONにしてください。',
+            );
             _errorActionLabel = '位置情報設定を開く';
             _errorAction = () async {
               await _locationService.openLocationSettings();
@@ -1122,16 +1153,20 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         case LocationStartFailure.permissionDenied:
           setState(() {
             _isLoadingLocation = false;
-            _errorMessage = '位置情報の利用が許可されていません。';
+            _errorMessage = AppErrorReport.message(
+              AppErrorCodes.locationDenied,
+              '位置情報の利用が許可されていません。',
+            );
             _errorActionLabel = '再試行';
             _errorAction = _initializeLocation;
           });
         case LocationStartFailure.permissionDeniedForever:
           setState(() {
             _isLoadingLocation = false;
-            _errorMessage =
-                '位置情報の利用が永久に拒否されています。\n'
-                '端末の設定から位置情報を許可してください。';
+            _errorMessage = AppErrorReport.message(
+              AppErrorCodes.locationDeniedForever,
+              '位置情報の利用が永久に拒否されています。\n端末の設定から位置情報を許可してください。',
+            );
             _errorActionLabel = 'アプリ設定を開く';
             _errorAction = () async {
               await _locationService.openAppSettings();
@@ -1141,9 +1176,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         case null:
           setState(() {
             _isLoadingLocation = false;
-            _errorMessage =
-                '現在地を取得できませんでした。\n'
-                '${result.error ?? '不明なエラー'}';
+            _errorMessage = AppErrorReport.message(
+              AppErrorCodes.locationUnavailable,
+              '現在地を取得できませんでした。',
+              error: result.error,
+            );
             _errorActionLabel = '再試行';
             _errorAction = _initializeLocation;
           });
@@ -1277,7 +1314,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         }
 
         setState(() {
-          _errorMessage = '位置情報の監視でエラーが発生しました。\n$error';
+          _errorMessage = AppErrorReport.message(
+            AppErrorCodes.locationStream,
+            '位置情報の監視でエラーが発生しました。',
+            error: error,
+          );
           _errorActionLabel = '再試行';
           _errorAction = _initializeLocation;
         });
@@ -2498,7 +2539,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       if (mounted) {
         setState(() {
-          _errorMessage = 'クエストの切り替えに失敗しました。';
+          _errorMessage = AppErrorReport.message(
+            AppErrorCodes.eventSwitch,
+            'クエストの切り替えに失敗しました。',
+            error: e,
+          );
           _errorActionLabel = null;
           _errorAction = null;
           _isLoading = false;
@@ -2825,6 +2870,34 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   @override
   Widget build(BuildContext context) {
+    if (_startupErrorMessage != null) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: QuestGlassCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: QuestUiTokens.primary,
+                    size: 40,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(_startupErrorMessage!, textAlign: TextAlign.center),
+                  const SizedBox(height: 18),
+                  FilledButton(
+                    onPressed: _initialize,
+                    child: const Text('再試行'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     if (_isLoading || !_isOnboardingReady) {
       return Scaffold(body: _buildLoading());
     }

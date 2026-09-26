@@ -7,6 +7,7 @@ import '../models/quest_item.dart';
 import 'event_detail_page.dart';
 import 'quest_ui.dart';
 import '../services/app_logger.dart';
+import '../services/app_error_report.dart';
 
 class EventExplorePage extends StatefulWidget {
   const EventExplorePage({
@@ -309,7 +310,12 @@ class _EventExplorePageState extends State<EventExplorePage> {
 
       setState(() {
         _isLoading = false;
-        _errorMessage = 'クエスト情報を読み込めませんでした。';
+        _errorMessage = AppErrorReport.message(
+          AppErrorCodes.eventExplore,
+          'クエスト情報を読み込めませんでした。',
+          error: error,
+          stackTrace: stackTrace,
+        );
       });
     }
   }

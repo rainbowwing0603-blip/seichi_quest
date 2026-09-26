@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'quest_ui.dart';
+import '../services/app_error_report.dart';
 
 class SyncStatusPage extends StatefulWidget {
   const SyncStatusPage({
@@ -48,14 +49,19 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
         _pendingCount = count;
         _isLoading = false;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
       if (!mounted) {
         return;
       }
 
       setState(() {
         _isLoading = false;
-        _errorMessage = '同期状態を確認できませんでした。';
+        _errorMessage = AppErrorReport.message(
+          AppErrorCodes.syncStatus,
+          '同期状態を確認できませんでした。',
+          error: error,
+          stackTrace: stackTrace,
+        );
       });
     }
   }
@@ -80,13 +86,18 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
             ? '保留中の訪問データをすべて送信しました。'
             : '一部の訪問データはまだ保留中です。';
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _errorMessage = '同期に失敗しました。通信状態を確認してもう一度お試しください。';
+        _errorMessage = AppErrorReport.message(
+          AppErrorCodes.syncRetry,
+          '同期に失敗しました。通信状態を確認してもう一度お試しください。',
+          error: error,
+          stackTrace: stackTrace,
+        );
       });
     } finally {
       if (mounted) {

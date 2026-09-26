@@ -8,6 +8,7 @@ import '../models/quest_item.dart';
 import 'quest_spot_detail_sheet.dart';
 import 'quest_ui.dart';
 import '../services/app_logger.dart';
+import '../services/app_error_report.dart';
 import '../services/quest_item_service.dart';
 
 class EventDetailPage extends StatefulWidget {
@@ -134,7 +135,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
       setState(() {
         _isLoadingQuestItem = false;
-        _seichiErrorMessage = '札情報を読み込めませんでした。';
+        _seichiErrorMessage = AppErrorReport.message(
+          AppErrorCodes.eventDetail,
+          '札情報を読み込めませんでした。',
+          error: error,
+          stackTrace: stackTrace,
+        );
       });
     }
   }
