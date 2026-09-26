@@ -259,15 +259,31 @@ class MapPage extends StatelessWidget {
     final weatherLabel = weatherUnavailable
         ? '更新待ち'
         : switch (state?.weather) {
-      WeatherCondition.clear => '晴れ',
-      WeatherCondition.partlyCloudy => '晴れ/曇り',
-      WeatherCondition.cloudy => '曇り',
-      WeatherCondition.rain => '雨',
-      WeatherCondition.heavyRain => '大雨',
-      WeatherCondition.snow => '雪',
-      WeatherCondition.fog => '霧',
-      WeatherCondition.thunderstorm => '雷雨',
-      WeatherCondition.unknown || null => '天気確認中',
+            WeatherCondition.clear => '晴れ',
+            WeatherCondition.partlyCloudy => '晴れ/曇り',
+            WeatherCondition.cloudy => '曇り',
+            WeatherCondition.rain => '雨',
+            WeatherCondition.heavyRain => '大雨',
+            WeatherCondition.snow => '雪',
+            WeatherCondition.fog => '霧',
+            WeatherCondition.thunderstorm => '雷雨',
+            WeatherCondition.unknown || null => '天気確認中',
+          };
+
+    final seasonLabel = switch (state?.season) {
+      Season.spring => '春',
+      Season.summer => '夏',
+      Season.autumn => '秋',
+      Season.winter => '冬',
+      null => '--',
+    };
+
+    final dayPhaseLabel = switch (state?.dayPhase) {
+      DayPhase.morning => '朝',
+      DayPhase.daytime => '昼',
+      DayPhase.evening => '夕',
+      DayPhase.night => '夜',
+      null => '--',
     };
 
     final temperature = state?.temperatureCelsius;
@@ -504,7 +520,7 @@ class MapPage extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              Container(
+                              Flexible(child: Container(
                                 padding: const EdgeInsets.fromLTRB(7, 6, 11, 6),
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
@@ -570,17 +586,35 @@ class MapPage extends StatelessWidget {
                                       ),
                                     ),
                                     const SizedBox(width: 7),
-                                    Text(
-                                      '$weatherLabel  $temperatureLabel',
-                                      style: const TextStyle(
-                                        color: Color(0xFF174B5E),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800,
+                                    Flexible(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '$weatherLabel  $temperatureLabel',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: Color(0xFF174B5E),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                          Text(
+                                            '$seasonLabel・$dayPhaseLabel',
+                                            style: const TextStyle(
+                                              color: QuestUiTokens.mutedInk,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
+                              )),
                               const Spacer(),
                               Container(
                                 padding: const EdgeInsets.fromLTRB(7, 6, 11, 6),
