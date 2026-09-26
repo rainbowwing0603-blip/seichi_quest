@@ -35,6 +35,8 @@ import 'models/achievement.dart';
 import 'models/event.dart';
 import 'services/level_service.dart' show LevelProgress;
 import 'services/location_service.dart';
+import 'services/location_integrity_policy.dart';
+import 'services/location_integrity_service.dart';
 import 'services/marker_cache_revision.dart';
 import 'services/quest_map_cluster_service.dart';
 import 'services/quest_cluster_icon_service.dart';
@@ -172,12 +174,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Timer? _environmentClockTimer;
 
   static const LocationService _locationService = LocationService();
+  final LocationIntegrityService _locationIntegrityService = LocationIntegrityService();
+  LocationSecurityState _locationSecurityState = LocationSecurityState.clear();
 
   Position? _currentPosition;
 
   // スタンプ判定に使用した直前のGPS位置。
   // GPSの急跳びによる誤獲得を防ぐために使用する。
   Position? _lastStampCheckPosition;
+  bool _isMockLocationSessionActive = false;
+  bool _isImplausibleMovementSessionActive = false;
+  bool _isLocationCooldownNoticeShown = false;
 
   final WeatherService _weatherService = WeatherService();
   static const WeatherRefreshPolicy _weatherRefreshPolicy =
@@ -740,6 +747,50 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Future<void> _ensureCloudUser() async {
     await _sessionService.ensureCloudUser();
   }
+
+  Future<void> _loadLocationSecurityState() async {
+    try {
+      _locationSecurityState = await _locationIntegrityService.loadState();
+      _isLocationCooldownNoticeShown = false;
+    } catch (error) {
+      appDebugPrint('[LOCATION_INTEGRITY] state load failed: $error');
+    }
+  }
+
+  Future<void> _handleLocationIntegrityViolation({
+    required String violationType,
+    required String firstWarningMessage,
+    required String cooldownMessagePrefix,
+  }) async {
+    try {
+      await _ensureCloudUser();
+      final state = await _locationIntegrityService.reportViolation(violationType);
+      _locationSecurityState = state;
+      if (!mounted) return;
+      if (state.isCollectionCooldownActive) {
+        final minutes = (state.remainingCooldown.inSeconds / 60).ceil().clamp(1, 24 * 60);
+        QuestSnackBar.show(context, message: '$cooldownMessagePrefix$minutes分間停止します。', type: QuestNoticeType.warning);
+        return;
+      }
+      QuestSnackBar.show(context, message: firstWarningMessage, type: QuestNoticeType.warning);
+    } catch (error) {
+      appDebugPrint('[LOCATION_INTEGRITY] $violationType report failed: $error');
+      if (!mounted) return;
+      QuestSnackBar.show(context, message: firstWarningMessage, type: QuestNoticeType.warning);
+    }
+  }
+
+  Future<void> _handleMockLocationDetected() => _handleLocationIntegrityViolation(
+    violationType: 'mock_location',
+    firstWarningMessage: '位置情報を変更する機能が検出されたため、スタンプ獲得を停止しました。再度検出された場合は一定時間スタンプを獲得できなくなります。',
+    cooldownMessagePrefix: '位置情報の変更が再度検出されたため、スタンプ獲得を',
+  );
+
+  Future<void> _handleImplausibleMovementDetected() => _handleLocationIntegrityViolation(
+    violationType: 'implausible_movement',
+    firstWarningMessage: '短時間に不自然な距離の位置移動を検出したため、今回のスタンプ獲得を停止しました。同じ状態が繰り返された場合は一定時間スタンプを獲得できなくなります。',
+    cooldownMessagePrefix: '不自然な位置移動が再度検出されたため、スタンプ獲得を',
+  );
 
   Future<void> _loadMyEventRank() async {
     final eventId = _currentEventId;
@@ -1572,6 +1623,27 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (position == null || _seichiList.isEmpty) {
       return;
     }
+
+    if (_locationSecurityState.isCollectionCooldownActive) {
+      if (!_isLocationCooldownNoticeShown && mounted) {
+        _isLocationCooldownNoticeShown = true;
+        final minutes = (_locationSecurityState.remainingCooldown.inSeconds / 60).ceil().clamp(1, 24 * 60);
+        QuestSnackBar.show(context, message: '位置情報保護のため、スタンプ獲得はあと約$minutes分利用できません。', type: QuestNoticeType.warning);
+      }
+      return;
+    }
+    _isLocationCooldownNoticeShown = false;
+
+    if (LocationIntegrityPolicy.shouldRejectMockLocation(isMocked: position.isMocked)) {
+      _lastStampCheckPosition = null;
+      if (!_isMockLocationSessionActive) {
+        _isMockLocationSessionActive = true;
+        await _handleMockLocationDetected();
+      }
+      return;
+    }
+    _isMockLocationSessionActive = false;
+
     final previousPosition = _lastStampCheckPosition;
 
     if (previousPosition != null) {
@@ -1593,11 +1665,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           movedDistanceMeters: movedDistance,
           elapsedSeconds: elapsedSeconds,
         )) {
+          if (!_isImplausibleMovementSessionActive) {
+            _isImplausibleMovementSessionActive = true;
+            await _handleImplausibleMovementDetected();
+          }
           return;
         }
       }
     }
 
+    _isImplausibleMovementSessionActive = false;
     _lastStampCheckPosition = position;
     if (kDebugMode) {
       appDebugPrint(
@@ -1635,6 +1712,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           StampEligibilityPolicy.hasSufficientAccuracy(
             accuracyMeters: position.accuracy,
             stampRadiusMeters: seichi.stampRadiusMeters,
+          ) &&
+          StampEligibilityPolicy.hasAcceptableCollectionSpeed(
+            speedMetersPerSecond: position.speed,
           ) &&
           StampEligibilityPolicy.isWithinStampRadius(
             distanceMeters: distance,
