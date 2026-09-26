@@ -486,6 +486,22 @@ class _WeatherEffectPainter extends CustomPainter {
 
     canvas.drawRect(Offset.zero & size, baseWashPaint);
 
+    if (!partlyCloudy) {
+      // 上空の曇りを目立たせ、地図の下半分は読みやすく残す。
+      final canopyPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            shadowCoreColor.withValues(alpha: 0.13),
+            shadowMidColor.withValues(alpha: 0.055),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.42, 0.82],
+        ).createShader(Offset.zero & size);
+      canvas.drawRect(Offset.zero & size, canopyPaint);
+    }
+
     // 晴れ時々曇りでは雲間の光を時間帯に合わせる。
     // 夜だけは太陽光を完全に出さない。
     if (partlyCloudy && dayPhase != DayPhase.night) {
@@ -1270,6 +1286,31 @@ class _WeatherEffectPainter extends CustomPainter {
       ..color = fogAtmosphereColor.withValues(alpha: fogAtmosphereOpacity);
 
     canvas.drawRect(Offset.zero & size, atmospherePaint);
+
+    // 横にたなびく薄い霧。境界のある帯を少数だけ使い、
+    // 地図ラベルを隠す一様な白塗りを避ける。
+    for (var i = 0; i < 2; i++) {
+      final drift = math.sin(progress * math.pi * 2 + i * 2.3) * 14;
+      final band = Rect.fromLTWH(
+        0,
+        size.height * (0.22 + i * 0.37) + drift,
+        size.width,
+        size.height * 0.22,
+      );
+      final bandPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.transparent,
+            fogCoreColor.withValues(
+              alpha: dayPhase == DayPhase.night ? 0.10 : 0.16,
+            ),
+            Colors.transparent,
+          ],
+        ).createShader(band);
+      canvas.drawRect(band, bandPaint);
+    }
 
     double hash(int value, int salt) {
       final n = math.sin(value * 12.9898 + salt * 78.233) * 43758.5453;
