@@ -154,6 +154,9 @@ class MapPage extends StatelessWidget {
   final Position? currentPosition;
   final RealWorldState? realWorldState;
   final bool weatherUnavailable;
+  final double mapBearingDegrees;
+  final double? sunAzimuthDegrees;
+  final double? sunElevationDegrees;
   final QuestItem? nextSeichi;
   final double? nextDistance;
   final Set<String> collectedIds;
@@ -190,6 +193,9 @@ class MapPage extends StatelessWidget {
     required this.currentPosition,
     required this.realWorldState,
     this.weatherUnavailable = false,
+    this.mapBearingDegrees = 0,
+    this.sunAzimuthDegrees,
+    this.sunElevationDegrees,
     required this.nextSeichi,
     required this.nextDistance,
     required this.collectedIds,
@@ -1727,6 +1733,10 @@ class MapPage extends StatelessWidget {
           WeatherEffectOverlay(
             weather: realWorldState!.weather,
             dayPhase: realWorldState!.dayPhase,
+            sunScreenAngleRadians: sunAzimuthDegrees == null
+                ? null
+                : ((sunAzimuthDegrees! - mapBearingDegrees) * 3.141592653589793 / 180.0),
+            sunElevationDegrees: sunElevationDegrees,
           ),
         Positioned(
           top: 14,
