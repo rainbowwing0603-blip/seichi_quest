@@ -115,16 +115,24 @@ Future<void> main() async {
 }
 
 Future<void> _initializeDeferredPlatformServices() async {
-  try {
-    await MobileAds.instance.initialize();
-  } catch (error) {
-    appDebugPrint('[STARTUP] Mobile Ads init failed: $error');
-  }
-
+  // 通知は軽量なので先に準備する。
   try {
     await NotificationService.instance.initialize();
   } catch (error) {
     appDebugPrint('[STARTUP] notification init failed: $error');
+  }
+
+  // Google Maps のネイティブ初期化・最初のタイル描画と
+  // AdMob/WebView の初期化を同時に走らせない。
+  // 広告自体は維持し、起動直後の負荷ピークだけ後ろへずらす。
+  await Future<void>.delayed(const Duration(seconds: 5));
+
+  try {
+    appDebugPrint('[STARTUP] deferred Mobile Ads init start');
+    await MobileAds.instance.initialize();
+    appDebugPrint('[STARTUP] deferred Mobile Ads init complete');
+  } catch (error) {
+    appDebugPrint('[STARTUP] Mobile Ads init failed: $error');
   }
 }
 
