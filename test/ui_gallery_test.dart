@@ -114,6 +114,7 @@ void main() {
         onShowAnnouncements: noop,
         unreadAnnouncementCount: 2,
         onShowSettings: noop,
+        onShowLegal: noop,
         onShowAbout: noop,
       ),
     );
@@ -125,7 +126,7 @@ void main() {
     await show(
       tester,
       QuestPage(
-        nextSeichi: item,
+        nextItem: item,
         nextDistance: 1200,
         collectedCount: 1,
         total: 44,
@@ -143,12 +144,17 @@ void main() {
       tester,
       CollectionPage(
         eventId: 'demo-event',
-        seichiList: const [item],
+        questItems: const [item],
         collectedIds: const {},
+        totalCount: 1,
+        collectedCount: 0,
+        hasMore: false,
+        isLoadingMore: false,
+        onLoadMore: asyncNoop,
         eventNamesByContentKey: const {},
         collectionFilter: 0,
         onFilterChanged: (_) {},
-        onMoveToSeichi: (_) async {},
+        onMoveToQuestItem: (_) async {},
         onSetNextDestination: (_) {},
       ),
     );
