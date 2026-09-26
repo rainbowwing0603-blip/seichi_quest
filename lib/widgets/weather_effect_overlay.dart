@@ -719,7 +719,7 @@ class _WeatherEffectPainter extends CustomPainter {
       }) {
         // 影を先に置き、その上へ大きさの違う柔らかいローブを重ねる。
         shadePaint.color = cloudShade.withValues(
-          alpha: dayPhase == DayPhase.night ? 0.16 : 0.13,
+          alpha: dayPhase == DayPhase.night ? 0.30 : 0.24,
         );
         canvas.drawOval(
           Rect.fromCenter(
@@ -746,27 +746,23 @@ class _WeatherEffectPainter extends CustomPainter {
               center.dx + lobe.x * width,
               center.dy + lobe.y * height + wobble,
             ),
-            width: lobe.w * width * breathe * 1.16,
-            height: lobe.h * height * 1.10,
+            width: lobe.w * width * breathe,
+            height: lobe.h * height,
           );
-          // ローブ中心の明暗差を作ると個々の楕円が読めてしまうため、
-          // 内側はほぼ同じ濃度にして外周だけを長くフェードさせる。
           cloudPaint.shader = RadialGradient(
-            radius: 1.0,
+            center: const Alignment(-0.18, -0.28),
+            radius: 0.88,
             colors: [
               cloudColor.withValues(
-                alpha: dayPhase == DayPhase.night ? 0.25 : 0.22,
+                alpha: dayPhase == DayPhase.night ? 0.42 : 0.36,
               ),
               cloudColor.withValues(
-                alpha: dayPhase == DayPhase.night ? 0.24 : 0.21,
+                alpha: dayPhase == DayPhase.night ? 0.30 : 0.25,
               ),
-              cloudColor.withValues(
-                alpha: dayPhase == DayPhase.night ? 0.20 : 0.17,
-              ),
-              cloudColor.withValues(alpha: 0.08),
+              cloudShade.withValues(alpha: 0.13),
               Colors.transparent,
             ],
-            stops: const [0.0, 0.36, 0.62, 0.84, 1.0],
+            stops: const [0.0, 0.48, 0.78, 1.0],
           ).createShader(rect);
           canvas.drawOval(rect, cloudPaint);
         }
