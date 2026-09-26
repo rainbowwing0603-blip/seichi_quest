@@ -885,8 +885,75 @@ class _WeatherEffectPainter extends CustomPainter {
       baseSlant: 0.34,
     );
 
+    // 前景は「濡れた窓」を主役にする。雨筋を無限に増やす代わりに、
+    // 上部の薄い濡れ膜と大きな水滴で奥行きと雨量感を出す。
+    _paintWetGlassAtmosphere(canvas, size, heavy: heavy);
     _paintGlassRaindrops(canvas, size, heavy: heavy);
     _paintRainRipples(canvas, size, heavy: heavy);
+  }
+
+  void _paintWetGlassAtmosphere(
+    Canvas canvas,
+    Size size, {
+    required bool heavy,
+  }) {
+    if (size.width <= 0 || size.height <= 0) return;
+
+    // 画面全体をぼかさず、上部だけに薄い濡れ膜を置く。
+    // GoogleMapをBackdropFilterで再サンプリングしないので描画コストを抑えられる。
+    final breath =
+        0.92 + math.sin(progress * math.pi * 2.0) * (heavy ? 0.06 : 0.035);
+    final rect = Offset.zero & size;
+    final filmPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          const Color(0xFFE8F7FF).withValues(
+            alpha: (heavy ? 0.115 : 0.070) * breath,
+          ),
+          const Color(0xFFB7D8E8).withValues(
+            alpha: (heavy ? 0.045 : 0.025) * breath,
+          ),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 0.30, 0.68],
+      ).createShader(rect);
+    canvas.drawRect(rect, filmPaint);
+
+    // 少数の長い濡れ筋。数ではなく長さと明暗で「窓を伝う雨」を感じさせる。
+    final streakPaint = Paint()
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final count = heavy ? 7 : 4;
+    for (var i = 0; i < count; i++) {
+      final xSeed = ((i * 193 + 61) % 991) / 991.0;
+      final phaseSeed = ((i * 271 + 47) % 983) / 983.0;
+      final phase = (phaseSeed + progress * (0.34 + i * 0.018)) % 1.0;
+      final x =
+          18.0 + xSeed * math.max(size.width - 36.0, 1.0) +
+          math.sin(progress * math.pi * 2.0 + i) * 2.0;
+      final headY = -70.0 + phase * (size.height + 140.0);
+      final length = (heavy ? 105.0 : 76.0) + (i % 3) * 16.0;
+
+      streakPaint
+        ..color = const Color(0xFFDDF5FF).withValues(
+          alpha: heavy ? 0.17 : 0.11,
+        )
+        ..strokeWidth = heavy ? 1.45 : 1.05;
+
+      final path = Path()
+        ..moveTo(x, headY - length)
+        ..cubicTo(
+          x - 2.2,
+          headY - length * 0.70,
+          x + 3.0,
+          headY - length * 0.34,
+          x,
+          headY,
+        );
+      canvas.drawPath(path, streakPaint);
+    }
   }
 
   void _paintRainRipples(Canvas canvas, Size size, {required bool heavy}) {
