@@ -1992,10 +1992,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     final applyPlan = _collectionApplyPolicy.plan(
       currentEventId: currentEventId,
       collectedRows: collectedRows,
-      seichiList: _knownQuestItems,
+      resolvedItems: _knownQuestItems,
       collectedIds: _collectedIds,
+      previousCollectedCount: _getCollectedCount(),
+      totalCount: _eventTotalCount,
       eventAchievements: _eventAchievements,
-      itemLabel: _currentEventItemLabel,
     );
 
     final newlyCollectedSeichi = applyPlan.newlyCollectedSeichi;
