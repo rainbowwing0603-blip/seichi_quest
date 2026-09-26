@@ -26,9 +26,11 @@ class AppSettingsPage extends StatefulWidget {
 class _AppSettingsPageState extends State<AppSettingsPage> {
   static const String _stampEffectKey = 'setting_stamp_effect';
   static const String _autoNextDestinationKey = 'setting_auto_next_destination';
+  static const String _mapHeadingUpKey = 'setting_map_heading_up';
 
   bool _stampEffect = true;
   bool _autoNextDestination = true;
+  bool _mapHeadingUp = false;
   bool _loading = true;
 
   @override
@@ -47,6 +49,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
     setState(() {
       _stampEffect = prefs.getBool(_stampEffectKey) ?? true;
       _autoNextDestination = prefs.getBool(_autoNextDestinationKey) ?? true;
+      _mapHeadingUp = prefs.getBool(_mapHeadingUpKey) ?? false;
       _loading = false;
     });
   }
@@ -75,6 +78,14 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
     setState(() {
       _autoNextDestination = value;
     });
+  }
+
+  Future<void> _setMapHeadingUp(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_mapHeadingUpKey, value);
+
+    if (!mounted) return;
+    setState(() => _mapHeadingUp = value);
   }
 
   @override
@@ -106,6 +117,51 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
                 children: [
+                  QuestGlassCard(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '地図の向き',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            color: QuestUiTokens.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          '進行方向を上にすると、移動中だけ地図が向きに合わせて回転します。',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: QuestUiTokens.mutedInk,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SegmentedButton<bool>(
+                          segments: const [
+                            ButtonSegment<bool>(
+                              value: false,
+                              icon: Icon(Icons.explore_outlined),
+                              label: Text('北を上'),
+                            ),
+                            ButtonSegment<bool>(
+                              value: true,
+                              icon: Icon(Icons.navigation_rounded),
+                              label: Text('進行方向を上'),
+                            ),
+                          ],
+                          selected: <bool>{_mapHeadingUp},
+                          onSelectionChanged: (selection) {
+                            _setMapHeadingUp(selection.first);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
                   QuestGlassCard(
                     padding: const EdgeInsets.all(20),
                     child: Row(
