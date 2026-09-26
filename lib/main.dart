@@ -2144,8 +2144,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (_renderedZoom < 9) return _buildClusterMarkers();
     final nextId = _nextSeichi?.id;
 
-    // 静止Markerの再構築要否は、毎buildで全IDをソート・連結せず
-    // 明示的なデータ世代と参照状態で判定する。
     final shouldRebuildStaticMarkers =
         _staticMarkerCache == null ||
         !_markerCacheRevision.isCurrent(_staticMarkerCacheRevision) ||
@@ -2159,21 +2157,15 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       for (final seichi in _seichiList) {
         final collected = _collectedIds.contains(seichi.id);
         final isNext = !collected && seichi.id == nextId;
-
-        // NEXTだけはアニメーションするため静止キャッシュから除外する。
-        if (isNext) {
-          continue;
-        }
+        if (isNext) continue;
 
         final markerIcon = collected
-            ? _collectedMarkerIcon ??
-                  BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueGreen,
-                  )
-            : _uncollectedMarkerIcon ??
-                  BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueAzure,
-                  );
+            ? _collectedMarkerIcon
+            : _uncollectedMarkerIcon;
+
+        // Never substitute a Google default pin while the custom asset is
+        // loading. That fallback is visible for a frame during transitions.
+        if (markerIcon == null) continue;
 
         staticMarkers.add(
           Marker(
@@ -2189,9 +2181,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                   ? '🏆 スタンプ獲得済み'
                   : '到達半径 ${seichi.stampRadiusMeters}m',
             ),
-            onTap: () {
-              _showSeichiDetails(seichi);
-            },
+            onTap: () => _showSeichiDetails(seichi),
           ),
         );
       }
@@ -2204,17 +2194,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     final markers = <Marker>{...?_staticMarkerCache};
-
     final nextSeichi = _nextSeichi;
 
-    if (nextSeichi != null && !_collectedIds.contains(nextSeichi.id)) {
+    if (nextSeichi != null &&
+        !_collectedIds.contains(nextSeichi.id) &&
+        _nextMarkerIcon != null) {
       markers.add(
         Marker(
           markerId: MarkerId(nextSeichi.id),
           position: LatLng(nextSeichi.latitude, nextSeichi.longitude),
-          icon:
-              _nextMarkerIcon ??
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+          icon: _nextMarkerIcon!,
           alpha: 0.90,
           anchor: const Offset(0.5, 0.94),
           zIndexInt: 2,
@@ -2223,9 +2212,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             snippet:
                 '✨ NEXT ・ 到達半径 ${nextSeichi.stampRadiusMeters}m',
           ),
-          onTap: () {
-            _showSeichiDetails(nextSeichi);
-          },
+          onTap: () => _showSeichiDetails(nextSeichi),
         ),
       );
     }
@@ -2239,63 +2226,84 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       zoom: _renderedZoom,
     );
     final markers = <Marker>{};
-    for (final cluster in clusters) {
-      final single = cluster.count == 1 ? cluster.items.first : null;
-      final BitmapDescriptor? icon = single == null
-          ? _clusterIcons[cluster.count]
-          : _collectedIds.contains(single.id)
-              ? _collectedMarkerIcon
-              : _uncollectedMarkerIcon;
 
-      // アイコン生成中は標準ピンを表示せず、完成後に切り替える。
+    for (final cluster in clusters) {
+      // Once cluster mode is active, every cell is a cluster presentation,
+      // including singleton cells. Never re-use a normal/NEXT pin here.
+      final icon = _clusterIcons[cluster.count];
       if (icon == null) continue;
 
-      markers.add(Marker(
-        markerId: MarkerId('cluster:${cluster.id}'),
-        position: LatLng(cluster.latitude, cluster.longitude),
-        icon: icon,
-        zIndexInt: 2,
-        infoWindow: InfoWindow(title: single?.name ?? '${cluster.count}地点'),
-        onTap: () {
-          if (single != null) {
-            _showSeichiDetails(single);
-          } else {
+      markers.add(
+        Marker(
+          markerId: MarkerId('cluster:${cluster.id}'),
+          position: LatLng(cluster.latitude, cluster.longitude),
+          icon: icon,
+          zIndexInt: 2,
+          infoWindow: InfoWindow(title: '${cluster.count}地点'),
+          onTap: () {
             _mapController?.animateCamera(
-              CameraUpdate.newLatLngBounds(_clusterService.boundsFor(cluster), 64),
+              CameraUpdate.newLatLngBounds(
+                _clusterService.boundsFor(cluster),
+                64,
+              ),
             );
-          }
-        },
-      ));
+          },
+        ),
+      );
     }
     return markers;
   }
 
-  void _onMapCameraIdle() {
-    if ((_cameraZoom - _renderedZoom).abs() >= 0.01) {
-      setState(() => _renderedZoom = _cameraZoom);
+  Future<void> _onMapCameraIdle() async {
+    final targetZoom = _cameraZoom;
+
+    if (targetZoom >= 9) {
+      if ((_renderedZoom - targetZoom).abs() >= 0.01 && mounted) {
+        setState(() => _renderedZoom = targetZoom);
+      }
+      return;
     }
-    if (_renderedZoom >= 9) return;
+
+    // Prepare every icon, including count=1, before switching the rendered
+    // zoom into cluster mode. This makes the marker-set replacement atomic.
     final counts = _clusterService
-        .build(items: _seichiList, zoom: _renderedZoom)
+        .build(items: _seichiList, zoom: targetZoom)
         .map((cluster) => cluster.count)
-        .where((count) =>
-            count > 1 &&
-            !_clusterIcons.containsKey(count) &&
-            !_loadingClusterIcons.contains(count))
         .toSet();
-    for (final count in counts) {
-      _loadingClusterIcons.add(count);
-      _clusterIconService.iconForCount(count).then(
-        (icon) {
+
+    final missingCounts = counts
+        .where((count) => !_clusterIcons.containsKey(count))
+        .toList(growable: false);
+
+    if (missingCounts.isNotEmpty) {
+      for (final count in missingCounts) {
+        _loadingClusterIcons.add(count);
+      }
+
+      try {
+        final icons = await Future.wait(
+          missingCounts.map(_clusterIconService.iconForCount),
+        );
+        if (!mounted) return;
+
+        setState(() {
+          for (var i = 0; i < missingCounts.length; i++) {
+            _clusterIcons[missingCounts[i]] = icons[i];
+            _loadingClusterIcons.remove(missingCounts[i]);
+          }
+          _renderedZoom = targetZoom;
+        });
+      } catch (error) {
+        for (final count in missingCounts) {
           _loadingClusterIcons.remove(count);
-          if (!mounted) return;
-          setState(() => _clusterIcons[count] = icon);
-        },
-        onError: (Object error, StackTrace stackTrace) {
-          _loadingClusterIcons.remove(count);
-          appDebugPrint('[CLUSTER] icon generation failed: $error');
-        },
-      );
+        }
+        appDebugPrint('[CLUSTER] icon generation failed: $error');
+      }
+      return;
+    }
+
+    if ((_renderedZoom - targetZoom).abs() >= 0.01 && mounted) {
+      setState(() => _renderedZoom = targetZoom);
     }
   }
 
@@ -2392,7 +2400,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       defaultCenter: _defaultCenter,
       markers: _buildMarkers(),
       onCameraMove: (position) => _cameraZoom = position.zoom,
-      onCameraIdle: _onMapCameraIdle,
+      onCameraIdle: () { unawaited(_onMapCameraIdle()); },
       onMoveToCurrentLocation: _moveCameraToCurrentLocation,
       onMoveToNextSeichi: _moveCameraToNextSeichi,
       onStartNavigation: _startNavigationToNextSeichi,
