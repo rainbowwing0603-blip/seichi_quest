@@ -9,6 +9,10 @@ Flutter `pubspec.yaml` のversionName/versionCodeを使用。versionCodeはPlay�
 ## 現行基準
 `v1.0.0+8` はリリース用コミット `e596314a5afff26c124c1a5317a000da56ad6a0f` を指す。後続でmainへ統合されたため、タグをmain先端へ移動しない。
 
+
+## 次回クローズドテスト候補
+`1.0.0+10` は既に公開済みのため再利用しない。現在のリリース候補は `1.0.0+11`。Play提出時もversionCode 11以上であることを確認する。
+
 ## Build
 Release AABは `flutter build appbundle --release` を基本とする。署名設定とGoogle Maps API keyは `android/key.properties` から読む。
 
