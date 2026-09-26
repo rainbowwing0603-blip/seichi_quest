@@ -444,6 +444,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final Set<int> _loadingClusterIcons = {};
   double _cameraZoom = 10.5;
   double _cameraBearing = 0.0;
+  double _renderedCameraBearing = 0.0;
+  bool _headingUpMapEnabled = false;
   static const SolarPositionService _solarPositionService = SolarPositionService();
   SolarPosition? _solarPosition;
   DateTime? _lastSolarPositionAt;
@@ -507,6 +509,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       duration: const Duration(milliseconds: 1800),
     );
     _sonarController.addListener(_onMarkerAnimationTick);
+    unawaited(_loadMapOrientationPreference());
 
     _initialize();
   }
@@ -1734,6 +1737,50 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
   }
 
+  Future<void> _loadMapOrientationPreference() async {
+    final enabled = await _appSettingsService.isHeadingUpMapEnabled();
+    if (!mounted) return;
+    _headingUpMapEnabled = enabled;
+    if (!enabled && _mapController != null && _cameraBearing.abs() > 0.5) {
+      unawaited(
+        _mapController!.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: _currentPosition == null
+                  ? _defaultCenter
+                  : LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+              zoom: _cameraZoom,
+              bearing: 0,
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  void _updateHeadingUpCamera(Position position) {
+    if (!_headingUpMapEnabled || _mapController == null) return;
+    if (position.speed < 1.0 || position.headingAccuracy < 0) return;
+
+    final heading = position.heading;
+    if (!heading.isFinite || heading < 0) return;
+    var difference = (heading - _cameraBearing).abs() % 360;
+    if (difference > 180) difference = 360 - difference;
+    if (difference < 8) return;
+
+    unawaited(
+      _mapController!.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: LatLng(position.latitude, position.longitude),
+            zoom: _cameraZoom,
+            bearing: heading,
+          ),
+        ),
+      ),
+    );
+  }
+
   void _updateSolarPositionIfNeeded(Position position) {
     final now = DateTime.now();
     final lastAt = _lastSolarPositionAt;
@@ -1802,6 +1849,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
         unawaited(_refreshNearbyQuestItems(position));
         _updateSolarPositionIfNeeded(position);
+        _updateHeadingUpCamera(position);
         _updateNextDestination();
         _updateWeatherIfNeeded(position);
         _checkStampDistance();
@@ -2956,6 +3004,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       onCameraMove: (position) {
         _cameraZoom = position.zoom;
         _cameraBearing = position.bearing;
+        var bearingDelta = (_cameraBearing - _renderedCameraBearing).abs() % 360;
+        if (bearingDelta > 180) bearingDelta = 360 - bearingDelta;
+        if (bearingDelta >= 4 && mounted) {
+          _renderedCameraBearing = _cameraBearing;
+          setState(() {});
+        }
         if (_eventTotalCount > 200) {
           _mapViewportRequestGeneration++;
           if (_isMapViewportLoading) _mapViewportRefreshPending = true;
@@ -3445,6 +3499,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             ),
           ),
         );
+        await _loadMapOrientationPreference();
       },
     );
   }
