@@ -3406,6 +3406,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           const BannerAdWidget(),
           ClipRect(
             child: BackdropFilter(
+              enabled: false,
               filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
               child: Container(
                 decoration: BoxDecoration(
