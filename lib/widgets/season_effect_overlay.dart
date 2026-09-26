@@ -22,9 +22,10 @@ class SeasonEffectOverlay extends StatefulWidget {
 }
 
 class _SeasonEffectOverlayState extends State<SeasonEffectOverlay>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _controller;
   final ValueNotifier<int> _frame = ValueNotifier<int>(0);
+  bool _reduceMotion = false;
 
   void _advanceFrame() {
     final nextFrame = (_controller.value * 180).floor();
@@ -34,16 +35,38 @@ class _SeasonEffectOverlayState extends State<SeasonEffectOverlay>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 12),
-    )
-      ..addListener(_advanceFrame)
-      ..repeat();
+    )..addListener(_advanceFrame);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncMotionPreference();
+  }
+
+  @override
+  void didChangeAccessibilityFeatures() {
+    _syncMotionPreference();
+    setState(() {});
+  }
+
+  void _syncMotionPreference() {
+    _reduceMotion = MediaQuery.disableAnimationsOf(context) ||
+        WidgetsBinding.instance.accessibilityFeatures.reduceMotion;
+    if (_reduceMotion) {
+      _controller.stop();
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     _frame.dispose();
     super.dispose();
@@ -51,6 +74,7 @@ class _SeasonEffectOverlayState extends State<SeasonEffectOverlay>
 
   @override
   Widget build(BuildContext context) {
+    if (_reduceMotion) return const SizedBox.shrink();
     return Positioned.fill(
       child: IgnorePointer(
         child: RepaintBoundary(

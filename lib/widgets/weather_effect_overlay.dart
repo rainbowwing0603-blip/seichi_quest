@@ -19,9 +19,10 @@ class WeatherEffectOverlay extends StatefulWidget {
 }
 
 class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _controller;
   final ValueNotifier<int> _frame = ValueNotifier<int>(0);
+  bool _reduceMotion = false;
 
   void _advanceFrame() {
     final nextFrame = (_controller.value * _framesPerCycle).floor();
@@ -53,13 +54,36 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8),
     )..addListener(_advanceFrame);
+  }
 
-    if (_needsAnimation) {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncMotionPreference();
+  }
+
+  @override
+  void didChangeAccessibilityFeatures() {
+    _syncMotionPreference();
+    setState(() {});
+  }
+
+  void _syncMotionPreference() {
+    _reduceMotion = MediaQuery.disableAnimationsOf(context) ||
+        WidgetsBinding.instance.accessibilityFeatures.reduceMotion;
+    _syncAnimation();
+  }
+
+  void _syncAnimation() {
+    if (_reduceMotion || !_needsAnimation) {
+      _controller.stop();
+    } else if (!_controller.isAnimating) {
       _controller.repeat();
     }
   }
@@ -67,18 +91,12 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
   @override
   void didUpdateWidget(covariant WeatherEffectOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    if (_needsAnimation) {
-      if (!_controller.isAnimating) {
-        _controller.repeat();
-      }
-    } else {
-      _controller.stop();
-    }
+    _syncAnimation();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     _frame.dispose();
     super.dispose();
@@ -86,7 +104,7 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
 
   @override
   Widget build(BuildContext context) {
-    if (widget.weather == WeatherCondition.unknown) {
+    if (_reduceMotion || widget.weather == WeatherCondition.unknown) {
       return const SizedBox.shrink();
     }
 
