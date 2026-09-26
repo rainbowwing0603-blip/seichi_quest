@@ -2238,25 +2238,22 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       items: _seichiList,
       zoom: _renderedZoom,
     );
-    return clusters.map((cluster) {
+    final markers = <Marker>{};
+    for (final cluster in clusters) {
       final single = cluster.count == 1 ? cluster.items.first : null;
-      return Marker(
+      final BitmapDescriptor? icon = single == null
+          ? _clusterIcons[cluster.count]
+          : _collectedIds.contains(single.id)
+              ? _collectedMarkerIcon
+              : _uncollectedMarkerIcon;
+
+      // アイコン生成中は標準ピンを表示せず、完成後に切り替える。
+      if (icon == null) continue;
+
+      markers.add(Marker(
         markerId: MarkerId('cluster:${cluster.id}'),
         position: LatLng(cluster.latitude, cluster.longitude),
-        icon: single != null
-            ? (_collectedIds.contains(single.id)
-                  ? _collectedMarkerIcon ??
-                        BitmapDescriptor.defaultMarkerWithHue(
-                          BitmapDescriptor.hueGreen,
-                        )
-                  : _uncollectedMarkerIcon ??
-                        BitmapDescriptor.defaultMarkerWithHue(
-                          BitmapDescriptor.hueAzure,
-                        ))
-            : _clusterIcons[cluster.count] ??
-                  BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueViolet,
-                  ),
+        icon: icon,
         zIndexInt: 2,
         infoWindow: InfoWindow(title: single?.name ?? '${cluster.count}地点'),
         onTap: () {
@@ -2268,8 +2265,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             );
           }
         },
-      );
-    }).toSet();
+      ));
+    }
+    return markers;
   }
 
   void _onMapCameraIdle() {
