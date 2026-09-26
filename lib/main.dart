@@ -2930,6 +2930,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _collectedIds.clear();
       _markerCacheRevision.markChanged();
       _eventAchievements.clear();
+      _eventProgressSummary = null;
+      _nearbyQuestItems = [];
+      _mapVisibleSeichiList = [];
+      _lastNearbyLoadPosition = null;
+      _regionalMapProgress = [];
+      _regionalMapProgressEventId = null;
+      _collectionPageOffset = 0;
+      _collectionPagingExhausted = false;
+      _collectionRequestGeneration++;
+      _mapViewportRequestGeneration++;
       _myEventRank = null;
       _manualNextSeichiId = null;
       _activeRecommendedRoute.clear();
@@ -2961,7 +2971,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _manualNextSeichiId = _activeRecommendedRoute.first.id;
       }
 
+      final currentPosition = _currentPosition;
+      if (currentPosition != null) {
+        await _refreshNearbyQuestItems(currentPosition, force: true);
+      }
       _updateNextDestination();
+      if (_eventTotalCount > 200) unawaited(_refreshMapViewport());
 
       if (mounted) {
         setState(() {
