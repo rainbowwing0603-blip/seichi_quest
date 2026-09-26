@@ -692,8 +692,8 @@ class _WeatherEffectPainter extends CustomPainter {
     }
 
     if (!partlyCloudy) {
-      // 層積雲は「輪郭のある1個の雲」ではなく、横に広い層の中に
-      // 丸い要素と濃淡が連続する。少数の帯状Pathを重ねて表現する。
+      // 曇天は横長の「帯」を重ねず、1つの雲塊そのものに濃淡を持たせる。
+      // 雲塊の開始・終了位置は必ず画面外に逃がし、四角い境界を作らない。
       final cloudLight = switch (dayPhase) {
         DayPhase.morning => const Color(0xFFC8D0D4),
         DayPhase.daytime => const Color(0xFFCED5D8),
@@ -713,121 +713,145 @@ class _WeatherEffectPainter extends CustomPainter {
         DayPhase.night => const Color(0xFF465B6C),
       };
 
-      void paintCloudDeck({
+      void paintCloudMass({
         required double y,
         required double height,
         required double phase,
         required bool fromRight,
       }) {
-        final drift = math.sin(phase * 0.42) * size.width * 0.018;
-        final left = fromRight ? size.width * 0.48 + drift : -size.width * 0.10 + drift;
-        final right = fromRight ? size.width * 1.12 + drift : size.width * 0.56 + drift;
+        final drift = math.sin(phase * 0.42) * size.width * 0.015;
+        // 横方向の両端を画面外へ置く。表示領域内に縦の切断面を作らない。
+        final left = fromRight
+            ? size.width * 0.42 + drift
+            : -size.width * 0.32 + drift;
+        final right = fromRight
+            ? size.width * 1.32 + drift
+            : size.width * 0.62 + drift;
         final span = right - left;
+        const steps = 8;
 
-        Path makeBand(double yOffset, double amplitude, double thickness) {
-          final p = Path()..moveTo(left, y + yOffset);
-          const steps = 7;
-          for (var i = 1; i <= steps; i++) {
-            final x0 = left + span * (i - 1) / steps;
-            final x1 = left + span * i / steps;
-            final seed = math.sin(phase * 0.61 + i * 1.73);
-            final nextSeed = math.sin(phase * 0.61 + (i + 1) * 1.73);
-            final y0 = y + yOffset + seed * amplitude;
-            final y1 = y + yOffset + nextSeed * amplitude;
-            final dx = x1 - x0;
-            p.cubicTo(
-              x0 + dx * 0.34,
-              y0 - amplitude * 0.22,
-              x0 + dx * 0.72,
-              y1 + amplitude * 0.16,
-              x1,
-              y1,
-            );
-          }
-          for (var i = steps; i >= 1; i--) {
-            final x0 = left + span * i / steps;
-            final x1 = left + span * (i - 1) / steps;
-            final seed = math.sin(phase * 0.47 + i * 1.29 + 2.1);
-            final nextSeed = math.sin(phase * 0.47 + (i - 1) * 1.29 + 2.1);
-            final y0 = y + yOffset + thickness + seed * amplitude * 0.45;
-            final y1 = y + yOffset + thickness + nextSeed * amplitude * 0.45;
-            final dx = x1 - x0;
-            p.cubicTo(
-              x0 - dx * 0.34,
-              y0,
-              x0 - dx * 0.72,
-              y1,
-              x1,
-              y1,
-            );
-          }
-          return p..close();
+        final topPoints = <Offset>[];
+        final bottomPoints = <Offset>[];
+        for (var i = 0; i <= steps; i++) {
+          final t = i / steps;
+          final x = left + span * t;
+          final broad = math.sin(t * math.pi);
+          final topNoise =
+              math.sin(phase * 0.53 + i * 1.37) * height * 0.030 +
+              math.sin(phase * 0.31 + i * 0.71) * height * 0.018;
+          final bottomNoise =
+              math.sin(phase * 0.41 + i * 1.11 + 1.7) * height * 0.020;
+          topPoints.add(
+            Offset(x, y - broad * height * 0.10 + topNoise),
+          );
+          bottomPoints.add(
+            Offset(
+              x,
+              y + height * (0.54 + broad * 0.12) + bottomNoise,
+            ),
+          );
         }
 
-        final upper = makeBand(-height * 0.18, height * 0.045, height * 0.42);
-        final body = makeBand(0, height * 0.055, height * 0.52);
-        final base = makeBand(height * 0.22, height * 0.035, height * 0.34);
+        final path = Path()
+          ..moveTo(topPoints.first.dx, topPoints.first.dy);
+        for (var i = 0; i < steps; i++) {
+          final a = topPoints[i];
+          final b = topPoints[i + 1];
+          final dx = b.dx - a.dx;
+          path.cubicTo(
+            a.dx + dx * 0.34,
+            a.dy,
+            a.dx + dx * 0.70,
+            b.dy,
+            b.dx,
+            b.dy,
+          );
+        }
+        for (var i = steps; i > 0; i--) {
+          final a = bottomPoints[i];
+          final b = bottomPoints[i - 1];
+          final dx = b.dx - a.dx;
+          path.lineTo(a.dx, a.dy);
+          path.cubicTo(
+            a.dx + dx * 0.34,
+            a.dy,
+            a.dx + dx * 0.70,
+            b.dy,
+            b.dx,
+            b.dy,
+          );
+        }
+        path.close();
 
-        final upperPaint = Paint()
+        final bounds = path.getBounds();
+        final massPaint = Paint()
           ..shader = LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              cloudLight.withValues(alpha: dayPhase == DayPhase.night ? 0.16 : 0.14),
-              cloudMid.withValues(alpha: dayPhase == DayPhase.night ? 0.11 : 0.10),
+              cloudLight.withValues(
+                alpha: dayPhase == DayPhase.night ? 0.25 : 0.21,
+              ),
+              cloudMid.withValues(
+                alpha: dayPhase == DayPhase.night ? 0.20 : 0.17,
+              ),
+              cloudDark.withValues(
+                alpha: dayPhase == DayPhase.night ? 0.15 : 0.12,
+              ),
+              cloudDark.withValues(alpha: 0.035),
             ],
-          ).createShader(upper.getBounds());
-        final bodyPaint = Paint()
-          ..shader = LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            stops: const [0.0, 0.43, 0.78, 1.0],
+          ).createShader(bounds);
+        canvas.drawPath(path, massPaint);
+
+        // 内部の濃淡は雲塊の中央に限定し、外周とは別の輪郭を作らない。
+        final shadeRect = Rect.fromCenter(
+          center: Offset(
+            left + span * (fromRight ? 0.52 : 0.48),
+            y + height * 0.36,
+          ),
+          width: span * 0.58,
+          height: height * 0.56,
+        );
+        final shadePaint = Paint()
+          ..shader = RadialGradient(
+            radius: 0.95,
             colors: [
-              cloudLight.withValues(alpha: dayPhase == DayPhase.night ? 0.23 : 0.20),
-              cloudMid.withValues(alpha: dayPhase == DayPhase.night ? 0.19 : 0.16),
-              cloudDark.withValues(alpha: dayPhase == DayPhase.night ? 0.13 : 0.11),
-            ],
-            stops: const [0.0, 0.58, 1.0],
-          ).createShader(body.getBounds());
-        final basePaint = Paint()
-          ..shader = LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              cloudMid.withValues(alpha: dayPhase == DayPhase.night ? 0.12 : 0.10),
-              cloudDark.withValues(alpha: dayPhase == DayPhase.night ? 0.17 : 0.14),
+              cloudDark.withValues(
+                alpha: dayPhase == DayPhase.night ? 0.075 : 0.060,
+              ),
+              cloudMid.withValues(alpha: 0.025),
               Colors.transparent,
             ],
-            stops: const [0.0, 0.62, 1.0],
-          ).createShader(base.getBounds());
-
-        canvas.drawPath(upper, upperPaint);
-        canvas.drawPath(body, bodyPaint);
-        canvas.drawPath(base, basePaint);
+            stops: const [0.0, 0.58, 1.0],
+          ).createShader(shadeRect);
+        canvas.save();
+        canvas.clipPath(path);
+        canvas.drawOval(shadeRect, shadePaint);
+        canvas.restore();
       }
 
-      // 実写の層積雲のように、画面端から横長の層が入り込む。
-      // 中央は地図の視認性を残し、上下左右の層が完全にはつながらない。
-      paintCloudDeck(
-        y: size.height * 0.10,
-        height: size.height * 0.22,
+      paintCloudMass(
+        y: size.height * 0.075,
+        height: size.height * 0.24,
         phase: loopAngle,
         fromRight: false,
       );
-      paintCloudDeck(
-        y: size.height * 0.055,
-        height: size.height * 0.19,
+      paintCloudMass(
+        y: size.height * 0.035,
+        height: size.height * 0.21,
         phase: loopAngle + 2.2,
         fromRight: true,
       );
-      paintCloudDeck(
-        y: size.height * 0.40,
-        height: size.height * 0.15,
+      paintCloudMass(
+        y: size.height * 0.39,
+        height: size.height * 0.17,
         phase: loopAngle + 1.1,
         fromRight: false,
       );
-      paintCloudDeck(
-        y: size.height * 0.60,
-        height: size.height * 0.16,
+      paintCloudMass(
+        y: size.height * 0.59,
+        height: size.height * 0.18,
         phase: loopAngle + 3.4,
         fromRight: true,
       );
