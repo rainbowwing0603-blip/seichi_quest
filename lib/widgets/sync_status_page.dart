@@ -170,10 +170,10 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
   }
 
   Widget _buildInitialError() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: QuestGlassCard(
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        QuestGlassCard(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -220,7 +220,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 
