@@ -60,6 +60,7 @@ void main() {
         key: screenshotKey,
         child: MaterialApp(
           theme: questTheme(),
+          debugShowCheckedModeBanner: false,
           home: Scaffold(body: child),
         ),
       ),
@@ -114,6 +115,9 @@ void main() {
       ),
     );
     await capture(tester, 'my_page');
+    await tester.drag(find.byType(SingleChildScrollView).first, const Offset(0, -650));
+    await tester.pump(const Duration(milliseconds: 250));
+    await capture(tester, 'my_page_bottom');
 
     await show(
       tester,
@@ -128,6 +132,9 @@ void main() {
       ),
     );
     await capture(tester, 'quest_page');
+    await tester.drag(find.byType(SingleChildScrollView).first, const Offset(0, -550));
+    await tester.pump(const Duration(milliseconds: 250));
+    await capture(tester, 'quest_page_bottom');
 
     await show(
       tester,
@@ -166,6 +173,9 @@ void main() {
       ),
     );
     await capture(tester, 'settings');
+    await tester.drag(find.byType(ListView).first, const Offset(0, -650));
+    await tester.pump(const Duration(milliseconds: 250));
+    await capture(tester, 'settings_bottom');
 
     await show(tester, const NotificationSettingsPage());
     await capture(tester, 'notification_settings');
@@ -208,7 +218,9 @@ void main() {
     await capture(tester, 'onboarding_1');
     for (var page = 2; page <= 4; page++) {
       await tester.drag(find.byType(PageView), const Offset(-350, 0));
-      await tester.pump(const Duration(milliseconds: 450));
+      for (var frame = 0; frame < 20; frame++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
       expect(tester.takeException(), isNull);
       await capture(tester, 'onboarding_$page');
     }
