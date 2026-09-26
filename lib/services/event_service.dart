@@ -8,10 +8,12 @@ class EventSelection {
   const EventSelection({
     required this.events,
     required this.currentEvent,
+    required this.needsPreferenceSave,
   });
 
   final List<Event> events;
   final Event currentEvent;
+  final bool needsPreferenceSave;
 }
 
 /// イベント一覧・現在イベント設定・参加状態のSupabaseアクセスをまとめる。
@@ -30,7 +32,9 @@ class EventService {
         .from('events')
         .select(
           'id, slug, name, description, prefecture, is_active, '
-          'icon_url, cover_image_url, start_at, end_at, updated_at',
+          'icon_url, cover_image_url, start_at, end_at, updated_at, '
+          'item_label_singular, item_label_plural, '
+          'theme_primary_hex, theme_primary_deep_hex, theme_accent_hex',
         )
         .eq('is_active', true)
         .order('created_at');
@@ -68,12 +72,6 @@ class EventService {
       throw Exception('現在のイベントIDが取得できません。');
     }
 
-    if (user != null && savedEventId != currentEvent.id) {
-      await saveCurrentEventPreference(currentEvent.id);
-    }
-
-    await ensureParticipation(currentEvent.id);
-
     appDebugPrint(
       '[EVENT] current event restored: '
       'id=${currentEvent.id}, name=${currentEvent.name}',
@@ -82,7 +80,15 @@ class EventService {
     return EventSelection(
       events: events,
       currentEvent: currentEvent,
+      needsPreferenceSave: user != null && savedEventId != currentEvent.id,
     );
+  }
+
+  Future<void> completeCurrentEventSelection(EventSelection selection) async {
+    if (selection.needsPreferenceSave) {
+      await saveCurrentEventPreference(selection.currentEvent.id);
+    }
+    await ensureParticipation(selection.currentEvent.id);
   }
 
   Future<void> activateEvent(String eventId) async {

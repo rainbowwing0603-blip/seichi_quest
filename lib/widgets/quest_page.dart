@@ -8,22 +8,24 @@ import 'quest_ui.dart';
 class QuestPage extends StatelessWidget {
   const QuestPage({
     super.key,
-    required this.nextSeichi,
+    required this.nextItem,
     required this.nextDistance,
     required this.collectedCount,
     required this.total,
     required this.onShowDestination,
     required this.onExploreEvents,
     required this.eventAchievements,
+    this.itemLabel = 'スポット',
   });
 
-  final QuestItem? nextSeichi;
+  final QuestItem? nextItem;
   final double? nextDistance;
   final int collectedCount;
   final int total;
   final VoidCallback onShowDestination;
   final VoidCallback onExploreEvents;
   final List<Achievement> eventAchievements;
+  final String itemLabel;
 
   static const AchievementService _achievementService = AchievementService();
 
@@ -112,8 +114,8 @@ class QuestPage extends StatelessWidget {
             const SizedBox(height: 18),
             if (total == 0)
               _buildEmptyQuestCard()
-            else if (nextSeichi != null)
-              _buildQuestMainCard(nextSeichi!)
+            else if (nextItem != null)
+              _buildQuestMainCard(nextItem!)
             else
               _buildAllClearCard(),
             const SizedBox(height: 26),
@@ -155,7 +157,7 @@ class QuestPage extends StatelessWidget {
           child: const Icon(Icons.flag_rounded, color: Colors.white, size: 28),
         ),
         const SizedBox(width: 14),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -170,7 +172,7 @@ class QuestPage extends StatelessWidget {
               ),
               SizedBox(height: 2),
               Text(
-                '次の聖地を目指そう',
+                '次の$itemLabelを目指そう',
                 style: TextStyle(
                   color: QuestUiTokens.ink,
                   fontSize: 22,
@@ -189,7 +191,7 @@ class QuestPage extends StatelessWidget {
     );
   }
 
-  Widget _buildQuestMainCard(QuestItem seichi) {
+  Widget _buildQuestMainCard(QuestItem item) {
     final distance = nextDistance;
 
     return QuestGlassCard(
@@ -287,7 +289,7 @@ class QuestPage extends StatelessWidget {
                           ],
                         ),
                         child: Text(
-                          seichi.icon,
+                          item.icon,
                           style: const TextStyle(fontSize: 38),
                         ),
                       ),
@@ -297,7 +299,7 @@ class QuestPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              seichi.icon.isNotEmpty ? seichi.icon : '📍',
+                              item.icon.isNotEmpty ? item.icon : '📍',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -308,7 +310,7 @@ class QuestPage extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              seichi.name,
+                              item.name,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -400,7 +402,9 @@ class QuestPage extends StatelessWidget {
   }
 
   Widget _buildEmptyQuestCard() {
-    return const QuestGlassCard(
+    return SizedBox(
+      width: double.infinity,
+      child: QuestGlassCard(
       child: Column(
         children: [
           _QuestStateIcon(emoji: '🗺️'),
@@ -415,7 +419,7 @@ class QuestPage extends StatelessWidget {
           ),
           SizedBox(height: 7),
           Text(
-            'このクエストにはスポットが登録されていません。',
+            'このクエストには$itemLabelが登録されていません。',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: QuestUiTokens.mutedInk,
@@ -425,11 +429,14 @@ class QuestPage extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 
   Widget _buildAllClearCard() {
-    return const QuestGlassCard(
+    return SizedBox(
+      width: double.infinity,
+      child: QuestGlassCard(
       child: Column(
         children: [
           _QuestStateIcon(emoji: '🏆', completed: true),
@@ -444,7 +451,7 @@ class QuestPage extends StatelessWidget {
           ),
           SizedBox(height: 7),
           Text(
-            '登録されているスポットをすべて獲得しました。',
+            '登録されている$itemLabelをすべて獲得しました。',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: QuestUiTokens.mutedInk,
@@ -454,6 +461,7 @@ class QuestPage extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 

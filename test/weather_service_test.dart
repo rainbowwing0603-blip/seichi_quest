@@ -1,8 +1,42 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:seichi_quest/models/real_world_state.dart';
 import 'package:seichi_quest/services/weather_service.dart';
 
 void main() {
+  test('12時間の風速予報が強い場合だけ強風案内の判定材料にする', () async {
+    final client = MockClient((request) async {
+      expect(request.url.queryParameters['wind_speed_unit'], 'ms');
+      expect(request.url.queryParameters['forecast_hours'], '12');
+      return http.Response(
+        jsonEncode({
+          'utc_offset_seconds': 9 * 3600,
+          'current': {
+            'temperature_2m': 22.0,
+            'weather_code': 3,
+            'time': '2026-09-26T12:00',
+            'wind_speed_10m': 5.0,
+          },
+          'hourly': {
+            'wind_speed_10m': [5.0, 14.9, 15.0],
+          },
+        }),
+        200,
+      );
+    });
+    addTearDown(client.close);
+
+    final result = await WeatherService(client: client).fetchCurrentWeather(
+      latitude: 36.4,
+      longitude: 139.1,
+    );
+    expect(result.strongWindExpected, isTrue);
+    expect(result.utcOffsetSeconds, 9 * 3600);
+  });
+
   group('WeatherService WMO天気コード変換', () {
     test('晴天コードを晴れとして扱う', () {
       expect(

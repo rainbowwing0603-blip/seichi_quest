@@ -6,6 +6,7 @@ import '../services/level_service.dart';
 import 'profile_avatar.dart';
 import 'quest_ui.dart';
 import '../services/app_logger.dart';
+import '../services/app_error_report.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -62,7 +63,10 @@ class _ProfilePageState extends State<ProfilePage> {
       if (user == null) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'ログイン情報を取得できませんでした。';
+          _errorMessage = AppErrorReport.message(
+            AppErrorCodes.profileLoad,
+            'ログイン情報を取得できませんでした。',
+          );
         });
         return;
       }
@@ -112,7 +116,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
       setState(() {
         _isLoading = false;
-        _errorMessage = 'プロフィールを読み込めませんでした。';
+        _errorMessage = AppErrorReport.message(
+          AppErrorCodes.profileLoad,
+          'プロフィールを読み込めませんでした。',
+          error: error,
+          stackTrace: stackTrace,
+        );
       });
     }
   }
@@ -126,7 +135,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
     if (user == null) {
       setState(() {
-        _errorMessage = 'ログイン情報を取得できませんでした。';
+        _errorMessage = AppErrorReport.message(
+          AppErrorCodes.profileSave,
+          'ログイン情報を取得できませんでした。',
+        );
       });
       return;
     }
@@ -181,7 +193,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
       setState(() {
         _isSaving = false;
-        _errorMessage = message;
+        _errorMessage = AppErrorReport.message(
+          AppErrorCodes.profileSave,
+          message,
+          error: error,
+        );
       });
     } catch (error, stackTrace) {
       appDebugPrint('[PROFILE] save failed unexpectedly: $error');
@@ -193,7 +209,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
       setState(() {
         _isSaving = false;
-        _errorMessage = 'プロフィールを保存できませんでした。';
+        _errorMessage = AppErrorReport.message(
+          AppErrorCodes.profileSave,
+          'プロフィールを保存できませんでした。',
+          error: error,
+          stackTrace: stackTrace,
+        );
       });
     }
   }
@@ -219,7 +240,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: QuestUiTokens.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
@@ -245,7 +266,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: Form(
                   key: _formKey,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       QuestGlassCard(
                         padding: const EdgeInsets.all(22),
@@ -459,7 +480,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                           0.82,
                                     ),
                                     decoration: const BoxDecoration(
-                                      color: Color(0xFFF6F8FC),
+                                      color: QuestUiTokens.background,
                                       borderRadius: BorderRadius.vertical(
                                         top: Radius.circular(30),
                                       ),

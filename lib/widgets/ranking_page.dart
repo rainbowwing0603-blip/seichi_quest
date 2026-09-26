@@ -12,6 +12,7 @@ class RankingPage extends StatefulWidget {
   final int? myRank;
   final int myCount;
   final int total;
+  final String itemLabel;
 
   const RankingPage({
     super.key,
@@ -21,6 +22,7 @@ class RankingPage extends StatefulWidget {
     required this.myRank,
     required this.myCount,
     required this.total,
+    this.itemLabel = 'スポット',
   });
 
   @override
@@ -116,7 +118,7 @@ class _RankingPageState extends State<RankingPage> {
                 title: 'ランキング',
                 subtitle: _participantCount > 0
                     ? '参加者 $_participantCount人'
-                    : '聖地巡礼の記録',
+                    : '${widget.itemLabel}巡りの記録',
                 icon: Icons.leaderboard_rounded,
               ),
               const SizedBox(height: 8),
@@ -193,7 +195,7 @@ class _RankingPageState extends State<RankingPage> {
       guidanceText = '表示名を設定するとランキングに参加できます。';
     } else if (widget.myCount == 0) {
       statusText = 'ランキング未参加';
-      guidanceText = '聖地を1つ獲得するとランキングに参加できます。';
+      guidanceText = '${widget.itemLabel}を1つ獲得するとランキングに参加できます。';
     } else {
       statusText = '順位を取得できませんでした';
       guidanceText = 'ランキング情報を更新してください。';
@@ -281,7 +283,7 @@ class _RankingPageState extends State<RankingPage> {
               Padding(
                 padding: const EdgeInsets.only(left: 5, bottom: 4),
                 child: Text(
-                  '/ ${widget.total} 聖地',
+                  '/ ${widget.total} ${widget.itemLabel}',
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -410,7 +412,7 @@ class _RankingPageState extends State<RankingPage> {
     }
 
     if (_ranking.isEmpty) {
-      return const QuestGlassCard(
+      return QuestGlassCard(
         padding: EdgeInsets.symmetric(horizontal: 22, vertical: 30),
         child: Column(
           children: [
@@ -430,7 +432,7 @@ class _RankingPageState extends State<RankingPage> {
             ),
             SizedBox(height: 5),
             Text(
-              '表示名を設定し、聖地を1つ以上獲得すると参加できます。',
+              '表示名を設定し、${widget.itemLabel}を1つ以上獲得すると参加できます。',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,
@@ -456,7 +458,7 @@ class _RankingPageState extends State<RankingPage> {
               color: QuestUiTokens.primary.withValues(alpha: 0.08),
             ),
           ),
-          child: const Row(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
@@ -467,7 +469,7 @@ class _RankingPageState extends State<RankingPage> {
               SizedBox(width: 9),
               Expanded(
                 child: Text(
-                  '表示名を設定し、聖地を1つ以上獲得したユーザーのみランキングに表示されます。',
+                  '表示名を設定し、${widget.itemLabel}を1つ以上獲得したユーザーのみランキングに表示されます。',
                   style: TextStyle(
                     fontSize: 11,
                     height: 1.45,
@@ -579,7 +581,7 @@ class _RankingPageState extends State<RankingPage> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${entry.collectedCount}聖地獲得',
+                  '${entry.collectedCount}${widget.itemLabel}獲得',
                   style: const TextStyle(
                     fontSize: 11,
                     color: QuestUiTokens.mutedInk,

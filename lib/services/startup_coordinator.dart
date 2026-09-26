@@ -18,8 +18,11 @@ class StartupCoordinator {
     await ensureCloudUser();
     await loadCurrentEvent();
 
-    final pendingCollectedRows = await startCollectionSync();
-    await loadSeichi();
+    final results = await Future.wait<Object?>([
+      startCollectionSync(),
+      loadSeichi(),
+    ]);
+    final pendingCollectedRows = results.first as List<Map<String, dynamic>>;
 
     return StartupCriticalResult(
       pendingCollectedRows: pendingCollectedRows,

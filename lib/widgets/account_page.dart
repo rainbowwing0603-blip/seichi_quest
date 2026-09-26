@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import 'quest_ui.dart';
+import '../services/app_error_report.dart';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
@@ -71,6 +72,17 @@ class _AccountPageState extends State<AccountPage> {
     });
   }
 
+  void _showAuthError(supabase.AuthException error) {
+    _showMessage(
+      AppErrorReport.message(
+        AppErrorCodes.accountAuth,
+        _authErrorMessage(error),
+        error: error,
+      ),
+      isError: true,
+    );
+  }
+
   Future<void> _sendEmailVerification() async {
     final user = _client.auth.currentUser;
 
@@ -111,9 +123,16 @@ class _AccountPageState extends State<AccountPage> {
         _messageIsError = false;
       });
     } on supabase.AuthException catch (error) {
-      _showMessage(_authErrorMessage(error), isError: true);
+      _showAuthError(error);
     } catch (error) {
-      _showMessage('メール送信に失敗しました。通信状態を確認してもう一度お試しください。', isError: true);
+      _showMessage(
+        AppErrorReport.message(
+          AppErrorCodes.accountAuth,
+          'メール送信に失敗しました。通信状態を確認してもう一度お試しください。',
+          error: error,
+        ),
+        isError: true,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -161,9 +180,16 @@ class _AccountPageState extends State<AccountPage> {
         _messageIsError = false;
       });
     } on supabase.AuthException catch (error) {
-      _showMessage(_authErrorMessage(error), isError: true);
+      _showAuthError(error);
     } catch (error) {
-      _showMessage('確認コードの認証に失敗しました。', isError: true);
+      _showMessage(
+        AppErrorReport.message(
+          AppErrorCodes.accountAuth,
+          '確認コードの認証に失敗しました。',
+          error: error,
+        ),
+        isError: true,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -220,9 +246,16 @@ class _AccountPageState extends State<AccountPage> {
         _messageIsError = false;
       });
     } on supabase.AuthException catch (error) {
-      _showMessage(_authErrorMessage(error), isError: true);
+      _showAuthError(error);
     } catch (error) {
-      _showMessage('パスワードの設定に失敗しました。', isError: true);
+      _showMessage(
+        AppErrorReport.message(
+          AppErrorCodes.accountAuth,
+          'パスワードの設定に失敗しました。',
+          error: error,
+        ),
+        isError: true,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -259,9 +292,16 @@ class _AccountPageState extends State<AccountPage> {
         _messageIsError = false;
       });
     } on supabase.AuthException catch (error) {
-      _showMessage(_authErrorMessage(error), isError: true);
+      _showAuthError(error);
     } catch (error) {
-      _showMessage('再設定メールの送信に失敗しました。通信状態を確認してください。', isError: true);
+      _showMessage(
+        AppErrorReport.message(
+          AppErrorCodes.accountAuth,
+          '再設定メールの送信に失敗しました。通信状態を確認してください。',
+          error: error,
+        ),
+        isError: true,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -309,9 +349,16 @@ class _AccountPageState extends State<AccountPage> {
         _messageIsError = false;
       });
     } on supabase.AuthException catch (error) {
-      _showMessage(_authErrorMessage(error), isError: true);
+      _showAuthError(error);
     } catch (error) {
-      _showMessage('確認コードの認証に失敗しました。', isError: true);
+      _showMessage(
+        AppErrorReport.message(
+          AppErrorCodes.accountAuth,
+          '確認コードの認証に失敗しました。',
+          error: error,
+        ),
+        isError: true,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -362,9 +409,16 @@ class _AccountPageState extends State<AccountPage> {
 
       Navigator.of(context).pop(true);
     } on supabase.AuthException catch (error) {
-      _showMessage(_authErrorMessage(error), isError: true);
+      _showAuthError(error);
     } catch (error) {
-      _showMessage('パスワードの再設定に失敗しました。', isError: true);
+      _showMessage(
+        AppErrorReport.message(
+          AppErrorCodes.accountAuth,
+          'パスワードの再設定に失敗しました。',
+          error: error,
+        ),
+        isError: true,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -469,7 +523,14 @@ class _AccountPageState extends State<AccountPage> {
 
       Navigator.of(context).pop(true);
     } catch (error) {
-      _showMessage('アカウントの削除に失敗しました。通信状態を確認してもう一度お試しください。', isError: true);
+      _showMessage(
+        AppErrorReport.message(
+          AppErrorCodes.accountAuth,
+          'アカウントの削除に失敗しました。通信状態を確認してもう一度お試しください。',
+          error: error,
+        ),
+        isError: true,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -524,9 +585,16 @@ class _AccountPageState extends State<AccountPage> {
 
       Navigator.of(context).pop(true);
     } on supabase.AuthException catch (error) {
-      _showMessage(_authErrorMessage(error), isError: true);
+      _showAuthError(error);
     } catch (error) {
-      _showMessage('ログアウトに失敗しました。通信状態を確認してください。', isError: true);
+      _showMessage(
+        AppErrorReport.message(
+          AppErrorCodes.accountAuth,
+          'ログアウトに失敗しました。通信状態を確認してください。',
+          error: error,
+        ),
+        isError: true,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -612,9 +680,16 @@ class _AccountPageState extends State<AccountPage> {
       _loginPasswordController.clear();
       Navigator.of(context).pop(true);
     } on supabase.AuthException catch (error) {
-      _showMessage(_authErrorMessage(error), isError: true);
+      _showAuthError(error);
     } catch (error) {
-      _showMessage('ログインに失敗しました。通信状態を確認してもう一度お試しください。', isError: true);
+      _showMessage(
+        AppErrorReport.message(
+          AppErrorCodes.accountAuth,
+          'ログインに失敗しました。通信状態を確認してもう一度お試しください。',
+          error: error,
+        ),
+        isError: true,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -659,7 +734,7 @@ class _AccountPageState extends State<AccountPage> {
       return '短時間に操作が繰り返されました。少し時間を空けてからもう一度お試しください。';
     }
 
-    return '認証処理に失敗しました: ${error.message}';
+    return '認証処理に失敗しました。通信状態を確認してもう一度お試しください。';
   }
 
   @override
@@ -669,7 +744,7 @@ class _AccountPageState extends State<AccountPage> {
     final email = user?.email ?? _pendingEmail;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: QuestUiTokens.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,

@@ -1,57 +1,77 @@
 import 'package:flutter/material.dart';
 
 import '../models/quest_item.dart';
+import '../policies/quest_presentation_policy.dart';
+import '../policies/quest_event_theme_policy.dart';
 import '../painters/stamp_ring_painter.dart';
 import 'quest_spot_detail_sheet.dart';
 import 'quest_ui.dart';
 
 class CollectionPage extends StatelessWidget {
+  static const QuestPresentationPolicy _presentationPolicy = QuestPresentationPolicy();
+
   const CollectionPage({
     super.key,
     required this.eventId,
-    required this.seichiList,
+    required this.questItems,
     required this.collectedIds,
+    required this.totalCount,
+    required this.collectedCount,
+    required this.hasMore,
+    required this.isLoadingMore,
+    required this.onLoadMore,
     required this.eventNamesByContentKey,
     required this.collectionFilter,
     required this.onFilterChanged,
-    required this.onMoveToSeichi,
+    required this.onMoveToQuestItem,
     required this.onSetNextDestination,
+    this.itemLabel = 'スポット',
+    this.eventTheme = QuestEventThemePolicy.sharedTheme,
   });
 
   final String? eventId;
-  final List<QuestItem> seichiList;
+  final List<QuestItem> questItems;
   final Set<String> collectedIds;
+  final int totalCount;
+  final int collectedCount;
+  final bool hasMore;
+  final bool isLoadingMore;
+  final Future<void> Function() onLoadMore;
   final Map<String, Set<String>> eventNamesByContentKey;
   final int collectionFilter;
   final ValueChanged<int> onFilterChanged;
-  final Future<void> Function(QuestItem seichi) onMoveToSeichi;
-  final void Function(QuestItem seichi) onSetNextDestination;
+  final Future<void> Function(QuestItem item) onMoveToQuestItem;
+  final void Function(QuestItem item) onSetNextDestination;
+  final String itemLabel;
+  final QuestEventTheme eventTheme;
   @override
   Widget build(BuildContext context) {
     return _buildCollectionPage(context);
   }
 
   Widget _buildCollectionPage(BuildContext context) {
-    final total = seichiList.length;
-    final collected = collectedIds.length.clamp(0, total);
+    final total = totalCount;
+    final collected = collectedCount.clamp(0, total);
     final remaining = (total - collected).clamp(0, total);
     final progress = total == 0 ? 0.0 : collected / total;
 
     List<QuestItem> filteredList;
 
+    // Large events are already filtered by the server. Re-applying the
+    // filter locally is harmless for small events and keeps the widget generic.
     switch (collectionFilter) {
       case 1:
-        filteredList = seichiList
-            .where((seichi) => collectedIds.contains(seichi.id))
+        filteredList = questItems
+            .where((item) => collectedIds.contains(item.id))
             .toList();
         break;
       case 2:
-        filteredList = seichiList
-            .where((seichi) => !collectedIds.contains(seichi.id))
+        filteredList = questItems
+            .where((item) => !collectedIds.contains(item.id))
             .toList();
         break;
       default:
-        filteredList = List<QuestItem>.from(seichiList);
+        filteredList = List<QuestItem>.from(questItems);
     }
 
     return SafeArea(
@@ -66,10 +86,21 @@ class CollectionPage extends StatelessWidget {
           _buildCollectionFilter(),
           Expanded(
             child: filteredList.isEmpty
-                ? _buildEmptyCollectionState()
-                : GridView.builder(
+                ? (hasMore
+                      ? _buildLoadMoreEmptyState()
+                      : _buildEmptyCollectionState())
+                : NotificationListener<ScrollNotification>(
+                    onNotification: (notification) {
+                      if (notification.metrics.extentAfter < 700 &&
+                          hasMore &&
+                          !isLoadingMore) {
+                        onLoadMore();
+                      }
+                      return false;
+                    },
+                    child: GridView.builder(
                     padding: const EdgeInsets.fromLTRB(14, 4, 14, 28),
-                    itemCount: filteredList.length,
+                    itemCount: filteredList.length + (isLoadingMore ? 1 : 0),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 3,
@@ -78,12 +109,18 @@ class CollectionPage extends StatelessWidget {
                           childAspectRatio: 0.63,
                         ),
                     itemBuilder: (context, index) {
-                      final seichi = filteredList[index];
-                      final collected = collectedIds.contains(seichi.id);
+                      if (index >= filteredList.length) {
+                        return const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        );
+                      }
+                      final item = filteredList[index];
+                      final collected = collectedIds.contains(item.id);
 
-                      return _buildCollectionCard(context, seichi, collected);
+                      return _buildCollectionCard(context, item, collected);
                     },
                   ),
+                ),
           ),
         ],
       ),
@@ -154,7 +191,7 @@ class CollectionPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '$total個のスポットを巡って集めよう',
+                        '$total個の$itemLabelを巡って集めよう',
                         style: const TextStyle(
                           color: QuestUiTokens.mutedInk,
                           fontSize: 10.5,
@@ -319,6 +356,17 @@ class CollectionPage extends StatelessWidget {
   // スタンプ帳空状態
   // ============================================================
 
+  Widget _buildLoadMoreEmptyState() {
+    if (!isLoadingMore) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        onLoadMore();
+      });
+    }
+    return const Center(
+      child: CircularProgressIndicator(strokeWidth: 2),
+    );
+  }
+
   Widget _buildEmptyCollectionState() {
     final isCollectedFilter = collectionFilter == 1;
 
@@ -332,18 +380,18 @@ class CollectionPage extends StatelessWidget {
               width: 90,
               height: 90,
               decoration: BoxDecoration(
-                color: Colors.deepPurple.withValues(alpha: 0.08),
+                color: QuestUiTokens.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 isCollectedFilter ? Icons.workspace_premium : Icons.celebration,
                 size: 44,
-                color: Colors.deepPurple,
+                color: QuestUiTokens.primary,
               ),
             ),
             const SizedBox(height: 18),
             Text(
-              isCollectedFilter ? 'まだ獲得したスポットがありません' : '未獲得のスポットはありません！',
+              isCollectedFilter ? 'まだ獲得した$itemLabelがありません' : '未獲得の$itemLabelはありません！',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
             ),
@@ -359,19 +407,21 @@ class CollectionPage extends StatelessWidget {
 
   Widget _buildCollectionCard(
     BuildContext context,
-    QuestItem seichi,
+    QuestItem item,
     bool collected,
   ) {
-    final imageUrl = seichi.primaryImageUrl;
-    final hasCardImage = imageUrl != null && imageUrl.isNotEmpty;
-    final showOriginalCard = collected && hasCardImage;
+    final presentation = _presentationPolicy.forItem(
+      item,
+      collected: collected,
+    );
+    final showOriginalCard = presentation.revealPrimaryImage;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: () {
-          _showCollectionStampDetail(context, seichi, collected);
+          _showCollectionStampDetail(context, item, collected);
         },
         child: Container(
           padding: const EdgeInsets.all(5),
@@ -397,14 +447,14 @@ class CollectionPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: collected
-                  ? QuestUiTokens.primary.withValues(alpha: 0.24)
+                  ? eventTheme.primary.withValues(alpha: 0.24)
                   : Colors.white.withValues(alpha: 0.88),
               width: collected ? 1.2 : 1,
             ),
             boxShadow: [
               BoxShadow(
                 color: collected
-                    ? QuestUiTokens.primary.withValues(alpha: 0.13)
+                    ? eventTheme.primary.withValues(alpha: 0.13)
                     : QuestUiTokens.ink.withValues(alpha: 0.055),
                 blurRadius: collected ? 15 : 10,
                 offset: const Offset(0, 6),
@@ -423,11 +473,11 @@ class CollectionPage extends StatelessWidget {
             children: [
               Expanded(
                 child: showOriginalCard
-                    ? _buildCollectionImage(seichi, collected)
-                    : _buildStampVisual(seichi, collected),
+                    ? _buildCollectionImage(item, collected)
+                    : _buildStampVisual(item, collected),
               ),
               const SizedBox(height: 5),
-              _buildCollectionCardStatus(seichi, collected),
+              _buildCollectionCardStatus(item, collected),
             ],
           ),
         ),
@@ -435,7 +485,7 @@ class CollectionPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCollectionCardStatus(QuestItem seichi, bool collected) {
+  Widget _buildCollectionCardStatus(QuestItem item, bool collected) {
     return Container(
       constraints: const BoxConstraints(minHeight: 31),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -446,7 +496,7 @@ class CollectionPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: collected
-              ? QuestUiTokens.primary.withValues(alpha: 0.10)
+              ? eventTheme.primary.withValues(alpha: 0.10)
               : QuestUiTokens.mutedInk.withValues(alpha: 0.07),
         ),
       ),
@@ -458,15 +508,15 @@ class CollectionPage extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: collected
-                  ? QuestUiTokens.primary.withValues(alpha: 0.11)
+                  ? eventTheme.primary.withValues(alpha: 0.11)
                   : QuestUiTokens.mutedInk.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(7),
             ),
             child: Text(
-              seichi.icon.isNotEmpty ? seichi.icon : '📍',
+              item.icon.isNotEmpty ? item.icon : '📍',
               style: TextStyle(
                 color: collected
-                    ? QuestUiTokens.primary
+                    ? eventTheme.primary
                     : QuestUiTokens.mutedInk,
                 fontSize: 10,
                 fontWeight: FontWeight.w900,
@@ -480,7 +530,7 @@ class CollectionPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  collected ? seichi.name : '未獲得',
+                  collected ? item.name : '未獲得',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -499,7 +549,7 @@ class CollectionPage extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: collected
-                        ? QuestUiTokens.primary
+                        ? eventTheme.primary
                         : QuestUiTokens.mutedInk.withValues(alpha: 0.78),
                     fontSize: 6.7,
                     height: 1,
@@ -516,14 +566,14 @@ class CollectionPage extends StatelessWidget {
             height: 20,
             decoration: BoxDecoration(
               color: collected
-                  ? QuestUiTokens.primary.withValues(alpha: 0.12)
+                  ? eventTheme.primary.withValues(alpha: 0.12)
                   : QuestUiTokens.mutedInk.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.chevron_right_rounded,
               size: 15,
-              color: collected ? QuestUiTokens.primary : QuestUiTokens.mutedInk,
+              color: collected ? eventTheme.primary : QuestUiTokens.mutedInk,
             ),
           ),
         ],
@@ -531,11 +581,11 @@ class CollectionPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCollectionImage(QuestItem seichi, bool collected) {
-    final imageUrl = seichi.primaryImageUrl;
+  Widget _buildCollectionImage(QuestItem item, bool collected) {
+    final imageUrl = item.primaryImageUrl;
 
     if (!collected || imageUrl == null || imageUrl.isEmpty) {
-      return _buildStampVisual(seichi, collected);
+      return _buildStampVisual(item, collected);
     }
 
     return Container(
@@ -577,7 +627,7 @@ class CollectionPage extends StatelessWidget {
               );
             },
             errorBuilder: (context, error, stackTrace) {
-              return Center(child: _buildStampVisual(seichi, collected));
+              return Center(child: _buildStampVisual(item, collected));
             },
           ),
         ),
@@ -589,7 +639,7 @@ class CollectionPage extends StatelessWidget {
   // スタンプビジュアル
   // ============================================================
 
-  Widget _buildStampVisual(QuestItem seichi, bool collected) {
+  Widget _buildStampVisual(QuestItem item, bool collected) {
     if (!collected) {
       return Container(
         margin: const EdgeInsets.all(2),
@@ -685,7 +735,7 @@ class CollectionPage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    seichi.icon.isNotEmpty ? seichi.icon : '📍',
+                    item.icon.isNotEmpty ? item.icon : '📍',
                     style: const TextStyle(fontSize: 28),
                   ),
                 ],
@@ -704,21 +754,22 @@ class CollectionPage extends StatelessWidget {
   // COLLECTION DETAIL 2.0
   void _showCollectionStampDetail(
     BuildContext context,
-    QuestItem seichi,
+    QuestItem item,
     bool collected,
   ) {
-    final eventNames = eventNamesByContentKey[seichi.contentKey]?.toList() ?? <String>[];
+    final eventNames = eventNamesByContentKey[item.contentKey]?.toList() ?? <String>[];
     eventNames.sort();
 
     QuestSpotDetailSheet.show(
       context,
-      item: seichi,
+      item: item,
       collected: collected,
       eventNames: eventNames,
-      onShowOnMap: () => onMoveToSeichi(seichi),
+      eventTheme: eventTheme,
+      onShowOnMap: () => onMoveToQuestItem(item),
       onSetNextDestination: collected
           ? null
-          : () => onSetNextDestination(seichi),
+          : () => onSetNextDestination(item),
     );
   }
 

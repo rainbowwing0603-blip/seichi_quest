@@ -10,6 +10,11 @@ class Event {
   final DateTime? startAt;
   final DateTime? endAt;
   final DateTime? updatedAt;
+  final String itemLabelSingular;
+  final String itemLabelPlural;
+  final String? themePrimaryHex;
+  final String? themePrimaryDeepHex;
+  final String? themeAccentHex;
 
   const Event({
     required this.id,
@@ -23,6 +28,11 @@ class Event {
     this.startAt,
     this.endAt,
     this.updatedAt,
+    this.itemLabelSingular = 'スポット',
+    this.itemLabelPlural = 'スポット',
+    this.themePrimaryHex,
+    this.themePrimaryDeepHex,
+    this.themeAccentHex,
   });
 
   String eventStatusText({DateTime? now}) {
@@ -61,6 +71,11 @@ class Event {
       startAt: _toDateTime(map['start_at']),
       endAt: _toDateTime(map['end_at']),
       updatedAt: _toDateTime(map['updated_at']),
+      itemLabelSingular: _toNullableString(map['item_label_singular']) ?? 'スポット',
+      itemLabelPlural: _toNullableString(map['item_label_plural']) ?? 'スポット',
+      themePrimaryHex: _toNullableString(map['theme_primary_hex']),
+      themePrimaryDeepHex: _toNullableString(map['theme_primary_deep_hex']),
+      themeAccentHex: _toNullableString(map['theme_accent_hex']),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../collection_history_service.dart';
+import '../services/app_error_report.dart';
 import 'quest_ui.dart';
 
 class AdventureLogPage extends StatefulWidget {
@@ -42,14 +43,19 @@ class _AdventureLogPageState extends State<AdventureLogPage> {
         _history = history;
         _isLoading = false;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
       if (!mounted) {
         return;
       }
 
       setState(() {
         _isLoading = false;
-        _errorMessage = '冒険ログを読み込めませんでした。';
+        _errorMessage = AppErrorReport.message(
+          AppErrorCodes.adventureLog,
+          '冒険ログを読み込めませんでした。',
+          error: error,
+          stackTrace: stackTrace,
+        );
       });
     }
   }
@@ -79,7 +85,7 @@ class _AdventureLogPageState extends State<AdventureLogPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: QuestUiTokens.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,

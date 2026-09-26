@@ -31,6 +31,7 @@ class MyPage extends StatelessWidget {
   final VoidCallback onShowAnnouncements;
   final int unreadAnnouncementCount;
   final VoidCallback onShowSettings;
+  final VoidCallback onShowLegal;
   final VoidCallback onShowAbout;
 
   const MyPage({
@@ -57,6 +58,7 @@ class MyPage extends StatelessWidget {
     required this.onShowAnnouncements,
     required this.unreadAnnouncementCount,
     required this.onShowSettings,
+    required this.onShowLegal,
     required this.onShowAbout,
   });
 
@@ -68,7 +70,7 @@ class MyPage extends StatelessWidget {
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Material(
               color: Colors.transparent,
@@ -104,18 +106,18 @@ class MyPage extends StatelessWidget {
 
             const SizedBox(height: 18),
 
-            _buildSettingsExpansion(),
+            _buildSettingsExpansion(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSettingsExpansion() {
+  Widget _buildSettingsExpansion(BuildContext context) {
     return QuestGlassCard(
       padding: EdgeInsets.zero,
       child: Theme(
-        data: ThemeData(
+        data: Theme.of(context).copyWith(
           dividerColor: Colors.transparent,
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
@@ -223,6 +225,13 @@ class MyPage extends StatelessWidget {
               title: 'アプリ設定',
               subtitle: '各種設定',
               onTap: onShowSettings,
+              compact: true,
+            ),
+            _buildSettingsTile(
+              icon: Icons.privacy_tip_outlined,
+              title: 'プライバシー・データ管理',
+              subtitle: 'ポリシー・アカウント削除',
+              onTap: onShowLegal,
               compact: true,
             ),
             _buildSettingsTile(

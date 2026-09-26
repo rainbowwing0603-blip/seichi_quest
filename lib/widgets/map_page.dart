@@ -7,9 +7,14 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/real_world_state.dart';
 import '../models/quest_item.dart';
 import '../painters/sonar_painter.dart';
+import '../services/app_error_report.dart';
+import '../models/regional_map_progress.dart';
+import '../services/weather_safety_policy.dart';
 import 'stamp_animation.dart';
+import 'season_effect_overlay.dart';
 import 'quest_ui.dart';
 import 'weather_effect_overlay.dart';
+import 'weather_safety_banner.dart';
 
 class MapPage extends StatelessWidget {
   // Insets are relative to the usable body area. The Scaffold owns the
@@ -148,6 +153,7 @@ class MapPage extends StatelessWidget {
   final GoogleMapController? mapController;
   final Position? currentPosition;
   final RealWorldState? realWorldState;
+  final bool weatherUnavailable;
   final QuestItem? nextSeichi;
   final double? nextDistance;
   final Set<String> collectedIds;
@@ -163,6 +169,11 @@ class MapPage extends StatelessWidget {
   final LatLng defaultCenter;
 
   final Set<Marker> markers;
+  final List<RegionalMapProgress> regionalProgress;
+  final bool showRegionalProgress;
+  final ValueChanged<RegionalMapProgress>? onRegionalProgressTap;
+  final ValueChanged<CameraPosition> onCameraMove;
+  final VoidCallback onCameraIdle;
 
   final VoidCallback onMoveToCurrentLocation;
   final VoidCallback onMoveToNextSeichi;
@@ -177,6 +188,7 @@ class MapPage extends StatelessWidget {
     required this.mapController,
     required this.currentPosition,
     required this.realWorldState,
+    this.weatherUnavailable = false,
     required this.nextSeichi,
     required this.nextDistance,
     required this.collectedIds,
@@ -191,6 +203,11 @@ class MapPage extends StatelessWidget {
     required this.total,
     required this.defaultCenter,
     required this.markers,
+    this.regionalProgress = const [],
+    this.showRegionalProgress = false,
+    this.onRegionalProgressTap,
+    required this.onCameraMove,
+    required this.onCameraIdle,
     required this.onMoveToCurrentLocation,
     required this.onMoveToNextSeichi,
     required this.onStartNavigation,
@@ -250,6 +267,20 @@ class MapPage extends StatelessWidget {
       WeatherCondition.unknown => Icons.cloud_outlined,
       null => Icons.cloud_outlined,
     };
+
+    final weatherLabel = weatherUnavailable
+        ? '更新待ち'
+        : switch (state?.weather) {
+            WeatherCondition.clear => '晴れ',
+            WeatherCondition.partlyCloudy => '晴れ/曇り',
+            WeatherCondition.cloudy => '曇り',
+            WeatherCondition.rain => '雨',
+            WeatherCondition.heavyRain => '大雨',
+            WeatherCondition.snow => '雪',
+            WeatherCondition.fog => '霧',
+            WeatherCondition.thunderstorm => '雷雨',
+            WeatherCondition.unknown || null => '天気確認中',
+          };
 
     final seasonLabel = switch (state?.season) {
       Season.spring => '春',
@@ -501,7 +532,7 @@ class MapPage extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              Container(
+                              Expanded(child: Container(
                                 padding: const EdgeInsets.fromLTRB(7, 6, 11, 6),
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
@@ -567,20 +598,27 @@ class MapPage extends StatelessWidget {
                                       ),
                                     ),
                                     const SizedBox(width: 7),
-                                    Text(
-                                      '$temperatureLabel  $seasonLabel・$dayPhaseLabel',
-                                      style: const TextStyle(
-                                        color: Color(0xFF174B5E),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800,
+                                    Flexible(
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          '$weatherLabel $temperatureLabel｜$seasonLabel・$dayPhaseLabel',
+                                          maxLines: 1,
+                                          style: const TextStyle(
+                                            color: Color(0xFF174B5E),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                              const Spacer(),
+                              )),
+                              const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.fromLTRB(7, 6, 11, 6),
+                                padding: const EdgeInsets.fromLTRB(6, 6, 8, 6),
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     begin: Alignment.topLeft,
@@ -613,8 +651,8 @@ class MapPage extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Container(
-                                      width: 27,
-                                      height: 27,
+                                      width: 24,
+                                      height: 24,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         gradient: const LinearGradient(
@@ -642,7 +680,7 @@ class MapPage extends StatelessWidget {
                                       ),
                                       child: const Icon(
                                         Icons.workspace_premium_rounded,
-                                        size: 15,
+                                        size: 14,
                                         color: Colors.white,
                                       ),
                                     ),
@@ -1333,6 +1371,7 @@ class MapPage extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(22),
         child: BackdropFilter(
+          enabled: false,
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Material(
             color: Colors.transparent,
@@ -1396,6 +1435,7 @@ class MapPage extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(19),
               child: BackdropFilter(
+                enabled: false,
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: Material(
                   color: Colors.transparent,
@@ -1452,6 +1492,7 @@ class MapPage extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(19),
               child: BackdropFilter(
+                enabled: false,
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: Material(
                   color: Colors.transparent,
@@ -1595,6 +1636,46 @@ class MapPage extends StatelessWidget {
     );
   }
 
+
+  Widget _buildRegionalProgressOverlay() {
+    if (!showRegionalProgress || regionalProgress.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned(
+      left: 14,
+      right: 14,
+      bottom: 118,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.90),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: const [BoxShadow(blurRadius: 12, offset: Offset(0, 4))],
+          ),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            alignment: WrapAlignment.center,
+            children: regionalProgress.map((item) {
+              return ActionChip(
+                onPressed: onRegionalProgressTap == null
+                    ? null
+                    : () => onRegionalProgressTap!(item),
+                label: Text(
+                  '${item.name} ${item.collectedCount}/${item.totalCount}',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+                ),
+              );
+            }).toList(growable: false),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMap() {
     LatLng initialTarget = defaultCenter;
 
@@ -1615,6 +1696,8 @@ class MapPage extends StatelessWidget {
       zoomControlsEnabled: false,
       mapToolbarEnabled: false,
       markers: markers,
+      onCameraMove: onCameraMove,
+      onCameraIdle: onCameraIdle,
       onMapCreated: onMapCreated,
       onTap: (_) {},
     );
@@ -1622,11 +1705,21 @@ class MapPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final safetyMessage = weatherUnavailable
+        ? null
+        : WeatherSafetyPolicy.message(realWorldState);
     return Stack(
       children: [
         _buildMap(),
         _buildEnvironmentOverlay(),
         _buildSeasonOverlay(),
+        _buildRegionalProgressOverlay(),
+        if (realWorldState != null)
+          SeasonEffectOverlay(
+            season: realWorldState!.season,
+            dayPhase: realWorldState!.dayPhase,
+            weather: realWorldState!.weather,
+          ),
         if (realWorldState != null)
           WeatherEffectOverlay(
             weather: realWorldState!.weather,
@@ -1636,25 +1729,53 @@ class MapPage extends StatelessWidget {
           top: 14,
           left: 14,
           right: 14,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(27),
-            clipBehavior: Clip.antiAlias,
-            child: AnimatedCrossFade(
-              firstChild: _buildQuestHud(collapsed: false),
-              secondChild: _buildQuestHud(collapsed: true),
-              crossFadeState: isQuestHudCollapsed
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              duration: const Duration(milliseconds: 460),
-              reverseDuration: const Duration(milliseconds: 460),
-              sizeCurve: Curves.easeInOutCubicEmphasized,
-              // Keep the outgoing card fully painted while its height is being
-              // clipped. The outer rounded clip keeps the animated bottom edge
-              // rounded throughout the collapse.
-              firstCurve: const Threshold(0.98),
-              secondCurve: const Threshold(0.98),
-              alignment: Alignment.topCenter,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(27),
+                clipBehavior: Clip.antiAlias,
+                child: AnimatedCrossFade(
+                  firstChild: _buildQuestHud(collapsed: false),
+                  secondChild: _buildQuestHud(collapsed: true),
+                  crossFadeState: isQuestHudCollapsed
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  duration: const Duration(milliseconds: 460),
+                  reverseDuration: const Duration(milliseconds: 460),
+                  sizeCurve: Curves.easeInOutCubicEmphasized,
+                  firstCurve: const Threshold(0.98),
+                  secondCurve: const Threshold(0.98),
+                  alignment: Alignment.topCenter,
+                ),
+              ),
+              if (safetyMessage != null) ...[
+                const SizedBox(height: 8),
+                WeatherSafetyBanner(message: safetyMessage),
+              ],
+              if (weatherUnavailable) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xF4F6F8FC),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '天気を更新できませんでした。しばらくして再試行します。'
+                    ' (${AppErrorCodes.weatherFetch})',
+                    style: const TextStyle(
+                      color: QuestUiTokens.mutedInk,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         _buildLocationButton(),

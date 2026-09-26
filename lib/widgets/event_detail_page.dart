@@ -5,6 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../models/event.dart';
 import '../models/quest_item.dart';
+import '../policies/quest_event_presentation_policy.dart';
+import '../policies/quest_event_theme_policy.dart';
+import '../services/event_progress_service.dart';
 import 'quest_spot_detail_sheet.dart';
 import 'quest_ui.dart';
 import '../services/app_logger.dart';
@@ -50,16 +53,30 @@ class EventDetailPage extends StatefulWidget {
 }
 
 class _EventDetailPageState extends State<EventDetailPage> {
+  static const QuestEventThemePolicy _eventThemePolicy = QuestEventThemePolicy();
+
+  QuestEventTheme get _eventTheme => _eventThemePolicy.resolve(widget.event);
+
   bool _isActionRunning = false;
 
   bool _isLoadingQuestItem = true;
-  String? _seichiErrorMessage;
+  String? _questItemErrorMessage;
 
-  List<QuestItem> _seichiList = [];
+  List<QuestItem> _questItems = [];
 
   final Set<String> _collectedSeichiIds = <String>{};
 
   String _galleryFilter = 'すべて';
+
+  bool _isLoadingGeoScopes = false;
+  List<Map<String, dynamic>> _geoScopes = <Map<String, dynamic>>[];
+  String? _selectedGeoRegionCode;
+  EventProgressSummary? _progressSummary;
+  bool _isLoadingMoreItems = false;
+  bool _pagingExhausted = false;
+  int _itemRequestGeneration = 0;
+
+  bool _supportsGeoScopes = false;
 
   bool _isLoadingSocialStats = true;
   bool _isFavoriteUpdating = false;
@@ -67,20 +84,55 @@ class _EventDetailPageState extends State<EventDetailPage> {
   int? _favoriteCount;
   bool _isFavorited = false;
 
-  final QuestItemService _seichiService = QuestItemService();
+  final QuestItemService _questItemService = QuestItemService();
+  final EventProgressService _progressService = EventProgressService();
 
   supabase.SupabaseClient get _client => supabase.Supabase.instance.client;
 
   @override
   void initState() {
     super.initState();
-    _loadSeichiList();
+    _initializeQuestItems();
     _loadSocialStats();
   }
 
-  Future<void> _loadSeichiList() async {
+  Future<void> _initializeQuestItems() async {
     try {
-      final list = await _seichiService.loadActiveItems(widget.event.id);
+      final data = await _client.rpc(
+        'get_event_geo_scopes',
+        params: {'p_event_id': widget.event.id},
+      );
+      final rows = List<Map<String, dynamic>>.from(data as List);
+      if (!mounted) return;
+      _supportsGeoScopes = rows.isNotEmpty;
+      if (_supportsGeoScopes) {
+        await _loadGeoScopes(prefetchedRows: rows);
+      } else {
+        await _loadSeichiList();
+      }
+    } catch (error) {
+      appDebugPrint('[EVENT_DETAIL] geo capability check failed: $error');
+      if (!mounted) return;
+      await _loadSeichiList();
+    }
+  }
+
+  Future<void> _loadSeichiList({String? regionCode}) async {
+    final generation = ++_itemRequestGeneration;
+    final eventId = widget.event.id;
+    try {
+      final summary = await _progressService.load(widget.event.id);
+      final list = regionCode == null
+          ? (summary.totalCount > 200
+              ? await _questItemService.loadActiveItemsPage(
+                  eventId: widget.event.id,
+                  limit: 100,
+                )
+              : await _questItemService.loadActiveItems(widget.event.id))
+          : await _questItemService.loadActiveItemsForRegion(
+              eventId: widget.event.id,
+              regionCode: regionCode,
+            );
 
       final collectedIds = <String>{};
       final user = _client.auth.currentUser;
@@ -94,10 +146,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
               .eq('event_id', widget.event.id);
 
           for (final row in List<Map<String, dynamic>>.from(historyData)) {
-            final seichiId = row['event_content_id']?.toString() ?? '';
+            final questItemId = row['event_content_id']?.toString() ?? '';
 
-            if (seichiId.isNotEmpty) {
-              collectedIds.add(seichiId);
+            if (questItemId.isNotEmpty) {
+              collectedIds.add(questItemId);
             }
           }
         } catch (error, stackTrace) {
@@ -110,32 +162,152 @@ class _EventDetailPageState extends State<EventDetailPage> {
         }
       }
 
-      if (!mounted) {
+      if (!mounted ||
+          generation != _itemRequestGeneration ||
+          eventId != widget.event.id ||
+          regionCode != _selectedGeoRegionCode) {
         return;
       }
 
       setState(() {
-        _seichiList = list;
+        _questItems = list;
+        _pagingExhausted =
+            regionCode != null ||
+            list.isEmpty ||
+            list.length >= summary.totalCount;
+        _progressSummary = summary;
 
         _collectedSeichiIds
           ..clear()
           ..addAll(collectedIds);
 
         _isLoadingQuestItem = false;
-        _seichiErrorMessage = null;
+        _questItemErrorMessage = null;
       });
     } catch (error, stackTrace) {
-      appDebugPrint('[EVENT_DETAIL] seichi load failed: $error');
-      appDebugPrint('[EVENT_DETAIL] seichi load stackTrace: $stackTrace');
+      appDebugPrint('[EVENT_DETAIL] quest item load failed: $error');
+      appDebugPrint('[EVENT_DETAIL] quest item load stackTrace: $stackTrace');
 
-      if (!mounted) {
+      if (!mounted ||
+          generation != _itemRequestGeneration ||
+          eventId != widget.event.id ||
+          regionCode != _selectedGeoRegionCode) {
         return;
       }
 
       setState(() {
         _isLoadingQuestItem = false;
-        _seichiErrorMessage = '札情報を読み込めませんでした。';
+        _questItemErrorMessage = '${widget.event.itemLabelPlural}情報を読み込めませんでした。';
       });
+    }
+  }
+
+  bool get _hasMoreItems =>
+      !_pagingExhausted &&
+      _selectedGeoRegionCode == null &&
+      (_progressSummary?.totalCount ?? _questItems.length) > _questItems.length;
+
+  Future<void> _loadMoreItems() async {
+    if (_isLoadingMoreItems || !_hasMoreItems) return;
+    final generation = _itemRequestGeneration;
+    final eventId = widget.event.id;
+    final offset = _questItems.length;
+    setState(() => _isLoadingMoreItems = true);
+    try {
+      final next = await _questItemService.loadActiveItemsPage(
+        eventId: eventId,
+        offset: offset,
+        limit: 100,
+      );
+      if (!mounted ||
+          generation != _itemRequestGeneration ||
+          eventId != widget.event.id ||
+          _selectedGeoRegionCode != null) {
+        return;
+      }
+      if (next.isEmpty) {
+        setState(() => _pagingExhausted = true);
+        return;
+      }
+      final byId = <String, QuestItem>{
+        for (final item in _questItems) item.id: item,
+        for (final item in next) item.id: item,
+      };
+      final merged = byId.values.toList(growable: false)
+        ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+      setState(() {
+        _questItems = List<QuestItem>.unmodifiable(merged);
+        if (_questItems.length >=
+            (_progressSummary?.totalCount ?? _questItems.length)) {
+          _pagingExhausted = true;
+        }
+      });
+    } catch (error) {
+      appDebugPrint('[EVENT_DETAIL] load more failed: $error');
+    } finally {
+      if (mounted &&
+          generation == _itemRequestGeneration &&
+          eventId == widget.event.id &&
+          _selectedGeoRegionCode == null) {
+        setState(() => _isLoadingMoreItems = false);
+      }
+    }
+  }
+
+  Future<void> _loadGeoScopes({List<Map<String, dynamic>>? prefetchedRows}) async {
+    setState(() {
+      _isLoadingGeoScopes = true;
+    });
+
+    try {
+      final rows = prefetchedRows ??
+          List<Map<String, dynamic>>.from(
+            (await _client.rpc(
+              'get_event_geo_scopes',
+              params: {'p_event_id': widget.event.id},
+            )) as List,
+          );
+
+      String? initialCode;
+      final prefecture = widget.event.prefecture;
+      if (prefecture != null && prefecture.isNotEmpty) {
+        for (final row in rows) {
+          if (row['region_level'] == 'prefecture' &&
+              row['region_name'] == prefecture) {
+            initialCode = row['region_code']?.toString();
+            break;
+          }
+        }
+      }
+      if (initialCode == null) {
+        for (final row in rows) {
+          if (row['region_level'] == 'prefecture') {
+            initialCode = row['region_code']?.toString();
+            break;
+          }
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _geoScopes = rows;
+        _selectedGeoRegionCode = initialCode;
+        _isLoadingGeoScopes = false;
+      });
+
+      if (initialCode != null) {
+        await _loadSeichiList(regionCode: initialCode);
+      } else {
+        await _loadSeichiList();
+      }
+    } catch (error, stackTrace) {
+      appDebugPrint('[EVENT_DETAIL] geo scope load failed: $error');
+      appDebugPrint('[EVENT_DETAIL] geo scope stackTrace: $stackTrace');
+      if (!mounted) return;
+      setState(() {
+        _isLoadingGeoScopes = false;
+      });
+      await _loadSeichiList();
     }
   }
 
@@ -262,6 +434,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   QuestItem? get _nearestUncollectedQuestItem {
+    // A paged catalogue is only a partial scope. Do not present a local
+    // minimum as the nearest destination for the whole event/region.
+    if (_hasMoreItems) {
+      return null;
+    }
+
     final position = widget.currentPosition;
 
     if (position == null) {
@@ -271,7 +449,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     QuestItem? nearest;
     double? nearestDistance;
 
-    for (final seichi in _seichiList) {
+    for (final seichi in _questItems) {
       if (_collectedSeichiIds.contains(seichi.id)) {
         continue;
       }
@@ -318,17 +496,17 @@ class _EventDetailPageState extends State<EventDetailPage> {
   List<QuestItem> get _filteredSeichiList {
     switch (_galleryFilter) {
       case '獲得済み':
-        return _seichiList
+        return _questItems
             .where((seichi) => _collectedSeichiIds.contains(seichi.id))
             .toList(growable: false);
 
       case '未獲得':
-        return _seichiList
+        return _questItems
             .where((seichi) => !_collectedSeichiIds.contains(seichi.id))
             .toList(growable: false);
 
       default:
-        return _seichiList;
+        return _questItems;
     }
   }
 
@@ -368,23 +546,16 @@ class _EventDetailPageState extends State<EventDetailPage> {
     return widget.event.eventStatusText();
   }
 
+  static const QuestEventPresentationPolicy _eventPresentationPolicy =
+      QuestEventPresentationPolicy();
+
   Color _participationColor() {
-    switch (widget.participationLabel) {
-      case '選択中':
-        return Colors.deepPurple;
-
-      case '参加中':
-        return Colors.green;
-
-      case '過去に参加':
-        return Colors.orange;
-
-      case '未参加':
-        return Colors.grey;
-
-      default:
-        return Colors.grey;
+    final presentation =
+        _eventPresentationPolicy.fromLabel(widget.participationLabel);
+    if (presentation.state == QuestParticipationState.selected) {
+      return _eventTheme.primary;
     }
+    return presentation.color;
   }
 
   bool get _hasProgress {
@@ -461,12 +632,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               Icon(
                 Icons.groups_2_rounded,
                 size: 20,
-                color: QuestUiTokens.primary,
+                color: _eventTheme.primary,
               ),
               SizedBox(width: 8),
               Text(
@@ -481,12 +652,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ),
           const SizedBox(height: 15),
           if (_isLoadingSocialStats)
-            const SizedBox(
+            SizedBox(
               height: 54,
               child: Center(
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: QuestUiTokens.primary,
+                  color: _eventTheme.primary,
                 ),
               ),
             )
@@ -500,7 +671,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     value: _participantCount == null
                         ? '−'
                         : '${_participantCount!}人',
-                    color: QuestUiTokens.cyan,
+                    color: _eventTheme.accent,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -625,7 +796,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  gradient: QuestUiTokens.primaryGradient,
+                  gradient: _eventTheme.primaryGradient,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
@@ -671,10 +842,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: QuestUiTokens.primary.withValues(alpha: 0.04),
+              color: _eventTheme.primary.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(17),
               border: Border.all(
-                color: QuestUiTokens.primary.withValues(alpha: 0.08),
+                color: _eventTheme.primary.withValues(alpha: 0.08),
               ),
             ),
             child: Row(
@@ -685,15 +856,15 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   height: 42,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: QuestUiTokens.primary.withValues(alpha: 0.10),
+                    color: _eventTheme.primary.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     seichi.contentKey,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
-                      color: QuestUiTokens.primary,
+                      color: _eventTheme.primary,
                     ),
                   ),
                 ),
@@ -765,11 +936,18 @@ class _EventDetailPageState extends State<EventDetailPage> {
   List<QuestItem> _buildRecommendedRoute() {
     final position = widget.currentPosition;
 
+    // A paged catalogue is only a partial event view. Building a route from it
+    // would silently omit destinations, so route generation stays disabled
+    // until the selected scope is fully loaded.
+    if (_hasMoreItems) {
+      return const <QuestItem>[];
+    }
+
     if (position == null) {
       return const <QuestItem>[];
     }
 
-    final remaining = _seichiList
+    final remaining = _questItems
         .where(
           (seichi) =>
               !_collectedSeichiIds.contains(seichi.id) &&
@@ -856,7 +1034,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            gradient: QuestUiTokens.cyanGradient,
+                            gradient: LinearGradient(colors: [_eventTheme.accent, _eventTheme.primary]),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: const Icon(
@@ -895,7 +1073,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ),
                   Divider(
                     height: 1,
-                    color: QuestUiTokens.primary.withValues(alpha: 0.08),
+                    color: _eventTheme.primary.withValues(alpha: 0.08),
                   ),
                   Expanded(
                     child: ListView.separated(
@@ -959,7 +1137,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     height: 38,
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                      gradient: QuestUiTokens.primaryGradient,
+                                      gradient: _eventTheme.primaryGradient,
                                       shape: BoxShape.circle,
                                     ),
                                     child: Text(
@@ -983,10 +1161,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     ),
                                     child: Text(
                                       seichi.contentKey,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w900,
-                                        color: QuestUiTokens.primary,
+                                        color: _eventTheme.primary,
                                       ),
                                     ),
                                   ),
@@ -1018,12 +1196,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     ),
                                   ),
                                   if (isNext)
-                                    const Padding(
+                                    Padding(
                                       padding: EdgeInsets.only(left: 8),
                                       child: Icon(
                                         Icons.navigation_rounded,
                                         size: 20,
-                                        color: QuestUiTokens.primary,
+                                        color: _eventTheme.primary,
                                       ),
                                     ),
                                 ],
@@ -1037,7 +1215,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   if (widget.onStartRecommendedRoute != null) ...[
                     Divider(
                       height: 1,
-                      color: QuestUiTokens.primary.withValues(alpha: 0.08),
+                      color: _eventTheme.primary.withValues(alpha: 0.08),
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
@@ -1101,7 +1279,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  gradient: QuestUiTokens.cyanGradient,
+                  gradient: LinearGradient(colors: [_eventTheme.accent, _eventTheme.primary]),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
@@ -1175,7 +1353,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
               onPressed: _showRecommendedRoute,
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(48),
-                foregroundColor: QuestUiTokens.primary,
+                foregroundColor: _eventTheme.primary,
                 side: BorderSide(
                   color: QuestUiTokens.primary.withValues(alpha: 0.18),
                 ),
@@ -1209,6 +1387,87 @@ class _EventDetailPageState extends State<EventDetailPage> {
     );
   }
 
+  Widget _buildGeoScopeSelector() {
+    if (!_supportsGeoScopes) return const SizedBox.shrink();
+
+    if (_isLoadingGeoScopes) {
+      return const QuestGlassCard(
+        padding: EdgeInsets.all(18),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final rows = _geoScopes;
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    final prefectures =
+        rows.where((row) => row['region_level'] == 'prefecture').toList();
+    final regional =
+        rows.where((row) => row['region_level'] == 'regional').toList();
+    final national =
+        rows.where((row) => row['region_level'] == 'national').toList();
+
+    Widget progressRows(String title, List<Map<String, dynamic>> scopes) {
+      if (scopes.isEmpty) return const SizedBox.shrink();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          ...scopes.map((row) {
+            final name = row['region_name']?.toString() ?? '';
+            final collected = (row['collected_count'] as num?)?.toInt() ?? 0;
+            final total = (row['total_count'] as num?)?.toInt() ?? 0;
+            final percent = total == 0 ? 0.0 : collected / total;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Expanded(child: Text(name,
+                        style: const TextStyle(fontWeight: FontWeight.w800))),
+                    Text('$collected/$total',
+                        style: const TextStyle(
+                            color: QuestUiTokens.mutedInk,
+                            fontWeight: FontWeight.w800)),
+                  ]),
+                  const SizedBox(height: 5),
+                  LinearProgressIndicator(value: percent.clamp(0.0, 1.0)),
+                ],
+              ),
+            );
+          }),
+        ],
+      );
+    }
+
+    return QuestGlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('攻略状況',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900,
+                  color: QuestUiTokens.ink)),
+          const SizedBox(height: 6),
+          Text('地域は表示制限ではありません。移動先の${widget.event.itemLabelPlural}は現在地に合わせて自動で切り替わります。',
+              style: TextStyle(fontSize: 12, color: QuestUiTokens.mutedInk)),
+          const SizedBox(height: 14),
+          progressRows('都道府県', prefectures),
+          if (regional.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            progressRows('地方', regional),
+          ],
+          if (national.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            progressRows('全国', national),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildCardGallery() {
     final filteredList = _filteredSeichiList;
 
@@ -1223,7 +1482,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  gradient: QuestUiTokens.primaryGradient,
+                  gradient: _eventTheme.primaryGradient,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
@@ -1233,7 +1492,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1248,7 +1507,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      '札ギャラリー',
+                      '${widget.event.itemLabelPlural}ギャラリー',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
@@ -1258,21 +1517,21 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ],
                 ),
               ),
-              if (!_isLoadingQuestItem && _seichiList.isNotEmpty)
+              if (!_isLoadingQuestItem && _questItems.isNotEmpty)
                 QuestStatusChip(
-                  label: '${filteredList.length} / ${_seichiList.length}札',
-                  accentColor: QuestUiTokens.cyan,
+                  label: '${filteredList.length} / ${_selectedGeoRegionCode == null ? (_progressSummary?.totalCount ?? _questItems.length) : _questItems.length}${widget.event.itemLabelPlural}',
+                  accentColor: _eventTheme.accent,
                 ),
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            '札をタップすると詳細を確認できます',
+          Text(
+            '${widget.event.itemLabelSingular}をタップすると詳細を確認できます',
             style: TextStyle(fontSize: 12, color: QuestUiTokens.mutedInk),
           ),
           if (!_isLoadingQuestItem &&
-              _seichiErrorMessage == null &&
-              _seichiList.isNotEmpty) ...[
+              _questItemErrorMessage == null &&
+              _questItems.isNotEmpty) ...[
             const SizedBox(height: 14),
             Wrap(
               spacing: 8,
@@ -1360,7 +1619,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 child: CircularProgressIndicator(color: QuestUiTokens.primary),
               ),
             )
-          else if (_seichiErrorMessage != null)
+          else if (_questItemErrorMessage != null)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(18),
@@ -1375,16 +1634,18 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     color: Colors.redAccent,
                   ),
                   const SizedBox(height: 8),
-                  Text(_seichiErrorMessage!, textAlign: TextAlign.center),
+                  Text(_questItemErrorMessage!, textAlign: TextAlign.center),
                   const SizedBox(height: 10),
                   TextButton.icon(
                     onPressed: () {
                       setState(() {
                         _isLoadingQuestItem = true;
-                        _seichiErrorMessage = null;
+                        _questItemErrorMessage = null;
                       });
 
-                      _loadSeichiList();
+                      _loadSeichiList(
+                        regionCode: _selectedGeoRegionCode,
+                      );
                     },
                     icon: const Icon(Icons.refresh),
                     label: const Text('再読み込み'),
@@ -1392,7 +1653,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 ],
               ),
             )
-          else if (_seichiList.isEmpty)
+          else if (_questItems.isEmpty)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(18),
@@ -1400,8 +1661,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 color: QuestUiTokens.ink.withValues(alpha: 0.035),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Text(
-                'このクエストには札が登録されていません。',
+              child: Text(
+                'このクエストには${widget.event.itemLabelPlural}が登録されていません。',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: QuestUiTokens.mutedInk),
               ),
@@ -1415,12 +1676,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
-                _galleryFilter == '獲得済み' ? '獲得済みの札はまだありません。' : '未獲得の札はありません。',
+                _galleryFilter == '獲得済み' ? '獲得済みの${widget.event.itemLabelPlural}はまだありません。' : '未獲得の${widget.event.itemLabelPlural}はありません。',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: QuestUiTokens.mutedInk),
               ),
             )
           else
+            Column(
+              children: [
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -1434,6 +1697,18 @@ class _EventDetailPageState extends State<EventDetailPage> {
               itemBuilder: (context, index) {
                 return _buildGalleryCard(filteredList[index]);
               },
+            ),
+            if (_hasMoreItems) ...[
+              const SizedBox(height: 14),
+              OutlinedButton.icon(
+                onPressed: _isLoadingMoreItems ? null : _loadMoreItems,
+                icon: _isLoadingMoreItems
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.expand_more_rounded),
+                label: Text(_isLoadingMoreItems ? '読み込み中…' : '続きを読み込む'),
+              ),
+            ],
+              ],
             ),
         ],
       ),
@@ -1545,7 +1820,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          gradient: QuestUiTokens.primaryGradient,
+                          gradient: _eventTheme.primaryGradient,
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: const Text(
@@ -1574,10 +1849,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
       alignment: Alignment.center,
       child: Text(
         seichi.contentKey,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 38,
           fontWeight: FontWeight.w900,
-          color: QuestUiTokens.primary,
+          color: _eventTheme.primary,
         ),
       ),
     );
@@ -1603,7 +1878,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
     buffer
       ..writeln()
-      ..write('聖地を巡って、スタンプを集めよう！');
+      ..write('${widget.event.itemLabelPlural}を巡って、スタンプを集めよう！');
 
     final renderBox = shareButtonContext.findRenderObject() as RenderBox?;
 
@@ -1708,7 +1983,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(
-                          gradient: QuestUiTokens.primaryGradient,
+                          gradient: _eventTheme.primaryGradient,
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [
                             BoxShadow(
@@ -1799,7 +2074,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  gradient: QuestUiTokens.primaryGradient,
+                  gradient: _eventTheme.primaryGradient,
                   borderRadius: BorderRadius.circular(
                     QuestUiTokens.controlRadius,
                   ),
@@ -1860,9 +2135,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       color: QuestUiTokens.cyan.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.calendar_month_rounded,
-                      color: QuestUiTokens.cyan,
+                      color: _eventTheme.accent,
                       size: 22,
                     ),
                   ),
@@ -1899,6 +2174,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
             _buildSocialStatsCard(),
 
+            if (_supportsGeoScopes) ...[
+              const SizedBox(height: 14),
+              _buildGeoScopeSelector(),
+            ],
+
             if (_hasProgress) ...[
               const SizedBox(height: 14),
 
@@ -1913,7 +2193,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           width: 42,
                           height: 42,
                           decoration: BoxDecoration(
-                            gradient: QuestUiTokens.cyanGradient,
+                            gradient: LinearGradient(colors: [_eventTheme.accent, _eventTheme.primary]),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: const Icon(
@@ -1950,10 +2230,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         ),
                         Text(
                           '$_progressPercent%',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w900,
-                            color: QuestUiTokens.primary,
+                            color: _eventTheme.primary,
                           ),
                         ),
                       ],
@@ -2007,7 +2287,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                 ? '完全制覇！'
                                 : 'あと'
                                       '${widget.totalCount! - widget.collectedCount!}'
-                                      '札で完全制覇'
+                                      '${widget.event.itemLabelPlural}で完全制覇'
                           : '',
                       style: TextStyle(
                         fontSize: 12,
@@ -2047,7 +2327,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   },
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(50),
-                    foregroundColor: QuestUiTokens.primary,
+                    foregroundColor: _eventTheme.primary,
                     side: BorderSide(
                       color: QuestUiTokens.primary.withValues(alpha: 0.22),
                     ),

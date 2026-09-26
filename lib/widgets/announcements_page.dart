@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/announcement.dart';
 import '../services/announcement_service.dart';
+import '../services/app_error_report.dart';
 import 'quest_ui.dart';
 import 'announcement_carousel_dialog.dart';
 
@@ -43,11 +44,16 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
         _isLoading = false;
         _errorMessage = null;
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = 'お知らせを取得できませんでした。';
+        _errorMessage = AppErrorReport.message(
+          AppErrorCodes.announcements,
+          'お知らせを取得できませんでした。',
+          error: error,
+          stackTrace: stackTrace,
+        );
       });
     }
   }
@@ -86,7 +92,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F5FB),
+      backgroundColor: QuestUiTokens.background,
       appBar: AppBar(
         title: const Text(
           'お知らせ',
@@ -95,7 +101,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
             fontWeight: FontWeight.w900,
           ),
         ),
-        backgroundColor: const Color(0xFFF7F5FB),
+        backgroundColor: QuestUiTokens.background,
       ),
       body: RefreshIndicator(
         onRefresh: _load,

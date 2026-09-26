@@ -95,3 +95,4 @@ comment on table public.announcements is
 
 comment on table public.announcement_reads is
   'Supabase Authユーザー単位のお知らせ既読状態。';
+;

@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'dart:ui';
 
 import 'dart:async';
@@ -9,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'collection_history_service.dart';
 import 'widgets/banner_ad_widget.dart';
@@ -29,15 +26,23 @@ import 'widgets/announcements_page.dart';
 import 'widgets/announcement_carousel_dialog.dart';
 import 'widgets/app_settings_page.dart';
 import 'widgets/quest_ui.dart';
+import 'widgets/quest_spot_detail_sheet.dart';
 import 'widgets/onboarding_page.dart';
 import 'widgets/license_page.dart';
+import 'widgets/legal_info_page.dart';
 import 'models/quest_item.dart';
 import 'models/achievement.dart';
-import 'models/content_block.dart';
 import 'models/event.dart';
+import 'models/regional_map_progress.dart';
 import 'services/level_service.dart' show LevelProgress;
 import 'services/location_service.dart';
+import 'services/location_integrity_policy.dart';
+import 'services/location_integrity_service.dart';
 import 'services/marker_cache_revision.dart';
+import 'services/quest_map_cluster_service.dart';
+import 'services/quest_map_display_policy.dart';
+import 'services/regional_map_progress_service.dart';
+import 'services/quest_cluster_icon_service.dart';
 import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
 import 'services/onboarding_service.dart';
@@ -48,16 +53,15 @@ import 'models/real_world_state.dart';
 import 'services/external_navigation_service.dart';
 import 'services/weather_service.dart';
 import 'services/weather_refresh_policy.dart';
-import 'services/content_block_service.dart';
-import 'services/content_block_presentation_policy.dart';
-import 'widgets/content_block_renderer.dart';
 
 import 'services/app_logger.dart';
+import 'services/app_error_report.dart';
 import 'services/collection_sync_service.dart';
 import 'services/collection_apply_policy.dart';
 import 'services/collection_display_policy.dart';
 import 'services/collection_progress_policy.dart';
 import 'services/event_service.dart';
+import 'services/event_progress_service.dart';
 import 'services/event_switch_coordinator.dart';
 import 'services/destination_persistence_service.dart';
 import 'services/recommended_route_policy.dart';
@@ -70,6 +74,7 @@ import 'services/quest_item_service.dart';
 import 'services/account_refresh_coordinator.dart';
 import 'services/app_settings_service.dart';
 import 'services/interstitial_ad_service.dart';
+import 'services/ad_sdk_service.dart';
 import 'services/announcement_service.dart';
 
 // ============================================================
@@ -85,11 +90,15 @@ const supabasePublishableKey = 'sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w';
 // ============================================================
 
 Future<void> main() async {
+  final startupWatch = Stopwatch()..start();
   WidgetsFlutterBinding.ensureInitialized();
 
   await supabase.Supabase.initialize(
     url: supabaseUrl,
     publishableKey: supabasePublishableKey,
+  );
+  appDebugPrint(
+    '[STARTUP_TIME] Supabase ready: ${startupWatch.elapsedMilliseconds}ms',
   );
 
   runApp(const SeichiQuestApp());
@@ -98,21 +107,32 @@ Future<void> main() async {
   // Google Maps と同時にネイティブSDKを初期化すると起動直後の
   // main thread 負荷が集中するため、最初の描画後へ逃がす。
   WidgetsBinding.instance.addPostFrameCallback((_) {
+    appDebugPrint(
+      '[STARTUP_TIME] first Flutter frame: ${startupWatch.elapsedMilliseconds}ms',
+    );
     unawaited(_initializeDeferredPlatformServices());
   });
 }
 
 Future<void> _initializeDeferredPlatformServices() async {
-  try {
-    await MobileAds.instance.initialize();
-  } catch (error) {
-    appDebugPrint('[STARTUP] Mobile Ads init failed: $error');
-  }
-
+  // 通知は軽量なので先に準備する。
   try {
     await NotificationService.instance.initialize();
   } catch (error) {
     appDebugPrint('[STARTUP] notification init failed: $error');
+  }
+
+  // Google Maps のネイティブ初期化・最初のタイル描画と
+  // AdMob/WebView の初期化を同時に走らせない。
+  // 広告自体は維持し、起動直後の負荷ピークだけ後ろへずらす。
+  await Future<void>.delayed(const Duration(seconds: 5));
+
+  try {
+    appDebugPrint('[STARTUP] deferred Mobile Ads init start');
+    await AdSdkService.instance.initialize();
+    appDebugPrint('[STARTUP] deferred Mobile Ads init complete');
+  } catch (error) {
+    appDebugPrint('[STARTUP] Mobile Ads init failed: $error');
   }
 }
 
@@ -134,15 +154,7 @@ class SeichiQuestApp extends StatelessWidget {
     return MaterialApp(
       title: '聖地クエスト',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        fontFamily: 'NotoSansJP',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6A35C8),
-          brightness: Brightness.light,
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF7F5FB),
-      ),
+      theme: questTheme(),
       home: home ?? const SeichiMapPage(),
     );
   }
@@ -161,6 +173,7 @@ class SeichiMapPage extends StatefulWidget {
 
 class _SeichiMapPageState extends State<SeichiMapPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  final Stopwatch _startupWatch = Stopwatch()..start();
   static const CollectionApplyPolicy _collectionApplyPolicy =
       CollectionApplyPolicy();
   static const CollectionDisplayPolicy _collectionDisplayPolicy =
@@ -171,24 +184,72 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   GoogleMapController? _mapController;
 
   StreamSubscription<Position>? _positionSubscription;
+  Timer? _environmentClockTimer;
 
   static const LocationService _locationService = LocationService();
+  final LocationIntegrityService _locationIntegrityService = LocationIntegrityService();
+  LocationSecurityState _locationSecurityState = LocationSecurityState.clear();
 
   Position? _currentPosition;
 
   // スタンプ判定に使用した直前のGPS位置。
   // GPSの急跳びによる誤獲得を防ぐために使用する。
   Position? _lastStampCheckPosition;
+  bool _isMockLocationSessionActive = false;
+  bool _isImplausibleMovementSessionActive = false;
+  bool _isLocationCooldownNoticeShown = false;
 
   final WeatherService _weatherService = WeatherService();
   static const WeatherRefreshPolicy _weatherRefreshPolicy =
       WeatherRefreshPolicy();
-  RealWorldState? _realWorldState;
+
+  // 天気エフェクトの性能・見た目確認用。現在は曇りを強制。リリース前に false へ戻すこと。
+  static const bool _forceCloudyForVisualTest = false;
+  RealWorldState? _realWorldState = RealWorldState.fromLocalTime(
+    DateTime.now(),
+    weather: _forceCloudyForVisualTest
+        ? WeatherCondition.cloudy
+        : WeatherCondition.unknown,
+  );
   DateTime? _lastWeatherFetchAt;
   Position? _lastWeatherFetchPosition;
   bool _isWeatherFetchInProgress = false;
+  bool _weatherLoadFailed = false;
 
   List<QuestItem> _seichiList = [];
+  List<QuestItem> _nearbyQuestItems = [];
+  List<QuestItem> _mapVisibleSeichiList = [];
+  Position? _lastNearbyLoadPosition;
+  static const double _nearbyReloadDistanceMeters = 15000;
+  static const QuestMapDisplayPolicy _questMapDisplayPolicy = QuestMapDisplayPolicy();
+  final RegionalMapProgressService _regionalMapProgressService = RegionalMapProgressService();
+  List<RegionalMapProgress> _regionalMapProgress = [];
+  String? _regionalMapProgressEventId;
+  bool _isMapViewportLoading = false;
+  bool _mapViewportRefreshPending = false;
+  int _mapViewportRequestGeneration = 0;
+  final EventProgressService _eventProgressService = EventProgressService();
+  EventProgressSummary? _eventProgressSummary;
+  bool _isLoadingMoreCollectionItems = false;
+  int _collectionPageOffset = 0;
+  bool _collectionPagingExhausted = false;
+  int _collectionRequestGeneration = 0;
+  List<QuestItem> get _locationQuestItems {
+    if (_eventTotalCount <= _seichiList.length || _nearbyQuestItems.isEmpty) return _seichiList;
+    return _nearbyQuestItems;
+  }
+
+  List<QuestItem> get _mapQuestItems =>
+      _eventTotalCount > 200 ? _mapVisibleSeichiList : _seichiList;
+
+  List<QuestItem> get _knownQuestItems {
+    final byId = <String, QuestItem>{};
+    for (final item in _seichiList) { byId[item.id] = item; }
+    for (final item in _nearbyQuestItems) { byId[item.id] = item; }
+    for (final item in _mapVisibleSeichiList) { byId[item.id] = item; }
+    return List<QuestItem>.unmodifiable(byId.values);
+  }
+
   final Set<String> _collectedIds = {};
   final Map<String, Set<String>> _collectionEventNamesByContentKey = {};
 
@@ -196,6 +257,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   static const NextDestinationService _nextDestinationService =
       NextDestinationService();
   final EventService _eventService = EventService();
+  EventSelection? _startupEventSelection;
   final AnnouncementService _announcementService = AnnouncementService();
   int _unreadAnnouncementCount = 0;
   bool _startupAnnouncementsShown = false;
@@ -214,9 +276,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final DestinationPersistenceService _destinationPersistenceService =
       DestinationPersistenceService();
   final StampCacheService _stampCacheService = StampCacheService();
-  final ContentBlockService _contentBlockService = ContentBlockService();
-  static const ContentBlockPresentationPolicy _contentBlockPresentationPolicy =
-      ContentBlockPresentationPolicy();
   static const ExternalNavigationService _externalNavigationService =
       ExternalNavigationService();
   late final CollectionSyncService _collectionSyncService =
@@ -238,12 +297,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   bool _isLoading = true;
   bool _isLoadingLocation = false;
+  bool _markerIconsLoadScheduled = false;
 
   final OnboardingService _onboardingService = OnboardingService();
   bool _isOnboardingReady = false;
   bool _shouldShowOnboarding = false;
 
   String? _errorMessage;
+  String? _startupErrorMessage;
   String? _errorActionLabel;
   Future<void> Function()? _errorAction;
 
@@ -262,6 +323,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   BitmapDescriptor? _staticMarkerCacheUncollectedIcon;
   BitmapDescriptor? _staticMarkerCacheCollectedIcon;
   final MarkerCacheRevision _markerCacheRevision = MarkerCacheRevision();
+  static const QuestMapClusterService _clusterService = QuestMapClusterService();
+  final QuestClusterIconService _clusterIconService = QuestClusterIconService();
+  final Map<int, BitmapDescriptor> _clusterIcons = {};
+  final Set<int> _loadingClusterIcons = {};
+  double _cameraZoom = 10.5;
+  double _renderedZoom = 10.5;
   int _staticMarkerCacheRevision = -1;
   QuestItem? _nextSeichi;
   double? _nextDistance;
@@ -288,7 +355,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   bool _isCollecting = false;
 
   late AnimationController _sonarController;
-  int _lastMarkerAnimationFrame = -1;
 
   int _selectedTab = 0;
 
@@ -313,21 +379,29 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _startEnvironmentClock();
 
     _sonarController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     );
-    _sonarController.addListener(_onMarkerAnimationTick);
 
     _initialize();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed || !mounted) {
+    if (!mounted) {
       return;
     }
+
+    if (state != AppLifecycleState.resumed) {
+      _environmentClockTimer?.cancel();
+      return;
+    }
+
+    _startEnvironmentClock();
+    _refreshEnvironmentTime();
 
     if (!_isOnboardingReady || _shouldShowOnboarding) {
       return;
@@ -338,13 +412,34 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
   }
 
+  void _startEnvironmentClock() {
+    _environmentClockTimer?.cancel();
+    _environmentClockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (!mounted) return;
+      _refreshEnvironmentTime();
+    });
+  }
+
+  void _refreshEnvironmentTime() {
+    final current = _realWorldState;
+    if (current == null) return;
+    final updated = current.atCurrentTime(DateTime.now());
+    if (updated.season == current.season &&
+        updated.dayPhase == current.dayPhase) {
+      return;
+    }
+    setState(() => _realWorldState = updated);
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    if (_uncollectedMarkerIcon == null ||
+    if (!_markerIconsLoadScheduled &&
+        (_uncollectedMarkerIcon == null ||
         _collectedMarkerIcon == null ||
-        _nextMarkerIcon == null) {
+        _nextMarkerIcon == null)) {
+      _markerIconsLoadScheduled = true;
       // 初回フレームとネイティブMap生成に画像デコードを重ねない。
       // 読み込み完了までは既存のdefault markerへ自然にフォールバックする。
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -368,6 +463,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     try {
       final selection = await _eventService.loadCurrentEvent();
 
+      _startupEventSelection = selection;
       _events = selection.events;
       _currentEventId = selection.currentEvent.id;
       _currentEventName = selection.currentEvent.name;
@@ -433,23 +529,52 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       appDebugPrint('[MARKER] crystal icons loaded');
     } catch (error) {
       appDebugPrint('[MARKER] crystal icon load failed: $error');
+    } finally {
+      _markerIconsLoadScheduled = false;
     }
   }
 
   Future<void> _initialize() async {
+    if (_startupErrorMessage != null) {
+      setState(() {
+        _startupErrorMessage = null;
+        _isLoading = true;
+      });
+    }
     final onboardingCompletedFuture = _onboardingService.isCompleted();
 
     appDebugPrint('[STARTUP] critical start');
-    final criticalResult = await _startupCoordinator.runCritical(
-      ensureCloudUser: _ensureCloudUser,
-      loadCurrentEvent: _loadCurrentEvent,
-      startCollectionSync: () async {
-        final result = await _startCollectionSync();
-        return result.pendingCollectedRows;
-      },
-      loadSeichi: _loadSeichi,
-    );
+    StartupCriticalResult criticalResult;
+    try {
+      criticalResult = await _startupCoordinator.runCritical(
+        ensureCloudUser: _ensureCloudUser,
+        loadCurrentEvent: _loadCurrentEvent,
+        startCollectionSync: () async {
+          final result = await _startCollectionSync();
+          return result.pendingCollectedRows;
+        },
+        loadSeichi: _loadSeichi,
+      );
+    } catch (error, stackTrace) {
+      if (mounted) {
+        setState(() {
+          _startupErrorMessage = AppErrorReport.message(
+            AppErrorCodes.startup,
+            '起動に必要な情報を読み込めませんでした。',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          _isLoading = false;
+          _isOnboardingReady = true;
+        });
+      }
+      return;
+    }
     appDebugPrint('[STARTUP] critical complete');
+    await _loadLocationSecurityState();
+    appDebugPrint(
+      '[STARTUP_TIME] map data ready: ${_startupWatch.elapsedMilliseconds}ms',
+    );
 
     final onboardingCompleted = await onboardingCompletedFuture;
 
@@ -461,6 +586,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _isOnboardingReady = true;
       _shouldShowOnboarding = !onboardingCompleted;
     });
+    appDebugPrint(
+      '[STARTUP_TIME] loading view done: ${_startupWatch.elapsedMilliseconds}ms',
+    );
 
     unawaited(
       _runPostRenderStartup(
@@ -471,7 +599,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     unawaited(
       _startupCoordinator.runDeferred(
         loadDisplayName: _loadDisplayName,
-        loadMyEventRank: _loadMyEventRank,
+        loadMyEventRank: () async {
+          final selection = _startupEventSelection;
+          if (selection != null) {
+            try {
+              await _eventService.completeCurrentEventSelection(selection);
+            } catch (error) {
+              appDebugPrint('[EVENT] startup participation failed: $error');
+            }
+          }
+          await _loadMyEventRank();
+        },
         loadLevelProgress: _loadLevelProgress,
       ),
     );
@@ -514,18 +652,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         return;
       }
 
+      final viewedIds = <String>{};
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
         builder: (_) => AnnouncementCarouselDialog(
           announcements: announcements,
           onOpenEvent: _openAnnouncementEvent,
+          onViewed: viewedIds.add,
         ),
       );
 
-      await _announcementService.markAllRead(
-        announcements.map((announcement) => announcement.id),
-      );
+      await _announcementService.markAllRead(viewedIds);
       await _loadUnreadAnnouncementCount();
     } catch (error) {
       appDebugPrint('[ANNOUNCEMENTS] startup display failed: $error');
@@ -664,6 +802,50 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Future<void> _ensureCloudUser() async {
     await _sessionService.ensureCloudUser();
   }
+
+  Future<void> _loadLocationSecurityState() async {
+    try {
+      _locationSecurityState = await _locationIntegrityService.loadState();
+      _isLocationCooldownNoticeShown = false;
+    } catch (error) {
+      appDebugPrint('[LOCATION_INTEGRITY] state load failed: $error');
+    }
+  }
+
+  Future<void> _handleLocationIntegrityViolation({
+    required String violationType,
+    required String firstWarningMessage,
+    required String cooldownMessagePrefix,
+  }) async {
+    try {
+      await _ensureCloudUser();
+      final state = await _locationIntegrityService.reportViolation(violationType);
+      _locationSecurityState = state;
+      if (!mounted) return;
+      if (state.isCollectionCooldownActive) {
+        final minutes = (state.remainingCooldown.inSeconds / 60).ceil().clamp(1, 24 * 60);
+        QuestSnackBar.show(context, message: '$cooldownMessagePrefix$minutes分間停止します。', type: QuestNoticeType.warning);
+        return;
+      }
+      QuestSnackBar.show(context, message: firstWarningMessage, type: QuestNoticeType.warning);
+    } catch (error) {
+      appDebugPrint('[LOCATION_INTEGRITY] $violationType report failed: $error');
+      if (!mounted) return;
+      QuestSnackBar.show(context, message: firstWarningMessage, type: QuestNoticeType.warning);
+    }
+  }
+
+  Future<void> _handleMockLocationDetected() => _handleLocationIntegrityViolation(
+    violationType: 'mock_location',
+    firstWarningMessage: '位置情報を変更する機能が検出されたため、スタンプ獲得を停止しました。再度検出された場合は一定時間スタンプを獲得できなくなります。',
+    cooldownMessagePrefix: '位置情報の変更が再度検出されたため、スタンプ獲得を',
+  );
+
+  Future<void> _handleImplausibleMovementDetected() => _handleLocationIntegrityViolation(
+    violationType: 'implausible_movement',
+    firstWarningMessage: '短時間に不自然な距離の位置移動を検出したため、今回のスタンプ獲得を停止しました。同じ状態が繰り返された場合は一定時間スタンプを獲得できなくなります。',
+    cooldownMessagePrefix: '不自然な位置移動が再度検出されたため、スタンプ獲得を',
+  );
 
   Future<void> _loadMyEventRank() async {
     final eventId = _currentEventId;
@@ -1010,11 +1192,106 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // 有効な獲得数
   // ============================================================
 
+  Event? get _currentEvent {
+    for (final event in _events) {
+      if (event.id == _currentEventId) return event;
+    }
+    return null;
+  }
+
+  String get _currentEventItemLabel =>
+      _currentEvent?.itemLabelSingular ?? 'スポット';
+
   int _getCollectedCount() {
-    return _collectionProgressPolicy.validCollectedCount(
-      seichiList: _seichiList,
-      collectedIds: _collectedIds,
-    );
+    return _eventProgressSummary?.collectedCount ??
+        _collectionProgressPolicy.validCollectedCount(
+          seichiList: _knownQuestItems,
+          collectedIds: _collectedIds,
+        );
+  }
+
+  int get _eventTotalCount =>
+      _eventProgressSummary?.totalCount ?? _seichiList.length;
+
+  int get _collectionFilteredTotal {
+    switch (_collectionFilter) {
+      case 1:
+        return _getCollectedCount();
+      case 2:
+        return (_eventTotalCount - _getCollectedCount()).clamp(0, _eventTotalCount);
+      default:
+        return _eventTotalCount;
+    }
+  }
+
+  String get _collectionState {
+    switch (_collectionFilter) {
+      case 1: return 'collected';
+      case 2: return 'uncollected';
+      default: return 'all';
+    }
+  }
+
+  bool get _hasMoreCollectionItems =>
+      !_collectionPagingExhausted &&
+      _collectionFilteredTotal > _collectionPageOffset;
+
+  Future<void> _reloadCollectionForFilter() async {
+    final eventId = _currentEventId;
+    if (eventId == null || eventId.isEmpty) return;
+    final generation = ++_collectionRequestGeneration;
+    final requestedState = _collectionState;
+    setState(() => _isLoadingMoreCollectionItems = true);
+    try {
+      final items = await _questItemService.loadActiveItemsPage(
+        eventId: eventId, offset: 0, limit: 100,
+        collectionState: requestedState,
+      );
+      if (!mounted || eventId != _currentEventId ||
+          generation != _collectionRequestGeneration ||
+          requestedState != _collectionState) {
+        return;
+      }
+      setState(() {
+        _seichiList = items;
+        _collectionPageOffset = items.length;
+        _collectionPagingExhausted = items.isEmpty || items.length >= _collectionFilteredTotal;
+        _markerCacheRevision.markChanged();
+      });
+    } catch (error) {
+      appDebugPrint('[COLLECTION] filter reload failed: $error');
+    } finally {
+      if (mounted && generation == _collectionRequestGeneration) {
+        setState(() => _isLoadingMoreCollectionItems = false);
+      }
+    }
+  }
+
+  Future<void> _loadMoreCollectionItems() async {
+    final eventId = _currentEventId;
+    if (eventId == null || eventId.isEmpty || _isLoadingMoreCollectionItems || !_hasMoreCollectionItems) return;
+    final generation = _collectionRequestGeneration;
+    final requestedState = _collectionState;
+    setState(() => _isLoadingMoreCollectionItems = true);
+    try {
+      final next = await _questItemService.loadActiveItemsPage(
+        eventId: eventId, offset: _collectionPageOffset, limit: 100,
+        collectionState: requestedState,
+      );
+      if (!mounted || eventId != _currentEventId || generation != _collectionRequestGeneration || requestedState != _collectionState) return;
+      final byId = <String, QuestItem>{for (final item in _seichiList) item.id: item, for (final item in next) item.id: item};
+      final merged = byId.values.toList()..sort((a,b) { final d=a.displayOrder.compareTo(b.displayOrder); return d != 0 ? d : a.eventContentId.compareTo(b.eventContentId); });
+      setState(() {
+        _seichiList = List<QuestItem>.unmodifiable(merged);
+        _collectionPageOffset += next.length;
+        if (next.isEmpty || _collectionPageOffset >= _collectionFilteredTotal) _collectionPagingExhausted = true;
+        _markerCacheRevision.markChanged();
+      });
+    } catch (error) {
+      appDebugPrint('[COLLECTION] load more failed: $error');
+    } finally {
+      if (mounted && generation == _collectionRequestGeneration) setState(() => _isLoadingMoreCollectionItems = false);
+    }
   }
 
   // ============================================================
@@ -1038,7 +1315,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         throw Exception('イベントIDが未取得のため、聖地を読み込めません。');
       }
 
-      final list = await _questItemService.loadActiveItems(eventId);
+      final summary = await _eventProgressService.load(eventId);
+      final list = summary.totalCount > 200
+          ? await _questItemService.loadActiveItemsPage(eventId: eventId, limit: 100)
+          : await _questItemService.loadActiveItems(eventId);
 
       if (!mounted) {
         return;
@@ -1046,6 +1326,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       setState(() {
         _seichiList = list;
+        _eventProgressSummary = summary;
+        _collectionPageOffset = list.length;
+        _collectionPagingExhausted = list.isEmpty || list.length >= summary.totalCount;
         _markerCacheRevision.markChanged();
         if (manageLoadingState) {
           _isLoading = false;
@@ -1056,13 +1339,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       if (await _isAutoNextDestinationEnabled()) {
         _updateNextDestination();
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _errorMessage = '聖地データを取得できませんでした。\n$e';
+        _errorMessage = AppErrorReport.message(
+          AppErrorCodes.spots,
+          '聖地データを取得できませんでした。',
+          error: e,
+          stackTrace: stackTrace,
+        );
         _errorActionLabel = null;
         _errorAction = null;
         if (manageLoadingState) {
@@ -1072,12 +1360,82 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
   }
 
+
+  Future<void> _refreshNearbyQuestItems(Position position, {bool force = false}) async {
+    final eventId = _currentEventId;
+    if (eventId == null || eventId.isEmpty || _eventTotalCount <= 200) return;
+    final last = _lastNearbyLoadPosition;
+    if (!force && last != null) {
+      final moved = _locationService.distanceBetween(
+        startLatitude: last.latitude, startLongitude: last.longitude,
+        endLatitude: position.latitude, endLongitude: position.longitude,
+      );
+      if (moved < _nearbyReloadDistanceMeters) return;
+    }
+    try {
+      final nearby = await _questItemService.loadActiveItemsNearby(
+        eventId: eventId, latitude: position.latitude,
+        longitude: position.longitude, radiusMeters: 50000,
+      );
+      if (!mounted || eventId != _currentEventId) return;
+      setState(() { _nearbyQuestItems = nearby; _lastNearbyLoadPosition = position; });
+      _updateNextDestination();
+    } catch (error) { appDebugPrint('[NEARBY] load failed: $error'); }
+  }
+
+  Future<void> _loadRegionalMapProgress() async {
+    final eventId = _currentEventId;
+    if (eventId == null || eventId.isEmpty || _regionalMapProgressEventId == eventId) return;
+    try {
+      final progress = await _regionalMapProgressService.load(eventId);
+      if (!mounted || eventId != _currentEventId) return;
+      setState(() { _regionalMapProgress = progress; _regionalMapProgressEventId = eventId; });
+    } catch (error) { appDebugPrint('[MAP-REGION] load failed: $error'); }
+  }
+
+  Future<void> _refreshMapViewport() async {
+    final controller = _mapController;
+    final eventId = _currentEventId;
+    if (controller == null || eventId == null || eventId.isEmpty || _eventTotalCount <= 200) return;
+    if (_isMapViewportLoading) { _mapViewportRefreshPending = true; return; }
+    final zoom = _cameraZoom;
+    final mode = _questMapDisplayPolicy.modeForZoom(zoom);
+    if (mode == QuestMapDisplayMode.regionalProgress) {
+      if (mounted) setState(() { _mapVisibleSeichiList = []; _markerCacheRevision.markChanged(); });
+      await _loadRegionalMapProgress();
+      return;
+    }
+    _isMapViewportLoading = true;
+    _mapViewportRefreshPending = false;
+    final generation = ++_mapViewportRequestGeneration;
+    try {
+      final bounds = await controller.getVisibleRegion();
+      final visible = await _questItemService.loadActiveItemsInBounds(
+        eventId: eventId,
+        south: bounds.southwest.latitude, west: bounds.southwest.longitude,
+        north: bounds.northeast.latitude, east: bounds.northeast.longitude,
+        limit: _questMapDisplayPolicy.viewportLimitForZoom(zoom),
+      );
+      if (!mounted || generation != _mapViewportRequestGeneration || eventId != _currentEventId) return;
+      final counts = _clusterService.build(items: visible, zoom: zoom).map((e) => e.count).toSet();
+      for (final count in counts) {
+        if (!_clusterIcons.containsKey(count)) _clusterIcons[count] = await _clusterIconService.iconForCount(count);
+      }
+      if (!mounted || generation != _mapViewportRequestGeneration) return;
+      setState(() { _mapVisibleSeichiList = visible; _renderedZoom = zoom; _markerCacheRevision.markChanged(); });
+    } catch (error) { appDebugPrint('[MAP-VIEWPORT] load failed: $error'); }
+    finally {
+      _isMapViewportLoading = false;
+      if (_mapViewportRefreshPending && mounted) { _mapViewportRefreshPending = false; unawaited(_refreshMapViewport()); }
+    }
+  }
+
   // ============================================================
   // 現在地初期化
   // ============================================================
 
   Future<void> _initializeLocation() async {
-    if (!mounted) {
+    if (!mounted || _isLoadingLocation) {
       return;
     }
 
@@ -1098,9 +1456,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         case LocationStartFailure.serviceDisabled:
           setState(() {
             _isLoadingLocation = false;
-            _errorMessage =
-                '位置情報サービスがOFFになっています。\n'
-                '端末の位置情報をONにしてください。';
+            _errorMessage = AppErrorReport.message(
+              AppErrorCodes.locationDisabled,
+              '位置情報サービスがOFFになっています。\n端末の位置情報をONにしてください。',
+            );
             _errorActionLabel = '位置情報設定を開く';
             _errorAction = () async {
               await _locationService.openLocationSettings();
@@ -1109,16 +1468,20 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         case LocationStartFailure.permissionDenied:
           setState(() {
             _isLoadingLocation = false;
-            _errorMessage = '位置情報の利用が許可されていません。';
+            _errorMessage = AppErrorReport.message(
+              AppErrorCodes.locationDenied,
+              '位置情報の利用が許可されていません。',
+            );
             _errorActionLabel = '再試行';
             _errorAction = _initializeLocation;
           });
         case LocationStartFailure.permissionDeniedForever:
           setState(() {
             _isLoadingLocation = false;
-            _errorMessage =
-                '位置情報の利用が永久に拒否されています。\n'
-                '端末の設定から位置情報を許可してください。';
+            _errorMessage = AppErrorReport.message(
+              AppErrorCodes.locationDeniedForever,
+              '位置情報の利用が永久に拒否されています。\n端末の設定から位置情報を許可してください。',
+            );
             _errorActionLabel = 'アプリ設定を開く';
             _errorAction = () async {
               await _locationService.openAppSettings();
@@ -1128,9 +1491,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         case null:
           setState(() {
             _isLoadingLocation = false;
-            _errorMessage =
-                '現在地を取得できませんでした。\n'
-                '${result.error ?? '不明なエラー'}';
+            _errorMessage = AppErrorReport.message(
+              AppErrorCodes.locationUnavailable,
+              '現在地を取得できませんでした。',
+              error: result.error,
+            );
             _errorActionLabel = '再試行';
             _errorAction = _initializeLocation;
           });
@@ -1148,7 +1513,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _errorActionLabel = null;
       _errorAction = null;
     });
+    appDebugPrint(
+      '[STARTUP_TIME] location ready: ${_startupWatch.elapsedMilliseconds}ms',
+    );
 
+    await _refreshNearbyQuestItems(position, force: true);
     _updateNextDestination();
 
     // 天気APIは現在地表示・GPS監視開始の必須条件ではない。
@@ -1189,6 +1558,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     _isWeatherFetchInProgress = true;
+    // 失敗時にも試行時刻を残し、GPS更新のたびに再通信しない。
+    _lastWeatherFetchAt = DateTime.now();
+    _lastWeatherFetchPosition = position;
 
     try {
       final state = await _weatherService.fetchCurrentWeather(
@@ -1201,9 +1573,19 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       }
 
       setState(() {
-        _realWorldState = state;
-        _lastWeatherFetchAt = DateTime.now();
-        _lastWeatherFetchPosition = position;
+        final currentState = state.atCurrentTime(DateTime.now());
+        _realWorldState = _forceCloudyForVisualTest
+            ? RealWorldState(
+                season: currentState.season,
+                dayPhase: currentState.dayPhase,
+                weather: WeatherCondition.cloudy,
+                temperatureCelsius: currentState.temperatureCelsius,
+                strongWindExpected: currentState.strongWindExpected,
+                observedAt: currentState.observedAt,
+                utcOffsetSeconds: currentState.utcOffsetSeconds,
+              )
+            : currentState;
+        _weatherLoadFailed = false;
       });
 
       final currentState = _realWorldState;
@@ -1217,7 +1599,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         'observedAt=${currentState?.observedAt}',
       );
     } catch (error) {
-      appDebugPrint('[WEATHER] fetch failed: $error');
+      AppErrorReport.message(
+        AppErrorCodes.weatherFetch,
+        '天気情報を取得できませんでした。',
+        error: error,
+      );
+      if (mounted) {
+        setState(() => _weatherLoadFailed = true);
+      }
     } finally {
       _isWeatherFetchInProgress = false;
     }
@@ -1249,6 +1638,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           _currentPosition = position;
         }
 
+        unawaited(_refreshNearbyQuestItems(position));
         _updateNextDestination();
         _updateWeatherIfNeeded(position);
         _checkStampDistance();
@@ -1261,7 +1651,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         }
 
         setState(() {
-          _errorMessage = '位置情報の監視でエラーが発生しました。\n$error';
+          _errorMessage = AppErrorReport.message(
+            AppErrorCodes.locationStream,
+            '位置情報の監視でエラーが発生しました。',
+            error: error,
+          );
           _errorActionLabel = '再試行';
           _errorAction = _initializeLocation;
         });
@@ -1285,7 +1679,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     final result = _nextDestinationService.findNextDestination(
       position: _currentPosition,
-      seichiList: _seichiList,
+      seichiList: _locationQuestItems,
       collectedIds: _collectedIds,
       manualNextSeichiId: _manualNextSeichiId,
     );
@@ -1455,9 +1849,31 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     final position = _currentPosition;
 
-    if (position == null || _seichiList.isEmpty) {
+    final locationQuestItems = _locationQuestItems;
+    if (position == null || locationQuestItems.isEmpty) {
       return;
     }
+
+    if (_locationSecurityState.isCollectionCooldownActive) {
+      if (!_isLocationCooldownNoticeShown && mounted) {
+        _isLocationCooldownNoticeShown = true;
+        final minutes = (_locationSecurityState.remainingCooldown.inSeconds / 60).ceil().clamp(1, 24 * 60);
+        QuestSnackBar.show(context, message: '位置情報保護のため、スタンプ獲得はあと約$minutes分利用できません。', type: QuestNoticeType.warning);
+      }
+      return;
+    }
+    _isLocationCooldownNoticeShown = false;
+
+    if (LocationIntegrityPolicy.shouldRejectMockLocation(isMocked: position.isMocked)) {
+      _lastStampCheckPosition = null;
+      if (!_isMockLocationSessionActive) {
+        _isMockLocationSessionActive = true;
+        await _handleMockLocationDetected();
+      }
+      return;
+    }
+    _isMockLocationSessionActive = false;
+
     final previousPosition = _lastStampCheckPosition;
 
     if (previousPosition != null) {
@@ -1479,11 +1895,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           movedDistanceMeters: movedDistance,
           elapsedSeconds: elapsedSeconds,
         )) {
+          if (!_isImplausibleMovementSessionActive) {
+            _isImplausibleMovementSessionActive = true;
+            await _handleImplausibleMovementDetected();
+          }
           return;
         }
       }
     }
 
+    _isImplausibleMovementSessionActive = false;
     _lastStampCheckPosition = position;
     if (kDebugMode) {
       appDebugPrint(
@@ -1492,7 +1913,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         'lon=${position.longitude}, '
         'accuracy=${position.accuracy}m, '
         'timestamp=${position.timestamp}, '
-        'seichiCount=${_seichiList.length}',
+        'seichiCount=${locationQuestItems.length}',
       );
     }
 
@@ -1500,7 +1921,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     double nearestDistance = double.infinity;
     QuestItem? collectibleSeichi;
 
-    for (final seichi in _seichiList) {
+    for (final seichi in locationQuestItems) {
       if (_collectedIds.contains(seichi.id)) {
         continue;
       }
@@ -1521,6 +1942,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           StampEligibilityPolicy.hasSufficientAccuracy(
             accuracyMeters: position.accuracy,
             stampRadiusMeters: seichi.stampRadiusMeters,
+          ) &&
+          StampEligibilityPolicy.hasAcceptableCollectionSpeed(
+            speedMetersPerSecond: position.speed,
           ) &&
           StampEligibilityPolicy.isWithinStampRadius(
             distanceMeters: distance,
@@ -1597,8 +2021,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     final applyPlan = _collectionApplyPolicy.plan(
       currentEventId: currentEventId,
       collectedRows: collectedRows,
-      seichiList: _seichiList,
+      resolvedItems: _knownQuestItems,
       collectedIds: _collectedIds,
+      previousCollectedCount: _getCollectedCount(),
+      totalCount: _eventTotalCount,
       eventAchievements: _eventAchievements,
     );
 
@@ -2037,10 +2463,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   Set<Marker> _buildMarkers() {
+    if (_renderedZoom < 9) return _buildClusterMarkers();
     final nextId = _nextSeichi?.id;
 
-    // 静止Markerの再構築要否は、毎buildで全IDをソート・連結せず
-    // 明示的なデータ世代と参照状態で判定する。
     final shouldRebuildStaticMarkers =
         _staticMarkerCache == null ||
         !_markerCacheRevision.isCurrent(_staticMarkerCacheRevision) ||
@@ -2051,24 +2476,18 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (shouldRebuildStaticMarkers) {
       final staticMarkers = <Marker>{};
 
-      for (final seichi in _seichiList) {
+      for (final seichi in _mapQuestItems) {
         final collected = _collectedIds.contains(seichi.id);
         final isNext = !collected && seichi.id == nextId;
-
-        // NEXTだけはアニメーションするため静止キャッシュから除外する。
-        if (isNext) {
-          continue;
-        }
+        if (isNext) continue;
 
         final markerIcon = collected
-            ? _collectedMarkerIcon ??
-                  BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueGreen,
-                  )
-            : _uncollectedMarkerIcon ??
-                  BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueAzure,
-                  );
+            ? _collectedMarkerIcon
+            : _uncollectedMarkerIcon;
+
+        // Never substitute a Google default pin while the custom asset is
+        // loading. That fallback is visible for a frame during transitions.
+        if (markerIcon == null) continue;
 
         staticMarkers.add(
           Marker(
@@ -2084,9 +2503,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                   ? '🏆 スタンプ獲得済み'
                   : '到達半径 ${seichi.stampRadiusMeters}m',
             ),
-            onTap: () {
-              _showSeichiDetails(seichi);
-            },
+            onTap: () => _showSeichiDetails(seichi),
           ),
         );
       }
@@ -2099,32 +2516,25 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     final markers = <Marker>{...?_staticMarkerCache};
-
     final nextSeichi = _nextSeichi;
 
-    if (nextSeichi != null && !_collectedIds.contains(nextSeichi.id)) {
-      final animationValue = _sonarController.value;
-      final wave = math.sin(animationValue * math.pi * 2);
-      final nextAnchorY = 0.94 + (wave * 0.035);
-
+    if (nextSeichi != null &&
+        !_collectedIds.contains(nextSeichi.id) &&
+        _nextMarkerIcon != null) {
       markers.add(
         Marker(
           markerId: MarkerId(nextSeichi.id),
           position: LatLng(nextSeichi.latitude, nextSeichi.longitude),
-          icon:
-              _nextMarkerIcon ??
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+          icon: _nextMarkerIcon!,
           alpha: 0.90,
-          anchor: Offset(0.5, nextAnchorY),
+          anchor: const Offset(0.5, 0.94),
           zIndexInt: 2,
           infoWindow: InfoWindow(
             title: '${nextSeichi.icon} ${nextSeichi.name}',
             snippet:
                 '✨ NEXT ・ 到達半径 ${nextSeichi.stampRadiusMeters}m',
           ),
-          onTap: () {
-            _showSeichiDetails(nextSeichi);
-          },
+          onTap: () => _showSeichiDetails(nextSeichi),
         ),
       );
     }
@@ -2132,315 +2542,106 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     return markers;
   }
 
+  Set<Marker> _buildClusterMarkers() {
+    final clusters = _clusterService.build(
+      items: _mapQuestItems,
+      zoom: _renderedZoom,
+    );
+    final markers = <Marker>{};
+
+    for (final cluster in clusters) {
+      // Once cluster mode is active, every cell is a cluster presentation,
+      // including singleton cells. Never re-use a normal/NEXT pin here.
+      final icon = _clusterIcons[cluster.count];
+      if (icon == null) continue;
+
+      markers.add(
+        Marker(
+          markerId: MarkerId('cluster:${cluster.id}'),
+          position: LatLng(cluster.latitude, cluster.longitude),
+          icon: icon,
+          zIndexInt: 2,
+          infoWindow: InfoWindow(title: '${cluster.count}地点'),
+          onTap: () {
+            _mapController?.animateCamera(
+              CameraUpdate.newLatLngBounds(
+                _clusterService.boundsFor(cluster),
+                64,
+              ),
+            );
+          },
+        ),
+      );
+    }
+    return markers;
+  }
+
+  Future<void> _onMapCameraIdle() async {
+    final targetZoom = _cameraZoom;
+
+    if (targetZoom >= 9) {
+      if ((_renderedZoom - targetZoom).abs() >= 0.01 && mounted) {
+        setState(() => _renderedZoom = targetZoom);
+      }
+      return;
+    }
+
+    // Prepare every icon, including count=1, before switching the rendered
+    // zoom into cluster mode. This makes the marker-set replacement atomic.
+    final counts = _clusterService
+        .build(items: _mapQuestItems, zoom: targetZoom)
+        .map((cluster) => cluster.count)
+        .toSet();
+
+    final missingCounts = counts
+        .where((count) => !_clusterIcons.containsKey(count))
+        .toList(growable: false);
+
+    if (missingCounts.isNotEmpty) {
+      for (final count in missingCounts) {
+        _loadingClusterIcons.add(count);
+      }
+
+      try {
+        final icons = await Future.wait(
+          missingCounts.map(_clusterIconService.iconForCount),
+        );
+        if (!mounted) return;
+
+        setState(() {
+          for (var i = 0; i < missingCounts.length; i++) {
+            _clusterIcons[missingCounts[i]] = icons[i];
+            _loadingClusterIcons.remove(missingCounts[i]);
+          }
+          _renderedZoom = targetZoom;
+        });
+      } catch (error) {
+        for (final count in missingCounts) {
+          _loadingClusterIcons.remove(count);
+        }
+        appDebugPrint('[CLUSTER] icon generation failed: $error');
+      }
+      return;
+    }
+
+    if ((_renderedZoom - targetZoom).abs() >= 0.01 && mounted) {
+      setState(() => _renderedZoom = targetZoom);
+    }
+  }
+
   // ============================================================
   // 聖地詳細
   // ============================================================
 
   void _showSeichiDetails(QuestItem seichi) {
-    final position = _currentPosition;
-    final contentId = seichi.contentId.trim();
-
-    final Future<List<ContentBlock>>? contentBlocksFuture = contentId.isEmpty
-        ? null
-        : _contentBlockService.loadForContent(contentId);
-
-    double? distance;
-
-    if (position != null) {
-      distance = _locationService.distanceBetween(
-        startLatitude: position.latitude,
-        startLongitude: position.longitude,
-        endLatitude: seichi.latitude,
-        endLongitude: seichi.longitude,
-      );
-    }
-
-    final collected = _collectedIds.contains(seichi.id);
-
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        final colorScheme = Theme.of(sheetContext).colorScheme;
-
-        return SafeArea(
-          child: FractionallySizedBox(
-            heightFactor: 0.9,
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              decoration: BoxDecoration(
-                color: colorScheme.surface.withValues(alpha: 0.98),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(28),
-                ),
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 58,
-                          height: 58,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: colorScheme.primary.withValues(alpha: 0.12),
-                            border: Border.all(
-                              color: colorScheme.primary.withValues(
-                                alpha: 0.20,
-                              ),
-                            ),
-                          ),
-                          child: Text(
-                            seichi.icon,
-                            style: const TextStyle(
-                              fontSize: 25,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                seichi.name,
-                                style: const TextStyle(
-                                  color: QuestUiTokens.ink,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w900,
-                                  height: 1.15,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        QuestStatusChip(
-                          label: collected ? '獲得済み' : '未獲得',
-                          icon: collected
-                              ? Icons.verified_rounded
-                              : Icons.lock_outline_rounded,
-                          accentColor: collected
-                              ? const Color(0xFF2BAA76)
-                              : QuestUiTokens.primary,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    FutureBuilder(
-                      future: contentBlocksFuture,
-                      builder: (context, snapshot) {
-                        final presentation = _contentBlockPresentationPolicy
-                            .resolve(snapshot.data ?? const []);
-
-                        if (snapshot.hasError) {
-                          appDebugPrint(
-                            '[CONTENT_BLOCKS] detail load failed: '
-                            '${snapshot.error}',
-                          );
-                        }
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (presentation.showFallbackDescription)
-                              QuestGlassCard(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (presentation.showFallbackDescription)
-                                      Text(
-                                        seichi.description.isEmpty
-                                            ? '説明は登録されていません。'
-                                            : seichi.description,
-                                        style: const TextStyle(
-                                          color: QuestUiTokens.ink,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                          height: 1.55,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            if (presentation.blocks.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 14),
-                                child: QuestGlassCard(
-                                  child: ContentBlockRenderer(
-                                    blocks: presentation.blocks,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    QuestGlassCard(
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 38,
-                                height: 38,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: colorScheme.primary.withValues(
-                                    alpha: 0.10,
-                                  ),
-                                ),
-                                child: Icon(
-                                  Icons.radar_rounded,
-                                  color: colorScheme.primary,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              const Expanded(
-                                child: Text(
-                                  '到達判定',
-                                  style: TextStyle(
-                                    color: QuestUiTokens.mutedInk,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '${seichi.stampRadiusMeters}m',
-                                style: const TextStyle(
-                                  color: QuestUiTokens.ink,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (distance != null) ...[
-                            const SizedBox(height: 12),
-                            Divider(
-                              height: 1,
-                              color: colorScheme.outlineVariant.withValues(
-                                alpha: 0.55,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Container(
-                                  width: 38,
-                                  height: 38,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: colorScheme.primary.withValues(
-                                      alpha: 0.10,
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    Icons.near_me_rounded,
-                                    color: colorScheme.primary,
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                const Expanded(
-                                  child: Text(
-                                    '現在地から',
-                                    style: TextStyle(
-                                      color: QuestUiTokens.mutedInk,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  _formatDistance(distance),
-                                  style: const TextStyle(
-                                    color: QuestUiTokens.ink,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    QuestPrimaryButton(
-                      label: 'このスポットを地図で見る',
-                      icon: Icons.navigation_rounded,
-                      onPressed: () async {
-                        Navigator.pop(sheetContext);
-                        await _moveCameraToSeichi(seichi);
-                      },
-                    ),
-                    if (!collected) ...[
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(sheetContext);
-                            _setNextDestination(seichi);
-                          },
-                          icon: const Icon(Icons.flag_rounded),
-                          label: const Text('次の目的地にする'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: colorScheme.primary,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 14,
-                            ),
-                            side: BorderSide(
-                              color: colorScheme.primary.withValues(
-                                alpha: 0.35,
-                              ),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                QuestUiTokens.controlRadius,
-                              ),
-                            ),
-                            textStyle: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
+    QuestSpotDetailSheet.show(
+      context,
+      item: seichi,
+      collected: _collectedIds.contains(seichi.id),
+      isNext: _nextSeichi?.id == seichi.id,
+      onShowOnMap: () => _moveCameraToSeichi(seichi),
+      onSetNextDestination: () => _setNextDestination(seichi),
     );
-  }
-
-  // ============================================================
-  // 距離表示
-  // ============================================================
-
-  String _formatDistance(double distance) {
-    if (distance < 1000) {
-      return '${distance.round()}m';
-    }
-
-    return '${(distance / 1000).toStringAsFixed(1)}km';
   }
 
   // ============================================================
@@ -2484,6 +2685,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       mapController: _mapController,
       currentPosition: _currentPosition,
       realWorldState: _realWorldState,
+      weatherUnavailable: _weatherLoadFailed,
       nextSeichi: _nextSeichi,
       nextDistance: _nextDistance,
       collectedIds: _collectedIds,
@@ -2507,9 +2709,36 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       justCollected: _justCollected,
       collectedName: _collectedName,
       collectedCount: _getCollectedCount(),
-      total: _seichiList.length,
+      total: _eventTotalCount,
       defaultCenter: _defaultCenter,
       markers: _buildMarkers(),
+      regionalProgress: _regionalMapProgress,
+      showRegionalProgress: _eventTotalCount > 200 &&
+          _questMapDisplayPolicy.modeForZoom(_cameraZoom) == QuestMapDisplayMode.regionalProgress,
+      onRegionalProgressTap: (region) {
+        if (_mapController == null || region.latitude == 0 || region.longitude == 0) {
+          return;
+        }
+        unawaited(
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(LatLng(region.latitude, region.longitude), 8.5),
+          ),
+        );
+      },
+      onCameraMove: (position) {
+        _cameraZoom = position.zoom;
+        if (_eventTotalCount > 200) {
+          _mapViewportRequestGeneration++;
+          if (_isMapViewportLoading) _mapViewportRefreshPending = true;
+        }
+      },
+      onCameraIdle: () {
+        if (_eventTotalCount > 200) {
+          unawaited(_refreshMapViewport());
+        } else {
+          unawaited(_onMapCameraIdle());
+        }
+      },
       onMoveToCurrentLocation: _moveCameraToCurrentLocation,
       onMoveToNextSeichi: _moveCameraToNextSeichi,
       onStartNavigation: _startNavigationToNextSeichi,
@@ -2655,13 +2884,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Widget _buildQuestPage() {
     return QuestPage(
-      nextSeichi: _nextSeichi,
+      nextItem: _nextSeichi,
       nextDistance: _nextDistance,
       collectedCount: _getCollectedCount(),
-      total: _seichiList.length,
+      total: _eventTotalCount,
       onShowDestination: _moveCameraToNextSeichi,
       onExploreEvents: _showEventExplore,
       eventAchievements: _eventAchievements,
+      itemLabel: _currentEventItemLabel,
     );
   }
 
@@ -2693,7 +2923,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       myRank: _myEventRank,
 
       myCount: _getCollectedCount(),
-      total: _seichiList.length,
+      total: _eventTotalCount,
+      itemLabel: _currentEventItemLabel,
     );
   }
   // ============================================================
@@ -2728,6 +2959,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _collectedIds.clear();
       _markerCacheRevision.markChanged();
       _eventAchievements.clear();
+      _eventProgressSummary = null;
+      _nearbyQuestItems = [];
+      _mapVisibleSeichiList = [];
+      _lastNearbyLoadPosition = null;
+      _regionalMapProgress = [];
+      _regionalMapProgressEventId = null;
+      _collectionPageOffset = 0;
+      _collectionPagingExhausted = false;
+      _collectionRequestGeneration++;
+      _mapViewportRequestGeneration++;
       _myEventRank = null;
       _manualNextSeichiId = null;
       _activeRecommendedRoute.clear();
@@ -2759,7 +3000,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         _manualNextSeichiId = _activeRecommendedRoute.first.id;
       }
 
+      final currentPosition = _currentPosition;
+      if (currentPosition != null) {
+        await _refreshNearbyQuestItems(currentPosition, force: true);
+      }
       _updateNextDestination();
+      if (_eventTotalCount > 200) unawaited(_refreshMapViewport());
 
       if (mounted) {
         setState(() {
@@ -2773,7 +3019,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       if (mounted) {
         setState(() {
-          _errorMessage = 'クエストの切り替えに失敗しました。';
+          _errorMessage = AppErrorReport.message(
+            AppErrorCodes.eventSwitch,
+            'クエストの切り替えに失敗しました。',
+            error: e,
+          );
           _errorActionLabel = null;
           _errorAction = null;
           _isLoading = false;
@@ -2804,7 +3054,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       levelProgress: _levelProgress,
       eventAchievements: _eventAchievements,
       count: _getCollectedCount(),
-      total: _seichiList.length,
+      total: _eventTotalCount,
       currentEventName: _currentEventName,
       nextDestinationName: _nextSeichi?.name,
       nextDestinationIcon: _nextSeichi?.icon,
@@ -2948,6 +3198,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         );
         await _loadUnreadAnnouncementCount();
       },
+      onShowLegal: () async {
+        await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LegalInfoPage()));
+      },
       onShowAbout: _showAbout,
       onShowSettings: () async {
         await Navigator.of(context).push(
@@ -3038,17 +3291,23 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       case 2:
         return CollectionPage(
           eventId: _currentEventId,
-          seichiList: _seichiList,
+          questItems: _seichiList,
           collectedIds: _collectedIds,
+          totalCount: _eventTotalCount,
+          collectedCount: _getCollectedCount(),
+          hasMore: _hasMoreCollectionItems,
+          isLoadingMore: _isLoadingMoreCollectionItems,
+          onLoadMore: _loadMoreCollectionItems,
           eventNamesByContentKey: _collectionEventNamesByContentKey,
           collectionFilter: _collectionFilter,
           onFilterChanged: (value) {
-            setState(() {
-              _collectionFilter = value;
-            });
+            if (_collectionFilter == value) return;
+            setState(() => _collectionFilter = value);
+            unawaited(_reloadCollectionForFilter());
           },
-          onMoveToSeichi: _moveCameraToSeichi,
+          onMoveToQuestItem: _moveCameraToSeichi,
           onSetNextDestination: _setNextDestination,
+          itemLabel: _currentEventItemLabel,
         );
 
       case 3:
@@ -3068,16 +3327,25 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Widget _buildLoading() {
     return Container(
-      color: Colors.white,
-      child: const Center(
-        child: Column(
+      color: QuestUiTokens.background,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(24),
+      child: QuestGlassCard(
+        child: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(width: 42, height: 42, child: CircularProgressIndicator()),
+            Icon(Icons.explore_rounded, size: 42, color: QuestUiTokens.primary),
+            SizedBox(height: 20),
+            CircularProgressIndicator(),
             SizedBox(height: 20),
             Text(
               '聖地クエストを起動中…',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: QuestUiTokens.ink,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -3091,6 +3359,34 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   @override
   Widget build(BuildContext context) {
+    if (_startupErrorMessage != null) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: QuestGlassCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: QuestUiTokens.primary,
+                    size: 40,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(_startupErrorMessage!, textAlign: TextAlign.center),
+                  const SizedBox(height: 18),
+                  FilledButton(
+                    onPressed: _initialize,
+                    child: const Text('再試行'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     if (_isLoading || !_isOnboardingReady) {
       return Scaffold(body: _buildLoading());
     }
@@ -3110,6 +3406,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           const BannerAdWidget(),
           ClipRect(
             child: BackdropFilter(
+              enabled: false,
               filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
               child: Container(
                 decoration: BoxDecoration(
@@ -3231,31 +3528,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     if (_sonarController.isAnimating) {
       _sonarController.stop();
-      _lastMarkerAnimationFrame = -1;
     }
-  }
-
-  void _onMarkerAnimationTick() {
-    if (!mounted || _nextSeichi == null || _selectedTab != 0) {
-      return;
-    }
-
-    // NEXTマーカーの「ふわふわ」は残しつつ、
-    // Google MapへのMarker更新は約8fpsまでに抑える。
-    // ソナー本体はMapPage側のAnimatedBuilderで滑らかに描画される。
-    final frame = (_sonarController.value * 14).floor();
-
-    if (frame == _lastMarkerAnimationFrame) {
-      return;
-    }
-
-    _lastMarkerAnimationFrame = frame;
-    setState(() {});
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _environmentClockTimer?.cancel();
     _positionSubscription?.cancel();
 
     _sonarController.dispose();

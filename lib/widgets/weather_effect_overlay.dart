@@ -19,8 +19,23 @@ class WeatherEffectOverlay extends StatefulWidget {
 }
 
 class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _controller;
+  final ValueNotifier<int> _frame = ValueNotifier<int>(0);
+  bool _reduceMotion = false;
+
+  void _advanceFrame() {
+    final nextFrame = (_controller.value * _framesPerCycle).floor();
+    if (nextFrame != _frame.value) _frame.value = nextFrame;
+  }
+
+  int get _framesPerCycle => switch (widget.weather) {
+    WeatherCondition.rain ||
+    WeatherCondition.heavyRain ||
+    WeatherCondition.snow ||
+    WeatherCondition.thunderstorm => 160, // 20画面/秒。雨の勢いを保ちつつMapとの同時描画負荷を抑える
+    _ => 120, // ゆっくり動く雲・霧・光は15画面/秒
+  };
 
   bool get _needsAnimation {
     return switch (widget.weather) {
@@ -39,13 +54,36 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8),
-    );
+    )..addListener(_advanceFrame);
+  }
 
-    if (_needsAnimation) {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncMotionPreference();
+  }
+
+  @override
+  void didChangeAccessibilityFeatures() {
+    _syncMotionPreference();
+    setState(() {});
+  }
+
+  void _syncMotionPreference() {
+    _reduceMotion = MediaQuery.disableAnimationsOf(context) ||
+        WidgetsBinding.instance.accessibilityFeatures.reduceMotion;
+    _syncAnimation();
+  }
+
+  void _syncAnimation() {
+    if (_reduceMotion || !_needsAnimation) {
+      _controller.stop();
+    } else if (!_controller.isAnimating) {
       _controller.repeat();
     }
   }
@@ -53,25 +91,20 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
   @override
   void didUpdateWidget(covariant WeatherEffectOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    if (_needsAnimation) {
-      if (!_controller.isAnimating) {
-        _controller.repeat();
-      }
-    } else {
-      _controller.stop();
-    }
+    _syncAnimation();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
+    _frame.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.weather == WeatherCondition.unknown) {
+    if (_reduceMotion || widget.weather == WeatherCondition.unknown) {
       return const SizedBox.shrink();
     }
 
@@ -79,13 +112,15 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
       child: IgnorePointer(
         child: RepaintBoundary(
           child: AnimatedBuilder(
-            animation: _controller,
+            animation: _frame,
             builder: (context, child) {
               return CustomPaint(
                 painter: _WeatherEffectPainter(
                   weather: widget.weather,
                   dayPhase: widget.dayPhase,
-                  progress: _controller.value,
+                  progress:
+                      (_controller.value * _framesPerCycle).floor() /
+                      _framesPerCycle,
                 ),
               );
             },
@@ -229,8 +264,8 @@ class _WeatherEffectPainter extends CustomPainter {
         center: const Alignment(-0.82, -0.82),
         radius: 1.0,
         colors: [
-          Colors.white.withValues(alpha: 0.185 * breathe),
-          const Color(0xFFFFF5CF).withValues(alpha: 0.090 * breathe),
+          Colors.white.withValues(alpha: 0.27 * breathe),
+          const Color(0xFFFFF5CF).withValues(alpha: 0.13 * breathe),
           Colors.white.withValues(alpha: 0.025 * breathe),
           Colors.transparent,
         ],
@@ -245,8 +280,8 @@ class _WeatherEffectPainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Colors.white.withValues(alpha: 0.125 * breathe),
-          const Color(0xFFFFF6D9).withValues(alpha: 0.055 * breathe),
+          Colors.white.withValues(alpha: 0.18 * breathe),
+          const Color(0xFFFFF6D9).withValues(alpha: 0.075 * breathe),
           Colors.transparent,
         ],
         stops: const [0.0, 0.48, 1.0],
@@ -444,35 +479,37 @@ class _WeatherEffectPainter extends CustomPainter {
     switch (dayPhase) {
       case DayPhase.morning:
         atmosphereColor = const Color(0xFF8A8790);
-        atmosphereOpacity = partlyCloudy ? 0.020 : 0.060;
+        atmosphereOpacity = partlyCloudy ? 0.055 : 0.185;
         shadowCoreColor = const Color(0xFF657180);
         shadowMidColor = const Color(0xFF89929A);
         shadowOpacityFactor = 0.88;
 
       case DayPhase.daytime:
         atmosphereColor = const Color(0xFF647887);
-        atmosphereOpacity = partlyCloudy ? 0.018 : 0.070;
+        atmosphereOpacity = partlyCloudy ? 0.050 : 0.195;
         shadowCoreColor = const Color(0xFF526879);
         shadowMidColor = const Color(0xFF718594);
         shadowOpacityFactor = 1.0;
 
       case DayPhase.evening:
         atmosphereColor = const Color(0xFF756E80);
-        atmosphereOpacity = partlyCloudy ? 0.022 : 0.066;
+        atmosphereOpacity = partlyCloudy ? 0.060 : 0.190;
         shadowCoreColor = const Color(0xFF5E6170);
         shadowMidColor = const Color(0xFF817B86);
         shadowOpacityFactor = 0.92;
 
       case DayPhase.night:
         atmosphereColor = const Color(0xFF26384D);
-        atmosphereOpacity = partlyCloudy ? 0.030 : 0.085;
+        atmosphereOpacity = partlyCloudy ? 0.065 : 0.205;
         shadowCoreColor = const Color(0xFF1E3045);
         shadowMidColor = const Color(0xFF354A60);
         shadowOpacityFactor = 0.82;
     }
 
     final baseWashPaint = Paint()
-      ..color = atmosphereColor.withValues(alpha: atmosphereOpacity);
+      ..color = atmosphereColor.withValues(
+        alpha: partlyCloudy ? atmosphereOpacity : 0.075,
+      );
 
     canvas.drawRect(Offset.zero & size, baseWashPaint);
 
@@ -654,6 +691,156 @@ class _WeatherEffectPainter extends CustomPainter {
       }
     }
 
+    if (!partlyCloudy) {
+      // 横長の楕円を母体にし、円周の半径だけを低振幅で揺らす。
+      // これなら輪郭は必ず閉じ、帯・山・四角い切断面にならない。
+      final cloudLight = switch (dayPhase) {
+        DayPhase.morning => const Color(0xFFC8D0D4),
+        DayPhase.daytime => const Color(0xFFCED5D8),
+        DayPhase.evening => const Color(0xFFC1BDC5),
+        DayPhase.night => const Color(0xFFA6B2BC),
+      };
+      final cloudMid = switch (dayPhase) {
+        DayPhase.morning => const Color(0xFF8997A0),
+        DayPhase.daytime => const Color(0xFF8998A1),
+        DayPhase.evening => const Color(0xFF85838E),
+        DayPhase.night => const Color(0xFF6D7F8E),
+      };
+      final cloudDark = switch (dayPhase) {
+        DayPhase.morning => const Color(0xFF5E6D78),
+        DayPhase.daytime => const Color(0xFF5C6C77),
+        DayPhase.evening => const Color(0xFF62616D),
+        DayPhase.night => const Color(0xFF465B6C),
+      };
+
+      void paintCloudMass({
+        required Offset center,
+        required double width,
+        required double height,
+        required double phase,
+      }) {
+        const pointCount = 32;
+        final rx = width * 0.5;
+        final ry = height * 0.5;
+        final points = <Offset>[];
+
+        for (var i = 0; i < pointCount; i++) {
+          final theta = math.pi * 2.0 * i / pointCount;
+          // 周期の異なる2つの小さな波を混ぜる。
+          // 振幅は最大でも数％なので「モコモコ」ではなく自然な輪郭の揺らぎ。
+          final ripple =
+              math.sin(theta * 3.0 + phase) * 0.040 +
+              math.sin(theta * 5.0 - phase * 2.0 + 1.4) * 0.022;
+          final localRx = rx * (1.0 + ripple);
+          final localRy = ry * (1.0 + ripple * 0.82);
+          points.add(
+            Offset(
+              center.dx + math.cos(theta) * localRx,
+              center.dy + math.sin(theta) * localRy,
+            ),
+          );
+        }
+
+        final path = Path()..moveTo(points.first.dx, points.first.dy);
+        for (var i = 0; i < pointCount; i++) {
+          final prev = points[(i - 1 + pointCount) % pointCount];
+          final current = points[i];
+          final next = points[(i + 1) % pointCount];
+          final after = points[(i + 2) % pointCount];
+          final cp1 = Offset(
+            current.dx + (next.dx - prev.dx) / 6.0,
+            current.dy + (next.dy - prev.dy) / 6.0,
+          );
+          final cp2 = Offset(
+            next.dx - (after.dx - current.dx) / 6.0,
+            next.dy - (after.dy - current.dy) / 6.0,
+          );
+          path.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, next.dx, next.dy);
+        }
+        path.close();
+
+        final bounds = path.getBounds();
+        final paint = Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              cloudLight.withValues(
+                alpha: dayPhase == DayPhase.night ? 0.27 : 0.23,
+              ),
+              cloudMid.withValues(
+                alpha: dayPhase == DayPhase.night ? 0.21 : 0.18,
+              ),
+              cloudDark.withValues(
+                alpha: dayPhase == DayPhase.night ? 0.12 : 0.10,
+              ),
+            ],
+            stops: const [0.0, 0.56, 1.0],
+          ).createShader(bounds);
+        canvas.drawPath(path, paint);
+
+        // 雲底のごく薄い陰影。Path内でclipするので別の輪郭は生まれない。
+        final shadeRect = Rect.fromCenter(
+          center: Offset(center.dx + rx * 0.08, center.dy + ry * 0.32),
+          width: width * 0.72,
+          height: height * 0.48,
+        );
+        final shadePaint = Paint()
+          ..shader = RadialGradient(
+            radius: 0.92,
+            colors: [
+              cloudDark.withValues(
+                alpha: dayPhase == DayPhase.night ? 0.065 : 0.050,
+              ),
+              Colors.transparent,
+            ],
+          ).createShader(shadeRect);
+        canvas.save();
+        canvas.clipPath(path);
+        canvas.drawOval(shadeRect, shadePaint);
+        canvas.restore();
+      }
+
+      paintCloudMass(
+        center: Offset(
+          size.width * 0.23 + math.sin(loopAngle) * size.width * 0.018,
+          size.height * 0.105,
+        ),
+        width: size.width * 0.92,
+        height: size.height * 0.22,
+        phase: loopAngle,
+      );
+      paintCloudMass(
+        center: Offset(
+          size.width * 0.83 + math.sin(loopAngle + 2.0) * size.width * 0.016,
+          size.height * 0.075,
+        ),
+        width: size.width * 0.76,
+        height: size.height * 0.19,
+        phase: loopAngle + 2.0,
+      );
+      paintCloudMass(
+        center: Offset(-size.width * 0.08, size.height * 0.40),
+        width: size.width * 0.72,
+        height: size.height * 0.16,
+        phase: loopAngle + 1.0,
+      );
+      paintCloudMass(
+        center: Offset(size.width * 1.07, size.height * 0.60),
+        width: size.width * 0.76,
+        height: size.height * 0.17,
+        phase: loopAngle + 3.0,
+      );
+      paintCloudMass(
+        center: Offset(
+          -size.width * 0.12,
+          size.height * 0.72 + math.sin(loopAngle + 4.1) * size.height * 0.008,
+        ),
+        width: size.width * 0.66,
+        height: size.height * 0.15,
+        phase: loopAngle + 4.1,
+      );
+    }
     if (partlyCloudy) {
       paintShadowField(
         count: 3,
@@ -662,40 +849,12 @@ class _WeatherEffectPainter extends CustomPainter {
         maxWidthFactor: 1.16,
         minHeightFactor: 0.24,
         maxHeightFactor: 0.42,
-        minOpacity: 0.025,
-        maxOpacity: 0.060,
+        minOpacity: 0.040,
+        maxOpacity: 0.085,
         horizontalRange: 24,
         verticalRange: 8,
       );
-
-      return;
     }
-
-    paintShadowField(
-      count: 5,
-      seedOffset: 83,
-      minWidthFactor: 0.82,
-      maxWidthFactor: 1.28,
-      minHeightFactor: 0.28,
-      maxHeightFactor: 0.48,
-      minOpacity: 0.038,
-      maxOpacity: 0.080,
-      horizontalRange: 20,
-      verticalRange: 6,
-    );
-
-    paintShadowField(
-      count: 3,
-      seedOffset: 97,
-      minWidthFactor: 1.02,
-      maxWidthFactor: 1.46,
-      minHeightFactor: 0.38,
-      maxHeightFactor: 0.60,
-      minOpacity: 0.022,
-      maxOpacity: 0.052,
-      horizontalRange: 14,
-      verticalRange: 4,
-    );
   }
 
   void _paintRain(Canvas canvas, Size size, {required bool heavy}) {
@@ -747,6 +906,9 @@ class _WeatherEffectPainter extends CustomPainter {
       required double baseSlant,
     }) {
       final travelWidth = size.width + 180;
+      // Paintを雨粒ごとに生成しない。1レイヤーにつき1個を再利用して、
+      // 雨量感を保ったままGCとオブジェクト生成負荷を抑える。
+      final rainPaint = Paint()..strokeCap = StrokeCap.round;
 
       for (var i = 0; i < count; i++) {
         final seed = i + seedOffset * 1000;
@@ -785,11 +947,10 @@ class _WeatherEffectPainter extends CustomPainter {
                 travelWidth -
             90;
 
-        final rainPaint = Paint()
+        rainPaint
           ..color = const Color(0xFFE1F4FF)
               .withValues(alpha: opacity.clamp(0.0, 1.0))
-          ..strokeWidth = strokeWidth
-          ..strokeCap = StrokeCap.round;
+          ..strokeWidth = strokeWidth;
 
         canvas.drawLine(
           Offset(x, y),
@@ -801,7 +962,7 @@ class _WeatherEffectPainter extends CustomPainter {
 
     // 遠景。細い雨を広く散らして雨量を作る。
     paintLayer(
-      count: heavy ? 105 : 58,
+      count: heavy ? 90 : 52,
       seedOffset: 11,
       baseSpeed: heavy ? 2.35 : 1.70,
       baseLength: heavy ? 15 : 11,
@@ -812,7 +973,7 @@ class _WeatherEffectPainter extends CustomPainter {
 
     // 中景。雨として認識しやすい主レイヤー。
     paintLayer(
-      count: heavy ? 78 : 42,
+      count: heavy ? 68 : 38,
       seedOffset: 29,
       baseSpeed: heavy ? 3.15 : 2.30,
       baseLength: heavy ? 27 : 21,
@@ -823,7 +984,7 @@ class _WeatherEffectPainter extends CustomPainter {
 
     // 近景。少数の長い雨筋だけを高速で通す。
     paintLayer(
-      count: heavy ? 38 : 18,
+      count: heavy ? 30 : 16,
       seedOffset: 47,
       baseSpeed: heavy ? 4.25 : 3.15,
       baseLength: heavy ? 47 : 36,
@@ -832,7 +993,100 @@ class _WeatherEffectPainter extends CustomPainter {
       baseSlant: 0.34,
     );
 
+    // 前景は「濡れた窓」を主役にする。雨筋を無限に増やす代わりに、
+    // 上部の薄い濡れ膜と大きな水滴で奥行きと雨量感を出す。
+    _paintWetGlassAtmosphere(canvas, size, heavy: heavy);
     _paintGlassRaindrops(canvas, size, heavy: heavy);
+    _paintRainRipples(canvas, size, heavy: heavy);
+  }
+
+  void _paintWetGlassAtmosphere(
+    Canvas canvas,
+    Size size, {
+    required bool heavy,
+  }) {
+    if (size.width <= 0 || size.height <= 0) return;
+
+    // 画面全体をぼかさず、上部だけに薄い濡れ膜を置く。
+    // GoogleMapをBackdropFilterで再サンプリングしないので描画コストを抑えられる。
+    final breath =
+        0.92 + math.sin(progress * math.pi * 2.0) * (heavy ? 0.06 : 0.035);
+    final rect = Offset.zero & size;
+    final filmPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          const Color(0xFFE8F7FF).withValues(
+            alpha: (heavy ? 0.115 : 0.070) * breath,
+          ),
+          const Color(0xFFB7D8E8).withValues(
+            alpha: (heavy ? 0.045 : 0.025) * breath,
+          ),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 0.30, 0.68],
+      ).createShader(rect);
+    canvas.drawRect(rect, filmPaint);
+
+    // 少数の長い濡れ筋。数ではなく長さと明暗で「窓を伝う雨」を感じさせる。
+    final streakPaint = Paint()
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final count = heavy ? 7 : 4;
+    for (var i = 0; i < count; i++) {
+      final xSeed = ((i * 193 + 61) % 991) / 991.0;
+      final phaseSeed = ((i * 271 + 47) % 983) / 983.0;
+      final phase = (phaseSeed + progress * (0.34 + i * 0.018)) % 1.0;
+      final x =
+          18.0 + xSeed * math.max(size.width - 36.0, 1.0) +
+          math.sin(progress * math.pi * 2.0 + i) * 2.0;
+      final headY = -70.0 + phase * (size.height + 140.0);
+      final length = (heavy ? 105.0 : 76.0) + (i % 3) * 16.0;
+
+      streakPaint
+        ..color = const Color(0xFFDDF5FF).withValues(
+          alpha: heavy ? 0.17 : 0.11,
+        )
+        ..strokeWidth = heavy ? 1.45 : 1.05;
+
+      final path = Path()
+        ..moveTo(x, headY - length)
+        ..cubicTo(
+          x - 2.2,
+          headY - length * 0.70,
+          x + 3.0,
+          headY - length * 0.34,
+          x,
+          headY,
+        );
+      canvas.drawPath(path, streakPaint);
+    }
+  }
+
+  void _paintRainRipples(Canvas canvas, Size size, {required bool heavy}) {
+    final count = heavy ? 10 : 6;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    for (var i = 0; i < count; i++) {
+      final phase = (progress * (heavy ? 7.0 : 5.0) + i * 0.618) % 1.0;
+      final x = size.width * (((i * 73 + 19) % 101) / 101.0);
+      final y = size.height * (0.72 + ((i * 29 + 11) % 23) / 100.0);
+      final radius = 2.0 + phase * (heavy ? 13.0 : 9.0);
+      paint.color = const Color(0xFFDEF5FF).withValues(
+        alpha: (1.0 - phase) * (heavy ? 0.32 : 0.20),
+      );
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(x, y),
+          width: radius * 2.0,
+          height: radius * 0.8,
+        ),
+        paint,
+      );
+    }
   }
 
   void _paintGlassRaindrops(Canvas canvas, Size size, {required bool heavy}) {
@@ -841,7 +1095,7 @@ class _WeatherEffectPainter extends CustomPainter {
     }
 
     // ガラス面に留まる小さな水滴。
-    final staticDropCount = heavy ? 52 : 38;
+    final staticDropCount = heavy ? 20 : 14;
 
     for (var i = 0; i < staticDropCount; i++) {
       final seedX = ((i * 137 + 29) % 997) / 997.0;
@@ -853,19 +1107,19 @@ class _WeatherEffectPainter extends CustomPainter {
 
       final pulse = 0.92 + math.sin(progress * math.pi * 2 + i * 0.73) * 0.08;
 
-      final radius = (1.8 + sizeSeed * 3.8) * pulse;
+      final radius = (1.3 + sizeSeed * 2.4) * pulse;
 
       _drawGlassDrop(
         canvas,
         center: Offset(x, y),
         radiusX: radius * (0.86 + sizeSeed * 0.12),
         radiusY: radius * (1.05 + sizeSeed * 0.22),
-        opacity: 0.28 + sizeSeed * 0.22,
+        opacity: 0.18 + sizeSeed * 0.15,
       );
     }
 
     // 大きくなった水滴だけが重力で流れる。
-    final movingDropCount = heavy ? 14 : 9;
+    final movingDropCount = heavy ? 8 : 5;
 
     for (var i = 0; i < movingDropCount; i++) {
       final seedX = ((i * 181 + 43) % 983) / 983.0;
@@ -900,7 +1154,7 @@ class _WeatherEffectPainter extends CustomPainter {
 
       final x = 14 + seedX * math.max(size.width - 28, 1.0) + wobble;
 
-      final baseRadius = 4.8 + sizeSeed * 4.6;
+      final baseRadius = 3.5 + sizeSeed * 3.2;
 
       final stretch = resting ? 1.05 : 1.15 + gravityProgress * 1.65;
 
@@ -944,7 +1198,7 @@ class _WeatherEffectPainter extends CustomPainter {
         center: Offset(x, y),
         radiusX: baseRadius * (0.78 - gravityProgress * 0.08),
         radiusY: baseRadius * stretch,
-        opacity: heavy ? 0.68 : 0.58,
+        opacity: heavy ? 0.55 : 0.45,
       );
     }
   }
@@ -1026,19 +1280,19 @@ class _WeatherEffectPainter extends CustomPainter {
     switch (dayPhase) {
       case DayPhase.morning:
         snowAtmosphereColor = const Color(0xFFD8E6EE);
-        snowAtmosphereOpacity = 0.045;
+        snowAtmosphereOpacity = 0.08;
 
       case DayPhase.daytime:
         snowAtmosphereColor = const Color(0xFFE7F0F5);
-        snowAtmosphereOpacity = 0.055;
+        snowAtmosphereOpacity = 0.09;
 
       case DayPhase.evening:
         snowAtmosphereColor = const Color(0xFF9B91AA);
-        snowAtmosphereOpacity = 0.045;
+        snowAtmosphereOpacity = 0.075;
 
       case DayPhase.night:
         snowAtmosphereColor = const Color(0xFF294765);
-        snowAtmosphereOpacity = 0.080;
+        snowAtmosphereOpacity = 0.12;
     }
 
     final snowAtmospherePaint = Paint()
@@ -1051,7 +1305,7 @@ class _WeatherEffectPainter extends CustomPainter {
     }
 
     final washPaint = Paint()
-      ..color = const Color(0xFFDCEEFF).withValues(alpha: 0.065);
+      ..color = const Color(0xFFDCEEFF).withValues(alpha: 0.10);
 
     canvas.drawRect(Offset.zero & size, washPaint);
 
@@ -1203,28 +1457,28 @@ class _WeatherEffectPainter extends CustomPainter {
     switch (dayPhase) {
       case DayPhase.morning:
         fogAtmosphereColor = const Color(0xFFE6E7E2);
-        fogAtmosphereOpacity = 0.050;
+        fogAtmosphereOpacity = 0.095;
         fogCoreColor = const Color(0xFFF7F7F2);
         fogMidColor = const Color(0xFFECEDE8);
         fogOuterColor = const Color(0xFFDDE5E5);
 
       case DayPhase.daytime:
         fogAtmosphereColor = const Color(0xFFE7EFF1);
-        fogAtmosphereOpacity = 0.055;
+        fogAtmosphereOpacity = 0.10;
         fogCoreColor = const Color(0xFFF7FAFB);
         fogMidColor = const Color(0xFFE8EFF1);
         fogOuterColor = const Color(0xFFDCE7EA);
 
       case DayPhase.evening:
         fogAtmosphereColor = const Color(0xFFAAA2AE);
-        fogAtmosphereOpacity = 0.050;
+        fogAtmosphereOpacity = 0.09;
         fogCoreColor = const Color(0xFFF0E9EB);
         fogMidColor = const Color(0xFFDCD4DA);
         fogOuterColor = const Color(0xFFC6C4CD);
 
       case DayPhase.night:
         fogAtmosphereColor = const Color(0xFF40566C);
-        fogAtmosphereOpacity = 0.070;
+        fogAtmosphereOpacity = 0.12;
         fogCoreColor = const Color(0xFF9EAFBD);
         fogMidColor = const Color(0xFF788C9E);
         fogOuterColor = const Color(0xFF566D82);
@@ -1234,6 +1488,31 @@ class _WeatherEffectPainter extends CustomPainter {
       ..color = fogAtmosphereColor.withValues(alpha: fogAtmosphereOpacity);
 
     canvas.drawRect(Offset.zero & size, atmospherePaint);
+
+    // 横にたなびく薄い霧。境界のある帯を少数だけ使い、
+    // 地図ラベルを隠す一様な白塗りを避ける。
+    for (var i = 0; i < 2; i++) {
+      final drift = math.sin(progress * math.pi * 2 + i * 2.3) * 14;
+      final band = Rect.fromLTWH(
+        0,
+        size.height * (0.22 + i * 0.37) + drift,
+        size.width,
+        size.height * 0.22,
+      );
+      final bandPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.transparent,
+            fogCoreColor.withValues(
+              alpha: dayPhase == DayPhase.night ? 0.10 : 0.16,
+            ),
+            Colors.transparent,
+          ],
+        ).createShader(band);
+      canvas.drawRect(band, bandPaint);
+    }
 
     double hash(int value, int salt) {
       final n = math.sin(value * 12.9898 + salt * 78.233) * 43758.5453;
@@ -1370,8 +1649,8 @@ class _WeatherEffectPainter extends CustomPainter {
       maxWidthFactor: 1.28,
       minHeight: 140,
       maxHeight: 235,
-      minOpacity: 0.040,
-      maxOpacity: 0.080,
+      minOpacity: 0.060,
+      maxOpacity: 0.115,
       horizontalRange: 16,
       verticalRange: 3.5,
       phaseMultiplier: 2.0,
@@ -1386,8 +1665,8 @@ class _WeatherEffectPainter extends CustomPainter {
       maxWidthFactor: 0.94,
       minHeight: 95,
       maxHeight: 175,
-      minOpacity: 0.060,
-      maxOpacity: 0.120,
+      minOpacity: 0.085,
+      maxOpacity: 0.155,
       horizontalRange: 24,
       verticalRange: 5.0,
       phaseMultiplier: 3.0,
@@ -1402,8 +1681,8 @@ class _WeatherEffectPainter extends CustomPainter {
       maxWidthFactor: 1.16,
       minHeight: 150,
       maxHeight: 255,
-      minOpacity: 0.035,
-      maxOpacity: 0.075,
+      minOpacity: 0.050,
+      maxOpacity: 0.100,
       horizontalRange: 32,
       verticalRange: 7.0,
       phaseMultiplier: 4.0,
@@ -1441,15 +1720,15 @@ class _WeatherEffectPainter extends CustomPainter {
   void _paintThunderstorm(Canvas canvas, Size size) {
     _paintRain(canvas, size, heavy: true);
 
-    final flashPhase = progress * 8.0;
-    final flashDistance = (flashPhase - flashPhase.round()).abs();
+    final firstPulse = (progress - 0.24).abs() < 0.012;
+    final secondPulse = (progress - 0.29).abs() < 0.008;
 
-    if (flashDistance < 0.025) {
+    if (firstPulse || secondPulse) {
       final flashOpacity = switch (dayPhase) {
-        DayPhase.morning => 0.15,
-        DayPhase.daytime => 0.12,
-        DayPhase.evening => 0.17,
-        DayPhase.night => 0.22,
+        DayPhase.morning => 0.12,
+        DayPhase.daytime => 0.10,
+        DayPhase.evening => 0.14,
+        DayPhase.night => 0.18,
       };
 
       final flashPaint = Paint()

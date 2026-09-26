@@ -55,7 +55,7 @@ class _QuestLicensePageState extends State<QuestLicensePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: QuestUiTokens.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
@@ -84,26 +84,29 @@ class _QuestLicensePageState extends State<QuestLicensePage> {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: QuestGlassCard(
-                  padding: const EdgeInsets.all(22),
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.error_outline_rounded,
-                        color: QuestUiTokens.primary,
-                        size: 36,
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        'ライセンス情報を読み込めませんでした。',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: QuestUiTokens.ink,
-                          fontWeight: FontWeight.w800,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: QuestGlassCard(
+                    padding: const EdgeInsets.all(22),
+                    child: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.error_outline_rounded,
+                          color: QuestUiTokens.primary,
+                          size: 36,
                         ),
-                      ),
-                    ],
+                        SizedBox(height: 12),
+                        Text(
+                          'ライセンス情報を読み込めませんでした。',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: QuestUiTokens.ink,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -116,14 +119,17 @@ class _QuestLicensePageState extends State<QuestLicensePage> {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: QuestGlassCard(
-                  padding: const EdgeInsets.all(22),
-                  child: const Text(
-                    '表示できるライセンス情報がありません。',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: QuestUiTokens.ink,
-                      fontWeight: FontWeight.w700,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: QuestGlassCard(
+                    padding: const EdgeInsets.all(22),
+                    child: const Text(
+                      '表示できるライセンス情報がありません。',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: QuestUiTokens.ink,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
@@ -253,7 +259,7 @@ class _QuestLicenseDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: QuestUiTokens.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,

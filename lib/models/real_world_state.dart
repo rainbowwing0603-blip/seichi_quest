@@ -19,29 +19,55 @@ class RealWorldState {
   final DayPhase dayPhase;
   final WeatherCondition weather;
   final double? temperatureCelsius;
+  final bool strongWindExpected;
   final DateTime observedAt;
+  final int? utcOffsetSeconds;
 
   const RealWorldState({
     required this.season,
     required this.dayPhase,
     required this.weather,
     required this.temperatureCelsius,
+    this.strongWindExpected = false,
     required this.observedAt,
+    this.utcOffsetSeconds,
   });
 
   factory RealWorldState.fromLocalTime(
     DateTime localTime, {
     WeatherCondition weather = WeatherCondition.unknown,
     double? temperatureCelsius,
+    bool strongWindExpected = false,
+    int? utcOffsetSeconds,
   }) {
     return RealWorldState(
       season: seasonFromMonth(localTime.month),
       dayPhase: dayPhaseFromHour(localTime.hour),
       weather: weather,
       temperatureCelsius: temperatureCelsius,
+      strongWindExpected: strongWindExpected,
       observedAt: localTime,
+      utcOffsetSeconds: utcOffsetSeconds,
     );
   }
+
+  /// Keep the weather observation while advancing the locally displayed time.
+  RealWorldState atLocalTime(DateTime localTime) => RealWorldState(
+        season: seasonFromMonth(localTime.month),
+        dayPhase: dayPhaseFromHour(localTime.hour),
+        weather: weather,
+        temperatureCelsius: temperatureCelsius,
+        strongWindExpected: strongWindExpected,
+        observedAt: observedAt,
+        utcOffsetSeconds: utcOffsetSeconds,
+      );
+
+  /// Advance the display clock in the weather location's time zone.
+  RealWorldState atCurrentTime(DateTime now) => atLocalTime(
+        utcOffsetSeconds == null
+            ? now
+            : now.toUtc().add(Duration(seconds: utcOffsetSeconds!)),
+      );
 
   static Season seasonFromMonth(int month) {
     if (month >= 3 && month <= 5) {

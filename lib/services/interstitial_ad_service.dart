@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import 'ad_sdk_service.dart';
+
 class InterstitialAdService {
   InterstitialAdService._();
 
@@ -58,7 +60,16 @@ class InterstitialAdService {
   }
 
   void preload() {
+    unawaited(_preloadWhenReady());
+  }
+
+  Future<void> _preloadWhenReady() async {
     if (_interstitialAd != null || _isLoading || _isShowing) {
+      return;
+    }
+
+    final adsReady = await AdSdkService.instance.ready;
+    if (!adsReady || _interstitialAd != null || _isLoading || _isShowing) {
       return;
     }
 

@@ -16,7 +16,7 @@ concurrency:
 jobs:
   analyze-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -39,3 +39,29 @@ jobs:
 
       - name: Test
         run: flutter test
+
+      - name: Prepare temporary Android signing for build verification
+        run: |
+          keytool -genkeypair -noprompt \
+            -keystore android/app/ci-upload.jks \
+            -storepass ci-build-only -keypass ci-build-only \
+            -alias ci -dname "CN=CI Build" \
+            -keyalg RSA -keysize 2048 -validity 1
+          cat > android/key.properties <<'EOF'
+          storePassword=ci-build-only
+          keyPassword=ci-build-only
+          keyAlias=ci
+          storeFile=ci-upload.jks
+          googleMapsApiKey=ci-placeholder-key
+          EOF
+
+      - name: Verify Android release bundle builds
+        run: flutter build appbundle --release --no-pub
+
+      - name: Upload UI gallery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-gallery
+          path: build/ui_gallery/*.png
+          if-no-files-found: ignore

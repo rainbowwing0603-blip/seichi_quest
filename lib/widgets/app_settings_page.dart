@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'quest_ui.dart';
+import '../services/app_error_report.dart';
 
 class AppSettingsPage extends StatefulWidget {
   const AppSettingsPage({
@@ -79,7 +80,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: QuestUiTokens.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
@@ -453,7 +454,11 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
 
       QuestSnackBar.show(
         context,
-        message: 'リセットに失敗しました: $error',
+        message: AppErrorReport.message(
+          AppErrorCodes.resetHistory,
+          '獲得履歴のリセットに失敗しました。',
+          error: error,
+        ),
         type: QuestNoticeType.error,
       );
     }
