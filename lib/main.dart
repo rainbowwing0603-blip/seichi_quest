@@ -2686,8 +2686,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       showRegionalProgress: _eventTotalCount > 200 &&
           _questMapDisplayPolicy.modeForZoom(_cameraZoom) == QuestMapDisplayMode.regionalProgress,
       onRegionalProgressTap: (region) {
-        if (region.centerLatitude == null || region.centerLongitude == null || _mapController == null) return;
-        unawaited(_mapController!.animateCamera(CameraUpdate.newLatLngZoom(LatLng(region.centerLatitude!, region.centerLongitude!), 8.5)));
+        if (_mapController == null || region.latitude == 0 || region.longitude == 0) return;
+        unawaited(_mapController!.animateCamera(CameraUpdate.newLatLngZoom(LatLng(region.latitude, region.longitude), 8.5)));
       },
       onCameraMove: (position) {
         _cameraZoom = position.zoom;
