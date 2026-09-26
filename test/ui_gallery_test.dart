@@ -18,6 +18,7 @@ import 'package:seichi_quest/widgets/onboarding_page.dart';
 import 'package:seichi_quest/widgets/quest_page.dart';
 import 'package:seichi_quest/widgets/quest_spot_detail_sheet.dart';
 import 'package:seichi_quest/widgets/quest_ui.dart';
+import 'package:seichi_quest/widgets/season_effect_overlay.dart';
 import 'package:seichi_quest/widgets/sync_status_page.dart';
 import 'package:seichi_quest/widgets/weather_effect_overlay.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -242,6 +243,35 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 600));
       await capture(tester, 'weather_${weather.name}');
+    }
+
+    for (final season in Season.values) {
+      final phase = season == Season.summer
+          ? DayPhase.night
+          : DayPhase.daytime;
+      await show(
+        tester,
+        Stack(
+          children: [
+            const Positioned.fill(
+              child: ColoredBox(color: Color(0xFFB8CED1)),
+            ),
+            SeasonEffectOverlay(
+              season: season,
+              dayPhase: phase,
+              weather: WeatherCondition.clear,
+            ),
+            Center(
+              child: Text(
+                season.name,
+                style: const TextStyle(fontSize: 24, color: QuestUiTokens.ink),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await capture(tester, 'season_${season.name}');
     }
 
     await show(tester, OnboardingPage(onComplete: asyncNoop));
