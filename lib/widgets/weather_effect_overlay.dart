@@ -729,8 +729,8 @@ class _WeatherEffectPainter extends CustomPainter {
           // 周期の異なる2つの小さな波を混ぜる。
           // 振幅は最大でも数％なので「モコモコ」ではなく自然な輪郭の揺らぎ。
           final ripple =
-              math.sin(theta * 3.0 + phase * 0.31) * 0.040 +
-              math.sin(theta * 5.0 - phase * 0.23 + 1.4) * 0.022;
+              math.sin(theta * 3.0 + phase) * 0.040 +
+              math.sin(theta * 5.0 - phase * 2.0 + 1.4) * 0.022;
           final localRx = rx * (1.0 + ripple);
           final localRy = ry * (1.0 + ripple * 0.82);
           points.add(
@@ -803,7 +803,7 @@ class _WeatherEffectPainter extends CustomPainter {
 
       paintCloudMass(
         center: Offset(
-          size.width * 0.23 + math.sin(loopAngle * 0.4) * size.width * 0.018,
+          size.width * 0.23 + math.sin(loopAngle) * size.width * 0.018,
           size.height * 0.105,
         ),
         width: size.width * 0.92,
@@ -812,7 +812,7 @@ class _WeatherEffectPainter extends CustomPainter {
       );
       paintCloudMass(
         center: Offset(
-          size.width * 0.83 + math.sin(loopAngle * 0.4 + 2.0) * size.width * 0.016,
+          size.width * 0.83 + math.sin(loopAngle + 2.0) * size.width * 0.016,
           size.height * 0.075,
         ),
         width: size.width * 0.76,
@@ -834,7 +834,7 @@ class _WeatherEffectPainter extends CustomPainter {
       paintCloudMass(
         center: Offset(
           -size.width * 0.12,
-          size.height * 0.72 + math.sin(loopAngle * 0.4 + 4.1) * size.height * 0.008,
+          size.height * 0.72 + math.sin(loopAngle + 4.1) * size.height * 0.008,
         ),
         width: size.width * 0.66,
         height: size.height * 0.15,
