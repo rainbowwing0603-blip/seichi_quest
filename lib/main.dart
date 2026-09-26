@@ -2856,13 +2856,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Widget _buildQuestPage() {
     return QuestPage(
-      nextSeichi: _nextSeichi,
+      nextItem: _nextSeichi,
       nextDistance: _nextDistance,
       collectedCount: _getCollectedCount(),
       total: _eventTotalCount,
       onShowDestination: _moveCameraToNextSeichi,
       onExploreEvents: _showEventExplore,
       eventAchievements: _eventAchievements,
+      itemLabel: _currentEventItemLabel,
     );
   }
 
