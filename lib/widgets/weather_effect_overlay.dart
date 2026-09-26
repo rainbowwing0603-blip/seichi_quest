@@ -788,14 +788,14 @@ class _WeatherEffectPainter extends CustomPainter {
 
       }
 
-      // 上端の大きな雲海。HUDの背後から地図へ少しだけ入り込む。
+      // 雲を端へ貼り付けず、地図の内側まで自然に入り込ませる。
       paintEdgeCloud(
         center: Offset(
           size.width * 0.28 + math.sin(loopAngle * 0.5) * size.width * 0.025,
-          -size.height * 0.015,
+          size.height * 0.115,
         ),
-        width: size.width * 0.92,
-        height: size.height * 0.21,
+        width: size.width * 1.02,
+        height: size.height * 0.28,
         phase: loopAngle,
         edge: Alignment.topCenter,
       );
@@ -804,30 +804,30 @@ class _WeatherEffectPainter extends CustomPainter {
           size.width * 0.82 + math.sin(loopAngle * 0.5 + 2.0) * size.width * 0.02,
           size.height * 0.045,
         ),
-        width: size.width * 0.76,
-        height: size.height * 0.19,
+        width: size.width * 0.88,
+        height: size.height * 0.25,
         phase: loopAngle + 2.0,
         edge: Alignment.topCenter,
       );
 
-      // 左右の縁にも薄い雲を置き、画面中央は空ける。
+      // 左右からも厚みのある雲を入れ、中央付近まで天候の存在感を出す。
       paintEdgeCloud(
         center: Offset(
-          -size.width * 0.25,
+          -size.width * 0.10,
           size.height * 0.42 + math.sin(loopAngle * 0.5 + 1.0) * size.height * 0.018,
         ),
-        width: size.width * 0.62,
-        height: size.height * 0.17,
+        width: size.width * 0.78,
+        height: size.height * 0.23,
         phase: loopAngle + 1.0,
         edge: Alignment.centerLeft,
       );
       paintEdgeCloud(
         center: Offset(
-          size.width * 1.24,
+          size.width * 1.10,
           size.height * 0.62 + math.sin(loopAngle * 0.5 + 3.0) * size.height * 0.018,
         ),
-        width: size.width * 0.66,
-        height: size.height * 0.18,
+        width: size.width * 0.80,
+        height: size.height * 0.24,
         phase: loopAngle + 3.0,
         edge: Alignment.centerRight,
       );
