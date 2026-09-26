@@ -728,12 +728,20 @@ class _WeatherEffectPainter extends CustomPainter {
 
         // 雲の見える側だけを曲線で作り、閉路は必ず画面外の辺で閉じる。
         // これにより、塗りつぶしPathの直線や角が画面内へ出ない。
+        // 大小の膨らみと浅い谷を非周期的に混ぜる。
+        // phase は雲ごとの個体差にだけ使い、位置や全体サイズは変えない。
+        final variation = math.sin(phase * 0.73) * 0.025;
         final contour = <Offset>[
           Offset(left - w * 0.10, center.dy + h * 0.08),
-          Offset(left + w * 0.12, center.dy - h * 0.04),
-          Offset(left + w * 0.38, center.dy - h * 0.25),
-          Offset(left + w * 0.64, center.dy - h * 0.20),
-          Offset(left + w * 0.83, center.dy - h * 0.10),
+          Offset(left + w * 0.08, center.dy - h * (0.03 + variation)),
+          Offset(left + w * 0.20, center.dy - h * (0.18 - variation)),
+          Offset(left + w * 0.31, center.dy - h * 0.11),
+          Offset(left + w * 0.43, center.dy - h * (0.29 + variation)),
+          Offset(left + w * 0.55, center.dy - h * 0.16),
+          Offset(left + w * 0.67, center.dy - h * (0.23 - variation)),
+          Offset(left + w * 0.76, center.dy - h * 0.13),
+          Offset(left + w * 0.86, center.dy - h * (0.20 + variation)),
+          Offset(left + w * 0.96, center.dy - h * 0.08),
           Offset(right + w * 0.10, center.dy + h * 0.10),
         ];
 
@@ -742,11 +750,12 @@ class _WeatherEffectPainter extends CustomPainter {
           final a = contour[i];
           final b = contour[i + 1];
           final dx = b.dx - a.dx;
+          // 制御点は両端の高さへ寄せ、谷でも鋭角にならないS字カーブにする。
           path.cubicTo(
-            a.dx + dx * 0.34,
-            a.dy - h * (i.isEven ? 0.10 : 0.04),
-            a.dx + dx * 0.70,
-            b.dy + h * (i.isEven ? 0.035 : 0.075),
+            a.dx + dx * 0.36,
+            a.dy,
+            a.dx + dx * 0.68,
+            b.dy,
             b.dx,
             b.dy,
           );
