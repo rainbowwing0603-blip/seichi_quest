@@ -33,12 +33,15 @@ import 'widgets/license_page.dart';
 import 'models/quest_item.dart';
 import 'models/achievement.dart';
 import 'models/event.dart';
+import 'models/regional_map_progress.dart';
 import 'services/level_service.dart' show LevelProgress;
 import 'services/location_service.dart';
 import 'services/location_integrity_policy.dart';
 import 'services/location_integrity_service.dart';
 import 'services/marker_cache_revision.dart';
 import 'services/quest_map_cluster_service.dart';
+import 'services/quest_map_display_policy.dart';
+import 'services/regional_map_progress_service.dart';
 import 'services/quest_cluster_icon_service.dart';
 import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
@@ -197,12 +200,31 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   bool _weatherLoadFailed = false;
 
   List<QuestItem> _seichiList = [];
+  List<QuestItem> _nearbyQuestItems = [];
+  List<QuestItem> _mapVisibleSeichiList = [];
+  Position? _lastNearbyLoadPosition;
+  static const double _nearbyReloadDistanceMeters = 15000;
+  static const QuestMapDisplayPolicy _questMapDisplayPolicy = QuestMapDisplayPolicy();
+  final RegionalMapProgressService _regionalMapProgressService = RegionalMapProgressService();
+  List<RegionalMapProgress> _regionalMapProgress = [];
+  String? _regionalMapProgressEventId;
+  bool _isMapViewportLoading = false;
+  bool _mapViewportRefreshPending = false;
+  int _mapViewportRequestGeneration = 0;
   final EventProgressService _eventProgressService = EventProgressService();
   EventProgressSummary? _eventProgressSummary;
   bool _isLoadingMoreCollectionItems = false;
   int _collectionPageOffset = 0;
   bool _collectionPagingExhausted = false;
   int _collectionRequestGeneration = 0;
+  List<QuestItem> get _locationQuestItems {
+    if (_eventTotalCount <= _seichiList.length || _nearbyQuestItems.isEmpty) return _seichiList;
+    return _nearbyQuestItems;
+  }
+
+  List<QuestItem> get _mapQuestItems =>
+      _eventTotalCount > 200 ? _mapVisibleSeichiList : _seichiList;
+
   final Set<String> _collectedIds = {};
   final Map<String, Set<String>> _collectionEventNamesByContentKey = {};
 
@@ -1311,6 +1333,76 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
   }
 
+
+  Future<void> _refreshNearbyQuestItems(Position position, {bool force = false}) async {
+    final eventId = _currentEventId;
+    if (eventId == null || eventId.isEmpty || _eventTotalCount <= 200) return;
+    final last = _lastNearbyLoadPosition;
+    if (!force && last != null) {
+      final moved = _locationService.distanceBetween(
+        startLatitude: last.latitude, startLongitude: last.longitude,
+        endLatitude: position.latitude, endLongitude: position.longitude,
+      );
+      if (moved < _nearbyReloadDistanceMeters) return;
+    }
+    try {
+      final nearby = await _questItemService.loadActiveItemsNearby(
+        eventId: eventId, latitude: position.latitude,
+        longitude: position.longitude, radiusMeters: 50000,
+      );
+      if (!mounted || eventId != _currentEventId) return;
+      setState(() { _nearbyQuestItems = nearby; _lastNearbyLoadPosition = position; });
+      _updateNextDestination();
+    } catch (error) { appDebugPrint('[NEARBY] load failed: $error'); }
+  }
+
+  Future<void> _loadRegionalMapProgress() async {
+    final eventId = _currentEventId;
+    if (eventId == null || eventId.isEmpty || _regionalMapProgressEventId == eventId) return;
+    try {
+      final progress = await _regionalMapProgressService.load(eventId);
+      if (!mounted || eventId != _currentEventId) return;
+      setState(() { _regionalMapProgress = progress; _regionalMapProgressEventId = eventId; });
+    } catch (error) { appDebugPrint('[MAP-REGION] load failed: $error'); }
+  }
+
+  Future<void> _refreshMapViewport() async {
+    final controller = _mapController;
+    final eventId = _currentEventId;
+    if (controller == null || eventId == null || eventId.isEmpty || _eventTotalCount <= 200) return;
+    if (_isMapViewportLoading) { _mapViewportRefreshPending = true; return; }
+    final zoom = _cameraZoom;
+    final mode = _questMapDisplayPolicy.modeForZoom(zoom);
+    if (mode == QuestMapDisplayMode.regionalProgress) {
+      if (mounted) setState(() { _mapVisibleSeichiList = []; _markerCacheRevision.markChanged(); });
+      await _loadRegionalMapProgress();
+      return;
+    }
+    _isMapViewportLoading = true;
+    _mapViewportRefreshPending = false;
+    final generation = ++_mapViewportRequestGeneration;
+    try {
+      final bounds = await controller.getVisibleRegion();
+      final visible = await _questItemService.loadActiveItemsInBounds(
+        eventId: eventId,
+        south: bounds.southwest.latitude, west: bounds.southwest.longitude,
+        north: bounds.northeast.latitude, east: bounds.northeast.longitude,
+        limit: _questMapDisplayPolicy.viewportLimitForZoom(zoom),
+      );
+      if (!mounted || generation != _mapViewportRequestGeneration || eventId != _currentEventId) return;
+      final counts = _clusterService.build(items: visible, zoom: zoom).map((e) => e.count).toSet();
+      for (final count in counts) {
+        if (!_clusterIcons.containsKey(count)) _clusterIcons[count] = await _clusterIconService.iconForCount(count);
+      }
+      if (!mounted || generation != _mapViewportRequestGeneration) return;
+      setState(() { _mapVisibleSeichiList = visible; _renderedZoom = zoom; _markerCacheRevision.markChanged(); });
+    } catch (error) { appDebugPrint('[MAP-VIEWPORT] load failed: $error'); }
+    finally {
+      _isMapViewportLoading = false;
+      if (_mapViewportRefreshPending && mounted) { _mapViewportRefreshPending = false; unawaited(_refreshMapViewport()); }
+    }
+  }
+
   // ============================================================
   // 現在地初期化
   // ============================================================
@@ -1547,7 +1639,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     final result = _nextDestinationService.findNextDestination(
       position: _currentPosition,
-      seichiList: _seichiList,
+      seichiList: _locationQuestItems,
       collectedIds: _collectedIds,
       manualNextSeichiId: _manualNextSeichiId,
     );
@@ -1717,7 +1809,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     final position = _currentPosition;
 
-    if (position == null || _seichiList.isEmpty) {
+    final locationQuestItems = _locationQuestItems;
+    if (position == null || locationQuestItems.isEmpty) {
       return;
     }
 
@@ -1780,7 +1873,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         'lon=${position.longitude}, '
         'accuracy=${position.accuracy}m, '
         'timestamp=${position.timestamp}, '
-        'seichiCount=${_seichiList.length}',
+        'seichiCount=${locationQuestItems.length}',
       );
     }
 
@@ -1788,7 +1881,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     double nearestDistance = double.infinity;
     QuestItem? collectibleSeichi;
 
-    for (final seichi in _seichiList) {
+    for (final seichi in locationQuestItems) {
       if (_collectedIds.contains(seichi.id)) {
         continue;
       }
@@ -2342,7 +2435,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (shouldRebuildStaticMarkers) {
       final staticMarkers = <Marker>{};
 
-      for (final seichi in _seichiList) {
+      for (final seichi in _mapQuestItems) {
         final collected = _collectedIds.contains(seichi.id);
         final isNext = !collected && seichi.id == nextId;
         if (isNext) continue;
@@ -2410,7 +2503,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
   Set<Marker> _buildClusterMarkers() {
     final clusters = _clusterService.build(
-      items: _seichiList,
+      items: _mapQuestItems,
       zoom: _renderedZoom,
     );
     final markers = <Marker>{};
