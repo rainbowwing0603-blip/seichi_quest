@@ -7,11 +7,15 @@ import '../models/real_world_state.dart';
 class WeatherEffectOverlay extends StatefulWidget {
   final WeatherCondition weather;
   final DayPhase dayPhase;
+  final double? sunScreenAngleRadians;
+  final double? sunElevationDegrees;
 
   const WeatherEffectOverlay({
     super.key,
     required this.weather,
     required this.dayPhase,
+    this.sunScreenAngleRadians,
+    this.sunElevationDegrees,
   });
 
   @override
@@ -118,6 +122,8 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
                 painter: _WeatherEffectPainter(
                   weather: widget.weather,
                   dayPhase: widget.dayPhase,
+                  sunScreenAngleRadians: widget.sunScreenAngleRadians,
+                  sunElevationDegrees: widget.sunElevationDegrees,
                   progress:
                       (_controller.value * _framesPerCycle).floor() /
                       _framesPerCycle,
@@ -135,11 +141,15 @@ class _WeatherEffectPainter extends CustomPainter {
   final WeatherCondition weather;
   final DayPhase dayPhase;
   final double progress;
+  final double? sunScreenAngleRadians;
+  final double? sunElevationDegrees;
 
   const _WeatherEffectPainter({
     required this.weather,
     required this.dayPhase,
     required this.progress,
+    this.sunScreenAngleRadians,
+    this.sunElevationDegrees,
   });
 
   @override
@@ -166,10 +176,73 @@ class _WeatherEffectPainter extends CustomPainter {
     }
   }
 
+  void _paintDirectionalSunlight(Canvas canvas, Size size) {
+    final angle = sunScreenAngleRadians;
+    final elevation = sunElevationDegrees;
+    if (angle == null || elevation == null || elevation <= 0) return;
+
+    final elevationFactor = (elevation / 70.0).clamp(0.0, 1.0);
+    final edgeDistance = math.max(size.width, size.height) * 0.72;
+    final center = Offset(size.width / 2, size.height / 2);
+    // 0 rad means north/top. The light source sits toward the real sun.
+    final source = Offset(
+      center.dx + math.sin(angle) * edgeDistance,
+      center.dy - math.cos(angle) * edgeDistance,
+    );
+    final target = Offset(
+      center.dx - math.sin(angle) * size.width * 0.16,
+      center.dy + math.cos(angle) * size.height * 0.16,
+    );
+    final beam = target - source;
+    final length = beam.distance;
+    if (length <= 1) return;
+    final normal = Offset(-beam.dy / length, beam.dx / length);
+    final width = size.width * (0.18 + (1.0 - elevationFactor) * 0.16);
+    final path = Path()
+      ..moveTo(source.dx + normal.dx * width, source.dy + normal.dy * width)
+      ..lineTo(source.dx - normal.dx * width, source.dy - normal.dy * width)
+      ..lineTo(target.dx - normal.dx * width * 1.8,
+          target.dy - normal.dy * width * 1.8)
+      ..lineTo(target.dx + normal.dx * width * 1.8,
+          target.dy + normal.dy * width * 1.8)
+      ..close();
+
+    final strength = 0.10 + (1.0 - elevationFactor) * 0.08;
+    final warm = elevation < 22;
+    final color = warm ? const Color(0xFFFFC46B) : const Color(0xFFFFF1B8);
+    final paint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          color.withValues(alpha: strength),
+          color.withValues(alpha: strength * 0.42),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromPoints(source, target));
+    canvas.drawPath(path, paint);
+
+    final glowRect = Rect.fromCircle(
+      center: source,
+      radius: size.width * (0.34 + elevationFactor * 0.10),
+    );
+    final glow = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          color.withValues(alpha: strength * 0.75),
+          color.withValues(alpha: strength * 0.20),
+          Colors.transparent,
+        ],
+      ).createShader(glowRect);
+    canvas.drawCircle(source, glowRect.width / 2, glow);
+  }
+
   void _paintSunSparkles(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0) {
       return;
     }
+
+    _paintDirectionalSunlight(canvas, size);
 
     final loopAngle = progress * math.pi * 2.0;
 
@@ -1762,6 +1835,8 @@ class _WeatherEffectPainter extends CustomPainter {
   bool shouldRepaint(covariant _WeatherEffectPainter oldDelegate) {
     return oldDelegate.weather != weather ||
         oldDelegate.dayPhase != dayPhase ||
+        oldDelegate.sunScreenAngleRadians != sunScreenAngleRadians ||
+        oldDelegate.sunElevationDegrees != sunElevationDegrees ||
         oldDelegate.progress != progress;
   }
 }
