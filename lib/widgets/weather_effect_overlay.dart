@@ -33,7 +33,7 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
     WeatherCondition.rain ||
     WeatherCondition.heavyRain ||
     WeatherCondition.snow ||
-    WeatherCondition.thunderstorm => 192, // 24画面/秒
+    WeatherCondition.thunderstorm => 128, // 16画面/秒。Mapとの同時描画負荷を抑える
     _ => 120, // ゆっくり動く雲・霧・光は15画面/秒
   };
 
@@ -852,7 +852,7 @@ class _WeatherEffectPainter extends CustomPainter {
 
     // 遠景。細い雨を広く散らして雨量を作る。
     paintLayer(
-      count: heavy ? 105 : 58,
+      count: heavy ? 60 : 34,
       seedOffset: 11,
       baseSpeed: heavy ? 2.35 : 1.70,
       baseLength: heavy ? 15 : 11,
@@ -863,7 +863,7 @@ class _WeatherEffectPainter extends CustomPainter {
 
     // 中景。雨として認識しやすい主レイヤー。
     paintLayer(
-      count: heavy ? 78 : 42,
+      count: heavy ? 45 : 26,
       seedOffset: 29,
       baseSpeed: heavy ? 3.15 : 2.30,
       baseLength: heavy ? 27 : 21,
@@ -874,7 +874,7 @@ class _WeatherEffectPainter extends CustomPainter {
 
     // 近景。少数の長い雨筋だけを高速で通す。
     paintLayer(
-      count: heavy ? 38 : 18,
+      count: heavy ? 22 : 10,
       seedOffset: 47,
       baseSpeed: heavy ? 4.25 : 3.15,
       baseLength: heavy ? 47 : 36,
@@ -888,7 +888,7 @@ class _WeatherEffectPainter extends CustomPainter {
   }
 
   void _paintRainRipples(Canvas canvas, Size size, {required bool heavy}) {
-    final count = heavy ? 12 : 7;
+    final count = heavy ? 8 : 5;
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.8;
@@ -918,7 +918,7 @@ class _WeatherEffectPainter extends CustomPainter {
     }
 
     // ガラス面に留まる小さな水滴。
-    final staticDropCount = heavy ? 28 : 18;
+    final staticDropCount = heavy ? 18 : 12;
 
     for (var i = 0; i < staticDropCount; i++) {
       final seedX = ((i * 137 + 29) % 997) / 997.0;
@@ -942,7 +942,7 @@ class _WeatherEffectPainter extends CustomPainter {
     }
 
     // 大きくなった水滴だけが重力で流れる。
-    final movingDropCount = heavy ? 10 : 6;
+    final movingDropCount = heavy ? 7 : 4;
 
     for (var i = 0; i < movingDropCount; i++) {
       final seedX = ((i * 181 + 43) % 983) / 983.0;
