@@ -410,41 +410,47 @@ class _WeatherEffectPainter extends CustomPainter {
     required bool warm,
   }) {
     final particlePaint = Paint()..strokeCap = StrokeCap.round;
+    final travelHeight = size.height + 110.0;
 
-    for (var i = 0; i < count; i++) {
+    // Clear weather should feel alive rather than merely tinted. Particles
+    // descend slowly and sway sideways, while remaining sparse enough that
+    // map labels and markers stay readable.
+    for (var i = 0; i < count + 5; i++) {
       final xSeed = ((i * 83 + 41) % 997) / 997.0;
-
       final ySeed = ((i * 137 + 73) % 991) / 991.0;
+      final speedSeed = ((i * 61 + 29) % 983) / 983.0;
+      final phaseSeed = ((i * 173 + 17) % 977) / 977.0;
 
-      final phase = loopAngle + i * 1.71;
+      final cycle = loopAngle / (math.pi * 2.0);
+      final fall = (ySeed + cycle * (0.42 + speedSeed * 0.34)) % 1.0;
+      final y = fall * travelHeight - 45.0;
 
-      final pulse = 0.5 + math.sin(phase) * 0.5;
+      final swayPhase = loopAngle * (0.55 + speedSeed * 0.35) +
+          phaseSeed * math.pi * 2.0;
+      final sway = math.sin(swayPhase) * (7.0 + speedSeed * 9.0) +
+          math.sin(swayPhase * 0.47 + i) * 3.5;
+      final x = 14 + xSeed * math.max(size.width - 28, 1.0) + sway;
 
-      // 常時点滅させず、明るい瞬間だけごく薄く見せる。
-      if (pulse < 0.68) {
-        continue;
-      }
-
-      final x = 16 + xSeed * math.max(size.width - 32, 1.0);
-
-      final y = 24 + ySeed * math.max(size.height * 0.72, 1.0);
-
-      final radius = 0.7 + pulse * 1.15;
-
-      final opacity = baseOpacity * ((pulse - 0.68) / 0.32);
+      final pulse = 0.72 + math.sin(loopAngle * 1.7 + i * 1.31) * 0.28;
+      final radius = 1.0 + speedSeed * 1.65;
+      final opacity =
+          (baseOpacity * (0.52 + pulse * 0.48)).clamp(0.0, 1.0);
+      final color = warm ? const Color(0xFFFFE4B5) : Colors.white;
 
       particlePaint
-        ..color = (warm ? const Color(0xFFFFE4B5) : Colors.white).withValues(
-          alpha: opacity.clamp(0.0, 1.0),
-        )
-        ..strokeWidth = 0.75 + pulse * 0.35;
+        ..color = color.withValues(alpha: opacity * 0.28)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(x, y), radius * 2.4, particlePaint);
 
+      particlePaint
+        ..color = color.withValues(alpha: opacity)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.8 + speedSeed * 0.45;
       canvas.drawLine(
         Offset(x - radius, y),
         Offset(x + radius, y),
         particlePaint,
       );
-
       canvas.drawLine(
         Offset(x, y - radius),
         Offset(x, y + radius),
