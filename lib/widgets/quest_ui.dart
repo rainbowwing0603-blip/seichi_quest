@@ -11,6 +11,10 @@ abstract final class QuestUiTokens {
   static const Color cyan = Color(0xFF25A9C7);
   static const Color ink = Color(0xFF102A43);
   static const Color mutedInk = Color(0xFF60758A);
+  static const Color success = Color(0xFF2BAA76);
+  static const Color warning = Color(0xFFE49B35);
+  static const Color danger = Color(0xFFD94B5B);
+  static const Color neutral = Color(0xFF7A8794);
 
   static const double cardRadius = 26;
   static const double controlRadius = 17;
@@ -36,6 +40,8 @@ abstract final class QuestUiTokens {
 }
 
 /// 画面共通の背景と標準部品の配色。
+ThemeData buildQuestTheme() => questTheme();
+
 ThemeData questTheme() {
   final scheme = ColorScheme.fromSeed(
     seedColor: QuestUiTokens.primary,
