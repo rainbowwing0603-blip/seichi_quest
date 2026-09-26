@@ -521,7 +521,7 @@ class MapPage extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              Flexible(child: Container(
+                              Expanded(child: Container(
                                 padding: const EdgeInsets.fromLTRB(7, 6, 11, 6),
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
@@ -596,7 +596,7 @@ class MapPage extends StatelessWidget {
                                           maxLines: 1,
                                           style: const TextStyle(
                                             color: Color(0xFF174B5E),
-                                            fontSize: 13,
+                                            fontSize: 12,
                                             fontWeight: FontWeight.w800,
                                           ),
                                         ),
@@ -605,7 +605,7 @@ class MapPage extends StatelessWidget {
                                   ],
                                 ),
                               )),
-                              const Spacer(),
+                              const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.fromLTRB(6, 6, 8, 6),
                                 decoration: BoxDecoration(
