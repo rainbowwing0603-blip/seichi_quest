@@ -55,6 +55,7 @@ import 'models/real_world_state.dart';
 import 'services/external_navigation_service.dart';
 import 'services/weather_service.dart';
 import 'services/weather_refresh_policy.dart';
+import 'services/solar_position_service.dart';
 
 import 'services/app_logger.dart';
 import 'services/app_error_report.dart';
@@ -442,6 +443,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final Map<int, BitmapDescriptor> _clusterIcons = {};
   final Set<int> _loadingClusterIcons = {};
   double _cameraZoom = 10.5;
+  double _cameraBearing = 0.0;
+  static const SolarPositionService _solarPositionService = SolarPositionService();
+  SolarPosition? _solarPosition;
+  DateTime? _lastSolarPositionAt;
+  Position? _lastSolarPositionLocation;
   double _renderedZoom = 10.5;
   int _staticMarkerCacheRevision = -1;
   QuestItem? _nextSeichi;
@@ -1728,6 +1734,46 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
   }
 
+  void _updateSolarPositionIfNeeded(Position position) {
+    final now = DateTime.now();
+    final lastAt = _lastSolarPositionAt;
+    final lastLocation = _lastSolarPositionLocation;
+    final movedMeters = lastLocation == null
+        ? double.infinity
+        : Geolocator.distanceBetween(
+            lastLocation.latitude,
+            lastLocation.longitude,
+            position.latitude,
+            position.longitude,
+          );
+
+    // Solar direction changes slowly. Recalculate at most once per minute,
+    // unless the user has moved a meaningful distance.
+    if (lastAt != null &&
+        now.difference(lastAt) < const Duration(minutes: 1) &&
+        movedMeters < 1000) {
+      return;
+    }
+
+    final next = _solarPositionService.calculate(
+      time: now,
+      latitude: position.latitude,
+      longitude: position.longitude,
+    );
+    _lastSolarPositionAt = now;
+    _lastSolarPositionLocation = position;
+
+    final previous = _solarPosition;
+    final changed = previous == null ||
+        (previous.azimuthDegrees - next.azimuthDegrees).abs() >= 0.25 ||
+        (previous.elevationDegrees - next.elevationDegrees).abs() >= 0.25;
+    if (changed && mounted) {
+      setState(() => _solarPosition = next);
+    } else {
+      _solarPosition = next;
+    }
+  }
+
   void _startLocationStream() {
     _positionSubscription?.cancel();
 
@@ -1755,6 +1801,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         }
 
         unawaited(_refreshNearbyQuestItems(position));
+        _updateSolarPositionIfNeeded(position);
         _updateNextDestination();
         _updateWeatherIfNeeded(position);
         _checkStampDistance();
@@ -2863,6 +2910,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       currentPosition: _currentPosition,
       realWorldState: _realWorldState,
       weatherUnavailable: _weatherLoadFailed,
+      mapBearingDegrees: _cameraBearing,
+      sunAzimuthDegrees: _solarPosition?.azimuthDegrees,
+      sunElevationDegrees: _solarPosition?.elevationDegrees,
       nextSeichi: _nextSeichi,
       nextDistance: _nextDistance,
       collectedIds: _collectedIds,
@@ -2905,6 +2955,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       },
       onCameraMove: (position) {
         _cameraZoom = position.zoom;
+        _cameraBearing = position.bearing;
         if (_eventTotalCount > 200) {
           _mapViewportRequestGeneration++;
           if (_isMapViewportLoading) _mapViewportRefreshPending = true;
