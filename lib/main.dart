@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -355,6 +356,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   bool _isCollecting = false;
 
   late AnimationController _sonarController;
+  int _lastMarkerAnimationFrame = -1;
 
   int _selectedTab = 0;
 
@@ -385,6 +387,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     );
+    _sonarController.addListener(_onMarkerAnimationTick);
 
     _initialize();
   }
@@ -2521,13 +2524,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (nextSeichi != null &&
         !_collectedIds.contains(nextSeichi.id) &&
         _nextMarkerIcon != null) {
+      final wave = math.sin(_sonarController.value * math.pi * 2);
+      final nextAnchorY = 0.94 + (wave * 0.035);
+
       markers.add(
         Marker(
           markerId: MarkerId(nextSeichi.id),
           position: LatLng(nextSeichi.latitude, nextSeichi.longitude),
           icon: _nextMarkerIcon!,
           alpha: 0.90,
-          anchor: const Offset(0.5, 0.94),
+          anchor: Offset(0.5, nextAnchorY),
           zIndexInt: 2,
           infoWindow: InfoWindow(
             title: '${nextSeichi.icon} ${nextSeichi.name}',
@@ -2540,6 +2546,25 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     return markers;
+  }
+
+  Set<Circle> _buildDestinationRangeCircles() {
+    final destination = _nextSeichi;
+    if (destination == null || _collectedIds.contains(destination.id)) {
+      return const <Circle>{};
+    }
+
+    return <Circle>{
+      Circle(
+        circleId: CircleId('destination-range:${destination.id}'),
+        center: LatLng(destination.latitude, destination.longitude),
+        radius: destination.stampRadiusMeters.toDouble(),
+        fillColor: const Color(0xFF6750A4).withValues(alpha: 0.14),
+        strokeColor: const Color(0xFF6750A4).withValues(alpha: 0.82),
+        strokeWidth: 3,
+        zIndex: 1,
+      ),
+    };
   }
 
   Set<Marker> _buildClusterMarkers() {
@@ -2712,6 +2737,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       total: _eventTotalCount,
       defaultCenter: _defaultCenter,
       markers: _buildMarkers(),
+      destinationRangeCircles: _buildDestinationRangeCircles(),
       regionalProgress: _regionalMapProgress,
       showRegionalProgress: _eventTotalCount > 200 &&
           _questMapDisplayPolicy.modeForZoom(_cameraZoom) == QuestMapDisplayMode.regionalProgress,
@@ -3528,7 +3554,19 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     if (_sonarController.isAnimating) {
       _sonarController.stop();
+      _lastMarkerAnimationFrame = -1;
     }
+  }
+
+  void _onMarkerAnimationTick() {
+    if (!mounted || _nextSeichi == null || _selectedTab != 0) return;
+
+    // NEXT marker floats while native Google Map updates stay near 8fps.
+    final frame = (_sonarController.value * 14).floor();
+    if (frame == _lastMarkerAnimationFrame) return;
+
+    _lastMarkerAnimationFrame = frame;
+    setState(() {});
   }
 
   @override
