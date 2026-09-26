@@ -1,7 +1,6 @@
 import '../models/achievement.dart';
 import '../models/quest_item.dart';
 import 'achievement_service.dart';
-import 'collection_progress_policy.dart';
 
 class CollectionApplyPlan {
   const CollectionApplyPlan({
@@ -20,24 +19,19 @@ class CollectionApplyPlan {
 class CollectionApplyPolicy {
   const CollectionApplyPolicy({
     this.achievementService = const AchievementService(),
-    this.progressPolicy = const CollectionProgressPolicy(),
   });
 
   final AchievementService achievementService;
-  final CollectionProgressPolicy progressPolicy;
 
   CollectionApplyPlan plan({
     required String currentEventId,
     required List<Map<String, dynamic>> collectedRows,
-    required List<QuestItem> seichiList,
+    required List<QuestItem> resolvedItems,
     required Set<String> collectedIds,
+    required int previousCollectedCount,
+    required int totalCount,
     required List<Achievement> eventAchievements,
   }) {
-    final previousCollectedCount = progressPolicy.validCollectedCount(
-      seichiList: seichiList,
-      collectedIds: collectedIds,
-    );
-
     final collectedEventContentIds = collectedRows
         .where((row) => row['event_id']?.toString() == currentEventId)
         .map((row) => row['event_content_id']?.toString())
@@ -45,7 +39,7 @@ class CollectionApplyPolicy {
         .where((id) => id.isNotEmpty)
         .toSet();
 
-    final newlyCollectedSeichi = seichiList
+    final newlyCollectedSeichi = resolvedItems
         .where(
           (item) =>
               collectedEventContentIds.contains(item.id) &&
@@ -58,10 +52,8 @@ class CollectionApplyPolicy {
       ...newlyCollectedSeichi.map((item) => item.id),
     };
 
-    final newCollectedCount = progressPolicy.validCollectedCount(
-      seichiList: seichiList,
-      collectedIds: newCollectedIds,
-    );
+    final newCollectedCount =
+        previousCollectedCount + newlyCollectedSeichi.length;
 
     final previousAchievements = achievementService.getUnlockedAchievements(
       eventAchievements,
@@ -85,9 +77,9 @@ class CollectionApplyPolicy {
       newCollectedIds: newCollectedIds,
       newlyUnlockedAchievements: newlyUnlockedAchievements,
       didCompleteQuest:
-          seichiList.isNotEmpty &&
-          previousCollectedCount < seichiList.length &&
-          newCollectedCount >= seichiList.length,
+          totalCount > 0 &&
+          previousCollectedCount < totalCount &&
+          newCollectedCount >= totalCount,
     );
   }
 }
