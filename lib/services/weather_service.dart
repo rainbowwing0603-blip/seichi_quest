@@ -83,6 +83,9 @@ class WeatherService {
       weather: weatherConditionFromWmoCode(weatherCodeValue.toInt()),
       temperatureCelsius: temperatureValue.toDouble(),
       strongWindExpected: strongWindExpected,
+      utcOffsetSeconds: decoded['utc_offset_seconds'] is num
+          ? (decoded['utc_offset_seconds'] as num).toInt()
+          : null,
     );
   }
 

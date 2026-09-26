@@ -13,6 +13,7 @@ void main() {
       expect(request.url.queryParameters['forecast_hours'], '12');
       return http.Response(
         jsonEncode({
+          'utc_offset_seconds': 9 * 3600,
           'current': {
             'temperature_2m': 22.0,
             'weather_code': 3,
@@ -33,6 +34,7 @@ void main() {
       longitude: 139.1,
     );
     expect(result.strongWindExpected, isTrue);
+    expect(result.utcOffsetSeconds, 9 * 3600);
   });
 
   group('WeatherService WMO天気コード変換', () {

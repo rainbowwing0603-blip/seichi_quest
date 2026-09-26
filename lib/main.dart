@@ -354,7 +354,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   void _refreshEnvironmentTime() {
     final current = _realWorldState;
     if (current == null) return;
-    final updated = current.atLocalTime(DateTime.now());
+    final updated = current.atCurrentTime(DateTime.now());
     if (updated.season == current.season &&
         updated.dayPhase == current.dayPhase) {
       return;
@@ -1287,7 +1287,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       }
 
       setState(() {
-        _realWorldState = state.atLocalTime(DateTime.now());
+        _realWorldState = state.atCurrentTime(DateTime.now());
         _weatherLoadFailed = false;
       });
 

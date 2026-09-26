@@ -20,4 +20,19 @@ void main() {
     expect(updated.strongWindExpected, isTrue);
     expect(updated.observedAt, observedAt);
   });
+
+  test('weather location time zone determines the displayed phase', () {
+    final observedAt = DateTime(2026, 9, 26, 19);
+    final state = RealWorldState.fromLocalTime(
+      observedAt,
+      weather: WeatherCondition.rain,
+      utcOffsetSeconds: 9 * 3600,
+    );
+    final updated = state.atCurrentTime(DateTime.utc(2026, 9, 26, 10, 17));
+
+    expect(updated.dayPhase, DayPhase.night);
+    expect(updated.season, Season.autumn);
+    expect(updated.observedAt, observedAt);
+    expect(updated.utcOffsetSeconds, 9 * 3600);
+  });
 }
