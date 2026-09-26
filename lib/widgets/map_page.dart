@@ -168,6 +168,8 @@ class MapPage extends StatelessWidget {
   final LatLng defaultCenter;
 
   final Set<Marker> markers;
+  final ValueChanged<CameraPosition> onCameraMove;
+  final VoidCallback onCameraIdle;
 
   final VoidCallback onMoveToCurrentLocation;
   final VoidCallback onMoveToNextSeichi;
@@ -197,6 +199,8 @@ class MapPage extends StatelessWidget {
     required this.total,
     required this.defaultCenter,
     required this.markers,
+    required this.onCameraMove,
+    required this.onCameraIdle,
     required this.onMoveToCurrentLocation,
     required this.onMoveToNextSeichi,
     required this.onStartNavigation,
@@ -1642,6 +1646,8 @@ class MapPage extends StatelessWidget {
       zoomControlsEnabled: false,
       mapToolbarEnabled: false,
       markers: markers,
+      onCameraMove: onCameraMove,
+      onCameraIdle: onCameraIdle,
       onMapCreated: onMapCreated,
       onTap: (_) {},
     );

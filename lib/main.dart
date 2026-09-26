@@ -36,6 +36,8 @@ import 'models/event.dart';
 import 'services/level_service.dart' show LevelProgress;
 import 'services/location_service.dart';
 import 'services/marker_cache_revision.dart';
+import 'services/quest_map_cluster_service.dart';
+import 'services/quest_cluster_icon_service.dart';
 import 'services/next_destination_service.dart';
 import 'services/notification_service.dart';
 import 'services/onboarding_service.dart';
@@ -260,6 +262,12 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   BitmapDescriptor? _staticMarkerCacheUncollectedIcon;
   BitmapDescriptor? _staticMarkerCacheCollectedIcon;
   final MarkerCacheRevision _markerCacheRevision = MarkerCacheRevision();
+  static const QuestMapClusterService _clusterService = QuestMapClusterService();
+  final QuestClusterIconService _clusterIconService = QuestClusterIconService();
+  final Map<int, BitmapDescriptor> _clusterIcons = {};
+  final Set<int> _loadingClusterIcons = {};
+  double _cameraZoom = 10.5;
+  double _renderedZoom = 10.5;
   int _staticMarkerCacheRevision = -1;
   QuestItem? _nextSeichi;
   double? _nextDistance;
@@ -2133,6 +2141,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   Set<Marker> _buildMarkers() {
+    if (_renderedZoom < 9) return _buildClusterMarkers();
     final nextId = _nextSeichi?.id;
 
     // 静止Markerの再構築要否は、毎buildで全IDをソート・連結せず
@@ -2222,6 +2231,74 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     return markers;
+  }
+
+  Set<Marker> _buildClusterMarkers() {
+    final clusters = _clusterService.build(
+      items: _seichiList,
+      zoom: _renderedZoom,
+    );
+    return clusters.map((cluster) {
+      final single = cluster.count == 1 ? cluster.items.first : null;
+      return Marker(
+        markerId: MarkerId('cluster:${cluster.id}'),
+        position: LatLng(cluster.latitude, cluster.longitude),
+        icon: single != null
+            ? (_collectedIds.contains(single.id)
+                  ? _collectedMarkerIcon ??
+                        BitmapDescriptor.defaultMarkerWithHue(
+                          BitmapDescriptor.hueGreen,
+                        )
+                  : _uncollectedMarkerIcon ??
+                        BitmapDescriptor.defaultMarkerWithHue(
+                          BitmapDescriptor.hueAzure,
+                        ))
+            : _clusterIcons[cluster.count] ??
+                  BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueViolet,
+                  ),
+        zIndexInt: 2,
+        infoWindow: InfoWindow(title: single?.name ?? '${cluster.count}地点'),
+        onTap: () {
+          if (single != null) {
+            _showSeichiDetails(single);
+          } else {
+            _mapController?.animateCamera(
+              CameraUpdate.newLatLngBounds(_clusterService.boundsFor(cluster), 64),
+            );
+          }
+        },
+      );
+    }).toSet();
+  }
+
+  void _onMapCameraIdle() {
+    if ((_cameraZoom - _renderedZoom).abs() >= 0.01) {
+      setState(() => _renderedZoom = _cameraZoom);
+    }
+    if (_renderedZoom >= 9) return;
+    final counts = _clusterService
+        .build(items: _seichiList, zoom: _renderedZoom)
+        .map((cluster) => cluster.count)
+        .where((count) =>
+            count > 1 &&
+            !_clusterIcons.containsKey(count) &&
+            !_loadingClusterIcons.contains(count))
+        .toSet();
+    for (final count in counts) {
+      _loadingClusterIcons.add(count);
+      _clusterIconService.iconForCount(count).then(
+        (icon) {
+          _loadingClusterIcons.remove(count);
+          if (!mounted) return;
+          setState(() => _clusterIcons[count] = icon);
+        },
+        onError: (Object error, StackTrace stackTrace) {
+          _loadingClusterIcons.remove(count);
+          appDebugPrint('[CLUSTER] icon generation failed: $error');
+        },
+      );
+    }
   }
 
   // ============================================================
@@ -2316,6 +2393,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       total: _seichiList.length,
       defaultCenter: _defaultCenter,
       markers: _buildMarkers(),
+      onCameraMove: (position) => _cameraZoom = position.zoom,
+      onCameraIdle: _onMapCameraIdle,
       onMoveToCurrentLocation: _moveCameraToCurrentLocation,
       onMoveToNextSeichi: _moveCameraToNextSeichi,
       onStartNavigation: _startNavigationToNextSeichi,
