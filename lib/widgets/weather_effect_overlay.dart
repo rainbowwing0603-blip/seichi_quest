@@ -831,6 +831,15 @@ class _WeatherEffectPainter extends CustomPainter {
         height: size.height * 0.17,
         phase: loopAngle + 3.0,
       );
+      paintCloudMass(
+        center: Offset(
+          -size.width * 0.12,
+          size.height * 0.72 + math.sin(loopAngle * 0.4 + 4.1) * size.height * 0.008,
+        ),
+        width: size.width * 0.66,
+        height: size.height * 0.15,
+        phase: loopAngle + 4.1,
+      );
     }
     if (partlyCloudy) {
       paintShadowField(
