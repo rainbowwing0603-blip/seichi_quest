@@ -1371,6 +1371,7 @@ class MapPage extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(22),
         child: BackdropFilter(
+          enabled: false,
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Material(
             color: Colors.transparent,
@@ -1434,6 +1435,7 @@ class MapPage extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(19),
               child: BackdropFilter(
+                enabled: false,
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: Material(
                   color: Colors.transparent,
@@ -1490,6 +1492,7 @@ class MapPage extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(19),
               child: BackdropFilter(
+                enabled: false,
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: Material(
                   color: Colors.transparent,
