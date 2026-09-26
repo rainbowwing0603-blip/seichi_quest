@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'collection_history_service.dart';
 import 'widgets/banner_ad_widget.dart';
@@ -75,6 +74,7 @@ import 'services/quest_item_service.dart';
 import 'services/account_refresh_coordinator.dart';
 import 'services/app_settings_service.dart';
 import 'services/interstitial_ad_service.dart';
+import 'services/ad_sdk_service.dart';
 import 'services/announcement_service.dart';
 
 // ============================================================
@@ -129,7 +129,7 @@ Future<void> _initializeDeferredPlatformServices() async {
 
   try {
     appDebugPrint('[STARTUP] deferred Mobile Ads init start');
-    await MobileAds.instance.initialize();
+    await AdSdkService.instance.initialize();
     appDebugPrint('[STARTUP] deferred Mobile Ads init complete');
   } catch (error) {
     appDebugPrint('[STARTUP] Mobile Ads init failed: $error');
@@ -204,7 +204,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       WeatherRefreshPolicy();
 
   // 天気エフェクトの性能・見た目確認用。現在は曇りを強制。リリース前に false へ戻すこと。
-  static const bool _forceCloudyForVisualTest = true;
+  static const bool _forceCloudyForVisualTest = false;
   RealWorldState? _realWorldState = RealWorldState.fromLocalTime(
     DateTime.now(),
     weather: _forceCloudyForVisualTest
