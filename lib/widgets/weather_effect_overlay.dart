@@ -692,8 +692,8 @@ class _WeatherEffectPainter extends CustomPainter {
     }
 
     if (!partlyCloudy) {
-      // 曇天は横長の「帯」を重ねず、1つの雲塊そのものに濃淡を持たせる。
-      // 雲塊の開始・終了位置は必ず画面外に逃がし、四角い境界を作らない。
+      // 横長の楕円を母体にし、円周の半径だけを低振幅で揺らす。
+      // これなら輪郭は必ず閉じ、帯・山・四角い切断面にならない。
       final cloudLight = switch (dayPhase) {
         DayPhase.morning => const Color(0xFFC8D0D4),
         DayPhase.daytime => const Color(0xFFCED5D8),
@@ -714,116 +714,86 @@ class _WeatherEffectPainter extends CustomPainter {
       };
 
       void paintCloudMass({
-        required double y,
+        required Offset center,
+        required double width,
         required double height,
         required double phase,
-        required bool fromRight,
       }) {
-        final drift = math.sin(phase * 0.42) * size.width * 0.015;
-        // 横方向の両端を画面外へ置く。表示領域内に縦の切断面を作らない。
-        final left = fromRight
-            ? size.width * 0.42 + drift
-            : -size.width * 0.32 + drift;
-        final right = fromRight
-            ? size.width * 1.32 + drift
-            : size.width * 0.62 + drift;
-        final span = right - left;
-        const steps = 8;
+        const pointCount = 32;
+        final rx = width * 0.5;
+        final ry = height * 0.5;
+        final points = <Offset>[];
 
-        final topPoints = <Offset>[];
-        final bottomPoints = <Offset>[];
-        for (var i = 0; i <= steps; i++) {
-          final t = i / steps;
-          final x = left + span * t;
-          final broad = math.sin(t * math.pi);
-          final topNoise =
-              math.sin(phase * 0.53 + i * 1.37) * height * 0.030 +
-              math.sin(phase * 0.31 + i * 0.71) * height * 0.018;
-          final bottomNoise =
-              math.sin(phase * 0.41 + i * 1.11 + 1.7) * height * 0.020;
-          topPoints.add(
-            Offset(x, y - broad * height * 0.10 + topNoise),
-          );
-          bottomPoints.add(
+        for (var i = 0; i < pointCount; i++) {
+          final theta = math.pi * 2.0 * i / pointCount;
+          // 周期の異なる2つの小さな波を混ぜる。
+          // 振幅は最大でも数％なので「モコモコ」ではなく自然な輪郭の揺らぎ。
+          final ripple =
+              math.sin(theta * 3.0 + phase * 0.31) * 0.040 +
+              math.sin(theta * 5.0 - phase * 0.23 + 1.4) * 0.022;
+          final localRx = rx * (1.0 + ripple);
+          final localRy = ry * (1.0 + ripple * 0.82);
+          points.add(
             Offset(
-              x,
-              y + height * (0.54 + broad * 0.12) + bottomNoise,
+              center.dx + math.cos(theta) * localRx,
+              center.dy + math.sin(theta) * localRy,
             ),
           );
         }
 
-        final path = Path()
-          ..moveTo(topPoints.first.dx, topPoints.first.dy);
-        for (var i = 0; i < steps; i++) {
-          final a = topPoints[i];
-          final b = topPoints[i + 1];
-          final dx = b.dx - a.dx;
-          path.cubicTo(
-            a.dx + dx * 0.34,
-            a.dy,
-            a.dx + dx * 0.70,
-            b.dy,
-            b.dx,
-            b.dy,
+        final path = Path()..moveTo(points.first.dx, points.first.dy);
+        for (var i = 0; i < pointCount; i++) {
+          final prev = points[(i - 1 + pointCount) % pointCount];
+          final current = points[i];
+          final next = points[(i + 1) % pointCount];
+          final after = points[(i + 2) % pointCount];
+          final cp1 = Offset(
+            current.dx + (next.dx - prev.dx) / 6.0,
+            current.dy + (next.dy - prev.dy) / 6.0,
           );
-        }
-        for (var i = steps; i > 0; i--) {
-          final a = bottomPoints[i];
-          final b = bottomPoints[i - 1];
-          final dx = b.dx - a.dx;
-          path.lineTo(a.dx, a.dy);
-          path.cubicTo(
-            a.dx + dx * 0.34,
-            a.dy,
-            a.dx + dx * 0.70,
-            b.dy,
-            b.dx,
-            b.dy,
+          final cp2 = Offset(
+            next.dx - (after.dx - current.dx) / 6.0,
+            next.dy - (after.dy - current.dy) / 6.0,
           );
+          path.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, next.dx, next.dy);
         }
         path.close();
 
         final bounds = path.getBounds();
-        final massPaint = Paint()
+        final paint = Paint()
           ..shader = LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
               cloudLight.withValues(
-                alpha: dayPhase == DayPhase.night ? 0.25 : 0.21,
+                alpha: dayPhase == DayPhase.night ? 0.27 : 0.23,
               ),
               cloudMid.withValues(
-                alpha: dayPhase == DayPhase.night ? 0.20 : 0.17,
+                alpha: dayPhase == DayPhase.night ? 0.21 : 0.18,
               ),
               cloudDark.withValues(
-                alpha: dayPhase == DayPhase.night ? 0.15 : 0.12,
+                alpha: dayPhase == DayPhase.night ? 0.12 : 0.10,
               ),
-              cloudDark.withValues(alpha: 0.035),
             ],
-            stops: const [0.0, 0.43, 0.78, 1.0],
+            stops: const [0.0, 0.56, 1.0],
           ).createShader(bounds);
-        canvas.drawPath(path, massPaint);
+        canvas.drawPath(path, paint);
 
-        // 内部の濃淡は雲塊の中央に限定し、外周とは別の輪郭を作らない。
+        // 雲底のごく薄い陰影。Path内でclipするので別の輪郭は生まれない。
         final shadeRect = Rect.fromCenter(
-          center: Offset(
-            left + span * (fromRight ? 0.52 : 0.48),
-            y + height * 0.36,
-          ),
-          width: span * 0.58,
-          height: height * 0.56,
+          center: Offset(center.dx + rx * 0.08, center.dy + ry * 0.32),
+          width: width * 0.72,
+          height: height * 0.48,
         );
         final shadePaint = Paint()
           ..shader = RadialGradient(
-            radius: 0.95,
+            radius: 0.92,
             colors: [
               cloudDark.withValues(
-                alpha: dayPhase == DayPhase.night ? 0.075 : 0.060,
+                alpha: dayPhase == DayPhase.night ? 0.065 : 0.050,
               ),
-              cloudMid.withValues(alpha: 0.025),
               Colors.transparent,
             ],
-            stops: const [0.0, 0.58, 1.0],
           ).createShader(shadeRect);
         canvas.save();
         canvas.clipPath(path);
@@ -832,28 +802,34 @@ class _WeatherEffectPainter extends CustomPainter {
       }
 
       paintCloudMass(
-        y: size.height * 0.075,
-        height: size.height * 0.24,
+        center: Offset(
+          size.width * 0.23 + math.sin(loopAngle * 0.4) * size.width * 0.018,
+          size.height * 0.105,
+        ),
+        width: size.width * 0.92,
+        height: size.height * 0.22,
         phase: loopAngle,
-        fromRight: false,
       );
       paintCloudMass(
-        y: size.height * 0.035,
-        height: size.height * 0.21,
-        phase: loopAngle + 2.2,
-        fromRight: true,
+        center: Offset(
+          size.width * 0.83 + math.sin(loopAngle * 0.4 + 2.0) * size.width * 0.016,
+          size.height * 0.075,
+        ),
+        width: size.width * 0.76,
+        height: size.height * 0.19,
+        phase: loopAngle + 2.0,
       );
       paintCloudMass(
-        y: size.height * 0.39,
+        center: Offset(-size.width * 0.08, size.height * 0.40),
+        width: size.width * 0.72,
+        height: size.height * 0.16,
+        phase: loopAngle + 1.0,
+      );
+      paintCloudMass(
+        center: Offset(size.width * 1.07, size.height * 0.60),
+        width: size.width * 0.76,
         height: size.height * 0.17,
-        phase: loopAngle + 1.1,
-        fromRight: false,
-      );
-      paintCloudMass(
-        y: size.height * 0.59,
-        height: size.height * 0.18,
-        phase: loopAngle + 3.4,
-        fromRight: true,
+        phase: loopAngle + 3.0,
       );
     }
     if (partlyCloudy) {
