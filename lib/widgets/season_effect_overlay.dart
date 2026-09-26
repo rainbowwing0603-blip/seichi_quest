@@ -182,7 +182,7 @@ class _SeasonEffectPainter extends CustomPainter {
     double muted, {
     required bool petals,
   }) {
-    final count = petals ? 12 : 10;
+    final count = petals ? 18 : 16;
     final colors = petals
         ? const [Color(0xFFFFA9C9), Color(0xFFFFD9E9), Color(0xFFFFF0F5)]
         : const [Color(0xFFE98A37), Color(0xFFFFC453), Color(0xFFBB5735)];
@@ -220,7 +220,7 @@ class _SeasonEffectPainter extends CustomPainter {
   void _paintSummerLights(Canvas canvas, Size size, double time, double muted) {
     final night = dayPhase == DayPhase.night || dayPhase == DayPhase.evening;
     final paint = Paint();
-    for (var i = 0; i < 11; i++) {
+    for (var i = 0; i < 15; i++) {
       if (muted < 0.4 && i.isOdd) continue;
       final y = _fraction(i * 0.283) +
           math.sin(time * _twoPi + i * 1.7) * 0.032;
@@ -272,7 +272,7 @@ class _SeasonEffectPainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 14; i++) {
       if (muted < 0.4 && i.isOdd) continue;
       final y = _fraction(i * 0.381 - time);
       final position = _edgePosition(size, i, y, time);
