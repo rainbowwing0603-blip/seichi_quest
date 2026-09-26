@@ -31,6 +31,7 @@ class MyPage extends StatelessWidget {
   final VoidCallback onShowAnnouncements;
   final int unreadAnnouncementCount;
   final VoidCallback onShowSettings;
+  final VoidCallback onShowLegal;
   final VoidCallback onShowAbout;
 
   const MyPage({
@@ -57,6 +58,7 @@ class MyPage extends StatelessWidget {
     required this.onShowAnnouncements,
     required this.unreadAnnouncementCount,
     required this.onShowSettings,
+    required this.onShowLegal,
     required this.onShowAbout,
   });
 
@@ -223,6 +225,13 @@ class MyPage extends StatelessWidget {
               title: 'アプリ設定',
               subtitle: '各種設定',
               onTap: onShowSettings,
+              compact: true,
+            ),
+            _buildSettingsTile(
+              icon: Icons.privacy_tip_outlined,
+              title: 'プライバシー・データ管理',
+              subtitle: 'ポリシー・アカウント削除',
+              onTap: onShowLegal,
               compact: true,
             ),
             _buildSettingsTile(
