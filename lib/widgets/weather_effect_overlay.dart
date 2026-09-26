@@ -705,6 +705,71 @@ class _WeatherEffectPainter extends CustomPainter {
       }
     }
 
+    if (!partlyCloudy) {
+      // 「暗いだけ」に見えないよう、前景に低い雲塊を明確に見せる。
+      // BackdropFilter は使わず、少数の楕円だけで曇天らしいシルエットを作る。
+      final cloudBandPaint = Paint();
+      final cloudHighlightPaint = Paint();
+      final drift = math.sin(loopAngle) * size.width * 0.045;
+      final cloudRows = <double>[0.13, 0.30, 0.49];
+
+      for (var row = 0; row < cloudRows.length; row++) {
+        final y = size.height * cloudRows[row];
+        final rowPhase = loopAngle + row * 1.9;
+        final rowDrift = drift + math.sin(rowPhase) * size.width * 0.035;
+
+        for (var i = 0; i < 3; i++) {
+          final seed = row * 10 + i;
+          final width = size.width * (0.34 + hash(seed, 41) * 0.18);
+          final height = size.height * (0.070 + hash(seed, 42) * 0.035);
+          final baseX =
+              size.width * (0.04 + i * 0.39) - width * 0.25 + rowDrift;
+          final center = Offset(
+            baseX,
+            y + math.sin(rowPhase + i * 1.3) * size.height * 0.012,
+          );
+          final rect = Rect.fromCenter(
+            center: center,
+            width: width,
+            height: height,
+          );
+
+          final cloudColor = switch (dayPhase) {
+            DayPhase.morning => const Color(0xFF7D8790),
+            DayPhase.daytime => const Color(0xFF75838D),
+            DayPhase.evening => const Color(0xFF777581),
+            DayPhase.night => const Color(0xFF647486),
+          };
+          final highlightColor = switch (dayPhase) {
+            DayPhase.morning => const Color(0xFFAEB6BC),
+            DayPhase.daytime => const Color(0xFFADB8BF),
+            DayPhase.evening => const Color(0xFFA7A3AC),
+            DayPhase.night => const Color(0xFF8797A6),
+          };
+
+          cloudBandPaint.color = cloudColor.withValues(
+            alpha: dayPhase == DayPhase.night ? 0.24 : 0.20,
+          );
+          canvas.drawOval(rect, cloudBandPaint);
+
+          cloudHighlightPaint.color = highlightColor.withValues(
+            alpha: dayPhase == DayPhase.night ? 0.13 : 0.10,
+          );
+          canvas.drawOval(
+            Rect.fromCenter(
+              center: Offset(
+                center.dx - width * 0.08,
+                center.dy - height * 0.20,
+              ),
+              width: width * 0.68,
+              height: height * 0.52,
+            ),
+            cloudHighlightPaint,
+          );
+        }
+      }
+    }
+
     if (partlyCloudy) {
       paintShadowField(
         count: 3,
