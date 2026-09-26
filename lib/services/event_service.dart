@@ -32,7 +32,9 @@ class EventService {
         .from('events')
         .select(
           'id, slug, name, description, prefecture, is_active, '
-          'icon_url, cover_image_url, start_at, end_at, updated_at',
+          'icon_url, cover_image_url, start_at, end_at, updated_at, '
+          'item_label_singular, item_label_plural, '
+          'theme_primary_hex, theme_primary_deep_hex, theme_accent_hex',
         )
         .eq('is_active', true)
         .order('created_at');
