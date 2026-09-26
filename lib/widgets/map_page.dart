@@ -169,6 +169,7 @@ class MapPage extends StatelessWidget {
   final LatLng defaultCenter;
 
   final Set<Marker> markers;
+  final Set<Circle> destinationRangeCircles;
   final List<RegionalMapProgress> regionalProgress;
   final bool showRegionalProgress;
   final ValueChanged<RegionalMapProgress>? onRegionalProgressTap;
@@ -203,6 +204,7 @@ class MapPage extends StatelessWidget {
     required this.total,
     required this.defaultCenter,
     required this.markers,
+    this.destinationRangeCircles = const <Circle>{},
     this.regionalProgress = const [],
     this.showRegionalProgress = false,
     this.onRegionalProgressTap,
@@ -1696,7 +1698,8 @@ class MapPage extends StatelessWidget {
       zoomControlsEnabled: false,
       mapToolbarEnabled: false,
       markers: markers,
-      onCameraMove: onCameraMove,
+      circles: destinationRangeCircles,
+      onCameraMove: onCameraMove;
       onCameraIdle: onCameraIdle,
       onMapCreated: onMapCreated,
       onTap: (_) {},
