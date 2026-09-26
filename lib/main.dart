@@ -183,6 +183,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   DateTime? _lastWeatherFetchAt;
   Position? _lastWeatherFetchPosition;
   bool _isWeatherFetchInProgress = false;
+  bool _weatherLoadFailed = false;
 
   List<QuestItem> _seichiList = [];
   final Set<String> _collectedIds = {};
@@ -1242,6 +1243,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     _isWeatherFetchInProgress = true;
+    // 失敗時にも試行時刻を残し、GPS更新のたびに再通信しない。
+    _lastWeatherFetchAt = DateTime.now();
+    _lastWeatherFetchPosition = position;
 
     try {
       final state = await _weatherService.fetchCurrentWeather(
@@ -1255,8 +1259,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       setState(() {
         _realWorldState = state;
-        _lastWeatherFetchAt = DateTime.now();
-        _lastWeatherFetchPosition = position;
+        _weatherLoadFailed = false;
       });
 
       final currentState = _realWorldState;
@@ -1270,7 +1273,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         'observedAt=${currentState?.observedAt}',
       );
     } catch (error) {
-      appDebugPrint('[WEATHER] fetch failed: $error');
+      AppErrorReport.message(
+        AppErrorCodes.weatherFetch,
+        '天気情報を取得できませんでした。',
+        error: error,
+      );
+      if (mounted) {
+        setState(() => _weatherLoadFailed = true);
+      }
     } finally {
       _isWeatherFetchInProgress = false;
     }
@@ -2250,6 +2260,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       mapController: _mapController,
       currentPosition: _currentPosition,
       realWorldState: _realWorldState,
+      weatherUnavailable: _weatherLoadFailed,
       nextSeichi: _nextSeichi,
       nextDistance: _nextDistance,
       collectedIds: _collectedIds,

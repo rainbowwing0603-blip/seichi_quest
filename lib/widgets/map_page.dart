@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../models/real_world_state.dart';
 import '../models/quest_item.dart';
@@ -12,6 +11,7 @@ import '../services/weather_safety_policy.dart';
 import 'stamp_animation.dart';
 import 'quest_ui.dart';
 import 'weather_effect_overlay.dart';
+import 'weather_safety_banner.dart';
 
 class MapPage extends StatelessWidget {
   // Insets are relative to the usable body area. The Scaffold owns the
@@ -150,6 +150,7 @@ class MapPage extends StatelessWidget {
   final GoogleMapController? mapController;
   final Position? currentPosition;
   final RealWorldState? realWorldState;
+  final bool weatherUnavailable;
   final QuestItem? nextSeichi;
   final double? nextDistance;
   final Set<String> collectedIds;
@@ -179,6 +180,7 @@ class MapPage extends StatelessWidget {
     required this.mapController,
     required this.currentPosition,
     required this.realWorldState,
+    this.weatherUnavailable = false,
     required this.nextSeichi,
     required this.nextDistance,
     required this.collectedIds,
@@ -253,7 +255,9 @@ class MapPage extends StatelessWidget {
       null => Icons.cloud_outlined,
     };
 
-    final weatherLabel = switch (state?.weather) {
+    final weatherLabel = weatherUnavailable
+        ? '更新待ち'
+        : switch (state?.weather) {
       WeatherCondition.clear => '晴れ',
       WeatherCondition.partlyCloudy => '晴れ/曇り',
       WeatherCondition.cloudy => '曇り',
@@ -1620,7 +1624,10 @@ class MapPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final safetyMessage = WeatherSafetyPolicy.message(realWorldState);
+    final safetyMessage = WeatherSafetyPolicy.message(
+      realWorldState,
+      unavailable: weatherUnavailable,
+    );
     return Stack(
       children: [
         _buildMap(),
@@ -1657,63 +1664,7 @@ class MapPage extends StatelessWidget {
               ),
               if (safetyMessage != null) ...[
                 const SizedBox(height: 8),
-                Material(
-                  color: const Color(0xF9FFF8E9),
-                  borderRadius: BorderRadius.circular(18),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(18),
-                    onTap: () => launchUrl(
-                      Uri.parse('https://www.jma.go.jp/bosai/'),
-                      mode: LaunchMode.externalApplication,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.health_and_safety_outlined,
-                            color: QuestUiTokens.primaryDeep,
-                            size: 22,
-                          ),
-                          const SizedBox(width: 9),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  safetyMessage,
-                                  style: const TextStyle(
-                                    color: QuestUiTokens.ink,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                const Text(
-                                  '気象庁の防災情報を確認する',
-                                  style: TextStyle(
-                                    color: QuestUiTokens.primaryDeep,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Icon(
-                            Icons.open_in_new_rounded,
-                            color: QuestUiTokens.primaryDeep,
-                            size: 17,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                WeatherSafetyBanner(message: safetyMessage),
               ],
             ],
           ),

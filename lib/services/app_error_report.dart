@@ -22,6 +22,7 @@ abstract final class AppErrorCodes {
   static const eventExplore = 'SQ-EVENT-02';
   static const resetHistory = 'SQ-SYNC-03';
   static const accountAuth = 'SQ-AUTH-01';
+  static const weatherFetch = 'SQ-WEATHER-01';
 }
 
 abstract final class AppErrorReport {
