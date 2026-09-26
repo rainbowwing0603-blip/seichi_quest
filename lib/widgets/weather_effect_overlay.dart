@@ -21,6 +21,12 @@ class WeatherEffectOverlay extends StatefulWidget {
 class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  final ValueNotifier<int> _frame = ValueNotifier<int>(0);
+
+  void _advanceFrame() {
+    final nextFrame = (_controller.value * _framesPerCycle).floor();
+    if (nextFrame != _frame.value) _frame.value = nextFrame;
+  }
 
   int get _framesPerCycle => switch (widget.weather) {
     WeatherCondition.rain ||
@@ -51,7 +57,7 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8),
-    );
+    )..addListener(_advanceFrame);
 
     if (_needsAnimation) {
       _controller.repeat();
@@ -74,6 +80,7 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
   @override
   void dispose() {
     _controller.dispose();
+    _frame.dispose();
     super.dispose();
   }
 
@@ -87,7 +94,7 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
       child: IgnorePointer(
         child: RepaintBoundary(
           child: AnimatedBuilder(
-            animation: _controller,
+            animation: _frame,
             builder: (context, child) {
               return CustomPaint(
                 painter: _WeatherEffectPainter(
