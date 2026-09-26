@@ -517,6 +517,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       return;
     }
     appDebugPrint('[STARTUP] critical complete');
+    await _loadLocationSecurityState();
     appDebugPrint(
       '[STARTUP_TIME] map data ready: ${_startupWatch.elapsedMilliseconds}ms',
     );
