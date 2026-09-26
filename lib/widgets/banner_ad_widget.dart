@@ -2,6 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../services/ad_sdk_service.dart';
+import '../services/app_logger.dart';
+
 class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget({super.key});
 
@@ -50,6 +53,11 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   Future<void> _loadBanner(double availableWidth) async {
     _disposeCurrentBanner();
 
+    final adsReady = await AdSdkService.instance.ready;
+    if (!adsReady || !mounted || _lastRequestedWidth != availableWidth) {
+      return;
+    }
+
     final width = availableWidth.floor();
     final adaptiveSize =
         await AdSize.getLargeAnchoredAdaptiveBannerAdSize(width);
@@ -64,7 +72,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
         ? adaptiveSize
         : AdSize.banner;
 
-    debugPrint(
+    appDebugPrint(
       '[ADS] banner size selected: '
       '${adSize.width}x${adSize.height} '
       '(adaptive=${adaptiveSize?.width}x${adaptiveSize?.height})',
@@ -81,7 +89,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
             return;
           }
 
-          debugPrint('[ADS] banner loaded');
+          appDebugPrint('[ADS] banner loaded');
           setState(() {
             _bannerAd = ad as BannerAd;
             _isLoaded = true;
@@ -94,7 +102,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
             return;
           }
 
-          debugPrint(
+          appDebugPrint(
             '[ADS] banner failed: code=${error.code} '
             'domain=${error.domain} message=${error.message}',
           );
@@ -110,7 +118,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       banner.load();
     } catch (error) {
       banner.dispose();
-      debugPrint('[ADS] banner exception: $error');
+      appDebugPrint('[ADS] banner exception: $error');
       if (!mounted || _lastRequestedWidth != availableWidth) {
         return;
       }
