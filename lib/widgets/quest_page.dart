@@ -402,7 +402,9 @@ class QuestPage extends StatelessWidget {
   }
 
   Widget _buildEmptyQuestCard() {
-    return QuestGlassCard(
+    return SizedBox(
+      width: double.infinity,
+      child: QuestGlassCard(
       child: Column(
         children: [
           _QuestStateIcon(emoji: '🗺️'),
@@ -427,11 +429,14 @@ class QuestPage extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 
   Widget _buildAllClearCard() {
-    return QuestGlassCard(
+    return SizedBox(
+      width: double.infinity,
+      child: QuestGlassCard(
       child: Column(
         children: [
           _QuestStateIcon(emoji: '🏆', completed: true),
@@ -456,6 +461,7 @@ class QuestPage extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 
