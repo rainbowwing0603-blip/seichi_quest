@@ -77,6 +77,7 @@ import 'services/app_settings_service.dart';
 import 'services/interstitial_ad_service.dart';
 import 'services/ad_sdk_service.dart';
 import 'services/announcement_service.dart';
+import 'services/app_version_service.dart';
 
 // ============================================================
 // Supabase
@@ -156,7 +157,118 @@ class SeichiQuestApp extends StatelessWidget {
       title: '聖地クエスト',
       debugShowCheckedModeBanner: false,
       theme: questTheme(),
-      home: home ?? const SeichiMapPage(),
+      home: home ?? const AppVersionGate(child: SeichiMapPage()),
+    );
+  }
+}
+
+class AppVersionGate extends StatefulWidget {
+  const AppVersionGate({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<AppVersionGate> createState() => _AppVersionGateState();
+}
+
+class _AppVersionGateState extends State<AppVersionGate> {
+  final AppVersionService _versionService = AppVersionService();
+  AppVersionStatus? _status;
+  bool _optionalUpdateDismissed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final status = await _versionService.loadStatus();
+    if (!mounted) return;
+    setState(() => _status = status);
+  }
+
+  Future<void> _openStore(AppReleasePolicy policy) async {
+    final uri = Uri.tryParse(policy.storeUrl);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final status = _status;
+    if (status == null || !status.updateAvailable) {
+      return widget.child;
+    }
+
+    final policy = status.policy!;
+    if (!status.updateRequired && _optionalUpdateDismissed) {
+      return widget.child;
+    }
+
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.system_update_rounded, size: 52),
+                      const SizedBox(height: 16),
+                      Text(
+                        status.updateRequired
+                            ? 'アップデートが必要です'
+                            : '新しいバージョンがあります',
+                        style: Theme.of(context).textTheme.titleLarge,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        policy.updateMessage ??
+                            '最新の機能と修正をご利用いただくため、アップデートしてください。',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '現在 ' + status.currentVersion + ' (' +
+                            status.currentBuild.toString() + ')  →  最新 ' +
+                            policy.latestVersion + ' (' +
+                            policy.latestBuild.toString() + ')',
+                        style: Theme.of(context).textTheme.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () => _openStore(policy),
+                          icon: const Icon(Icons.open_in_new_rounded),
+                          label: const Text('アップデートする'),
+                        ),
+                      ),
+                      if (!status.updateRequired) ...[
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () {
+                            setState(() => _optionalUpdateDismissed = true);
+                          },
+                          child: const Text('あとで'),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
