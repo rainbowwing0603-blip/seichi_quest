@@ -1699,7 +1699,7 @@ class MapPage extends StatelessWidget {
       mapToolbarEnabled: false,
       markers: markers,
       circles: destinationRangeCircles,
-      onCameraMove: onCameraMove;
+      onCameraMove: onCameraMove,
       onCameraIdle: onCameraIdle,
       onMapCreated: onMapCreated,
       onTap: (_) {},
