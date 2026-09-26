@@ -521,8 +521,8 @@ class MapPage extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              Flexible(child: Container(
-                                padding: const EdgeInsets.fromLTRB(7, 6, 11, 6),
+                              Expanded(child: Container(
+                                padding: const EdgeInsets.fromLTRB(9, 7, 12, 7),
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     begin: Alignment.topLeft,
@@ -555,8 +555,8 @@ class MapPage extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Container(
-                                      width: 27,
-                                      height: 27,
+                                      width: 31,
+                                      height: 31,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         gradient: const LinearGradient(
@@ -582,7 +582,7 @@ class MapPage extends StatelessWidget {
                                       ),
                                       child: Icon(
                                         weatherIcon,
-                                        size: 15,
+                                        size: 18,
                                         color: Colors.white,
                                       ),
                                     ),
@@ -596,7 +596,7 @@ class MapPage extends StatelessWidget {
                                           maxLines: 1,
                                           style: const TextStyle(
                                             color: Color(0xFF174B5E),
-                                            fontSize: 12,
+                                            fontSize: 16,
                                             fontWeight: FontWeight.w800,
                                           ),
                                         ),
@@ -605,86 +605,6 @@ class MapPage extends StatelessWidget {
                                   ],
                                 ),
                               )),
-                              const Spacer(),
-                              Container(
-                                padding: const EdgeInsets.fromLTRB(7, 6, 11, 6),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Color(0xBFECE8FF),
-                                      Color(0xBFFAF8FF),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(15),
-                                  border: Border.all(
-                                    color: primary.withValues(alpha: 0.20),
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: primary.withValues(alpha: 0.15),
-                                      blurRadius: 9,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                    BoxShadow(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.85,
-                                      ),
-                                      blurRadius: 2,
-                                      offset: const Offset(-1, -1),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 27,
-                                      height: 27,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: const LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [
-                                            Color(0xFF8173F5),
-                                            Color(0xFF493BA7),
-                                          ],
-                                        ),
-                                        border: Border.all(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.8,
-                                          ),
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: primary.withValues(
-                                              alpha: 0.32,
-                                            ),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: const Icon(
-                                        Icons.workspace_premium_rounded,
-                                        size: 15,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 7),
-                                    Text(
-                                      '$collectedCount / $total',
-                                      style: const TextStyle(
-                                        color: Color(0xFF3B3476),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
                               const SizedBox(width: 4),
                               IconButton(
                                 tooltip: '目的地カードを小さくする',
@@ -777,6 +697,15 @@ class MapPage extends StatelessWidget {
                                               fontSize: 10,
                                               fontWeight: FontWeight.w900,
                                               letterSpacing: 1.7,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          Text(
+                                            '$collectedCount / $total',
+                                            style: const TextStyle(
+                                              color: Color(0xFF3B3476),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w900,
                                             ),
                                           ),
                                         ],
@@ -902,6 +831,15 @@ class MapPage extends StatelessWidget {
                                               fontSize: 10,
                                               fontWeight: FontWeight.w900,
                                               letterSpacing: 1.7,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          Text(
+                                            '$collectedCount / $total',
+                                            style: const TextStyle(
+                                              color: Color(0xFF3B3476),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w900,
                                             ),
                                           ),
                                         ],
