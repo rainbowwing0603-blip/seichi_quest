@@ -1,36 +1,17 @@
--- スタンプ獲得の期間判定・記録時刻をDBサーバー時刻に統一する。
--- オフライン訪問は同期時点で判定する。端末が送る時刻は信用しない。
--- 既存クライアントのRPC引数は維持する。
-create or replace function public.record_place_visit_and_collect(
-  p_place_id uuid,
-  p_client_visit_id uuid,
-  p_visited_at timestamptz,
-  p_latitude double precision,
-  p_longitude double precision,
-  p_accuracy_meters double precision,
-  p_source text default 'gps',
-  p_metadata jsonb default '{}'::jsonb
-)
-returns table (
-  collection_history_id uuid,
-  event_id uuid,
-  event_name text,
-  content_id uuid,
-  event_content_id uuid,
-  place_id uuid,
-  card text,
-  content_title text,
-  collected_at timestamptz
-)
-language plpgsql
-security definer
-set search_path = ''
-as $function$
+-- 既存の位置情報対策と新しい collection_history スキーマを維持し、
+-- スタンプ獲得の時刻のみサーバーの初回受付時刻に切り替える。
+CREATE OR REPLACE FUNCTION public.record_place_visit_and_collect(p_place_id uuid, p_client_visit_id uuid, p_visited_at timestamp with time zone, p_latitude double precision, p_longitude double precision, p_accuracy_meters double precision, p_source text DEFAULT 'gps'::text, p_metadata jsonb DEFAULT '{}'::jsonb)
+ RETURNS TABLE(collection_history_id uuid, event_id uuid, event_name text, content_id uuid, event_content_id uuid, place_id uuid, card text, content_title text, collected_at timestamp with time zone)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
 declare
   v_user_id uuid;
   v_place public.places%rowtype;
   v_existing_visit public.place_visits%rowtype;
   v_place_visit_id uuid;
+  v_existing_place_id uuid;
   v_effective_visited_at timestamptz := now();
 begin
   -- ----------------------------------------------------------
@@ -107,7 +88,7 @@ begin
   if found then
     -- --------------------------------------------------------
     -- 既存visit:
-    -- GPSは最初に保存した訪問事実を使用する。
+    -- 最初に保存した訪問事実を正とする。
     -- --------------------------------------------------------
     v_place_visit_id := v_existing_visit.id;
     v_effective_visited_at := v_existing_visit.created_at;
@@ -162,13 +143,15 @@ begin
 
     if v_place_visit_id is not null then
       -- ------------------------------------------------------
-      -- 実際に保存されたvisitのGPSを取得する。
+      -- 実際に保存されたvisitを取得する。
+      -- collection_historyもこの保存値を使用する。
       -- ------------------------------------------------------
       select *
         into v_existing_visit
       from public.place_visits
       where id = v_place_visit_id
       for update;
+
       v_effective_visited_at := v_existing_visit.created_at;
 
     else
@@ -207,17 +190,12 @@ begin
       ec.event_id,
       ec.content_id,
       ec.id as event_content_id,
-      ec.place_id,
-      s.id as legacy_seichi_id
+      ec.place_id
     from public.event_contents ec
     join public.events e
       on e.id = ec.event_id
     join public.contents c
       on c.id = ec.content_id
-    left join public.seichi s
-      on s.event_id = ec.event_id
-     and s.card = c.content_key
-     and s.place_id = ec.place_id
     where ec.place_id = p_place_id
       and ec.is_active = true
       and c.is_active = true
@@ -255,7 +233,6 @@ begin
   inserted as (
     insert into public.collection_history as ch (
       user_id,
-      seichi_id,
       event_id,
       content_id,
       event_content_id,
@@ -268,7 +245,6 @@ begin
     )
     select
       v_user_id,
-      eligible.legacy_seichi_id,
       eligible.event_id,
       eligible.content_id,
       eligible.event_content_id,
@@ -279,7 +255,7 @@ begin
 
       -- 重要:
       -- collection_historyのGPSも
-      -- 最初に保存されたplace_visitsのGPSを使用する。
+      -- 最初に保存されたplace_visitsの事実を使用する。
       v_existing_visit.latitude,
       v_existing_visit.longitude
 
@@ -311,5 +287,5 @@ begin
   order by e.name, c.content_key;
 
 end;
-$function$;
-
+$function$
+;
