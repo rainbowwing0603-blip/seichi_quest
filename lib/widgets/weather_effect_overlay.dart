@@ -714,6 +714,7 @@ class _WeatherEffectPainter extends CustomPainter {
         required double width,
         required double height,
         required double phase,
+        required Alignment edge,
       }) {
         // 1つの連続Pathで雲の外形を作る。
         // 個別の楕円を重ねないため、内部にローブの継ぎ目は存在しない。
@@ -725,53 +726,47 @@ class _WeatherEffectPainter extends CustomPainter {
         final top = center.dy - h * 0.56;
         final bottom = center.dy + h * 0.48;
 
-        // 見える輪郭は非周期的な1本のカーブにし、閉路は十分外側で閉じる。
-        // これで画面内に尖った始点・終点や「雲アイコン」の底辺を出さない。
-        final path = Path()
-          ..moveTo(left - w * 0.24, bottom + h * 0.62)
-          ..lineTo(left - w * 0.24, center.dy + h * 0.10)
-          ..cubicTo(
-            left - w * 0.10,
-            center.dy + h * 0.02,
-            left + w * 0.02,
-            center.dy + h * 0.08,
-            left + w * 0.12,
-            center.dy - h * 0.04,
-          )
-          ..cubicTo(
-            left + w * 0.18,
-            center.dy - h * 0.24,
-            left + w * 0.31,
-            center.dy - h * 0.14,
-            left + w * 0.38,
-            center.dy - h * 0.25,
-          )
-          ..cubicTo(
-            left + w * 0.47,
-            top - h * 0.06,
-            left + w * 0.59,
-            top + h * 0.06,
-            left + w * 0.64,
-            center.dy - h * 0.20,
-          )
-          ..cubicTo(
-            left + w * 0.70,
-            center.dy - h * 0.08,
-            left + w * 0.77,
-            center.dy - h * 0.18,
-            left + w * 0.83,
-            center.dy - h * 0.10,
-          )
-          ..cubicTo(
-            left + w * 0.91,
-            center.dy - h * 0.01,
-            right + w * 0.05,
-            center.dy - h * 0.04,
-            right + w * 0.18,
-            center.dy + h * 0.11,
-          )
-          ..lineTo(right + w * 0.24, bottom + h * 0.62)
-          ..close();
+        // 雲の見える側だけを曲線で作り、閉路は必ず画面外の辺で閉じる。
+        // これにより、塗りつぶしPathの直線や角が画面内へ出ない。
+        final contour = <Offset>[
+          Offset(left - w * 0.10, center.dy + h * 0.08),
+          Offset(left + w * 0.12, center.dy - h * 0.04),
+          Offset(left + w * 0.38, center.dy - h * 0.25),
+          Offset(left + w * 0.64, center.dy - h * 0.20),
+          Offset(left + w * 0.83, center.dy - h * 0.10),
+          Offset(right + w * 0.10, center.dy + h * 0.10),
+        ];
+
+        final path = Path()..moveTo(contour.first.dx, contour.first.dy);
+        for (var i = 0; i < contour.length - 1; i++) {
+          final a = contour[i];
+          final b = contour[i + 1];
+          final dx = b.dx - a.dx;
+          path.cubicTo(
+            a.dx + dx * 0.34,
+            a.dy - h * (i.isEven ? 0.10 : 0.04),
+            a.dx + dx * 0.70,
+            b.dy + h * (i.isEven ? 0.035 : 0.075),
+            b.dx,
+            b.dy,
+          );
+        }
+
+        final margin = math.max(size.width, size.height) * 0.35;
+        if (edge == Alignment.topCenter) {
+          path
+            ..lineTo(contour.last.dx, -margin)
+            ..lineTo(contour.first.dx, -margin);
+        } else if (edge == Alignment.centerLeft) {
+          path
+            ..lineTo(-margin, contour.last.dy)
+            ..lineTo(-margin, contour.first.dy);
+        } else {
+          path
+            ..lineTo(size.width + margin, contour.last.dy)
+            ..lineTo(size.width + margin, contour.first.dy);
+        }
+        path.close();
         final bounds = path.getBounds();
         cloudPaint.shader = LinearGradient(
           begin: Alignment.topCenter,
@@ -802,6 +797,7 @@ class _WeatherEffectPainter extends CustomPainter {
         width: size.width * 0.92,
         height: size.height * 0.21,
         phase: loopAngle,
+        edge: Alignment.topCenter,
       );
       paintEdgeCloud(
         center: Offset(
@@ -811,6 +807,7 @@ class _WeatherEffectPainter extends CustomPainter {
         width: size.width * 0.76,
         height: size.height * 0.19,
         phase: loopAngle + 2.0,
+        edge: Alignment.topCenter,
       );
 
       // 左右の縁にも薄い雲を置き、画面中央は空ける。
@@ -822,6 +819,7 @@ class _WeatherEffectPainter extends CustomPainter {
         width: size.width * 0.62,
         height: size.height * 0.17,
         phase: loopAngle + 1.0,
+        edge: Alignment.centerLeft,
       );
       paintEdgeCloud(
         center: Offset(
@@ -831,6 +829,7 @@ class _WeatherEffectPainter extends CustomPainter {
         width: size.width * 0.66,
         height: size.height * 0.18,
         phase: loopAngle + 3.0,
+        edge: Alignment.centerRight,
       );
     }
 
