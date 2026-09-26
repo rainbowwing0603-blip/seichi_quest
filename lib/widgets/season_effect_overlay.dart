@@ -188,27 +188,32 @@ class _SeasonEffectPainter extends CustomPainter {
         : const [Color(0xFFE98A37), Color(0xFFFFC453), Color(0xFFBB5735)];
     final paint = Paint()..style = PaintingStyle.fill;
 
-    for (var i = 0; i < count; i++) {
-      if (muted < 0.4 && i.isOdd) continue;
-      final speed = i % 4 == 0 ? 2.0 : 1.0;
-      final y = _fraction(i * 0.317 + time * speed);
-      final position = _edgePosition(size, i, y, time);
-      final fade = math.min(1.0, math.min(y, 1 - y) * 7);
-      final opacity = muted * fade * (petals ? 0.72 : 0.76);
-      if (opacity <= 0) continue;
+    for (var depth = 0; depth < 3; depth++) {
+      for (var i = depth; i < count; i += 3) {
+        if (muted < 0.4 && i.isOdd) continue;
+        final speed = depth == 2 ? 2.0 : 1.0;
+        final y = _fraction(i * 0.317 + time * speed);
+        final position = _edgePosition(size, i, y, time);
+        final fade = math.min(1.0, math.min(y, 1 - y) * 7);
+        final depthOpacity = [0.35, 0.65, 1.0][depth];
+        final opacity = muted * fade * depthOpacity *
+            (petals ? 0.72 : 0.76);
+        if (opacity <= 0) continue;
 
-      canvas.save();
-      canvas.translate(position.dx, position.dy);
-      canvas.rotate(
-        time * _twoPi * (i.isEven ? 1 : -1) +
-            i * 1.9 +
-            math.sin(time * _twoPi * 2 + i) * 0.28,
-      );
-      final radius = (petals ? 5.0 : 6.0) + i % 4;
-      canvas.scale(radius);
-      paint.color = colors[i % colors.length].withValues(alpha: opacity);
-      canvas.drawPath(petals ? _sakuraPetal : _mapleLeaf, paint);
-      canvas.restore();
+        canvas.save();
+        canvas.translate(position.dx, position.dy);
+        canvas.rotate(
+          time * _twoPi * (i.isEven ? 1 : -1) +
+              i * 1.9 +
+              math.sin(time * _twoPi * 2 + i) * 0.28,
+        );
+        final radius = ((petals ? 5.0 : 6.0) + i % 4) *
+            [0.65, 0.95, 1.35][depth];
+        canvas.scale(radius);
+        paint.color = colors[i % colors.length].withValues(alpha: opacity);
+        canvas.drawPath(petals ? _sakuraPetal : _mapleLeaf, paint);
+        canvas.restore();
+      }
     }
   }
 
@@ -221,38 +226,45 @@ class _SeasonEffectPainter extends CustomPainter {
           math.sin(time * _twoPi + i * 1.7) * 0.032;
       final position = _edgePosition(size, i, y, time);
       final shimmer = 0.5 + 0.5 * math.sin(time * _twoPi * 3 + i * 2.4);
-      final opacity = muted * (night ? 0.68 : 0.42) * shimmer;
+      final depth = i % 3;
+      final scale = [0.65, 0.95, 1.25][depth];
+      final opacity = muted * [0.4, 0.7, 1.0][depth] *
+          (night ? 0.68 : 0.42) * shimmer;
       final color = night ? const Color(0xFFFFEB8C) : const Color(0xFFFFE7B3);
+      canvas.save();
+      canvas.translate(position.dx, position.dy);
+      canvas.scale(scale);
       paint.color = color.withValues(alpha: opacity * 0.20);
-      canvas.drawCircle(position, night ? 10 : 12, paint);
+      canvas.drawCircle(Offset.zero, night ? 10 : 12, paint);
       paint.color = color.withValues(alpha: opacity);
       if (night) {
         // Pale wings and a glowing abdomen make this a firefly, not a dot.
         paint.color = Colors.white.withValues(alpha: opacity * 0.55);
         canvas.drawOval(Rect.fromCenter(
-          center: position.translate(-3, -2), width: 5, height: 3), paint);
+          center: const Offset(-3, -2), width: 5, height: 3), paint);
         canvas.drawOval(Rect.fromCenter(
-          center: position.translate(3, -2), width: 5, height: 3), paint);
+          center: const Offset(3, -2), width: 5, height: 3), paint);
         paint.color = const Color(0xFF344A36).withValues(alpha: opacity);
         canvas.drawOval(Rect.fromCenter(
-          center: position.translate(0, -1), width: 2, height: 5), paint);
+          center: const Offset(0, -1), width: 2, height: 5), paint);
         paint.color = color.withValues(alpha: opacity);
-        canvas.drawCircle(position.translate(0, 2), 2.3, paint);
+        canvas.drawCircle(const Offset(0, 2), 2.3, paint);
       } else {
         // Tiny sun motifs suggest summer daylight without washing out the map.
-        canvas.drawCircle(position, 3.0, paint);
+        canvas.drawCircle(Offset.zero, 3.0, paint);
         paint.style = PaintingStyle.stroke;
         paint.strokeWidth = 1.1;
         for (var ray = 0; ray < 8; ray++) {
           final angle = ray * math.pi / 4;
           canvas.drawLine(
-            position.translate(math.cos(angle) * 5, math.sin(angle) * 5),
-            position.translate(math.cos(angle) * 8, math.sin(angle) * 8),
+            Offset(math.cos(angle) * 5, math.sin(angle) * 5),
+            Offset(math.cos(angle) * 8, math.sin(angle) * 8),
             paint,
           );
         }
         paint.style = PaintingStyle.fill;
       }
+      canvas.restore();
     }
   }
 
@@ -265,13 +277,14 @@ class _SeasonEffectPainter extends CustomPainter {
       final y = _fraction(i * 0.381 - time);
       final position = _edgePosition(size, i, y, time);
       final shimmer = math.max(0.0, math.sin(time * _twoPi * 2 + i * 2.7));
-      paint.color = const Color(0xFFD9F2FF)
-          .withValues(alpha: muted * shimmer * 0.75);
-      paint.strokeWidth = 1.2;
-      final radius = 5.0 + i % 3;
+      final depth = i % 3;
+      paint.color = const Color(0xFFD9F2FF).withValues(
+        alpha: muted * shimmer * [0.3, 0.55, 0.8][depth],
+      );
+      final radius = (5.0 + i % 3) * [0.65, 0.95, 1.3][depth];
       canvas.save();
       canvas.translate(position.dx, position.dy);
-      canvas.rotate(time * 0.4 + i);
+      canvas.rotate(math.sin(time * _twoPi + i) * 0.22);
       canvas.scale(radius);
       paint.strokeWidth = 1.2 / radius;
       canvas.drawPath(_snowCrystal, paint);
