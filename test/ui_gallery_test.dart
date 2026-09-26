@@ -2,10 +2,16 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:seichi_quest/models/announcement.dart';
 import 'package:seichi_quest/models/quest_item.dart';
 import 'package:seichi_quest/widgets/app_settings_page.dart';
+import 'package:seichi_quest/widgets/announcement_carousel_dialog.dart';
+import 'package:seichi_quest/widgets/notification_settings_page.dart';
+import 'package:seichi_quest/widgets/stamp_animation.dart';
 import 'package:seichi_quest/widgets/collection_page.dart';
 import 'package:seichi_quest/widgets/my_page.dart';
 import 'package:seichi_quest/widgets/onboarding_page.dart';
@@ -62,6 +68,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(tester.takeException(), isNull);
   }
+
+  setUpAll(() async {
+    final font = FontLoader('NotoSansJP')
+      ..addFont(rootBundle.load('assets/fonts/NotoSansJP-Variable.ttf'));
+    await font.load();
+  });
 
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
@@ -156,7 +168,50 @@ void main() {
     );
     await capture(tester, 'settings');
 
+    await show(tester, const NotificationSettingsPage());
+    await capture(tester, 'notification_settings');
+
+    await show(
+      tester,
+      AnnouncementCarouselDialog(
+        announcements: [
+          Announcement(
+            id: 'notice',
+            title: '新しいクエストが始まりました',
+            body: '群馬県内のスポットを巡って、物語を集めましょう。',
+            category: 'event_start',
+            priority: 1,
+            publishFrom: DateTime(2026, 9, 26),
+            showOnStartup: true,
+            isRead: false,
+          ),
+        ],
+      ),
+    );
+    await capture(tester, 'announcement');
+
+    await show(
+      tester,
+      const Stack(
+        children: [
+          StampAnimation(
+            justCollected: true,
+            collectedName: '群馬県庁',
+            collectedCount: 1,
+            total: 44,
+          ),
+        ],
+      ),
+    );
+    await capture(tester, 'stamp_animation');
+
     await show(tester, OnboardingPage(onComplete: asyncNoop));
-    await capture(tester, 'onboarding');
+    await capture(tester, 'onboarding_1');
+    for (var page = 2; page <= 4; page++) {
+      await tester.drag(find.byType(PageView), const Offset(-350, 0));
+      await tester.pump(const Duration(milliseconds: 450));
+      expect(tester.takeException(), isNull);
+      await capture(tester, 'onboarding_$page');
+    }
   });
 }
