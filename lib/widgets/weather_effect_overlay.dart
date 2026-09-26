@@ -725,58 +725,53 @@ class _WeatherEffectPainter extends CustomPainter {
         final top = center.dy - h * 0.56;
         final bottom = center.dy + h * 0.48;
 
+        // 見える輪郭は非周期的な1本のカーブにし、閉路は十分外側で閉じる。
+        // これで画面内に尖った始点・終点や「雲アイコン」の底辺を出さない。
         final path = Path()
-          ..moveTo(left, bottom * 0.98)
+          ..moveTo(left - w * 0.24, bottom + h * 0.62)
+          ..lineTo(left - w * 0.24, center.dy + h * 0.10)
           ..cubicTo(
-            left - w * 0.03,
-            center.dy + h * 0.18,
-            left + w * 0.04,
-            center.dy - h * 0.02,
-            left + w * 0.13,
-            center.dy - h * 0.02,
+            left - w * 0.10,
+            center.dy + h * 0.02,
+            left + w * 0.02,
+            center.dy + h * 0.08,
+            left + w * 0.12,
+            center.dy - h * 0.04,
           )
           ..cubicTo(
-            left + w * 0.16,
-            center.dy - h * 0.28,
-            left + w * 0.28,
-            top + h * 0.10,
+            left + w * 0.18,
+            center.dy - h * 0.24,
+            left + w * 0.31,
+            center.dy - h * 0.14,
             left + w * 0.38,
+            center.dy - h * 0.25,
+          )
+          ..cubicTo(
+            left + w * 0.47,
+            top - h * 0.06,
+            left + w * 0.59,
+            top + h * 0.06,
+            left + w * 0.64,
             center.dy - h * 0.20,
           )
           ..cubicTo(
-            left + w * 0.43,
-            top - h * 0.10,
-            left + w * 0.58,
-            top - h * 0.08,
-            left + w * 0.64,
-            center.dy - h * 0.22,
-          )
-          ..cubicTo(
-            left + w * 0.76,
-            center.dy - h * 0.34,
-            left + w * 0.86,
+            left + w * 0.70,
+            center.dy - h * 0.08,
+            left + w * 0.77,
+            center.dy - h * 0.18,
+            left + w * 0.83,
             center.dy - h * 0.10,
-            left + w * 0.88,
-            center.dy + h * 0.02,
           )
           ..cubicTo(
-            right + w * 0.03,
-            center.dy + h * 0.05,
-            right + w * 0.02,
-            center.dy + h * 0.26,
-            right - w * 0.03,
-            bottom,
+            left + w * 0.91,
+            center.dy - h * 0.01,
+            right + w * 0.05,
+            center.dy - h * 0.04,
+            right + w * 0.18,
+            center.dy + h * 0.11,
           )
-          ..cubicTo(
-            center.dx + w * 0.28,
-            bottom + h * 0.10,
-            center.dx - w * 0.26,
-            bottom + h * 0.10,
-            left,
-            bottom * 0.98,
-          )
+          ..lineTo(right + w * 0.24, bottom + h * 0.62)
           ..close();
-
         final bounds = path.getBounds();
         cloudPaint.shader = LinearGradient(
           begin: Alignment.topCenter,
