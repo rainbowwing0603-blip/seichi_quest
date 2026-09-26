@@ -54,14 +54,28 @@ class _SeasonEffectOverlayState extends State<SeasonEffectOverlay>
     setState(() {});
   }
 
+  bool get _weatherSuppressesSeasonAnimation => switch (widget.weather) {
+    WeatherCondition.rain ||
+    WeatherCondition.heavyRain ||
+    WeatherCondition.snow ||
+    WeatherCondition.thunderstorm => true,
+    _ => false,
+  };
+
   void _syncMotionPreference() {
     _reduceMotion = MediaQuery.disableAnimationsOf(context) ||
         WidgetsBinding.instance.accessibilityFeatures.reduceMotion;
-    if (_reduceMotion) {
+    if (_reduceMotion || _weatherSuppressesSeasonAnimation) {
       _controller.stop();
     } else if (!_controller.isAnimating) {
       _controller.repeat();
     }
+  }
+
+  @override
+  void didUpdateWidget(covariant SeasonEffectOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncMotionPreference();
   }
 
   @override
@@ -74,7 +88,9 @@ class _SeasonEffectOverlayState extends State<SeasonEffectOverlay>
 
   @override
   Widget build(BuildContext context) {
-    if (_reduceMotion) return const SizedBox.shrink();
+    if (_reduceMotion || _weatherSuppressesSeasonAnimation) {
+      return const SizedBox.shrink();
+    }
     return Positioned.fill(
       child: IgnorePointer(
         child: RepaintBoundary(
