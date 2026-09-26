@@ -167,10 +167,10 @@ class _SeasonEffectPainter extends CustomPainter {
   }
 
   // Keep the middle of the map clear for locations and navigation controls.
-  Offset _edgePosition(Size size, int index, double y) {
+  Offset _edgePosition(Size size, int index, double y, double time) {
     final left = index.isEven;
     final edge = left ? 0.035 : 0.965;
-    final sway = math.sin(y * _twoPi + index * 2.1) * 0.15;
+    final sway = math.sin(y * _twoPi + index * 2.1 + time * _twoPi) * 0.15;
     return Offset(size.width * (edge + (left ? sway.abs() : -sway.abs())),
         size.height * y);
   }
@@ -192,14 +192,18 @@ class _SeasonEffectPainter extends CustomPainter {
       if (muted < 0.4 && i.isOdd) continue;
       final speed = i % 4 == 0 ? 2.0 : 1.0;
       final y = _fraction(i * 0.317 + time * speed);
-      final position = _edgePosition(size, i, y);
+      final position = _edgePosition(size, i, y, time);
       final fade = math.min(1.0, math.min(y, 1 - y) * 7);
       final opacity = muted * fade * (petals ? 0.72 : 0.76);
       if (opacity <= 0) continue;
 
       canvas.save();
       canvas.translate(position.dx, position.dy);
-      canvas.rotate(time * (i.isEven ? 1.8 : -1.5) + i * 1.9);
+      canvas.rotate(
+        time * _twoPi * (i.isEven ? 1 : -1) +
+            i * 1.9 +
+            math.sin(time * _twoPi * 2 + i) * 0.28,
+      );
       final radius = (petals ? 5.0 : 6.0) + i % 4;
       canvas.scale(radius);
       paint.color = colors[i % colors.length].withValues(alpha: opacity);
@@ -213,8 +217,9 @@ class _SeasonEffectPainter extends CustomPainter {
     final paint = Paint();
     for (var i = 0; i < 11; i++) {
       if (muted < 0.4 && i.isOdd) continue;
-      final y = _fraction(i * 0.283 - time);
-      final position = _edgePosition(size, i, y);
+      final y = _fraction(i * 0.283) +
+          math.sin(time * _twoPi + i * 1.7) * 0.032;
+      final position = _edgePosition(size, i, y, time);
       final shimmer = 0.5 + 0.5 * math.sin(time * _twoPi * 3 + i * 2.4);
       final opacity = muted * (night ? 0.68 : 0.42) * shimmer;
       final color = night ? const Color(0xFFFFEB8C) : const Color(0xFFFFE7B3);
@@ -258,7 +263,7 @@ class _SeasonEffectPainter extends CustomPainter {
     for (var i = 0; i < 10; i++) {
       if (muted < 0.4 && i.isOdd) continue;
       final y = _fraction(i * 0.381 - time);
-      final position = _edgePosition(size, i, y);
+      final position = _edgePosition(size, i, y, time);
       final shimmer = math.max(0.0, math.sin(time * _twoPi * 2 + i * 2.7));
       paint.color = const Color(0xFFD9F2FF)
           .withValues(alpha: muted * shimmer * 0.75);
