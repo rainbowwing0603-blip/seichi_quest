@@ -479,28 +479,28 @@ class _WeatherEffectPainter extends CustomPainter {
     switch (dayPhase) {
       case DayPhase.morning:
         atmosphereColor = const Color(0xFF8A8790);
-        atmosphereOpacity = partlyCloudy ? 0.035 : 0.105;
+        atmosphereOpacity = partlyCloudy ? 0.055 : 0.185;
         shadowCoreColor = const Color(0xFF657180);
         shadowMidColor = const Color(0xFF89929A);
         shadowOpacityFactor = 0.88;
 
       case DayPhase.daytime:
         atmosphereColor = const Color(0xFF647887);
-        atmosphereOpacity = partlyCloudy ? 0.032 : 0.115;
+        atmosphereOpacity = partlyCloudy ? 0.050 : 0.195;
         shadowCoreColor = const Color(0xFF526879);
         shadowMidColor = const Color(0xFF718594);
         shadowOpacityFactor = 1.0;
 
       case DayPhase.evening:
         atmosphereColor = const Color(0xFF756E80);
-        atmosphereOpacity = partlyCloudy ? 0.040 : 0.110;
+        atmosphereOpacity = partlyCloudy ? 0.060 : 0.190;
         shadowCoreColor = const Color(0xFF5E6170);
         shadowMidColor = const Color(0xFF817B86);
         shadowOpacityFactor = 0.92;
 
       case DayPhase.night:
         atmosphereColor = const Color(0xFF26384D);
-        atmosphereOpacity = partlyCloudy ? 0.050 : 0.125;
+        atmosphereOpacity = partlyCloudy ? 0.065 : 0.205;
         shadowCoreColor = const Color(0xFF1E3045);
         shadowMidColor = const Color(0xFF354A60);
         shadowOpacityFactor = 0.82;
@@ -518,11 +518,11 @@ class _WeatherEffectPainter extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            shadowCoreColor.withValues(alpha: 0.13),
-            shadowMidColor.withValues(alpha: 0.055),
+            shadowCoreColor.withValues(alpha: 0.22),
+            shadowMidColor.withValues(alpha: 0.10),
             Colors.transparent,
           ],
-          stops: const [0.0, 0.42, 0.82],
+          stops: const [0.0, 0.48, 0.88],
         ).createShader(Offset.zero & size);
       canvas.drawRect(Offset.zero & size, canopyPaint);
     }
@@ -729,8 +729,8 @@ class _WeatherEffectPainter extends CustomPainter {
       maxWidthFactor: 1.28,
       minHeightFactor: 0.28,
       maxHeightFactor: 0.48,
-      minOpacity: 0.060,
-      maxOpacity: 0.125,
+      minOpacity: 0.095,
+      maxOpacity: 0.180,
       horizontalRange: 20,
       verticalRange: 6,
     );
@@ -742,8 +742,8 @@ class _WeatherEffectPainter extends CustomPainter {
       maxWidthFactor: 1.46,
       minHeightFactor: 0.38,
       maxHeightFactor: 0.60,
-      minOpacity: 0.035,
-      maxOpacity: 0.080,
+      minOpacity: 0.060,
+      maxOpacity: 0.120,
       horizontalRange: 14,
       verticalRange: 4,
     );
