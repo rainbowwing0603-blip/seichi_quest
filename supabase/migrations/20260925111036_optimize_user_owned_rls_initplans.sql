@@ -1,0 +1,15 @@
+alter policy profiles_insert_own on public.profiles with check (id = (select auth.uid()));
+alter policy profiles_select_own on public.profiles using (id = (select auth.uid()));
+alter policy profiles_update_own on public.profiles using (id = (select auth.uid())) with check (id = (select auth.uid()));
+alter policy place_visits_select_own on public.place_visits using ((select auth.uid()) = user_id);
+alter policy user_event_favorites_delete_own on public.user_event_favorites using ((select auth.uid()) = user_id);
+alter policy user_event_favorites_insert_own on public.user_event_favorites with check ((select auth.uid()) = user_id);
+alter policy user_event_favorites_select_own on public.user_event_favorites using ((select auth.uid()) = user_id);
+alter policy user_event_participations_delete_own on public.user_event_participations using ((select auth.uid()) = user_id);
+alter policy user_event_participations_insert_own on public.user_event_participations with check ((select auth.uid()) = user_id);
+alter policy user_event_participations_select_own on public.user_event_participations using ((select auth.uid()) = user_id);
+alter policy user_event_participations_update_own on public.user_event_participations using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+alter policy user_event_preferences_delete_own on public.user_event_preferences using ((select auth.uid()) = user_id);
+alter policy user_event_preferences_insert_own on public.user_event_preferences with check ((select auth.uid()) = user_id);
+alter policy user_event_preferences_select_own on public.user_event_preferences using ((select auth.uid()) = user_id);
+alter policy user_event_preferences_update_own on public.user_event_preferences using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);;

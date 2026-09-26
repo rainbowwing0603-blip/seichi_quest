@@ -1,0 +1,14 @@
+revoke all on function public.get_event_social_stats(uuid) from public, anon;
+grant execute on function public.get_event_social_stats(uuid) to authenticated;
+revoke all on function public.get_my_collection_history() from public, anon;
+grant execute on function public.get_my_collection_history() to authenticated;
+revoke all on function public.get_my_event_rank(uuid) from public, anon;
+grant execute on function public.get_my_event_rank(uuid) to authenticated;
+revoke all on function public.record_place_visit_and_collect(uuid,uuid,timestamptz,double precision,double precision,double precision,text,jsonb) from public, anon;
+grant execute on function public.record_place_visit_and_collect(uuid,uuid,timestamptz,double precision,double precision,double precision,text,jsonb) to authenticated;
+revoke all on function public.reset_event_collection_history(uuid) from public, anon;
+grant execute on function public.reset_event_collection_history(uuid) to authenticated;
+revoke all on function public.get_public_ranking(uuid,integer) from public;
+grant execute on function public.get_public_ranking(uuid,integer) to anon, authenticated;
+revoke all on function public.handle_new_user() from public, anon, authenticated;
+revoke all on function public.rls_auto_enable() from public, anon, authenticated;;
