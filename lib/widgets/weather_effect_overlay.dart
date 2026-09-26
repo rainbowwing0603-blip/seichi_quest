@@ -158,6 +158,7 @@ class _WeatherEffectPainter extends CustomPainter {
       case WeatherCondition.clear:
         _paintSunSparkles(canvas, size);
       case WeatherCondition.partlyCloudy:
+        _paintDirectionalSunlight(canvas, size);
         _paintCloudAtmosphere(canvas, size, partlyCloudy: true);
       case WeatherCondition.cloudy:
         _paintCloudAtmosphere(canvas, size, partlyCloudy: false);
