@@ -508,7 +508,7 @@ class _WeatherEffectPainter extends CustomPainter {
 
     final baseWashPaint = Paint()
       ..color = atmosphereColor.withValues(
-        alpha: partlyCloudy ? atmosphereOpacity : 0.045,
+        alpha: partlyCloudy ? atmosphereOpacity : 0.145,
       );
 
     canvas.drawRect(Offset.zero & size, baseWashPaint);
@@ -729,9 +729,9 @@ class _WeatherEffectPainter extends CustomPainter {
           center: const Alignment(-0.10, -0.12),
           radius: 0.92,
           colors: [
-            shadeColor.withValues(alpha: 0.16 * breathe),
-            shadeColor.withValues(alpha: 0.105 * breathe),
-            shadeColor.withValues(alpha: 0.035 * breathe),
+            shadeColor.withValues(alpha: 0.30 * breathe),
+            shadeColor.withValues(alpha: 0.22 * breathe),
+            shadeColor.withValues(alpha: 0.085 * breathe),
             Colors.transparent,
           ],
           stops: const [0.0, 0.44, 0.76, 1.0],
@@ -752,15 +752,39 @@ class _WeatherEffectPainter extends CustomPainter {
           radius: 1.0,
           colors: [
             lightColor.withValues(
-              alpha: (dayPhase == DayPhase.night ? 0.045 : 0.065) *
+              alpha: (dayPhase == DayPhase.night ? 0.105 : 0.135) *
                   (1.08 - breathe * 0.18),
             ),
-            lightColor.withValues(alpha: 0.018),
+            lightColor.withValues(alpha: 0.045),
             Colors.transparent,
           ],
           stops: const [0.0, 0.55, 1.0],
         ).createShader(lightRect);
       canvas.drawOval(lightRect, lightPaint);
+
+      // 画面を斜めに横切る幅広い雲影。端は完全にフェードさせ、
+      // 「形」ではなく天候による光量差として見せる。
+      final bandShift = math.sin(loopAngle * 0.5 + 1.2) * size.height * 0.055;
+      final bandRect = Rect.fromLTWH(
+        0,
+        size.height * 0.30 + bandShift,
+        size.width,
+        size.height * 0.46,
+      );
+      final bandPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.transparent,
+            shadeColor.withValues(alpha: 0.11),
+            shadeColor.withValues(alpha: 0.18),
+            shadeColor.withValues(alpha: 0.11),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.22, 0.50, 0.78, 1.0],
+        ).createShader(bandRect);
+      canvas.drawRect(bandRect, bandPaint);
     }
 
     if (partlyCloudy) {
