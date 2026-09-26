@@ -1490,6 +1490,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       '[STARTUP_TIME] location ready: ${_startupWatch.elapsedMilliseconds}ms',
     );
 
+    await _refreshNearbyQuestItems(position, force: true);
     _updateNextDestination();
 
     // 天気APIは現在地表示・GPS監視開始の必須条件ではない。
@@ -1599,6 +1600,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           _currentPosition = position;
         }
 
+        unawaited(_refreshNearbyQuestItems(position));
         _updateNextDestination();
         _updateWeatherIfNeeded(position);
         _checkStampDistance();
@@ -2677,11 +2679,30 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       justCollected: _justCollected,
       collectedName: _collectedName,
       collectedCount: _getCollectedCount(),
-      total: _seichiList.length,
+      total: _eventTotalCount,
       defaultCenter: _defaultCenter,
       markers: _buildMarkers(),
-      onCameraMove: (position) => _cameraZoom = position.zoom,
-      onCameraIdle: () { unawaited(_onMapCameraIdle()); },
+      regionalProgress: _regionalMapProgress,
+      showRegionalProgress: _eventTotalCount > 200 &&
+          _questMapDisplayPolicy.modeForZoom(_cameraZoom) == QuestMapDisplayMode.regionalProgress,
+      onRegionalProgressTap: (region) {
+        if (region.centerLatitude == null || region.centerLongitude == null || _mapController == null) return;
+        unawaited(_mapController!.animateCamera(CameraUpdate.newLatLngZoom(LatLng(region.centerLatitude!, region.centerLongitude!), 8.5)));
+      },
+      onCameraMove: (position) {
+        _cameraZoom = position.zoom;
+        if (_eventTotalCount > 200) {
+          _mapViewportRequestGeneration++;
+          if (_isMapViewportLoading) _mapViewportRefreshPending = true;
+        }
+      },
+      onCameraIdle: () {
+        if (_eventTotalCount > 200) {
+          unawaited(_refreshMapViewport());
+        } else {
+          unawaited(_onMapCameraIdle());
+        }
+      },
       onMoveToCurrentLocation: _moveCameraToCurrentLocation,
       onMoveToNextSeichi: _moveCameraToNextSeichi,
       onStartNavigation: _startNavigationToNextSeichi,
