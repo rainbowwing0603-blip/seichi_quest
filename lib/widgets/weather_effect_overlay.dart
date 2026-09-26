@@ -33,7 +33,7 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
     WeatherCondition.rain ||
     WeatherCondition.heavyRain ||
     WeatherCondition.snow ||
-    WeatherCondition.thunderstorm => 128, // 16画面/秒。Mapとの同時描画負荷を抑える
+    WeatherCondition.thunderstorm => 160, // 20画面/秒。雨の勢いを保ちつつMapとの同時描画負荷を抑える
     _ => 120, // ゆっくり動く雲・霧・光は15画面/秒
   };
 
@@ -798,6 +798,9 @@ class _WeatherEffectPainter extends CustomPainter {
       required double baseSlant,
     }) {
       final travelWidth = size.width + 180;
+      // Paintを雨粒ごとに生成しない。1レイヤーにつき1個を再利用して、
+      // 雨量感を保ったままGCとオブジェクト生成負荷を抑える。
+      final rainPaint = Paint()..strokeCap = StrokeCap.round;
 
       for (var i = 0; i < count; i++) {
         final seed = i + seedOffset * 1000;
@@ -836,11 +839,10 @@ class _WeatherEffectPainter extends CustomPainter {
                 travelWidth -
             90;
 
-        final rainPaint = Paint()
+        rainPaint
           ..color = const Color(0xFFE1F4FF)
               .withValues(alpha: opacity.clamp(0.0, 1.0))
-          ..strokeWidth = strokeWidth
-          ..strokeCap = StrokeCap.round;
+          ..strokeWidth = strokeWidth;
 
         canvas.drawLine(
           Offset(x, y),
@@ -852,7 +854,7 @@ class _WeatherEffectPainter extends CustomPainter {
 
     // 遠景。細い雨を広く散らして雨量を作る。
     paintLayer(
-      count: heavy ? 60 : 34,
+      count: heavy ? 90 : 52,
       seedOffset: 11,
       baseSpeed: heavy ? 2.35 : 1.70,
       baseLength: heavy ? 15 : 11,
@@ -863,7 +865,7 @@ class _WeatherEffectPainter extends CustomPainter {
 
     // 中景。雨として認識しやすい主レイヤー。
     paintLayer(
-      count: heavy ? 45 : 26,
+      count: heavy ? 68 : 38,
       seedOffset: 29,
       baseSpeed: heavy ? 3.15 : 2.30,
       baseLength: heavy ? 27 : 21,
@@ -874,7 +876,7 @@ class _WeatherEffectPainter extends CustomPainter {
 
     // 近景。少数の長い雨筋だけを高速で通す。
     paintLayer(
-      count: heavy ? 22 : 10,
+      count: heavy ? 30 : 16,
       seedOffset: 47,
       baseSpeed: heavy ? 4.25 : 3.15,
       baseLength: heavy ? 47 : 36,
@@ -888,7 +890,7 @@ class _WeatherEffectPainter extends CustomPainter {
   }
 
   void _paintRainRipples(Canvas canvas, Size size, {required bool heavy}) {
-    final count = heavy ? 8 : 5;
+    final count = heavy ? 10 : 6;
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.8;
@@ -918,7 +920,7 @@ class _WeatherEffectPainter extends CustomPainter {
     }
 
     // ガラス面に留まる小さな水滴。
-    final staticDropCount = heavy ? 18 : 12;
+    final staticDropCount = heavy ? 20 : 14;
 
     for (var i = 0; i < staticDropCount; i++) {
       final seedX = ((i * 137 + 29) % 997) / 997.0;
@@ -942,7 +944,7 @@ class _WeatherEffectPainter extends CustomPainter {
     }
 
     // 大きくなった水滴だけが重力で流れる。
-    final movingDropCount = heavy ? 7 : 4;
+    final movingDropCount = heavy ? 8 : 5;
 
     for (var i = 0; i < movingDropCount; i++) {
       final seedX = ((i * 181 + 43) % 983) / 983.0;
