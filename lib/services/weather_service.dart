@@ -19,9 +19,11 @@ class WeatherService {
       <String, String>{
         'latitude': latitude.toString(),
         'longitude': longitude.toString(),
-        'current': 'temperature_2m,weather_code,is_day',
+        'current': 'temperature_2m,weather_code,is_day,wind_speed_10m',
+        'hourly': 'wind_speed_10m',
+        'forecast_hours': '12',
+        'wind_speed_unit': 'ms',
         'timezone': 'auto',
-        'forecast_days': '1',
       },
     );
 
@@ -67,10 +69,20 @@ class WeatherService {
       throw const WeatherServiceException('Weather API time is invalid.');
     }
 
+    final hourly = decoded['hourly'];
+    final hourlyWind = hourly is Map<String, dynamic>
+        ? hourly['wind_speed_10m']
+        : null;
+    final strongWindExpected = (current['wind_speed_10m'] is num &&
+            (current['wind_speed_10m'] as num) >= 15) ||
+        (hourlyWind is List &&
+            hourlyWind.any((value) => value is num && value >= 15));
+
     return RealWorldState.fromLocalTime(
       observedAt,
       weather: weatherConditionFromWmoCode(weatherCodeValue.toInt()),
       temperatureCelsius: temperatureValue.toDouble(),
+      strongWindExpected: strongWindExpected,
     );
   }
 

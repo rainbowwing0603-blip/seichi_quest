@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:seichi_quest/models/announcement.dart';
 import 'package:seichi_quest/models/quest_item.dart';
+import 'package:seichi_quest/models/real_world_state.dart';
 import 'package:seichi_quest/widgets/app_settings_page.dart';
 import 'package:seichi_quest/widgets/announcement_carousel_dialog.dart';
 import 'package:seichi_quest/widgets/notification_settings_page.dart';
@@ -18,6 +19,7 @@ import 'package:seichi_quest/widgets/quest_page.dart';
 import 'package:seichi_quest/widgets/quest_spot_detail_sheet.dart';
 import 'package:seichi_quest/widgets/quest_ui.dart';
 import 'package:seichi_quest/widgets/sync_status_page.dart';
+import 'package:seichi_quest/widgets/weather_effect_overlay.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -213,6 +215,34 @@ void main() {
       ),
     );
     await capture(tester, 'stamp_animation');
+
+    for (final weather in <WeatherCondition>[
+      WeatherCondition.clear,
+      WeatherCondition.cloudy,
+      WeatherCondition.rain,
+      WeatherCondition.snow,
+      WeatherCondition.fog,
+    ]) {
+      await show(
+        tester,
+        Stack(
+          children: [
+            const Positioned.fill(
+              child: ColoredBox(color: Color(0xFFB8CED1)),
+            ),
+            WeatherEffectOverlay(weather: weather, dayPhase: DayPhase.daytime),
+            Center(
+              child: Text(
+                weather.name,
+                style: const TextStyle(fontSize: 24, color: QuestUiTokens.ink),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await capture(tester, 'weather_${weather.name}');
+    }
 
     await show(tester, OnboardingPage(onComplete: asyncNoop));
     await capture(tester, 'onboarding_1');

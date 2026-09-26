@@ -3,10 +3,12 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/real_world_state.dart';
 import '../models/quest_item.dart';
 import '../painters/sonar_painter.dart';
+import '../services/weather_safety_policy.dart';
 import 'stamp_animation.dart';
 import 'quest_ui.dart';
 import 'weather_effect_overlay.dart';
@@ -251,20 +253,16 @@ class MapPage extends StatelessWidget {
       null => Icons.cloud_outlined,
     };
 
-    final seasonLabel = switch (state?.season) {
-      Season.spring => '春',
-      Season.summer => '夏',
-      Season.autumn => '秋',
-      Season.winter => '冬',
-      null => '--',
-    };
-
-    final dayPhaseLabel = switch (state?.dayPhase) {
-      DayPhase.morning => '朝',
-      DayPhase.daytime => '昼',
-      DayPhase.evening => '夕',
-      DayPhase.night => '夜',
-      null => '--',
+    final weatherLabel = switch (state?.weather) {
+      WeatherCondition.clear => '晴れ',
+      WeatherCondition.partlyCloudy => '晴れ/曇り',
+      WeatherCondition.cloudy => '曇り',
+      WeatherCondition.rain => '雨',
+      WeatherCondition.heavyRain => '大雨',
+      WeatherCondition.snow => '雪',
+      WeatherCondition.fog => '霧',
+      WeatherCondition.thunderstorm => '雷雨',
+      WeatherCondition.unknown || null => '天気確認中',
     };
 
     final temperature = state?.temperatureCelsius;
@@ -568,7 +566,7 @@ class MapPage extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 7),
                                     Text(
-                                      '$temperatureLabel  $seasonLabel・$dayPhaseLabel',
+                                      '$weatherLabel  $temperatureLabel',
                                       style: const TextStyle(
                                         color: Color(0xFF174B5E),
                                         fontSize: 12,
@@ -1622,6 +1620,7 @@ class MapPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final safetyMessage = WeatherSafetyPolicy.message(realWorldState);
     return Stack(
       children: [
         _buildMap(),
@@ -1636,25 +1635,87 @@ class MapPage extends StatelessWidget {
           top: 14,
           left: 14,
           right: 14,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(27),
-            clipBehavior: Clip.antiAlias,
-            child: AnimatedCrossFade(
-              firstChild: _buildQuestHud(collapsed: false),
-              secondChild: _buildQuestHud(collapsed: true),
-              crossFadeState: isQuestHudCollapsed
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              duration: const Duration(milliseconds: 460),
-              reverseDuration: const Duration(milliseconds: 460),
-              sizeCurve: Curves.easeInOutCubicEmphasized,
-              // Keep the outgoing card fully painted while its height is being
-              // clipped. The outer rounded clip keeps the animated bottom edge
-              // rounded throughout the collapse.
-              firstCurve: const Threshold(0.98),
-              secondCurve: const Threshold(0.98),
-              alignment: Alignment.topCenter,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(27),
+                clipBehavior: Clip.antiAlias,
+                child: AnimatedCrossFade(
+                  firstChild: _buildQuestHud(collapsed: false),
+                  secondChild: _buildQuestHud(collapsed: true),
+                  crossFadeState: isQuestHudCollapsed
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  duration: const Duration(milliseconds: 460),
+                  reverseDuration: const Duration(milliseconds: 460),
+                  sizeCurve: Curves.easeInOutCubicEmphasized,
+                  firstCurve: const Threshold(0.98),
+                  secondCurve: const Threshold(0.98),
+                  alignment: Alignment.topCenter,
+                ),
+              ),
+              if (safetyMessage != null) ...[
+                const SizedBox(height: 8),
+                Material(
+                  color: const Color(0xF9FFF8E9),
+                  borderRadius: BorderRadius.circular(18),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => launchUrl(
+                      Uri.parse('https://www.jma.go.jp/bosai/'),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.health_and_safety_outlined,
+                            color: QuestUiTokens.primaryDeep,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 9),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  safetyMessage,
+                                  style: const TextStyle(
+                                    color: QuestUiTokens.ink,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                const Text(
+                                  '気象庁の防災情報を確認する',
+                                  style: TextStyle(
+                                    color: QuestUiTokens.primaryDeep,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Icon(
+                            Icons.open_in_new_rounded,
+                            color: QuestUiTokens.primaryDeep,
+                            size: 17,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         _buildLocationButton(),

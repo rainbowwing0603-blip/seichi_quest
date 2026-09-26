@@ -239,8 +239,8 @@ class _WeatherEffectPainter extends CustomPainter {
         center: const Alignment(-0.82, -0.82),
         radius: 1.0,
         colors: [
-          Colors.white.withValues(alpha: 0.185 * breathe),
-          const Color(0xFFFFF5CF).withValues(alpha: 0.090 * breathe),
+          Colors.white.withValues(alpha: 0.27 * breathe),
+          const Color(0xFFFFF5CF).withValues(alpha: 0.13 * breathe),
           Colors.white.withValues(alpha: 0.025 * breathe),
           Colors.transparent,
         ],
@@ -255,8 +255,8 @@ class _WeatherEffectPainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Colors.white.withValues(alpha: 0.125 * breathe),
-          const Color(0xFFFFF6D9).withValues(alpha: 0.055 * breathe),
+          Colors.white.withValues(alpha: 0.18 * breathe),
+          const Color(0xFFFFF6D9).withValues(alpha: 0.075 * breathe),
           Colors.transparent,
         ],
         stops: const [0.0, 0.48, 1.0],
@@ -454,28 +454,28 @@ class _WeatherEffectPainter extends CustomPainter {
     switch (dayPhase) {
       case DayPhase.morning:
         atmosphereColor = const Color(0xFF8A8790);
-        atmosphereOpacity = partlyCloudy ? 0.020 : 0.060;
+        atmosphereOpacity = partlyCloudy ? 0.035 : 0.105;
         shadowCoreColor = const Color(0xFF657180);
         shadowMidColor = const Color(0xFF89929A);
         shadowOpacityFactor = 0.88;
 
       case DayPhase.daytime:
         atmosphereColor = const Color(0xFF647887);
-        atmosphereOpacity = partlyCloudy ? 0.018 : 0.070;
+        atmosphereOpacity = partlyCloudy ? 0.032 : 0.115;
         shadowCoreColor = const Color(0xFF526879);
         shadowMidColor = const Color(0xFF718594);
         shadowOpacityFactor = 1.0;
 
       case DayPhase.evening:
         atmosphereColor = const Color(0xFF756E80);
-        atmosphereOpacity = partlyCloudy ? 0.022 : 0.066;
+        atmosphereOpacity = partlyCloudy ? 0.040 : 0.110;
         shadowCoreColor = const Color(0xFF5E6170);
         shadowMidColor = const Color(0xFF817B86);
         shadowOpacityFactor = 0.92;
 
       case DayPhase.night:
         atmosphereColor = const Color(0xFF26384D);
-        atmosphereOpacity = partlyCloudy ? 0.030 : 0.085;
+        atmosphereOpacity = partlyCloudy ? 0.050 : 0.125;
         shadowCoreColor = const Color(0xFF1E3045);
         shadowMidColor = const Color(0xFF354A60);
         shadowOpacityFactor = 0.82;
@@ -672,8 +672,8 @@ class _WeatherEffectPainter extends CustomPainter {
         maxWidthFactor: 1.16,
         minHeightFactor: 0.24,
         maxHeightFactor: 0.42,
-        minOpacity: 0.025,
-        maxOpacity: 0.060,
+        minOpacity: 0.040,
+        maxOpacity: 0.085,
         horizontalRange: 24,
         verticalRange: 8,
       );
@@ -688,8 +688,8 @@ class _WeatherEffectPainter extends CustomPainter {
       maxWidthFactor: 1.28,
       minHeightFactor: 0.28,
       maxHeightFactor: 0.48,
-      minOpacity: 0.038,
-      maxOpacity: 0.080,
+      minOpacity: 0.060,
+      maxOpacity: 0.125,
       horizontalRange: 20,
       verticalRange: 6,
     );
@@ -701,8 +701,8 @@ class _WeatherEffectPainter extends CustomPainter {
       maxWidthFactor: 1.46,
       minHeightFactor: 0.38,
       maxHeightFactor: 0.60,
-      minOpacity: 0.022,
-      maxOpacity: 0.052,
+      minOpacity: 0.035,
+      maxOpacity: 0.080,
       horizontalRange: 14,
       verticalRange: 4,
     );
@@ -1062,19 +1062,19 @@ class _WeatherEffectPainter extends CustomPainter {
     switch (dayPhase) {
       case DayPhase.morning:
         snowAtmosphereColor = const Color(0xFFD8E6EE);
-        snowAtmosphereOpacity = 0.045;
+        snowAtmosphereOpacity = 0.08;
 
       case DayPhase.daytime:
         snowAtmosphereColor = const Color(0xFFE7F0F5);
-        snowAtmosphereOpacity = 0.055;
+        snowAtmosphereOpacity = 0.09;
 
       case DayPhase.evening:
         snowAtmosphereColor = const Color(0xFF9B91AA);
-        snowAtmosphereOpacity = 0.045;
+        snowAtmosphereOpacity = 0.075;
 
       case DayPhase.night:
         snowAtmosphereColor = const Color(0xFF294765);
-        snowAtmosphereOpacity = 0.080;
+        snowAtmosphereOpacity = 0.12;
     }
 
     final snowAtmospherePaint = Paint()
@@ -1087,7 +1087,7 @@ class _WeatherEffectPainter extends CustomPainter {
     }
 
     final washPaint = Paint()
-      ..color = const Color(0xFFDCEEFF).withValues(alpha: 0.065);
+      ..color = const Color(0xFFDCEEFF).withValues(alpha: 0.10);
 
     canvas.drawRect(Offset.zero & size, washPaint);
 
@@ -1239,28 +1239,28 @@ class _WeatherEffectPainter extends CustomPainter {
     switch (dayPhase) {
       case DayPhase.morning:
         fogAtmosphereColor = const Color(0xFFE6E7E2);
-        fogAtmosphereOpacity = 0.050;
+        fogAtmosphereOpacity = 0.095;
         fogCoreColor = const Color(0xFFF7F7F2);
         fogMidColor = const Color(0xFFECEDE8);
         fogOuterColor = const Color(0xFFDDE5E5);
 
       case DayPhase.daytime:
         fogAtmosphereColor = const Color(0xFFE7EFF1);
-        fogAtmosphereOpacity = 0.055;
+        fogAtmosphereOpacity = 0.10;
         fogCoreColor = const Color(0xFFF7FAFB);
         fogMidColor = const Color(0xFFE8EFF1);
         fogOuterColor = const Color(0xFFDCE7EA);
 
       case DayPhase.evening:
         fogAtmosphereColor = const Color(0xFFAAA2AE);
-        fogAtmosphereOpacity = 0.050;
+        fogAtmosphereOpacity = 0.09;
         fogCoreColor = const Color(0xFFF0E9EB);
         fogMidColor = const Color(0xFFDCD4DA);
         fogOuterColor = const Color(0xFFC6C4CD);
 
       case DayPhase.night:
         fogAtmosphereColor = const Color(0xFF40566C);
-        fogAtmosphereOpacity = 0.070;
+        fogAtmosphereOpacity = 0.12;
         fogCoreColor = const Color(0xFF9EAFBD);
         fogMidColor = const Color(0xFF788C9E);
         fogOuterColor = const Color(0xFF566D82);
@@ -1406,8 +1406,8 @@ class _WeatherEffectPainter extends CustomPainter {
       maxWidthFactor: 1.28,
       minHeight: 140,
       maxHeight: 235,
-      minOpacity: 0.040,
-      maxOpacity: 0.080,
+      minOpacity: 0.060,
+      maxOpacity: 0.115,
       horizontalRange: 16,
       verticalRange: 3.5,
       phaseMultiplier: 2.0,
@@ -1422,8 +1422,8 @@ class _WeatherEffectPainter extends CustomPainter {
       maxWidthFactor: 0.94,
       minHeight: 95,
       maxHeight: 175,
-      minOpacity: 0.060,
-      maxOpacity: 0.120,
+      minOpacity: 0.085,
+      maxOpacity: 0.155,
       horizontalRange: 24,
       verticalRange: 5.0,
       phaseMultiplier: 3.0,
@@ -1438,8 +1438,8 @@ class _WeatherEffectPainter extends CustomPainter {
       maxWidthFactor: 1.16,
       minHeight: 150,
       maxHeight: 255,
-      minOpacity: 0.035,
-      maxOpacity: 0.075,
+      minOpacity: 0.050,
+      maxOpacity: 0.100,
       horizontalRange: 32,
       verticalRange: 7.0,
       phaseMultiplier: 4.0,
@@ -1477,15 +1477,15 @@ class _WeatherEffectPainter extends CustomPainter {
   void _paintThunderstorm(Canvas canvas, Size size) {
     _paintRain(canvas, size, heavy: true);
 
-    final flashPhase = progress * 8.0;
-    final flashDistance = (flashPhase - flashPhase.round()).abs();
+    final firstPulse = (progress - 0.24).abs() < 0.012;
+    final secondPulse = (progress - 0.29).abs() < 0.008;
 
-    if (flashDistance < 0.025) {
+    if (firstPulse || secondPulse) {
       final flashOpacity = switch (dayPhase) {
-        DayPhase.morning => 0.15,
-        DayPhase.daytime => 0.12,
-        DayPhase.evening => 0.17,
-        DayPhase.night => 0.22,
+        DayPhase.morning => 0.12,
+        DayPhase.daytime => 0.10,
+        DayPhase.evening => 0.14,
+        DayPhase.night => 0.18,
       };
 
       final flashPaint = Paint()

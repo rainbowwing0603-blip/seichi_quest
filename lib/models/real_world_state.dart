@@ -19,6 +19,7 @@ class RealWorldState {
   final DayPhase dayPhase;
   final WeatherCondition weather;
   final double? temperatureCelsius;
+  final bool strongWindExpected;
   final DateTime observedAt;
 
   const RealWorldState({
@@ -26,6 +27,7 @@ class RealWorldState {
     required this.dayPhase,
     required this.weather,
     required this.temperatureCelsius,
+    this.strongWindExpected = false,
     required this.observedAt,
   });
 
@@ -33,12 +35,14 @@ class RealWorldState {
     DateTime localTime, {
     WeatherCondition weather = WeatherCondition.unknown,
     double? temperatureCelsius,
+    bool strongWindExpected = false,
   }) {
     return RealWorldState(
       season: seasonFromMonth(localTime.month),
       dayPhase: dayPhaseFromHour(localTime.hour),
       weather: weather,
       temperatureCelsius: temperatureCelsius,
+      strongWindExpected: strongWindExpected,
       observedAt: localTime,
     );
   }
