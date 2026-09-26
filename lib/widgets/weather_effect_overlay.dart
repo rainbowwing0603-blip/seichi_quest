@@ -698,13 +698,13 @@ class _WeatherEffectPainter extends CustomPainter {
         DayPhase.morning => const Color(0xFFC0C8CD),
         DayPhase.daytime => const Color(0xFFC6CED2),
         DayPhase.evening => const Color(0xFFB9B5BE),
-        DayPhase.night => const Color(0xFF8394A3),
+        DayPhase.night => const Color(0xFFA2AFBA),
       };
       final cloudShade = switch (dayPhase) {
         DayPhase.morning => const Color(0xFF687681),
         DayPhase.daytime => const Color(0xFF657580),
         DayPhase.evening => const Color(0xFF696875),
-        DayPhase.night => const Color(0xFF42586A),
+        DayPhase.night => const Color(0xFF53697A),
       };
 
       final cloudPaint = Paint();
@@ -773,16 +773,16 @@ class _WeatherEffectPainter extends CustomPainter {
           end: Alignment.bottomCenter,
           colors: [
             cloudColor.withValues(
-              alpha: dayPhase == DayPhase.night ? 0.24 : 0.22,
+              alpha: dayPhase == DayPhase.night ? 0.31 : 0.25,
             ),
             cloudColor.withValues(
-              alpha: dayPhase == DayPhase.night ? 0.20 : 0.18,
+              alpha: dayPhase == DayPhase.night ? 0.25 : 0.20,
             ),
             cloudShade.withValues(
-              alpha: dayPhase == DayPhase.night ? 0.15 : 0.13,
+              alpha: dayPhase == DayPhase.night ? 0.18 : 0.14,
             ),
           ],
-          stops: const [0.0, 0.52, 1.0],
+          stops: const [0.0, 0.58, 1.0],
         ).createShader(bounds);
         canvas.drawPath(path, cloudPaint);
 
