@@ -1086,6 +1086,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // 有効な獲得数
   // ============================================================
 
+  Event? get _currentEvent {
+    for (final event in _events) {
+      if (event.id == _currentEventId) return event;
+    }
+    return null;
+  }
+
+  String get _currentEventItemLabel =>
+      _currentEvent?.itemLabelSingular ?? 'スポット';
+
   int _getCollectedCount() {
     return _collectionProgressPolicy.validCollectedCount(
       seichiList: _seichiList,
@@ -1704,6 +1714,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       seichiList: _seichiList,
       collectedIds: _collectedIds,
       eventAchievements: _eventAchievements,
+      itemLabel: _currentEventItemLabel,
     );
 
     final newlyCollectedSeichi = applyPlan.newlyCollectedSeichi;
@@ -2585,6 +2596,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       myCount: _getCollectedCount(),
       total: _seichiList.length,
+      itemLabel: _currentEventItemLabel,
     );
   }
   // ============================================================
@@ -2944,6 +2956,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           },
           onMoveToSeichi: _moveCameraToSeichi,
           onSetNextDestination: _setNextDestination,
+          itemLabel: _currentEventItemLabel,
         );
 
       case 3:
