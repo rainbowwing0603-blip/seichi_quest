@@ -40,7 +40,10 @@ abstract final class QuestUiTokens {
 }
 
 /// 画面共通の背景と標準部品の配色。
-ThemeData buildQuestTheme() => questTheme();
+ThemeData buildQuestTheme() {
+  final theme = questTheme();
+  return theme.copyWith(scaffoldBackgroundColor: const Color(0xFFF7F5FB));
+}
 
 ThemeData questTheme() {
   final scheme = ColorScheme.fromSeed(
