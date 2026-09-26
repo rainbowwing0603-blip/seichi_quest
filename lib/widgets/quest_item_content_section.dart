@@ -7,7 +7,7 @@ import '../services/content_block_service.dart';
 import 'content_block_renderer.dart';
 import 'quest_ui.dart';
 
-class QuestItemContentSection extends StatelessWidget {
+class QuestItemContentSection extends StatefulWidget {
   const QuestItemContentSection({
     super.key,
     required this.item,
@@ -18,9 +18,6 @@ class QuestItemContentSection extends StatelessWidget {
     this._contentBlockService,
   });
 
-  static const ContentBlockPresentationPolicy _presentationPolicy =
-      ContentBlockPresentationPolicy();
-
   final QuestItem item;
   final bool showFallbackImage;
   final bool showFallbackText;
@@ -29,8 +26,42 @@ class QuestItemContentSection extends StatelessWidget {
   final ContentBlockService? _contentBlockService;
 
   @override
+  State<QuestItemContentSection> createState() =>
+      _QuestItemContentSectionState();
+}
+
+class _QuestItemContentSectionState extends State<QuestItemContentSection> {
+  static const ContentBlockPresentationPolicy _presentationPolicy =
+      ContentBlockPresentationPolicy();
+
+  Future<List<ContentBlock>>? _contentFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContent();
+  }
+
+  @override
+  void didUpdateWidget(covariant QuestItemContentSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.item.contentId.trim() != oldWidget.item.contentId.trim() ||
+        widget._contentBlockService != oldWidget._contentBlockService) {
+      _loadContent();
+    }
+  }
+
+  void _loadContent() {
+    final contentId = widget.item.contentId.trim();
+    _contentFuture = contentId.isEmpty
+        ? null
+        : (widget._contentBlockService ?? ContentBlockService())
+              .loadForContent(contentId);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final contentId = item.contentId.trim();
+    final contentId = widget.item.contentId.trim();
 
     if (contentId.isEmpty) {
       return _buildFallbackContent(
@@ -43,10 +74,8 @@ class QuestItemContentSection extends StatelessWidget {
       );
     }
 
-    final contentBlockService = _contentBlockService ?? ContentBlockService();
-
     return FutureBuilder<List<ContentBlock>>(
-      future: contentBlockService.loadForContent(contentId),
+      future: _contentFuture,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           debugPrint(
@@ -56,7 +85,7 @@ class QuestItemContentSection extends StatelessWidget {
 
         final presentation = _presentationPolicy.resolveForCollectionState(
           snapshot.data ?? const <ContentBlock>[],
-          collected: collected,
+          collected: widget.collected,
         );
 
         return Column(
@@ -79,13 +108,14 @@ class QuestItemContentSection extends StatelessWidget {
   }
 
   bool _hasVisibleFallbackContent(ContentBlockPresentation presentation) {
-    final imageUrl = item.primaryImageUrl?.trim() ?? '';
-    final description = fallbackDescriptionOverride ?? item.description;
+    final imageUrl = widget.item.primaryImageUrl?.trim() ?? '';
+    final description =
+        widget.fallbackDescriptionOverride ?? widget.item.description;
 
-    return (showFallbackImage &&
+    return (widget.showFallbackImage &&
             presentation.showFallbackImage &&
             imageUrl.isNotEmpty) ||
-        (showFallbackText &&
+        (widget.showFallbackText &&
             presentation.showFallbackDescription &&
             description.trim().isNotEmpty);
   }
@@ -95,10 +125,11 @@ class QuestItemContentSection extends StatelessWidget {
     ContentBlockPresentation presentation,
   ) {
     final widgets = <Widget>[];
-    final imageUrl = item.primaryImageUrl?.trim() ?? '';
-    final description = fallbackDescriptionOverride ?? item.description;
+    final imageUrl = widget.item.primaryImageUrl?.trim() ?? '';
+    final description =
+        widget.fallbackDescriptionOverride ?? widget.item.description;
 
-    if (showFallbackImage &&
+    if (widget.showFallbackImage &&
         presentation.showFallbackImage &&
         imageUrl.isNotEmpty) {
       widgets.add(
@@ -119,7 +150,7 @@ class QuestItemContentSection extends StatelessWidget {
       );
     }
 
-    if (showFallbackText &&
+    if (widget.showFallbackText &&
         presentation.showFallbackDescription &&
         description.trim().isNotEmpty) {
       if (widgets.isNotEmpty) {
