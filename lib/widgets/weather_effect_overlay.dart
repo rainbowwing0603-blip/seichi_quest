@@ -877,7 +877,7 @@ class _WeatherEffectPainter extends CustomPainter {
     }
 
     // ガラス面に留まる小さな水滴。
-    final staticDropCount = heavy ? 52 : 38;
+    final staticDropCount = heavy ? 28 : 18;
 
     for (var i = 0; i < staticDropCount; i++) {
       final seedX = ((i * 137 + 29) % 997) / 997.0;
@@ -889,19 +889,19 @@ class _WeatherEffectPainter extends CustomPainter {
 
       final pulse = 0.92 + math.sin(progress * math.pi * 2 + i * 0.73) * 0.08;
 
-      final radius = (1.8 + sizeSeed * 3.8) * pulse;
+      final radius = (1.3 + sizeSeed * 2.4) * pulse;
 
       _drawGlassDrop(
         canvas,
         center: Offset(x, y),
         radiusX: radius * (0.86 + sizeSeed * 0.12),
         radiusY: radius * (1.05 + sizeSeed * 0.22),
-        opacity: 0.28 + sizeSeed * 0.22,
+        opacity: 0.18 + sizeSeed * 0.15,
       );
     }
 
     // 大きくなった水滴だけが重力で流れる。
-    final movingDropCount = heavy ? 14 : 9;
+    final movingDropCount = heavy ? 10 : 6;
 
     for (var i = 0; i < movingDropCount; i++) {
       final seedX = ((i * 181 + 43) % 983) / 983.0;
@@ -936,7 +936,7 @@ class _WeatherEffectPainter extends CustomPainter {
 
       final x = 14 + seedX * math.max(size.width - 28, 1.0) + wobble;
 
-      final baseRadius = 4.8 + sizeSeed * 4.6;
+      final baseRadius = 3.5 + sizeSeed * 3.2;
 
       final stretch = resting ? 1.05 : 1.15 + gravityProgress * 1.65;
 
@@ -980,7 +980,7 @@ class _WeatherEffectPainter extends CustomPainter {
         center: Offset(x, y),
         radiusX: baseRadius * (0.78 - gravityProgress * 0.08),
         radiusY: baseRadius * stretch,
-        opacity: heavy ? 0.68 : 0.58,
+        opacity: heavy ? 0.55 : 0.45,
       );
     }
   }
