@@ -587,29 +587,18 @@ class MapPage extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 7),
                                     Flexible(
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            '$weatherLabel  $temperatureLabel',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              color: Color(0xFF174B5E),
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w800,
-                                            ),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          '$weatherLabel $temperatureLabel｜$seasonLabel・$dayPhaseLabel',
+                                          maxLines: 1,
+                                          style: const TextStyle(
+                                            color: Color(0xFF174B5E),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
                                           ),
-                                          Text(
-                                            '$seasonLabel・$dayPhaseLabel',
-                                            style: const TextStyle(
-                                              color: QuestUiTokens.mutedInk,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ],
+                                        ),
                                       ),
                                     ),
                                   ],
