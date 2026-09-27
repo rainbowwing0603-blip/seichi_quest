@@ -34,7 +34,7 @@ void main() {
     );
 
     expect(find.byTooltip('閉じる'), findsOneWidget);
-    expect(find.text('SPOT DETAIL 2.0'), findsOneWidget);
+    expect(find.text('群馬県庁本庁舎'), findsOneWidget);
     expect(find.text('スポットの物語'), findsOneWidget);
   });
 
