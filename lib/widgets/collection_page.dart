@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/quest_item.dart';
+import '../models/event.dart';
+import 'collection_card_page.dart';
 import '../policies/quest_presentation_policy.dart';
 import '../policies/quest_event_theme_policy.dart';
 import '../painters/stamp_ring_painter.dart';
@@ -13,6 +15,7 @@ class CollectionPage extends StatelessWidget {
   const CollectionPage({
     super.key,
     required this.eventId,
+    this.event,
     required this.questItems,
     required this.collectedIds,
     required this.totalCount,
@@ -30,6 +33,7 @@ class CollectionPage extends StatelessWidget {
   });
 
   final String? eventId;
+  final Event? event;
   final List<QuestItem> questItems;
   final Set<String> collectedIds;
   final int totalCount;
@@ -766,6 +770,10 @@ class CollectionPage extends StatelessWidget {
       collected: collected,
       eventNames: eventNames,
       eventTheme: eventTheme,
+      onOpenCollectionCard: collected && event != null ? () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => CollectionCardPage(
+          event: event!, item: item, collectedCount: collectedCount,
+          totalCount: totalCount))) : null,
       onShowOnMap: () => onMoveToQuestItem(item),
       onSetNextDestination: collected
           ? null
