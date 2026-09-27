@@ -1,7 +1,7 @@
 # 既知差異・未決事項・判断記録
 
 ## 1. Production migration drift
-**要対応** 2026-09-27の本番migration履歴は `20260926225451_add_app_release_policy` まで進んでいるが、確認したGitツリーは `20260926122330_use_server_time_for_collection` まで。少なくとも `harden_public_postgis_api_surface` と `add_app_release_policy` をGitへ回収し、実体一致を確認する。
+**回収済み / 継続確認** 本番migration履歴の末尾2件 `20260926225137_harden_public_postgis_api_surface` と `20260926225451_add_app_release_policy` は2026-09-27にGitへ回収した。app_release_policiesは本番テーブル形状も照合済み。PostGIS側は本番migrationの完全SQL本文を直接取得できないため、Git回収版は権限hardeningの再現用として保持し、fresh環境での適用検証を残す。
 
 ## 2. spatial_ref_sys / PostGIS
 **要確認** `public.spatial_ref_sys` はRLS無効でSecurity Advisor ERROR。PostGIS extensionもpublic schema配置として警告される。PostGIS互換を壊す可能性があるため、自動でRLS有効化やextension移動をしない。公開権限とAPI露出を検証して判断する。
@@ -10,7 +10,7 @@
 **要確認** policy無しRLSテーブル、意図確認が必要なSECURITY DEFINER RPC実行権限、匿名サインインに伴うRLS警告、Leaked Password Protection無効が報告されている。匿名利用をアプリ要件としているため、警告を一括排除せず「意図した公開」と「不要な権限」を分ける。
 
 ## 4. Edge Functions drift
-**要対応** 本番には5 Functionsがあり、delete-accountはversion 5。仕様書の旧version 4記述を更新した。各Functionの本番ソースとGit側ソースの一致は別途確認する。verify_jwt=falseのFunctionは内部認証/運用専用経路をレビューする。
+**一部回収済み / 継続確認** 本番5 Functionsを取得し、delete-account version 5はGitと本文一致を確認した。import-roadside-station-registryとverify-roadside-station-gsiはGitへ回収済み。残るGPS enrichment/reconcile Functionsは安全チェックにより自動書込みが途中停止したため未回収。reconcile-roadside-station-gpsはverify_jwt=falseだが固定運用キーを要求する実装。本番ソースには固定キー文字列が含まれるため、Gitへそのまま公開せずSecret化してから回収する。
 
 ## 5. 旧seichi
 **解消済み** 旧 `seichi` テーブルは2026-09-25 migrationで廃止済み。event_contentベースの汎用収集モデルを正本とする。
