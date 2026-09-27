@@ -1778,27 +1778,30 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
     setState(() => _headingUpMapEnabled = enabled);
 
-    final position = _currentPosition;
-    if (enabled && position != null) {
-      _updateHeadingUpCamera(position);
-      return;
-    }
+    final controller = _mapController;
+    if (controller == null) return;
 
-    if (!enabled && _mapController != null) {
-      unawaited(
-        _mapController!.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(
-              target: position == null
-                  ? _defaultCenter
-                  : LatLng(position.latitude, position.longitude),
-              zoom: _cameraZoom,
-              bearing: 0,
-            ),
+    // Toggling orientation must preserve the user's current viewport.
+    // Only rotate the camera here. Location tracking can update the target
+    // later when a fresh position arrives.
+    final bearing = enabled
+        ? (_currentPosition?.heading.isFinite == true &&
+                (_currentPosition?.heading ?? -1) >= 0)
+            ? _currentPosition!.heading
+            : _cameraBearing
+        : 0.0;
+
+    unawaited(
+      controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: _cameraTarget,
+            zoom: _cameraZoom,
+            bearing: bearing,
           ),
         ),
-      );
-    }
+      ),
+    );
   }
 
   void _updateHeadingUpCamera(Position position) {
@@ -1814,7 +1817,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       _mapController!.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(
-            target: LatLng(position.latitude, position.longitude),
+            target: _cameraTarget,
             zoom: _cameraZoom,
             bearing: heading,
           ),
