@@ -1,25 +1,27 @@
 # Database / Supabase仕様
 
-## 本番確認値 2026-09-23
-主要行数: seichi 44、profiles 74、collection_history 10、events 2、achievements 6、event_achievements 6、places 41、contents 44、event_contents 44、place_visits 5、user_event_preferences 67、user_event_participations 65、user_event_favorites 1、content_blocks 221。storage.objects 45。
+## 本番確認値 2026-09-27
+主要行数: profiles 114、collection_history 14、events 4、achievements 18、event_achievements 18、places 1328、contents 1311、event_contents 1311、place_visits 8、user_event_preferences 104、user_event_participations 101、user_event_favorites 1、content_blocks 292、announcements 3、announcement_reads 15、roadside_station_registry 1234、geo_regions 57、geo_region_prefectures 141、collection_series 1、collection_series_places 1231、collection_series_regions 57、location_security_states 2、location_security_events 3、app_release_policies 1。
 
-## Storage
-- `event-card-images`: public。確認時45 objects。イベントカバー1件と上毛かるた系44画像。
-- `content-media`: public。確認時0 objects。10MB制限、jpeg/png/webp/gif。
+旧 `seichi` テーブルは本番に存在しない。
 
-許諾前・権利確認中の画像はバックアップを私的に保持し、公開リポジトリへ複製しない。
+## 現行migration
+本番履歴は2026-09-27確認時点で `20260926225451_add_app_release_policy` まで適用済み。Git側には2026-09-26時点の最新コードツリーで `20260926122330_use_server_time_for_collection` までが確認できるため、**20260926後半の本番migrationをGitへ回収することが要確認事項**。
 
-## Edge Function
-`delete-account` version 4、ACTIVE、`verify_jwt=false`。これは設定値だけで安全性を断定しない。関数内部の独自認証処理を含めて評価する。
+## Edge Functions
+本番確認:
+- `delete-account` version 5 / ACTIVE / verify_jwt=false
+- `import-roadside-station-registry` version 11 / ACTIVE / verify_jwt=true
+- `enrich-roadside-station-gps` version 15 / ACTIVE / verify_jwt=true
+- `reconcile-roadside-station-gps` version 1 / ACTIVE / verify_jwt=false
+- `verify-roadside-station-gsi` version 2 / ACTIVE / verify_jwt=true
 
-## Migration
-本番の最終確認済みmigrationは `20260923004815_harden_trigger_function_search_paths`。
+verify_jwt=falseだけで安全/危険を断定せず、Function内部の認証・呼出し経路を個別レビューする。
 
-### Drift
-Git側には `20260919195000_restrict_internal_security_definer_functions.sql` が存在する一方、本番migration履歴には同名versionが確認できない。適用済みと仮定せず、差異として管理する。
+## RLS / Security Advisor
+主要アプリテーブルはRLS有効。2026-09-27時点で `public.spatial_ref_sys` はRLS無効としてAdvisor ERROR。PostGIS由来のため、単純にRLSをONにせずPostGIS互換と公開権限を検証する。
 
-## RLS
-主要アプリテーブルはRLS有効。PostGIS由来の `public.spatial_ref_sys` はRLS無効として確認されている。安易にRLSを有効化するとPostGIS利用へ影響し得るため、バックアップとは分離して検証する。
+Advisorは、policy無しRLSテーブル、public schemaのPostGIS extension、SECURITY DEFINER RPCの実行権限、匿名サインインに伴う警告、Leaked Password Protection無効も報告している。意図した公開APIと不要な権限を区別して是正する。
 
 ## 変更原則
-DDLはmigrationとして管理し、適用後は本番migration履歴・RLS・RPC・アプリ互換を確認する。productionへ手作業で先行変更した場合は必ずGitへ回収する。
+DDLはmigrationとして管理し、適用後は本番migration履歴・RLS・RPC・アプリ互換を確認する。productionへ手作業で先行変更した場合は必ずGitへ回収する。ユーザー向けデータと、location_source / confidence / security metadata等の内部運用データを表示層で混同しない。
