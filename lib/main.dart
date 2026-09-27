@@ -239,10 +239,9 @@ class _AppVersionGateState extends State<AppVersionGate> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '現在 ' + status.currentVersion + ' (' +
-                            status.currentBuild.toString() + ')  →  最新 ' +
-                            policy.latestVersion + ' (' +
-                            policy.latestBuild.toString() + ')',
+                        '現在 ${status.currentVersion} '
+                        '(${status.currentBuild})  →  最新 '
+                        '${policy.latestVersion} (${policy.latestBuild})',
                         style: Theme.of(context).textTheme.bodySmall,
                         textAlign: TextAlign.center,
                       ),
