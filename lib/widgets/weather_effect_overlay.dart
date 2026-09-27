@@ -210,30 +210,38 @@ class _WeatherEffectPainter extends CustomPainter {
     const startWidths = <double>[0.014, 0.022, 0.011];
     const endWidths = <double>[0.065, 0.095, 0.055];
     const strengths = <double>[0.58, 1.00, 0.48];
+    const angleOffsetsDegrees = <double>[-4.5, 0.0, 3.5];
 
     for (var i = 0; i < offsets.length; i++) {
       final raySource = source + normal * (size.width * offsets[i]);
-      final rayEnd =
-          raySource + lightDirection * (diagonal * 1.80);
+      final rayAngle = angleOffsetsDegrees[i] * math.pi / 180.0;
+      final cosAngle = math.cos(rayAngle);
+      final sinAngle = math.sin(rayAngle);
+      final rayDirection = Offset(
+        lightDirection.dx * cosAngle - lightDirection.dy * sinAngle,
+        lightDirection.dx * sinAngle + lightDirection.dy * cosAngle,
+      );
+      final rayNormal = Offset(-rayDirection.dy, rayDirection.dx);
+      final rayEnd = raySource + rayDirection * (diagonal * 1.80);
       final startHalfWidth = size.width * startWidths[i];
       final endHalfWidth = size.width * endWidths[i];
 
       final path = Path()
         ..moveTo(
-          raySource.dx + normal.dx * startHalfWidth,
-          raySource.dy + normal.dy * startHalfWidth,
+          raySource.dx + rayNormal.dx * startHalfWidth,
+          raySource.dy + rayNormal.dy * startHalfWidth,
         )
         ..lineTo(
-          raySource.dx - normal.dx * startHalfWidth,
-          raySource.dy - normal.dy * startHalfWidth,
+          raySource.dx - rayNormal.dx * startHalfWidth,
+          raySource.dy - rayNormal.dy * startHalfWidth,
         )
         ..lineTo(
-          rayEnd.dx - normal.dx * endHalfWidth,
-          rayEnd.dy - normal.dy * endHalfWidth,
+          rayEnd.dx - rayNormal.dx * endHalfWidth,
+          rayEnd.dy - rayNormal.dy * endHalfWidth,
         )
         ..lineTo(
-          rayEnd.dx + normal.dx * endHalfWidth,
-          rayEnd.dy + normal.dy * endHalfWidth,
+          rayEnd.dx + rayNormal.dx * endHalfWidth,
+          rayEnd.dy + rayNormal.dy * endHalfWidth,
         )
         ..close();
 
@@ -245,8 +253,8 @@ class _WeatherEffectPainter extends CustomPainter {
       // vertical axis. This keeps diagonal sunlight visually coherent.
       final paint = Paint()
         ..shader = LinearGradient(
-          begin: Alignment(-lightDirection.dx, -lightDirection.dy),
-          end: Alignment(lightDirection.dx, lightDirection.dy),
+          begin: Alignment(-rayDirection.dx, -rayDirection.dy),
+          end: Alignment(rayDirection.dx, rayDirection.dy),
           colors: [
             color.withValues(alpha: strength),
             color.withValues(alpha: strength * 0.82),
