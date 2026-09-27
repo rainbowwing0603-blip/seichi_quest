@@ -1751,7 +1751,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Future<void> _loadMapOrientationPreference() async {
     final enabled = await _appSettingsService.isHeadingUpMapEnabled();
     if (!mounted) return;
-    _headingUpMapEnabled = enabled;
+    setState(() => _headingUpMapEnabled = enabled);
     if (!enabled && _mapController != null && _cameraBearing.abs() > 0.5) {
       unawaited(
         _mapController!.animateCamera(
@@ -1769,12 +1769,42 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
   }
 
+  Future<void> _toggleHeadingUpMap() async {
+    final enabled = !_headingUpMapEnabled;
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool('setting_map_heading_up', enabled);
+    if (!mounted) return;
+
+    setState(() => _headingUpMapEnabled = enabled);
+
+    final position = _currentPosition;
+    if (enabled && position != null) {
+      _updateHeadingUpCamera(position);
+      return;
+    }
+
+    if (!enabled && _mapController != null) {
+      unawaited(
+        _mapController!.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: position == null
+                  ? _defaultCenter
+                  : LatLng(position.latitude, position.longitude),
+              zoom: _cameraZoom,
+              bearing: 0,
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
   void _updateHeadingUpCamera(Position position) {
     if (!_headingUpMapEnabled || _mapController == null) return;
-    if (position.speed < 1.0 || position.headingAccuracy < 0) return;
 
     final heading = position.heading;
-    if (!heading.isFinite || heading < 0) return;
+    if (!heading.isFinite || heading < 0 || position.headingAccuracy < 0) return;
     var difference = (heading - _cameraBearing).abs() % 360;
     if (difference > 180) difference = 360 - difference;
     if (difference < 8) return;
@@ -3032,6 +3062,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         }
       },
       onMoveToCurrentLocation: _moveCameraToCurrentLocation,
+      headingUpEnabled: _headingUpMapEnabled,
+      onToggleHeadingUp: () {
+        unawaited(_toggleHeadingUpMap());
+      },
       onMoveToNextSeichi: _moveCameraToNextSeichi,
       onStartNavigation: _startNavigationToNextSeichi,
       onMapCreated: (controller) {
