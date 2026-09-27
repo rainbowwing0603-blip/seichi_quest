@@ -444,6 +444,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final Map<int, BitmapDescriptor> _clusterIcons = {};
   final Set<int> _loadingClusterIcons = {};
   double _cameraZoom = 10.5;
+  LatLng _cameraTarget = _defaultCenter;
   double _cameraBearing = 0.0;
   double _renderedCameraBearing = 0.0;
   bool _headingUpMapEnabled = false;
@@ -3046,6 +3047,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       },
       onCameraMove: (position) {
         _cameraZoom = position.zoom;
+        _cameraTarget = position.target;
         _cameraBearing = position.bearing;
         var bearingDelta = (_cameraBearing - _renderedCameraBearing).abs() % 360;
         if (bearingDelta > 180) bearingDelta = 360 - bearingDelta;
