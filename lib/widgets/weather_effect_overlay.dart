@@ -204,12 +204,12 @@ class _WeatherEffectPainter extends CustomPainter {
     final warm = elevation < 22;
     final color =
         warm ? const Color(0xFFFFC66F) : const Color(0xFFFFF3C4);
-    final baseStrength = 0.095 + (1.0 - elevationFactor) * 0.045;
+    final baseStrength = 0.24 + (1.0 - elevationFactor) * 0.10;
 
     const offsets = <double>[-0.20, 0.00, 0.18];
-    const startWidths = <double>[0.010, 0.016, 0.008];
-    const endWidths = <double>[0.052, 0.075, 0.043];
-    const strengths = <double>[0.46, 1.00, 0.34];
+    const startWidths = <double>[0.014, 0.022, 0.011];
+    const endWidths = <double>[0.065, 0.095, 0.055];
+    const strengths = <double>[0.58, 1.00, 0.48];
 
     for (var i = 0; i < offsets.length; i++) {
       final raySource = source + normal * (size.width * offsets[i]);
