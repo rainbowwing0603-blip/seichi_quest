@@ -5,9 +5,9 @@
 ## Git / App
 - Repository: `rainbowwing0603-blip/seichi_quest`
 - Working branch: `fix/destination-range-and-float`
-- Baseline HEAD: `3e4b1a89b52f52f09376b8c3d9a5b9e9726a2540`
-- main比: 24 commits ahead / 0 behind（確認時）
-- open PR: 0（確認時）
+- Release baseline anchor: `3e4b1a89b52f52f09376b8c3d9a5b9e9726a2540`（build 12へ更新した時点。監査・文書修正コミットはこの後に積む）
+- 現在の候補ブランチ: main比 42 commits ahead / 0 behind（2026-09-27再確認時）
+- PR: #13 `Release baseline: map refinements, release policy, backend/spec sync`（Draft、CI検証中）
 - `pubspec.yaml`: `1.0.0+12`
 - GitHub Releases: 0（確認時）
 
@@ -47,7 +47,7 @@ Supabase `app_release_policies` のAndroid値はlatest=11、minimum=11、latest_
 - Edge Function本番/Git一致確認
 - Security Advisor警告を意図別に精査
 - TEST IMAGE / media fallback経路確認
-- +12のanalyze/test/release AABとPlay Console照合
+- +12のanalyze/testはGitHub Actionsで成功。release AABビルド検証とPlay Console照合を完了する
 - PRを作りmainへ統合してbaselineを固定
 
 ## しるべとの境界
