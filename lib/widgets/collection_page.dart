@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/quest_item.dart';
 import '../models/event.dart';
@@ -88,6 +89,22 @@ class CollectionPage extends StatelessWidget {
             progress: progress,
           ),
           _buildCollectionFilter(),
+          if (kDebugMode && event != null && questItems.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.science_outlined),
+                label: const Text('獲得記念カードをテスト（スタンプ不要）'),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => CollectionCardPage(
+                    event: event!, item: questItems.first,
+                    collectedCount: collectedCount == 0 ? 1 : collectedCount,
+                    totalCount: totalCount, debugPreview: true,
+                    collectedAt: DateTime.now(),
+                  )),
+                ),
+              ),
+            ),
           Expanded(
             child: filteredList.isEmpty
                 ? (hasMore

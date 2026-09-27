@@ -19,13 +19,15 @@ import '../services/content_media_resolver.dart';
 /// labels or artwork are required for the card to render.
 class CollectionCardPage extends StatefulWidget {
   const CollectionCardPage({super.key, required this.event, required this.item,
-    required this.collectedCount, required this.totalCount, this.collectedAt});
+    required this.collectedCount, required this.totalCount, this.collectedAt,
+    this.debugPreview = false});
 
   final Event event;
   final QuestItem item;
   final int collectedCount;
   final int totalCount;
   final DateTime? collectedAt;
+  final bool debugPreview;
 
   @override
   State<CollectionCardPage> createState() => _CollectionCardPageState();
@@ -38,6 +40,8 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
   String? _subtitle;
   Uint8List? _artwork;
   bool _busy = false;
+  bool _hideArtwork = false;
+  bool _longText = false;
 
   @override
   void initState() {
@@ -47,7 +51,7 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
   }
 
   Future<void> _loadContent() async {
-    try {
+    if (!widget.debugPreview) try {
       final results = await Future.wait<Object>([
         ContentBlockService().loadForContent(widget.item.contentId),
         CollectionHistoryService().loadHistory(eventId: widget.event.id),
@@ -134,6 +138,15 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
           child: FittedBox(child: RepaintBoundary(key: _boundaryKey,
             child: _card(theme, dateText))),
         )))),
+        if (widget.debugPreview) Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Wrap(alignment: WrapAlignment.center, spacing: 8, children: [
+            FilterChip(label: const Text('画像なし'), selected: _hideArtwork,
+              onSelected: (value) => setState(() => _hideArtwork = value)),
+            FilterChip(label: const Text('日本語長文'), selected: _longText,
+              onSelected: (value) => setState(() => _longText = value)),
+          ]),
+        ),
         Padding(padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
           child: Wrap(alignment: WrapAlignment.center, spacing: 8, runSpacing: 8, children: [
             OutlinedButton.icon(onPressed: _busy ? null : () => _export(save: true, share: false),
@@ -164,7 +177,7 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
               style: const TextStyle(fontSize: 13, color: Color(0xFF5E6570))),
           ])),
         Expanded(child: Padding(padding: const EdgeInsets.fromLTRB(28, 18, 28, 16),
-          child: _artwork == null
+          child: _artwork == null || _hideArtwork
             ? Container(alignment: Alignment.center, decoration: BoxDecoration(
                 gradient: LinearGradient(colors: [theme.primary.withValues(alpha: .12),
                   theme.accent.withValues(alpha: .18)]),
@@ -178,9 +191,11 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
             Text(widget.item.title, maxLines: 2, overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 29, height: 1.2, fontWeight: FontWeight.w800,
                 color: Color(0xFF192B35))),
-            if (_subtitle?.trim().isNotEmpty == true) ...[
+            if (_longText || _subtitle?.trim().isNotEmpty == true) ...[
               const SizedBox(height: 8),
-              Text(_subtitle!, maxLines: 3, overflow: TextOverflow.ellipsis,
+              Text(_longText
+                ? 'この旅で出会った景色と物語を、いつまでも大切にしたい。季節を越えてもう一度訪れたくなる、心に残る場所の記念です。'
+                : _subtitle!, maxLines: 3, overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 14, height: 1.4, color: Color(0xFF495761))),
             ],
             const SizedBox(height: 16),
