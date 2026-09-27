@@ -25,9 +25,6 @@ class SolarPositionService {
     required double longitude,
   }) {
     final utc = time.toUtc();
-    final dayOfYear = int.parse(
-      '${utc.year}${utc.month.toString().padLeft(2, '0')}${utc.day.toString().padLeft(2, '0')}',
-    );
     final startOfYear = DateTime.utc(utc.year, 1, 1);
     final dayIndex =
         DateTime.utc(utc.year, utc.month, utc.day).difference(startOfYear).inDays + 1;
