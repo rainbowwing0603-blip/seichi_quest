@@ -20,7 +20,7 @@
 - Windowsローカルのrelease signingで+12 AAB生成成功（69,520,439 bytes / SHA-256 `4D1DDBCC643545D9FD79FCA8D97062F50A62F0408D331B26A950455451FEF20B` / Git HEAD `0bd0c3994dcff7da0b5b5508f83b813943da361b`）
 
 ## Release
-Supabase `app_release_policies` のAndroid値はlatest=11、minimum=11、latest_version=1.0.0。ソースは+12なので、+12は「次の提出候補」として扱い、Play Consoleで実配布状態を確認するまでは公開済みと記録しない。
+Google Play Consoleのクローズドテスト Alpha で `versionCode 12 / versionName 1.0.0` が選択したテスターへ2026-09-27 10:51（JST）に公開済みであることを画面確認した。Supabase `app_release_policies` のAndroid値はこれに合わせて `latest_build=12 / minimum_build=11 / latest_version=1.0.0` へ更新済み。11は引き続き利用可能とし、12を最新版として案内する。
 
 ## Production Supabase
 2026-09-27確認:
@@ -54,7 +54,7 @@ Supabase `app_release_policies` のAndroid値はlatest=11、minimum=11、latest_
 - Edge Function本番/Git一致確認とmaintenance secretの安全な外部化
 - Security Advisor警告を意図別に精査
 - 上毛かるたpicture-card画像実体の権利・最終素材確認
-- +12の本番署名AABは生成・ハッシュ記録済み。残るリリースゲートはPlay Consoleでの+12照合
+- +12の本番署名AABは生成・ハッシュ記録済み。Play Consoleのクローズドテスト公開とSupabase release policyのlatest=12整合も確認済み
 - PR #13を最終確認後にmainへ統合してbaselineを固定
 
 ## しるべとの境界
