@@ -1,8 +1,8 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
-class SonarPainter
-    extends CustomPainter {
+class SonarPainter extends CustomPainter {
   final double progress;
   final double intensity;
 
@@ -12,83 +12,39 @@ class SonarPainter
   });
 
   @override
-  void paint(
-    Canvas canvas,
-    Size size,
-  ) {
-    final center = Offset(
-      size.width / 2,
-      size.height / 2,
-    );
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final baseRadius = math.min(size.width, size.height) / 2;
 
-    final baseRadius =
-        math.min(
-          size.width,
-          size.height,
-        ) /
-            2;
-
-    final pulse =
-        (progress * 2) % 1.0;
-
-    for (int i = 0; i < 3; i++) {
-      final localProgress =
-          (pulse + i / 3) % 1.0;
-
-      final radius =
-          baseRadius *
-              (0.35 +
-                  localProgress *
-                      0.65);
-
-      final opacity =
-          (1.0 -
-                  localProgress) *
-              intensity *
-              0.55;
+    // Card sonar stays on the existing controller, but uses one restrained
+    // pulse instead of three overlapping radar rings.
+    const activeFraction = 0.38;
+    if (progress < activeFraction) {
+      final localProgress = progress / activeFraction;
+      final radius = baseRadius * (0.30 + localProgress * 0.34);
+      final fade = math.pow(1.0 - localProgress, 1.45).toDouble();
+      final opacity = fade * intensity * 0.14;
 
       final paint = Paint()
-        ..style =
-            PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..color = Colors
-            .deepPurple
-            .withValues(
-          alpha: opacity,
-        );
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0
+        ..color = Colors.deepPurple.withValues(alpha: opacity);
 
-      canvas.drawCircle(
-        center,
-        radius,
-        paint,
-      );
+      canvas.drawCircle(center, radius, paint);
     }
 
     final centerPaint = Paint()
-      ..style =
-          PaintingStyle.fill
-      ..color = Colors
-          .deepPurple
-          .withValues(
-        alpha: 0.12 +
-            intensity * 0.18,
+      ..style = PaintingStyle.fill
+      ..color = Colors.deepPurple.withValues(
+        alpha: 0.035 + intensity * 0.045,
       );
 
-    canvas.drawCircle(
-      center,
-      baseRadius * 0.35,
-      centerPaint,
-    );
+    canvas.drawCircle(center, baseRadius * 0.27, centerPaint);
   }
 
   @override
-  bool shouldRepaint(
-    covariant SonarPainter
-        oldDelegate,
-  ) {
-    return oldDelegate.progress !=
-            progress ||
-        oldDelegate.intensity !=
-            intensity;
+  bool shouldRepaint(covariant SonarPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.intensity != intensity;
   }
 }
