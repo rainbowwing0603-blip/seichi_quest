@@ -48,3 +48,5 @@
 - Source audit found no literal TEST IMAGE / test image / placeholder-image marker in the Flutter repository.
 - content_blocks currently has 44 picture_card blocks and no test-like strings in title/body/media_path. Their media_path values point at the public event-card-images/jomo-karuta objects. Therefore any visible TEST IMAGE artwork is in the stored object bytes themselves, not a Flutter placeholder string or content_blocks label.
 - Do not replace the 44 stored card assets with official/copyrighted artwork until usage permission is confirmed.
+
+- Local `supabase/config.toml` previously had anonymous sign-ins/manual linking disabled despite the production app relying on anonymous Auth. It was aligned on 2026-09-27 so fresh/local environments do not silently test a different authentication model.
