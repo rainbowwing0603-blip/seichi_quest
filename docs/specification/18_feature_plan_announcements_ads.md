@@ -14,7 +14,7 @@
 2. Release初期値を起動後3分、Interstitial間15分、スタンプ後2分、対象画面10秒に再構成
 3. セッション最大回数は設けず、自然な区切りを必須条件にする
 4. Banner/Inline/Interstitialを独立した3層として管理
-5. 既存Bannerを邪魔にならない画面で維持し、Adaptive Bannerを将来候補とする
+5. 既存Bannerを邪魔にならない画面で維持する。利用可能幅からanchored adaptive sizeを取得し、高さ50dp以下のみ採用、超える場合は通常50dp Bannerへフォールバックする
 6. スクロール画面用Inline広告Widgetを追加
 7. まず少数配置で実測し、問題がなければランキング/イベント探索等へ段階展開
 

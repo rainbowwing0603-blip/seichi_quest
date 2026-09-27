@@ -94,7 +94,8 @@ class QuestSpotDetailSheet extends StatelessWidget {
               _buildStoryNotice(),
               const SizedBox(height: 12),
               QuestItemContentSection(
-                item: item,                collected: collected,
+                item: item,
+                collected: collected,
               ),
               if (collected && eventNames.isNotEmpty) ...[
                 const SizedBox(height: 14),
@@ -167,16 +168,6 @@ class QuestSpotDetailSheet extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'SPOT DETAIL 2.0',
-                      style: TextStyle(
-                        color: QuestUiTokens.primary,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.45,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
                     Text(
                       item.name,
                       style: const TextStyle(

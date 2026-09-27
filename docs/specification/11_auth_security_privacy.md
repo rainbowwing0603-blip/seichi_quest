@@ -1,10 +1,10 @@
 # 認証・セキュリティ・プライバシー
 
 ## Auth
-Supabase Authを利用する。`SessionService.ensureCloudUser` は既存ユーザーが無ければ `signInAnonymously()` を実行する。したがって本番Authでは匿名サインインが利用可能である必要がある。Gitの `supabase/config.toml` はlocal設定であり、本番dashboard設定の正本とは限らない。
+Supabase Authを利用する。`SessionService.ensureCloudUser` は既存ユーザーが無ければ `signInAnonymously()` を実行する。したがって本番Authでは匿名サインインが利用可能である必要がある。Gitの `supabase/config.toml` も匿名サインイン・manual linkingを有効にして本番利用方針と整合させている。ただし、本番dashboard設定の正本そのものではない。
 
 ## Account deletion
-本番Edge Function `delete-account` version 4は設定上 `verify_jwt=false`。ただし基準コードのFunction内部では `createSupabaseContext(req, { auth: "user" })` によるユーザー認証を要求し、認証済みuserClaims.idのユーザーだけをadmin APIで削除する。認証失敗またはuser id不在時は401系で終了する。
+本番Edge Function `delete-account` version 5は設定上 `verify_jwt=false`。ただし基準コードのFunction内部では `createSupabaseContext(req, { auth: "user" })` によるユーザー認証を要求し、認証済みuserClaims.idのユーザーだけをadmin APIで削除する。認証失敗またはuser id不在時は401系で終了する。
 
 したがって「verify_jwt=false = 無認証削除」ではない。今後Function実装またはSupabase server helperを変更した場合は、この内部認証保証を再レビューする。
 

@@ -7,7 +7,7 @@
 - Edge Functionの「本番デプロイ実体」とローカルコピーの完全同一性は独立検証未完了。
 - Supabase dashboard上の秘密値、OAuth secrets等はDB dumpに含まれない。
 - 実際の別Supabase projectへのフルrestore rehearsalは未実施。
-- Git migrationと本番migration履歴にdriftがある。
+- 2026-09-27時点で、本番migration履歴は `20260926225451_add_app_release_policy` まで照合し、直近2件の不足migrationをGitへ回収した。過去履歴全体の完全一致と復元リハーサルは引き続き独立確認事項とする。
 したがって「全環境を完全自動で同一復元できる」とはまだ扱わない。
 
 ## 復旧順序
