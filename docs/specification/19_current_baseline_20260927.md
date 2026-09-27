@@ -17,7 +17,7 @@
 - CIのrelease AABは一時署名によるビルド検証用であり、Play提出用の本番署名成果物とは区別する
 - WindowsローカルでもFlutter 3.47.1 / Dart 3.13.1で `flutter analyze` 成功、167 tests passed
 - Android emulator（API 37）で起動し、Supabase初期化、イベント復元、地図、位置情報、NEXT、天気、テスト広告の基本動作を確認
-- 最終Play提出前にローカルのrelease signingで+12 AABを生成し、SHA-256とサイズを記録する
+- Windowsローカルのrelease signingで+12 AAB生成成功（69,520,439 bytes / SHA-256 `4D1DDBCC643545D9FD79FCA8D97062F50A62F0408D331B26A950455451FEF20B` / Git HEAD `0bd0c3994dcff7da0b5b5508f83b813943da361b`）
 
 ## Release
 Supabase `app_release_policies` のAndroid値はlatest=11、minimum=11、latest_version=1.0.0。ソースは+12なので、+12は「次の提出候補」として扱い、Play Consoleで実配布状態を確認するまでは公開済みと記録しない。
@@ -54,7 +54,7 @@ Supabase `app_release_policies` のAndroid値はlatest=11、minimum=11、latest_
 - Edge Function本番/Git一致確認とmaintenance secretの安全な外部化
 - Security Advisor警告を意図別に精査
 - 上毛かるたpicture-card画像実体の権利・最終素材確認
-- +12の本番署名AAB生成、ハッシュ記録、Play Console照合
+- +12の本番署名AABは生成・ハッシュ記録済み。残るリリースゲートはPlay Consoleでの+12照合
 - PR #13を最終確認後にmainへ統合してbaselineを固定
 
 ## しるべとの境界
