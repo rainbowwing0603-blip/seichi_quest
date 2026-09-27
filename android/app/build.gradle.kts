@@ -34,10 +34,7 @@ android {
                 )
 
         manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "jp.seichiquest.app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         // Google Play: 2026-08-31以降の新規アプリ/更新はAPI 36以上が必須。
         // Flutter SDK既定値の変化に左右されないよう、リリース要件を明示する。

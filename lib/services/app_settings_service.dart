@@ -21,6 +21,11 @@ class AppSettingsService {
     return preferences.getBool('setting_auto_next_destination') ?? true;
   }
 
+  Future<bool> isHeadingUpMapEnabled() async {
+    final preferences = await _preferences();
+    return preferences.getBool('setting_map_heading_up') ?? false;
+  }
+
   Future<bool> isStampNotificationEnabled() async {
     final preferences = await _preferences();
     return preferences.getBool('setting_stamp_notification') ?? true;

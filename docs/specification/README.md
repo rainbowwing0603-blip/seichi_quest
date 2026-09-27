@@ -1,13 +1,23 @@
 # 聖地クエスト 仕様書インデックス
 
-基準日: 2026-09-23  
-基準コード: main `30346f19e942da6b57f0f51b08aa2437e8f5f967`  
-リリース基準: `v1.0.0+8` は `e596314a5afff26c124c1a5317a000da56ad6a0f` を指す。
+基準日: 2026-09-27  
+基準コード: `fix/destination-range-and-float` `3e4b1a89b52f52f09376b8c3d9a5b9e9726a2540`  
+アプリ版: `1.0.0+12`  
+配布状態: GitHub Releasesは未作成。SupabaseのAndroidリリースポリシーは `latest_build=11 / minimum_build=11`。Play Console上の実配布buildはこのリポジトリだけでは断定しない。
 
-このディレクトリは、聖地クエストの実装・運用・復旧をコードから逆引きできる正本として管理する。記述は原則として **実装済み / 一部実装 / 将来構想 / 要確認** を区別する。
+このディレクトリは、聖地クエストの実装・運用・復旧をコードと本番Supabaseから逆引きできる正本として管理する。記述は原則として **実装済み / 一部実装 / 将来構想 / 要確認** を区別する。
+
+## 現行ベースライン
+- Flutter/Dart、Android中心。applicationIdは `jp.seichiquest.app`。
+- Event / Content / Place / EventContent / ContentBlock を中心とする汎用イベント基盤。
+- 旧 `seichi` テーブルは2026-09-25のmigrationで廃止済み。獲得履歴はevent_contentを正規IDとする。
+- 地図はズームに応じて spot / cluster / regional progress を切替。
+- NEXT、獲得範囲、ソナー、heading-up、天候・季節・時間帯、太陽方位に連動する視覚効果を持つ。
+- 位置不正対策は端末側mock判定とサーバー側状態/cooldown、サーバー時刻を組み合わせる。
+- お知らせ、広告配置Policy、アプリ更新Policyを共通基盤として持つ。
+- 本番Supabaseは2026-09-27確認時点でevents 4、places 1328、contents 1311、event_contents 1311、content_blocks 292。
 
 ## 文書一覧
-
 1. [01_product_overview.md](01_product_overview.md) プロダクト概要
 2. [02_architecture.md](02_architecture.md) システム構成
 3. [03_domain_model.md](03_domain_model.md) ドメインモデル
@@ -23,7 +33,10 @@
 13. [13_disaster_recovery.md](13_disaster_recovery.md) バックアップ・復旧
 14. [14_traceability.md](14_traceability.md) 仕様↔コード対応表
 15. [15_known_gaps_and_decisions.md](15_known_gaps_and_decisions.md) 差異・未決事項・判断記録
+16. [16_announcements.md](16_announcements.md) お知らせ
+17. [17_ad_placement_policy.md](17_ad_placement_policy.md) 広告配置Policy
+18. [18_feature_plan_announcements_ads.md](18_feature_plan_announcements_ads.md) お知らせ・広告改善計画
+19. [19_current_baseline_20260927.md](19_current_baseline_20260927.md) しるべ導入前の現行ベースライン
 
 ## 更新ルール
-
-機能変更時はコードだけでなく、該当仕様書と `14_traceability.md` を同じPRで更新する。DB変更は migration、RLS、RPC、Storage、Edge Functionへの影響を記録する。将来案は実装済みと混在させない。秘密情報、DBダンプ、認証ユーザーデータ、署名鍵、API秘密鍵、許諾前画像のバックアップはこの公開可能な文書群へ格納しない。
+機能変更時はコードだけでなく、該当仕様書と `14_traceability.md` を同じPRで更新する。DB変更はmigration、RLS、RPC、Storage、Edge Functionへの影響を記録する。将来案は実装済みと混在させない。秘密情報、DBダンプ、認証ユーザーデータ、署名鍵、API秘密鍵、許諾前画像のバックアップはこの公開可能な文書群へ格納しない。

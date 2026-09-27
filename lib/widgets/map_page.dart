@@ -154,6 +154,9 @@ class MapPage extends StatelessWidget {
   final Position? currentPosition;
   final RealWorldState? realWorldState;
   final bool weatherUnavailable;
+  final double mapBearingDegrees;
+  final double? sunAzimuthDegrees;
+  final double? sunElevationDegrees;
   final QuestItem? nextSeichi;
   final double? nextDistance;
   final Set<String> collectedIds;
@@ -169,6 +172,7 @@ class MapPage extends StatelessWidget {
   final LatLng defaultCenter;
 
   final Set<Marker> markers;
+  final Set<Circle> destinationRangeCircles;
   final List<RegionalMapProgress> regionalProgress;
   final bool showRegionalProgress;
   final ValueChanged<RegionalMapProgress>? onRegionalProgressTap;
@@ -176,6 +180,8 @@ class MapPage extends StatelessWidget {
   final VoidCallback onCameraIdle;
 
   final VoidCallback onMoveToCurrentLocation;
+  final bool headingUpEnabled;
+  final VoidCallback onToggleHeadingUp;
   final VoidCallback onMoveToNextSeichi;
   final VoidCallback onStartNavigation;
   final ValueChanged<GoogleMapController> onMapCreated;
@@ -189,6 +195,9 @@ class MapPage extends StatelessWidget {
     required this.currentPosition,
     required this.realWorldState,
     this.weatherUnavailable = false,
+    this.mapBearingDegrees = 0,
+    this.sunAzimuthDegrees,
+    this.sunElevationDegrees,
     required this.nextSeichi,
     required this.nextDistance,
     required this.collectedIds,
@@ -203,12 +212,15 @@ class MapPage extends StatelessWidget {
     required this.total,
     required this.defaultCenter,
     required this.markers,
+    this.destinationRangeCircles = const <Circle>{},
     this.regionalProgress = const [],
     this.showRegionalProgress = false,
     this.onRegionalProgressTap,
     required this.onCameraMove,
     required this.onCameraIdle,
     required this.onMoveToCurrentLocation,
+    this.headingUpEnabled = false,
+    required this.onToggleHeadingUp,
     required this.onMoveToNextSeichi,
     required this.onStartNavigation,
     required this.onMapCreated,
@@ -1368,51 +1380,78 @@ class MapPage extends StatelessWidget {
     return Positioned(
       right: 14,
       bottom: _locationButtonInset,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildMapRoundButton(
+            tooltip: headingUpEnabled ? '北を上に戻す' : '向いている方向を上',
+            onTap: onToggleHeadingUp,
+            icon: headingUpEnabled
+                ? Icons.navigation_rounded
+                : Icons.explore_rounded,
+            active: headingUpEnabled,
+          ),
+          const SizedBox(height: 10),
+          _buildMapRoundButton(
+            tooltip: '現在地へ移動',
+            onTap: isLoadingLocation ? null : onMoveToCurrentLocation,
+            icon: Icons.my_location_rounded,
+            loading: isLoadingLocation,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMapRoundButton({
+    required String tooltip,
+    required VoidCallback? onTap,
+    required IconData icon,
+    bool active = false,
+    bool loading = false,
+  }) {
+    return Tooltip(
+      message: tooltip,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(22),
-        child: BackdropFilter(
-          enabled: false,
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: isLoadingLocation ? null : onMoveToCurrentLocation,
-              borderRadius: BorderRadius.circular(22),
-              child: Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: const Color(0xB82B3448),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.88),
-                    width: 1.4,
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x42000000),
-                      blurRadius: 12,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(22),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: active
+                    ? const Color(0xE65E55E7)
+                    : const Color(0xB82B3448),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.88),
+                  width: 1.4,
                 ),
-                child: isLoadingLocation
-                    ? const Center(
-                        child: SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.2,
-                            color: Colors.white,
-                          ),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.my_location_rounded,
-                        color: Colors.white,
-                        size: 26,
-                      ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x42000000),
+                    blurRadius: 12,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
+              child: loading
+                  ? const Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: Colors.white,
+                        ),
+                      ),
+                    )
+                  : Icon(icon, color: Colors.white, size: 26),
             ),
           ),
         ),
@@ -1696,6 +1735,7 @@ class MapPage extends StatelessWidget {
       zoomControlsEnabled: false,
       mapToolbarEnabled: false,
       markers: markers,
+      circles: destinationRangeCircles,
       onCameraMove: onCameraMove,
       onCameraIdle: onCameraIdle,
       onMapCreated: onMapCreated,
@@ -1724,6 +1764,10 @@ class MapPage extends StatelessWidget {
           WeatherEffectOverlay(
             weather: realWorldState!.weather,
             dayPhase: realWorldState!.dayPhase,
+            sunScreenAngleRadians: sunAzimuthDegrees == null
+                ? null
+                : ((sunAzimuthDegrees! - mapBearingDegrees) * 3.141592653589793 / 180.0),
+            sunElevationDegrees: sunElevationDegrees,
           ),
         Positioned(
           top: 14,

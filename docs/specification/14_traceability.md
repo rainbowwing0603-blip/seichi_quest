@@ -3,27 +3,26 @@
 | 領域 | 主なFlutter実装 | 主なSupabase/設定 |
 |---|---|---|
 | 起動 | `lib/main.dart`, `services/startup_coordinator.dart` | Supabase initialize |
-| イベント | `services/event_service.dart`, `widgets/event_explore_page.dart` | `events`, `user_event_preferences`, `user_event_participations`, `user_event_favorites` |
-| 地点 | `models/seichi.dart`, `services/seichi_service.dart` | `places`, `seichi` |
+| イベント | `services/event_service.dart`, `widgets/event_explore_page.dart`, `widgets/event_detail_page.dart` | `events`, preferences / participations / favorites |
+| 地点・収集物 | `models/quest_item.dart`, `services/quest_item_service.dart`, `services/quest_item_mapper.dart` | `places`, `contents`, `event_contents` |
 | GPS | `services/location_service.dart`, `services/stamp_eligibility_policy.dart` | place collection RPC群 |
+| 不正対策 | `services/location_integrity_policy.dart`, `services/location_integrity_service.dart` | `location_security_states`, `location_security_events`, server-time RPC |
 | 獲得 | `collection_history_service.dart`, `services/collection_sync_service.dart` | `place_visits`, `collection_history` |
-| キャッシュ | `services/stamp_cache_service.dart` | SharedPreferences + cloud history |
-| NEXT | `services/next_destination_service.dart`, `services/destination_persistence_service.dart` | user/event scoped local state |
-| 推奨ルート | `services/recommended_route_policy.dart` | local persistence |
-| スタンプ帳 | `widgets/collection_page.dart` | collection history / content |
-| コンテンツ | `models/content_block.dart`, `services/content_block_service.dart`, `widgets/content_block_renderer.dart` | `contents`, `event_contents`, `content_blocks`, `content-media` |
-| 実績 | `services/progression_service.dart`, `widgets/quest_page.dart` | `achievements`, `event_achievements` |
-| ランキング | `widgets/ranking_page.dart` | event ranking RPC群 |
-| プロフィール | `services/profile_service.dart`, `widgets/profile_page.dart` | `profiles` |
-| アカウント | `widgets/account_page.dart`, `services/session_service.dart` | Auth, `delete-account` |
-| 広告 | `widgets/banner_ad_widget.dart`, `services/interstitial_ad_service.dart` | Android AdMob manifest placeholder |
-| 通知 | `services/notification_service.dart`, `widgets/notification_settings_page.dart` | local notification |
-| 設定 | `services/app_settings_service.dart`, `widgets/app_settings_page.dart` | SharedPreferences |
-| 外部リンク | `services/external_navigation_service.dart` | URL Launcher |
-| 天候 | `services/weather_service.dart`, `services/weather_refresh_policy.dart` | external HTTP |
-| Android release | Android Gradle | key.properties / upload keystore |
+| NEXT | `services/next_destination_service.dart`, `destination_persistence_service.dart` | user/event scoped local state |
+| 地図表示 | `widgets/map_page.dart`, `quest_map_display_policy.dart`, `quest_map_cluster_service.dart` | viewport/event RPC群 |
+| 地域進捗 | `regional_map_progress_service.dart` | geo region / collection series / regional progress RPC |
+| ソナー | `painters/sonar_painter.dart`, `widgets/map_page.dart` | Place radius |
+| 天候・太陽 | `weather_service.dart`, `solar_position_service.dart`, `weather_effect_overlay.dart` | external HTTP / local solar calculation |
+| コンテンツ | `content_block_service.dart`, `content_block_renderer.dart`, `quest_spot_detail_sheet.dart` | `contents`, `event_contents`, `content_blocks`, Storage |
+| 実績 | `progression_service.dart`, `widgets/quest_page.dart` | `achievements`, `event_achievements` |
+| ランキング | `widgets/ranking_page.dart` | ranking RPC群 |
+| お知らせ | `announcement_service.dart`, announcements widgets | `announcements`, `announcement_reads` |
+| 広告 | `ad_placement_policy.dart`, banner/interstitial services | Android AdMob settings |
+| 設定 | `app_settings_service.dart`, `app_settings_page.dart` | SharedPreferences |
+| アプリ更新 | `app_version_service.dart` | `app_release_policies` |
+| アカウント | `account_page.dart`, `session_service.dart` | Auth, `delete-account` |
 | DB変更 | Flutter呼出し側 | `supabase/migrations/*.sql` |
 | Privacy | app/account UI | `docs/privacy/index.html` |
 
 ## 更新
-ファイル移動・責務分割時はこの表も更新する。テーブルやRPCを削除する前に、対応するFlutter参照が残っていないか確認する。
+ファイル移動・責務分割時はこの表も更新する。テーブルやRPCを削除する前に、対応するFlutter参照が残っていないか確認する。ユーザー向け表示と内部セキュリティ/GPS検証メタデータの境界もレビュー対象とする。

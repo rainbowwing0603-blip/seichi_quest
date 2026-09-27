@@ -1,12 +1,15 @@
 import 'dart:ui';
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'collection_history_service.dart';
 import 'widgets/banner_ad_widget.dart';
@@ -53,6 +56,7 @@ import 'models/real_world_state.dart';
 import 'services/external_navigation_service.dart';
 import 'services/weather_service.dart';
 import 'services/weather_refresh_policy.dart';
+import 'services/solar_position_service.dart';
 
 import 'services/app_logger.dart';
 import 'services/app_error_report.dart';
@@ -76,6 +80,7 @@ import 'services/app_settings_service.dart';
 import 'services/interstitial_ad_service.dart';
 import 'services/ad_sdk_service.dart';
 import 'services/announcement_service.dart';
+import 'services/app_version_service.dart';
 
 // ============================================================
 // Supabase
@@ -155,7 +160,117 @@ class SeichiQuestApp extends StatelessWidget {
       title: '聖地クエスト',
       debugShowCheckedModeBanner: false,
       theme: questTheme(),
-      home: home ?? const SeichiMapPage(),
+      home: home ?? const AppVersionGate(child: SeichiMapPage()),
+    );
+  }
+}
+
+class AppVersionGate extends StatefulWidget {
+  const AppVersionGate({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<AppVersionGate> createState() => _AppVersionGateState();
+}
+
+class _AppVersionGateState extends State<AppVersionGate> {
+  final AppVersionService _versionService = AppVersionService();
+  AppVersionStatus? _status;
+  bool _optionalUpdateDismissed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final status = await _versionService.loadStatus();
+    if (!mounted) return;
+    setState(() => _status = status);
+  }
+
+  Future<void> _openStore(AppReleasePolicy policy) async {
+    final uri = Uri.tryParse(policy.storeUrl);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final status = _status;
+    if (status == null || !status.updateAvailable) {
+      return widget.child;
+    }
+
+    final policy = status.policy!;
+    if (!status.updateRequired && _optionalUpdateDismissed) {
+      return widget.child;
+    }
+
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.system_update_rounded, size: 52),
+                      const SizedBox(height: 16),
+                      Text(
+                        status.updateRequired
+                            ? 'アップデートが必要です'
+                            : '新しいバージョンがあります',
+                        style: Theme.of(context).textTheme.titleLarge,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        policy.updateMessage ??
+                            '最新の機能と修正をご利用いただくため、アップデートしてください。',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '現在 ${status.currentVersion} '
+                        '(${status.currentBuild})  →  最新 '
+                        '${policy.latestVersion} (${policy.latestBuild})',
+                        style: Theme.of(context).textTheme.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () => _openStore(policy),
+                          icon: const Icon(Icons.open_in_new_rounded),
+                          label: const Text('アップデートする'),
+                        ),
+                      ),
+                      if (!status.updateRequired) ...[
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () {
+                            setState(() => _optionalUpdateDismissed = true);
+                          },
+                          child: const Text('あとで'),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -172,7 +287,7 @@ class SeichiMapPage extends StatefulWidget {
 }
 
 class _SeichiMapPageState extends State<SeichiMapPage>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final Stopwatch _startupWatch = Stopwatch()..start();
   static const CollectionApplyPolicy _collectionApplyPolicy =
       CollectionApplyPolicy();
@@ -328,6 +443,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   final Map<int, BitmapDescriptor> _clusterIcons = {};
   final Set<int> _loadingClusterIcons = {};
   double _cameraZoom = 10.5;
+  LatLng _cameraTarget = _defaultCenter;
+  double _cameraBearing = 0.0;
+  double _renderedCameraBearing = 0.0;
+  bool _headingUpMapEnabled = false;
+  static const SolarPositionService _solarPositionService = SolarPositionService();
+  SolarPosition? _solarPosition;
+  DateTime? _lastSolarPositionAt;
+  Position? _lastSolarPositionLocation;
   double _renderedZoom = 10.5;
   int _staticMarkerCacheRevision = -1;
   QuestItem? _nextSeichi;
@@ -355,6 +478,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   bool _isCollecting = false;
 
   late AnimationController _sonarController;
+  late AnimationController _mapSonarController;
+  int _lastMarkerAnimationFrame = -1;
+  int _lastMapSonarAnimationFrame = -1;
 
   int _selectedTab = 0;
 
@@ -385,6 +511,17 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     );
+    _sonarController.addListener(_onMarkerAnimationTick);
+
+    // Map destination sonar has its own clock so card/pin animation tuning
+    // never changes the map pulse cadence.
+    _mapSonarController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 5400),
+    );
+    _mapSonarController.addListener(_onMapSonarAnimationTick);
+
+    unawaited(_loadMapOrientationPreference());
 
     _initialize();
   }
@@ -1612,6 +1749,123 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
   }
 
+  Future<void> _loadMapOrientationPreference() async {
+    final enabled = await _appSettingsService.isHeadingUpMapEnabled();
+    if (!mounted) return;
+    setState(() => _headingUpMapEnabled = enabled);
+    if (!enabled && _mapController != null && _cameraBearing.abs() > 0.5) {
+      unawaited(
+        _mapController!.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: _currentPosition == null
+                  ? _defaultCenter
+                  : LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+              zoom: _cameraZoom,
+              bearing: 0,
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _toggleHeadingUpMap() async {
+    final enabled = !_headingUpMapEnabled;
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool('setting_map_heading_up', enabled);
+    if (!mounted) return;
+
+    setState(() => _headingUpMapEnabled = enabled);
+
+    final controller = _mapController;
+    if (controller == null) return;
+
+    // Toggling orientation must preserve the user's current viewport.
+    // Only rotate the camera here. Location tracking can update the target
+    // later when a fresh position arrives.
+    final bearing = enabled
+        ? (_currentPosition?.heading.isFinite == true &&
+                (_currentPosition?.heading ?? -1) >= 0)
+            ? _currentPosition!.heading
+            : _cameraBearing
+        : 0.0;
+
+    unawaited(
+      controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: _cameraTarget,
+            zoom: _cameraZoom,
+            bearing: bearing,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _updateHeadingUpCamera(Position position) {
+    if (!_headingUpMapEnabled || _mapController == null) return;
+
+    final heading = position.heading;
+    if (!heading.isFinite || heading < 0 || position.headingAccuracy < 0) return;
+    var difference = (heading - _cameraBearing).abs() % 360;
+    if (difference > 180) difference = 360 - difference;
+    if (difference < 8) return;
+
+    unawaited(
+      _mapController!.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: _cameraTarget,
+            zoom: _cameraZoom,
+            bearing: heading,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _updateSolarPositionIfNeeded(Position position) {
+    final now = DateTime.now();
+    final lastAt = _lastSolarPositionAt;
+    final lastLocation = _lastSolarPositionLocation;
+    final movedMeters = lastLocation == null
+        ? double.infinity
+        : Geolocator.distanceBetween(
+            lastLocation.latitude,
+            lastLocation.longitude,
+            position.latitude,
+            position.longitude,
+          );
+
+    // Solar direction changes slowly. Recalculate at most once per minute,
+    // unless the user has moved a meaningful distance.
+    if (lastAt != null &&
+        now.difference(lastAt) < const Duration(minutes: 1) &&
+        movedMeters < 1000) {
+      return;
+    }
+
+    final next = _solarPositionService.calculate(
+      time: now,
+      latitude: position.latitude,
+      longitude: position.longitude,
+    );
+    _lastSolarPositionAt = now;
+    _lastSolarPositionLocation = position;
+
+    final previous = _solarPosition;
+    final changed = previous == null ||
+        (previous.azimuthDegrees - next.azimuthDegrees).abs() >= 0.25 ||
+        (previous.elevationDegrees - next.elevationDegrees).abs() >= 0.25;
+    if (changed && mounted) {
+      setState(() => _solarPosition = next);
+    } else {
+      _solarPosition = next;
+    }
+  }
+
   void _startLocationStream() {
     _positionSubscription?.cancel();
 
@@ -1639,6 +1893,8 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         }
 
         unawaited(_refreshNearbyQuestItems(position));
+        _updateSolarPositionIfNeeded(position);
+        _updateHeadingUpCamera(position);
         _updateNextDestination();
         _updateWeatherIfNeeded(position);
         _checkStampDistance();
@@ -2521,13 +2777,16 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (nextSeichi != null &&
         !_collectedIds.contains(nextSeichi.id) &&
         _nextMarkerIcon != null) {
+      final wave = math.sin(_sonarController.value * math.pi * 2);
+      final nextAnchorY = 0.94 + (wave * 0.035);
+
       markers.add(
         Marker(
           markerId: MarkerId(nextSeichi.id),
           position: LatLng(nextSeichi.latitude, nextSeichi.longitude),
           icon: _nextMarkerIcon!,
           alpha: 0.90,
-          anchor: const Offset(0.5, 0.94),
+          anchor: Offset(0.5, nextAnchorY),
           zIndexInt: 2,
           infoWindow: InfoWindow(
             title: '${nextSeichi.icon} ${nextSeichi.name}',
@@ -2540,6 +2799,62 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     }
 
     return markers;
+  }
+
+  Set<Circle> _buildDestinationRangeCircles() {
+    final destination = _nextSeichi;
+    if (destination == null || _collectedIds.contains(destination.id)) {
+      return const <Circle>{};
+    }
+
+    final center = LatLng(destination.latitude, destination.longitude);
+    final radius = destination.stampRadiusMeters.toDouble();
+    final cycle = _mapSonarController.value;
+
+    // One quiet pulse per 5.4-second cycle. The pulse is active for roughly
+    // two seconds, then rests so the destination reads as a gentle beacon.
+    const activeFraction = 0.38;
+    final circles = <Circle>{
+      Circle(
+        circleId: CircleId('destination-range:${destination.id}'),
+        center: center,
+        radius: radius,
+        fillColor: const Color(0xFF806DFF).withValues(alpha: 0.045),
+        strokeColor: const Color(0xFF806DFF).withValues(alpha: 0.10),
+        strokeWidth: 1,
+        zIndex: 1,
+      ),
+      Circle(
+        circleId: CircleId('destination-halo:${destination.id}'),
+        center: center,
+        radius: math.min(radius * 0.16, 30.0),
+        fillColor: const Color(0xFF9B8CFF).withValues(alpha: 0.065),
+        strokeColor: Colors.transparent,
+        strokeWidth: 0,
+        zIndex: 1,
+      ),
+    };
+
+    if (cycle < activeFraction) {
+      final phase = cycle / activeFraction;
+      final eased = Curves.easeInOut.transform(phase);
+      final waveRadius = radius * (0.30 + 0.58 * eased);
+      final opacity = 0.13 * math.pow(1.0 - phase, 1.6).toDouble();
+
+      circles.add(
+        Circle(
+          circleId: CircleId('destination-sonar:${destination.id}'),
+          center: center,
+          radius: waveRadius,
+          fillColor: Colors.transparent,
+          strokeColor: const Color(0xFF806DFF).withValues(alpha: opacity),
+          strokeWidth: 1,
+          zIndex: 2,
+        ),
+      );
+    }
+
+    return circles;
   }
 
   Set<Marker> _buildClusterMarkers() {
@@ -2686,6 +3001,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       currentPosition: _currentPosition,
       realWorldState: _realWorldState,
       weatherUnavailable: _weatherLoadFailed,
+      mapBearingDegrees: _cameraBearing,
+      sunAzimuthDegrees: _solarPosition?.azimuthDegrees,
+      sunElevationDegrees: _solarPosition?.elevationDegrees,
       nextSeichi: _nextSeichi,
       nextDistance: _nextDistance,
       collectedIds: _collectedIds,
@@ -2712,6 +3030,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       total: _eventTotalCount,
       defaultCenter: _defaultCenter,
       markers: _buildMarkers(),
+      destinationRangeCircles: _buildDestinationRangeCircles(),
       regionalProgress: _regionalMapProgress,
       showRegionalProgress: _eventTotalCount > 200 &&
           _questMapDisplayPolicy.modeForZoom(_cameraZoom) == QuestMapDisplayMode.regionalProgress,
@@ -2727,6 +3046,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       },
       onCameraMove: (position) {
         _cameraZoom = position.zoom;
+        _cameraTarget = position.target;
+        _cameraBearing = position.bearing;
+        var bearingDelta = (_cameraBearing - _renderedCameraBearing).abs() % 360;
+        if (bearingDelta > 180) bearingDelta = 360 - bearingDelta;
+        if (bearingDelta >= 4 && mounted) {
+          _renderedCameraBearing = _cameraBearing;
+          setState(() {});
+        }
         if (_eventTotalCount > 200) {
           _mapViewportRequestGeneration++;
           if (_isMapViewportLoading) _mapViewportRefreshPending = true;
@@ -2740,6 +3067,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         }
       },
       onMoveToCurrentLocation: _moveCameraToCurrentLocation,
+      headingUpEnabled: _headingUpMapEnabled,
+      onToggleHeadingUp: () {
+        unawaited(_toggleHeadingUpMap());
+      },
       onMoveToNextSeichi: _moveCameraToNextSeichi,
       onStartNavigation: _startNavigationToNextSeichi,
       onMapCreated: (controller) {
@@ -3216,6 +3547,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
             ),
           ),
         );
+        await _loadMapOrientationPreference();
       },
     );
   }
@@ -3523,12 +3855,42 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       if (!_sonarController.isAnimating) {
         _sonarController.repeat();
       }
+      if (!_mapSonarController.isAnimating) {
+        _mapSonarController.repeat();
+      }
       return;
     }
 
     if (_sonarController.isAnimating) {
       _sonarController.stop();
     }
+    if (_mapSonarController.isAnimating) {
+      _mapSonarController.stop();
+    }
+    _lastMarkerAnimationFrame = -1;
+    _lastMapSonarAnimationFrame = -1;
+  }
+
+  void _onMarkerAnimationTick() {
+    if (!mounted || _nextSeichi == null || _selectedTab != 0) return;
+
+    // NEXT marker/card keep their original 1.8-second clock.
+    final frame = (_sonarController.value * 14).floor();
+    if (frame == _lastMarkerAnimationFrame) return;
+
+    _lastMarkerAnimationFrame = frame;
+    setState(() {});
+  }
+
+  void _onMapSonarAnimationTick() {
+    if (!mounted || _nextSeichi == null || _selectedTab != 0) return;
+
+    // 43 steps over 5.4 seconds keeps native map updates near 8 fps.
+    final frame = (_mapSonarController.value * 43).floor();
+    if (frame == _lastMapSonarAnimationFrame) return;
+
+    _lastMapSonarAnimationFrame = frame;
+    setState(() {});
   }
 
   @override
@@ -3538,6 +3900,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     _positionSubscription?.cancel();
 
     _sonarController.dispose();
+    _mapSonarController.dispose();
 
     _mapController = null;
 

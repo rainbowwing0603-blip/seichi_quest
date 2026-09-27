@@ -7,11 +7,15 @@ import '../models/real_world_state.dart';
 class WeatherEffectOverlay extends StatefulWidget {
   final WeatherCondition weather;
   final DayPhase dayPhase;
+  final double? sunScreenAngleRadians;
+  final double? sunElevationDegrees;
 
   const WeatherEffectOverlay({
     super.key,
     required this.weather,
     required this.dayPhase,
+    this.sunScreenAngleRadians,
+    this.sunElevationDegrees,
   });
 
   @override
@@ -118,6 +122,8 @@ class _WeatherEffectOverlayState extends State<WeatherEffectOverlay>
                 painter: _WeatherEffectPainter(
                   weather: widget.weather,
                   dayPhase: widget.dayPhase,
+                  sunScreenAngleRadians: widget.sunScreenAngleRadians,
+                  sunElevationDegrees: widget.sunElevationDegrees,
                   progress:
                       (_controller.value * _framesPerCycle).floor() /
                       _framesPerCycle,
@@ -135,11 +141,15 @@ class _WeatherEffectPainter extends CustomPainter {
   final WeatherCondition weather;
   final DayPhase dayPhase;
   final double progress;
+  final double? sunScreenAngleRadians;
+  final double? sunElevationDegrees;
 
   const _WeatherEffectPainter({
     required this.weather,
     required this.dayPhase,
     required this.progress,
+    this.sunScreenAngleRadians,
+    this.sunElevationDegrees,
   });
 
   @override
@@ -148,6 +158,7 @@ class _WeatherEffectPainter extends CustomPainter {
       case WeatherCondition.clear:
         _paintSunSparkles(canvas, size);
       case WeatherCondition.partlyCloudy:
+        _paintDirectionalSunlight(canvas, size);
         _paintCloudAtmosphere(canvas, size, partlyCloudy: true);
       case WeatherCondition.cloudy:
         _paintCloudAtmosphere(canvas, size, partlyCloudy: false);
@@ -166,10 +177,103 @@ class _WeatherEffectPainter extends CustomPainter {
     }
   }
 
+  void _paintDirectionalSunlight(Canvas canvas, Size size) {
+    final angle = sunScreenAngleRadians;
+    final elevation = sunElevationDegrees;
+    if (angle == null ||
+        elevation == null ||
+        elevation <= 0 ||
+        size.width <= 0 ||
+        size.height <= 0) {
+      return;
+    }
+
+    final elevationFactor = (elevation / 70.0).clamp(0.0, 1.0);
+    final center = Offset(size.width / 2, size.height / 2);
+
+    // Place the source beyond the viewport in the real sun direction.
+    // Only the shafts enter the map, so no flashlight-like hotspot appears.
+    final sunVector = Offset(math.sin(angle), -math.cos(angle));
+    final lightDirection = Offset(-sunVector.dx, -sunVector.dy);
+    final normal = Offset(-lightDirection.dy, lightDirection.dx);
+    final diagonal = math.sqrt(
+      size.width * size.width + size.height * size.height,
+    );
+    final source = center + sunVector * (diagonal * 0.78);
+
+    final warm = elevation < 22;
+    final color =
+        warm ? const Color(0xFFFFC66F) : const Color(0xFFFFF3C4);
+    final baseStrength = 0.24 + (1.0 - elevationFactor) * 0.10;
+
+    const offsets = <double>[-0.20, 0.00, 0.18];
+    const startWidths = <double>[0.014, 0.022, 0.011];
+    const endWidths = <double>[0.065, 0.095, 0.055];
+    const strengths = <double>[0.58, 1.00, 0.48];
+    const angleOffsetsDegrees = <double>[-4.5, 0.0, 3.5];
+
+    for (var i = 0; i < offsets.length; i++) {
+      final raySource = source + normal * (size.width * offsets[i]);
+      final rayAngle = angleOffsetsDegrees[i] * math.pi / 180.0;
+      final cosAngle = math.cos(rayAngle);
+      final sinAngle = math.sin(rayAngle);
+      final rayDirection = Offset(
+        lightDirection.dx * cosAngle - lightDirection.dy * sinAngle,
+        lightDirection.dx * sinAngle + lightDirection.dy * cosAngle,
+      );
+      final rayNormal = Offset(-rayDirection.dy, rayDirection.dx);
+      final rayEnd = raySource + rayDirection * (diagonal * 1.80);
+      final startHalfWidth = size.width * startWidths[i];
+      final endHalfWidth = size.width * endWidths[i];
+
+      final path = Path()
+        ..moveTo(
+          raySource.dx + rayNormal.dx * startHalfWidth,
+          raySource.dy + rayNormal.dy * startHalfWidth,
+        )
+        ..lineTo(
+          raySource.dx - rayNormal.dx * startHalfWidth,
+          raySource.dy - rayNormal.dy * startHalfWidth,
+        )
+        ..lineTo(
+          rayEnd.dx - rayNormal.dx * endHalfWidth,
+          rayEnd.dy - rayNormal.dy * endHalfWidth,
+        )
+        ..lineTo(
+          rayEnd.dx + rayNormal.dx * endHalfWidth,
+          rayEnd.dy + rayNormal.dy * endHalfWidth,
+        )
+        ..close();
+
+      final strength = baseStrength * strengths[i];
+      final shaderRect =
+          Rect.fromPoints(raySource, rayEnd).inflate(size.width * 0.10);
+
+      // Align the fade with the actual ray direction rather than the screen's
+      // vertical axis. This keeps diagonal sunlight visually coherent.
+      final paint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment(-rayDirection.dx, -rayDirection.dy),
+          end: Alignment(rayDirection.dx, rayDirection.dy),
+          colors: [
+            color.withValues(alpha: strength),
+            color.withValues(alpha: strength * 0.82),
+            color.withValues(alpha: strength * 0.36),
+            Colors.transparent,
+          ],
+          stops: const [0.00, 0.24, 0.64, 1.00],
+        ).createShader(shaderRect);
+
+      canvas.drawPath(path, paint);
+    }
+  }
+
   void _paintSunSparkles(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0) {
       return;
     }
+
+    _paintDirectionalSunlight(canvas, size);
 
     final loopAngle = progress * math.pi * 2.0;
 
@@ -376,6 +480,15 @@ class _WeatherEffectPainter extends CustomPainter {
       ..close();
 
     canvas.drawPath(rayPath, rayPaint);
+
+    _paintClearLightParticles(
+      canvas,
+      size,
+      loopAngle,
+      count: 8,
+      baseOpacity: 0.27,
+      warm: true,
+    );
   }
 
   void _paintClearNight(Canvas canvas, Size size, double loopAngle) {
@@ -409,46 +522,57 @@ class _WeatherEffectPainter extends CustomPainter {
     required double baseOpacity,
     required bool warm,
   }) {
-    final particlePaint = Paint()..strokeCap = StrokeCap.round;
+    final travelHeight = size.height + 140.0;
+    final cycle = loopAngle / (math.pi * 2.0);
 
-    for (var i = 0; i < count; i++) {
+    // Sunlit dust: large enough to be perceived on a pale map, but soft and
+    // sparse enough not to compete with labels or quest markers.
+    for (var i = 0; i < count + 10; i++) {
       final xSeed = ((i * 83 + 41) % 997) / 997.0;
-
       final ySeed = ((i * 137 + 73) % 991) / 991.0;
+      final speedSeed = ((i * 61 + 29) % 983) / 983.0;
+      final phaseSeed = ((i * 173 + 17) % 977) / 977.0;
 
-      final phase = loopAngle + i * 1.71;
+      final fall = (ySeed + cycle * (0.78 + speedSeed * 0.52)) % 1.0;
+      final y = fall * travelHeight - 55.0;
 
-      final pulse = 0.5 + math.sin(phase) * 0.5;
+      final swayPhase =
+          loopAngle * (0.45 + speedSeed * 0.34) + phaseSeed * math.pi * 2;
+      final x = 12 +
+          xSeed * math.max(size.width - 24, 1.0) +
+          math.sin(swayPhase) * (10 + speedSeed * 13) +
+          math.sin(swayPhase * 0.43 + i * 0.9) * 4.5;
 
-      // 常時点滅させず、明るい瞬間だけごく薄く見せる。
-      if (pulse < 0.68) {
-        continue;
-      }
+      final pulse = 0.78 + 0.22 * math.sin(loopAngle * 1.4 + i * 1.17);
+      final radius = 1.35 + speedSeed * 2.05;
+      final opacity =
+          (baseOpacity * (0.78 + pulse * 0.38)).clamp(0.0, 0.52);
+      final color =
+          warm ? const Color(0xFFFFC96B) : const Color(0xFFFFE29A);
 
-      final x = 16 + xSeed * math.max(size.width - 32, 1.0);
+      final glowPaint = Paint()
+        ..color = color.withValues(alpha: opacity * 0.22)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 1.5);
+      canvas.drawCircle(Offset(x, y), radius * 3.2, glowPaint);
 
-      final y = 24 + ySeed * math.max(size.height * 0.72, 1.0);
+      final bodyPaint = Paint()
+        ..color = color.withValues(alpha: opacity * 0.88)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(x, y), radius, bodyPaint);
 
-      final radius = 0.7 + pulse * 1.15;
-
-      final opacity = baseOpacity * ((pulse - 0.68) / 0.32);
-
-      particlePaint
-        ..color = (warm ? const Color(0xFFFFE4B5) : Colors.white).withValues(
-          alpha: opacity.clamp(0.0, 1.0),
-        )
-        ..strokeWidth = 0.75 + pulse * 0.35;
-
+      final glintPaint = Paint()
+        ..color = Colors.white.withValues(alpha: opacity * 0.72)
+        ..strokeWidth = 0.85
+        ..strokeCap = StrokeCap.round;
       canvas.drawLine(
-        Offset(x - radius, y),
-        Offset(x + radius, y),
-        particlePaint,
+        Offset(x - radius * 1.55, y),
+        Offset(x + radius * 1.55, y),
+        glintPaint,
       );
-
       canvas.drawLine(
-        Offset(x, y - radius),
-        Offset(x, y + radius),
-        particlePaint,
+        Offset(x, y - radius * 1.55),
+        Offset(x, y + radius * 1.55),
+        glintPaint,
       );
     }
   }
@@ -1742,6 +1866,8 @@ class _WeatherEffectPainter extends CustomPainter {
   bool shouldRepaint(covariant _WeatherEffectPainter oldDelegate) {
     return oldDelegate.weather != weather ||
         oldDelegate.dayPhase != dayPhase ||
+        oldDelegate.sunScreenAngleRadians != sunScreenAngleRadians ||
+        oldDelegate.sunElevationDegrees != sunElevationDegrees ||
         oldDelegate.progress != progress;
   }
 }

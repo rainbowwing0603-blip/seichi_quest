@@ -1,17 +1,24 @@
-# seichi_quest
+# 聖地クエスト
 
-A new Flutter project.
+実在する場所を巡り、GPS訪問によってイベントのコンテンツを集めるFlutterアプリです。
 
-## Getting Started
+上毛かるたの聖地巡礼から始まり、地域観光、全国規模の収集シリーズ、店舗・商品・作品/IPコラボまでを、共通の Event / Content / Place モデルで扱うことを目指しています。
 
-This project is a starting point for a Flutter application.
+## Current baseline
 
-A few resources to get you started if this is your first Flutter project:
+- Android applicationId: `jp.seichiquest.app`
+- Flutter version: `1.0.0+12`
+- Backend: Supabase
+- Map: Google Maps
+- Collection: GPS + server-side validation + offline retry
+- Map presentation: spot / cluster / regional progress
+- Features: NEXT destination, sonar, weather/season/day-phase effects, achievements, ranking, announcements, ads, local notifications
+- Current specification baseline: 2026-09-27
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+仕様・運用・DB・リリースの正本は [docs/specification/README.md](docs/specification/README.md) を参照してください。
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Development
+
+機能変更時はコードだけでなく、対応する `docs/specification` と traceability を更新します。DB変更はmigrationとして管理し、本番Supabaseへ先行変更した場合はGitへ回収します。
+
+秘密鍵、Android upload keystore、service_role/secret key、本番ユーザーデータ、許諾前の権利物画像はリポジトリへ保存しません。
