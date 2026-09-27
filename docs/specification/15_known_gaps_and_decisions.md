@@ -35,3 +35,16 @@
 
 ## 12. 文書の位置づけ
 この仕様書は2026-09-27時点のGitHub `3e4b1a8` と本番Supabase確認結果を基準とする。未確認事項を推測で「実装済み」に昇格させない。
+
+
+## 2026-09-27 security / media audit follow-up
+
+- Supabase Security Advisor was re-run after backend reconciliation.
+- RLS-enabled/no-policy findings for private.admin_users, event_collection_resets, location_security_events, location_security_states, and roadside_station_registry are treated as deny-by-default internal tables unless a future client use case explicitly requires a policy.
+- Anonymous-access warnings are expected where the product intentionally supports anonymous Auth sessions; do not remove these mechanically.
+- PostGIS findings for spatial_ref_sys / st_estimatedextent are extension-surface findings. Keep explicit privilege hardening and avoid ad-hoc RLS changes to extension-owned objects.
+- SECURITY DEFINER RPC exposure must remain allowlisted by product use case. Public ranking is intentionally public; user-owned history, rank, reset, integrity, and collection RPCs require authenticated callers.
+- Production roadside-station maintenance Functions contain embedded maintenance keys. Do not copy those keys into Git. Move maintenance authentication to Supabase-managed secrets or named secret-key auth before source parity is considered complete.
+- Source audit found no literal TEST IMAGE / test image / placeholder-image marker in the Flutter repository.
+- content_blocks currently has 44 picture_card blocks and no test-like strings in title/body/media_path. Their media_path values point at the public event-card-images/jomo-karuta objects. Therefore any visible TEST IMAGE artwork is in the stored object bytes themselves, not a Flutter placeholder string or content_blocks label.
+- Do not replace the 44 stored card assets with official/copyrighted artwork until usage permission is confirmed.
