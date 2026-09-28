@@ -92,6 +92,7 @@ class _MediaStudioPageState extends State<_MediaStudioPage>
 
   bool _loading = true;
   bool _generating = false;
+  bool _capturing = false;
   _CapturePhase _phase = _CapturePhase.map;
   int _completed = 0;
   String _status = '準備中…';
@@ -170,7 +171,17 @@ class _MediaStudioPageState extends State<_MediaStudioPage>
   }
 
   Future<void> _capture(String name) async {
-    await _captureChannel.invokeMethod<void>('capturePng', {'name': name});
+    if (!mounted) return;
+    setState(() => _capturing = true);
+    try {
+      await WidgetsBinding.instance.endOfFrame;
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      await _captureChannel.invokeMethod<void>('capturePng', {'name': name});
+    } finally {
+      if (mounted) {
+        setState(() => _capturing = false);
+      }
+    }
   }
 
   Future<void> _focus(QuestItem item) async {
@@ -332,7 +343,8 @@ class _MediaStudioPageState extends State<_MediaStudioPage>
 
           // Controls are hidden automatically while PixelCopy is taking a
           // capture, because native capture receives the exclusion rect.
-          Positioned(
+          if (!_capturing)
+            Positioned(
             left: 12,
             right: 12,
             bottom: 12,
