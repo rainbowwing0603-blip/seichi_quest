@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/quest_item.dart';
+import '../models/event.dart';
+import 'collection_card_page.dart';
 import '../policies/quest_presentation_policy.dart';
 import '../policies/quest_event_theme_policy.dart';
 import '../painters/stamp_ring_painter.dart';
@@ -13,6 +16,7 @@ class CollectionPage extends StatelessWidget {
   const CollectionPage({
     super.key,
     required this.eventId,
+    this.event,
     required this.questItems,
     required this.collectedIds,
     required this.totalCount,
@@ -30,6 +34,7 @@ class CollectionPage extends StatelessWidget {
   });
 
   final String? eventId;
+  final Event? event;
   final List<QuestItem> questItems;
   final Set<String> collectedIds;
   final int totalCount;
@@ -84,6 +89,22 @@ class CollectionPage extends StatelessWidget {
             progress: progress,
           ),
           _buildCollectionFilter(),
+          if (kDebugMode && event != null && questItems.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.science_outlined),
+                label: const Text('獲得記念カードをテスト（スタンプ不要）'),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => CollectionCardPage(
+                    event: event!, item: questItems.first,
+                    collectedCount: collectedCount == 0 ? 1 : collectedCount,
+                    totalCount: totalCount, debugPreview: true,
+                    collectedAt: DateTime.now(),
+                  )),
+                ),
+              ),
+            ),
           Expanded(
             child: filteredList.isEmpty
                 ? (hasMore
@@ -766,6 +787,10 @@ class CollectionPage extends StatelessWidget {
       collected: collected,
       eventNames: eventNames,
       eventTheme: eventTheme,
+      onOpenCollectionCard: collected && event != null ? () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => CollectionCardPage(
+          event: event!, item: item, collectedCount: collectedCount,
+          totalCount: totalCount))) : null,
       onShowOnMap: () => onMoveToQuestItem(item),
       onSetNextDestination: collected
           ? null

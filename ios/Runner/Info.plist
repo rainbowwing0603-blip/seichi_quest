@@ -26,6 +26,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>現在地周辺の聖地表示と、現地訪問によるスタンプ獲得判定のために位置情報を使用します。</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>獲得記念カードを写真ライブラリに保存するために使用します。</string>
 	<key>GADApplicationIdentifier</key>
 	<string>$(ADMOB_IOS_APP_ID)</string>
 	<key>GOOGLE_MAPS_API_KEY</key>
