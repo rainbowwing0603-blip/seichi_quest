@@ -28,7 +28,8 @@
       "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
       "width": 2048,
       "height": 1536,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -42,7 +43,8 @@
       "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "width": 2592,
       "height": 1456,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -56,7 +58,8 @@
       "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "width": 2048,
       "height": 1366,
-      "embedded_watermark": true
+      "embedded_watermark": true,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -72,7 +75,8 @@
       "height": 2940,
       "embedded_watermark": false,
       "attribution": "Qurren",
-      "notes": "Own work. File page explicitly permits sharing and adaptation with attribution and ShareAlike."
+      "notes": "Own work. File page explicitly permits sharing and adaptation with attribution and ShareAlike.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -88,7 +92,8 @@
       "height": 3924,
       "embedded_watermark": false,
       "attribution": "Σ64",
-      "notes": "Own work. Dual-licensed; registry selects CC BY 4.0."
+      "notes": "Own work. Dual-licensed; registry selects CC BY 4.0.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -104,7 +109,8 @@
       "height": 4000,
       "embedded_watermark": false,
       "attribution": "Σ64",
-      "notes": "Own work. Dual-licensed; registry selects CC BY 4.0."
+      "notes": "Own work. Dual-licensed; registry selects CC BY 4.0.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -120,7 +126,8 @@
       "height": 4000,
       "embedded_watermark": false,
       "attribution": "Σ64",
-      "notes": "Own work. File page explicitly offers CC BY 4.0."
+      "notes": "Own work. File page explicitly offers CC BY 4.0.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -136,7 +143,8 @@
       "height": 2448,
       "embedded_watermark": false,
       "attribution": "Wdqh",
-      "notes": "Own work. File page explicitly permits sharing and adaptation with attribution and ShareAlike."
+      "notes": "Own work. File page explicitly permits sharing and adaptation with attribution and ShareAlike.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -150,7 +158,8 @@
       "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
       "width": 6000,
       "height": 4000,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -164,7 +173,8 @@
       "license_url": "https://creativecommons.org/licenses/by/3.0/",
       "width": 4240,
       "height": 2832,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -178,7 +188,8 @@
       "license_url": "https://creativecommons.org/licenses/by/4.0/",
       "width": 3648,
       "height": 2736,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -192,7 +203,8 @@
       "license_url": "https://creativecommons.org/licenses/by/2.0/",
       "width": null,
       "height": null,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -206,7 +218,8 @@
       "license_url": "https://creativecommons.org/licenses/by/2.0/",
       "width": 4000,
       "height": 6000,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -220,7 +233,8 @@
       "license_url": "https://creativecommons.org/licenses/by/2.1/jp/",
       "width": null,
       "height": null,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -234,7 +248,8 @@
       "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "width": 3385,
       "height": 2524,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -248,7 +263,8 @@
       "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "width": 4320,
       "height": 3240,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -262,7 +278,8 @@
       "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
       "width": null,
       "height": null,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -276,7 +293,8 @@
       "license_url": "https://creativecommons.org/licenses/by/2.0/",
       "width": 3872,
       "height": 2592,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -290,7 +308,8 @@
       "license_url": "https://creativecommons.org/licenses/by/3.0/",
       "width": 5184,
       "height": 3456,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -304,7 +323,8 @@
       "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "width": 3050,
       "height": 2322,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -318,7 +338,8 @@
       "license_url": "https://creativecommons.org/licenses/by/3.0/",
       "width": 1845,
       "height": 2460,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -332,7 +353,8 @@
       "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
       "width": 5568,
       "height": 3712,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -346,7 +368,8 @@
       "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
       "width": 5566,
       "height": 3710,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -360,7 +383,8 @@
       "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "width": 2352,
       "height": 1568,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -374,7 +398,8 @@
       "license_url": "https://creativecommons.org/licenses/by/3.0/",
       "width": 3888,
       "height": 2592,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -388,7 +413,8 @@
       "license_url": "https://creativecommons.org/licenses/by/3.0/",
       "width": 3856,
       "height": 2571,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -402,7 +428,8 @@
       "license_url": "https://creativecommons.org/licenses/by/4.0/",
       "width": 6000,
       "height": 4000,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -416,7 +443,8 @@
       "license_url": "https://creativecommons.org/licenses/by/3.0/",
       "width": 3888,
       "height": 2592,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -430,7 +458,8 @@
       "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "width": 960,
       "height": 1280,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -444,7 +473,8 @@
       "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "width": 5962,
       "height": 2556,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -458,7 +488,8 @@
       "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "width": 6432,
       "height": 2757,
-      "embedded_watermark": false
+      "embedded_watermark": false,
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -473,7 +504,8 @@
       "width": 4240,
       "height": 2832,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -488,7 +520,8 @@
       "width": 0,
       "height": 0,
       "embedded_watermark": false,
-      "notes": "License verified in source extract; author metadata must be verified before automated use."
+      "notes": "License verified in source extract; author metadata must be verified before automated use.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -503,7 +536,8 @@
       "width": 3872,
       "height": 2592,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -518,7 +552,8 @@
       "width": 3872,
       "height": 2592,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -533,7 +568,8 @@
       "width": 596,
       "height": 794,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -548,7 +584,8 @@
       "width": 3240,
       "height": 4320,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -563,7 +600,8 @@
       "width": 2969,
       "height": 3959,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -578,7 +616,8 @@
       "width": 0,
       "height": 0,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -593,7 +632,8 @@
       "width": 1500,
       "height": 2000,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -608,7 +648,8 @@
       "width": 4526,
       "height": 3344,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -623,7 +664,8 @@
       "width": 4608,
       "height": 3456,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -638,7 +680,8 @@
       "width": 2560,
       "height": 1920,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -653,7 +696,8 @@
       "width": 2560,
       "height": 1920,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -668,7 +712,8 @@
       "width": 4588,
       "height": 2575,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -683,7 +728,8 @@
       "width": 5472,
       "height": 3648,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -698,7 +744,8 @@
       "width": 3296,
       "height": 2472,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -713,7 +760,8 @@
       "width": 4320,
       "height": 2426,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -728,7 +776,8 @@
       "width": 4590,
       "height": 3432,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -743,7 +792,8 @@
       "width": 2048,
       "height": 1536,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -758,7 +808,8 @@
       "width": 1341,
       "height": 1915,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -773,7 +824,8 @@
       "width": 1024,
       "height": 1324,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "supporting"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -788,7 +840,8 @@
       "width": 3589,
       "height": 2394,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -803,7 +856,8 @@
       "width": 2799,
       "height": 3734,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page/license verified."
+      "notes": "Individual Commons file page/license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -818,7 +872,8 @@
       "width": 5709,
       "height": 3806,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page, author, dimensions and license verified."
+      "notes": "Individual Commons file page, author, dimensions and license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -833,7 +888,8 @@
       "width": 3968,
       "height": 2976,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page, author, dimensions and license verified."
+      "notes": "Individual Commons file page, author, dimensions and license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -848,7 +904,8 @@
       "width": 3968,
       "height": 2976,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page, author, dimensions and license verified."
+      "notes": "Individual Commons file page, author, dimensions and license verified.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -863,7 +920,8 @@
       "width": 4592,
       "height": 3448,
       "embedded_watermark": false,
-      "notes": "Individual Commons page verified; target location and reuse terms checked."
+      "notes": "Individual Commons page verified; target location and reuse terms checked.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -878,7 +936,8 @@
       "width": 3783,
       "height": 2522,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page metadata verified. Preserve required attribution/license terms."
+      "notes": "Individual Commons file page metadata verified. Preserve required attribution/license terms.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -893,7 +952,8 @@
       "width": 5472,
       "height": 3648,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page metadata verified. Preserve required attribution/license terms."
+      "notes": "Individual Commons file page metadata verified. Preserve required attribution/license terms.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -908,7 +968,8 @@
       "width": 641,
       "height": 481,
       "embedded_watermark": false,
-      "notes": "Individual Commons file page metadata verified. Preserve required attribution/license terms."
+      "notes": "Individual Commons file page metadata verified. Preserve required attribution/license terms.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -923,7 +984,8 @@
       "width": 3796,
       "height": 2530,
       "embedded_watermark": false,
-      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms."
+      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -938,7 +1000,8 @@
       "width": 3888,
       "height": 2592,
       "embedded_watermark": false,
-      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms."
+      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -953,7 +1016,8 @@
       "width": 2560,
       "height": 1920,
       "embedded_watermark": false,
-      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms."
+      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -968,7 +1032,8 @@
       "width": 5358,
       "height": 3468,
       "embedded_watermark": false,
-      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms."
+      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -983,7 +1048,8 @@
       "width": 1500,
       "height": 1051,
       "embedded_watermark": false,
-      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms."
+      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms.",
+      "asset_role": "regional"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -998,7 +1064,8 @@
       "width": 4608,
       "height": 3456,
       "embedded_watermark": false,
-      "notes": "Individual Commons page verified; target location and reuse terms checked."
+      "notes": "Individual Commons page verified; target location and reuse terms checked.",
+      "asset_role": "supporting"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -1013,7 +1080,8 @@
       "width": 2000,
       "height": 1333,
       "embedded_watermark": false,
-      "notes": "Individual Commons page verified; target location and reuse terms checked."
+      "notes": "Individual Commons page verified; target location and reuse terms checked.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -1028,7 +1096,8 @@
       "width": 2988,
       "height": 2188,
       "embedded_watermark": false,
-      "notes": "Individual Commons page verified; target location and reuse terms checked."
+      "notes": "Individual Commons page verified; target location and reuse terms checked.",
+      "asset_role": "regional"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -1043,116 +1112,240 @@
       "width": 5939,
       "height": 3949,
       "embedded_watermark": false,
-      "notes": "Individual Commons page verified; target location and reuse terms checked."
+      "notes": "Individual Commons page verified; target location and reuse terms checked.",
+      "asset_role": "regional"
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "ikaho_stone_steps",
+      "spot_name": "伊香保石段街",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Ikaho_Onsen_Ishidan_02.JPG",
+      "author": "Uploader/self-published",
+      "license": "Public Domain",
+      "license_url": "",
+      "width": 3648,
+      "height": 2736,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons metadata/location/license checked. Preserve attribution where required."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "ikaho_stone_steps",
+      "spot_name": "伊香保石段街",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Stairs%2C_Ikaho_Onsen_-_Sep_6%2C_2023_%281%29.jpg",
+      "author": "Flickr source; reviewed by FlickreviewR",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "width": 3648,
+      "height": 5472,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons metadata/location/license checked. Preserve attribution where required."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "ikaho_stone_steps",
+      "spot_name": "伊香保石段街",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Stairs%2C_Ikaho_Onsen_-_Sep_6%2C_2023_%282%29.jpg",
+      "author": "Flickr source; reviewed by FlickreviewR",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "width": 3648,
+      "height": 5472,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons metadata/location/license checked. Preserve attribution where required."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "ikaho_stone_steps",
+      "spot_name": "伊香保石段街",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Gunma_Ikaho_ishidan-gai_m.jpg",
+      "author": "ShuichiNakayama",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "width": 1920,
+      "height": 2560,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons metadata/location/license checked. Preserve attribution where required."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "shimonita",
+      "spot_name": "道の駅しもにた周辺",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Shimonita_Konjac_Tourism_Center_ac_%281%29.jpg",
+      "author": "Asturio Cantabrio",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 3995,
+      "height": 2663,
+      "embedded_watermark": false,
+      "asset_role": "regional",
+      "notes": "Individual Commons metadata/location/license checked. Preserve attribution where required."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "shimonita",
+      "spot_name": "道の駅しもにた周辺",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Shimonita_Konjac_Tourism_Center_ac_%282%29.jpg",
+      "author": "Asturio Cantabrio",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 4080,
+      "height": 2720,
+      "embedded_watermark": false,
+      "asset_role": "regional",
+      "notes": "Individual Commons metadata/location/license checked. Preserve attribution where required."
     }
   ],
   "spot_readiness": {
     "onioshidashi": {
       "verified_images": 2,
+      "onsite_images": 2,
       "ready": false
     },
     "ikaho_stone_steps": {
-      "verified_images": 1,
-      "ready": false
+      "verified_images": 5,
+      "onsite_images": 5,
+      "ready": true
     },
     "kusatsu_yubatake": {
       "verified_images": 3,
+      "onsite_images": 3,
       "ready": true
     },
     "fukiware_falls": {
       "verified_images": 4,
+      "onsite_images": 4,
       "ready": true
     },
     "tomioka_silk_mill": {
       "verified_images": 4,
+      "onsite_images": 4,
       "ready": true
     },
     "sekizenkan": {
       "verified_images": 2,
+      "onsite_images": 2,
       "ready": false
     },
     "lake_haruna": {
       "verified_images": 2,
+      "onsite_images": 2,
       "ready": false
     },
     "myogi_shrine": {
       "verified_images": 2,
+      "onsite_images": 2,
       "ready": false
     },
     "shorinzan_daruma_ji": {
       "verified_images": 5,
+      "onsite_images": 5,
       "ready": true
     },
     "morinji": {
       "verified_images": 2,
+      "onsite_images": 2,
       "ready": false
     },
     "tago_stele": {
       "verified_images": 1,
+      "onsite_images": 1,
       "ready": false
     },
     "nukisaki_jinja": {
       "verified_images": 4,
+      "onsite_images": 4,
       "ready": true
     },
     "oze_numa": {
       "verified_images": 4,
+      "onsite_images": 4,
       "ready": true
     },
     "gunma_pref_office": {
       "verified_images": 3,
+      "onsite_images": 3,
       "ready": true
     },
     "gunma_pref_office_view": {
       "verified_images": 4,
+      "onsite_images": 4,
       "ready": true
     },
     "byakue_daikannon": {
       "verified_images": 3,
+      "onsite_images": 3,
       "ready": true
     },
     "tanigawadake_ropeway": {
       "verified_images": 2,
+      "onsite_images": 2,
       "ready": false
     },
     "numata_castle": {
       "verified_images": 3,
+      "onsite_images": 3,
       "ready": true
     },
     "usui_sekisho": {
       "verified_images": 2,
+      "onsite_images": 2,
       "ready": false
     },
     "tayama_katai_museum": {
       "verified_images": 3,
+      "onsite_images": 3,
       "ready": true
     },
     "niijima_jo": {
       "verified_images": 1,
+      "onsite_images": 0,
       "ready": false
     },
     "akagi_onuma": {
       "verified_images": 3,
+      "onsite_images": 3,
       "ready": true
     },
     "agatsuma_gorge": {
       "verified_images": 1,
+      "onsite_images": 1,
       "ready": false
     },
     "kiryu_textile": {
       "verified_images": 2,
+      "onsite_images": 2,
       "ready": false
     },
     "shimonita": {
-      "verified_images": 3,
-      "ready": true
+      "verified_images": 5,
+      "onsite_images": 0,
+      "ready": false
     },
     "seki_takakazu": {
       "verified_images": 1,
+      "onsite_images": 0,
       "ready": false
     },
     "sakurayama_fujioka": {
       "verified_images": 1,
+      "onsite_images": 1,
       "ready": false
     }
   },
