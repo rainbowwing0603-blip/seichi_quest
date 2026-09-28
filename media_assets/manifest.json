@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "purpose": "Licensed source-media registry for Seichi Quest promotional content.",
+  "selection_policy": {
+    "preferred_license_order": ["Public Domain", "CC0", "CC BY", "CC BY-SA"],
+    "reject_if": ["license_unverified", "embedded_watermark", "unclear_authorship"],
+    "target_images_per_spot": 3
+  },
+  "assets": [
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "onioshidashi",
+      "spot_name": "鬼押出し園",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Mt.Asama_from_Onioshidashi.jpg",
+      "author": "保姆虫と登山",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 2048,
+      "height": 1536,
+      "embedded_watermark": false,
+      "notes": "Previously verified candidate. Keep attribution and ShareAlike obligations with any adapted use."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "onioshidashi",
+      "spot_name": "鬼押出し園",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:%E9%AC%BC%E6%8A%BC%E5%87%BA%E3%81%97%E5%9C%92_-_panoramio_%281%29.jpg",
+      "author": "SpringField1967",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 2592,
+      "height": 1456,
+      "embedded_watermark": false,
+      "notes": "Previously verified candidate."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "onioshidashi",
+      "spot_name": "鬼押出し園",
+      "status": "rejected",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:%E9%AC%BC%E6%8A%BC%E5%87%BA%E3%81%97%E5%9C%92_-_panoramio_%282%29.jpg",
+      "author": "Willians Sarti",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 2048,
+      "height": 1366,
+      "embedded_watermark": true,
+      "notes": "Rejected for automated promotional output because the available image contains an embedded photographer watermark."
+    }
+  ]
+}
