@@ -2159,17 +2159,17 @@
       "event_slug": "jomo-karuta-gunma",
       "spot_key": "tago_hi",
       "spot_name": "多胡碑",
-      "status": "needs_metadata_review",
+      "status": "verified_candidate",
       "source": "Wikimedia Commons",
       "file_page": "https://commons.wikimedia.org/wiki/File:Takogunpi.jpg",
-      "author": "pending individual-page extraction",
-      "license": "per-file Commons license pending extraction",
+      "author": "Unknown / historical publication (1934)",
+      "license": "Public Domain (PD-Japan-oldphoto / PD-1996)",
       "license_url": "",
       "width": 754,
       "height": 1528,
       "embedded_watermark": false,
-      "asset_role": "onsite",
-      "notes": "Exact target/category and resolution verified from Commons category listing. Not counted toward READY until per-file author/license metadata is verified."
+      "asset_role": "supporting",
+      "notes": "Commons file page confirms Tago Stele depiction and public-domain status in Japan/US; no application required. Historical rubbing/photo, therefore supporting."
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -2378,6 +2378,22 @@
       "embedded_watermark": false,
       "asset_role": "onsite",
       "notes": "Second exact-target file in the dedicated Isesaki Meijikan Commons category; excluded from READY until per-file rights metadata is verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "tago_hi",
+      "spot_name": "多胡碑",
+      "status": "needs_rights_review",
+      "source": "Wikimedia Commons / Waseda University Library",
+      "file_page": "https://commons.wikimedia.org/wiki/File:WUL-i04_03153_b310_%E5%A4%9A%E8%83%A1%E7%A2%91.pdf",
+      "author": "historical rubbing; Waseda University Library source",
+      "license": "rights metadata requires final review",
+      "license_url": "",
+      "width": 3600,
+      "height": 5400,
+      "embedded_watermark": false,
+      "asset_role": "supporting",
+      "notes": "High-resolution historical rubbing discovered; no application assumed. Not promoted until file-level reuse status is fully verified."
     }
   ],
   "spot_readiness": {
@@ -2552,7 +2568,7 @@
       "ready": true
     },
     "tago_hi": {
-      "verified_images": 1,
+      "verified_images": 2,
       "onsite_images": 1,
       "ready": false
     },
@@ -2800,6 +2816,14 @@
       "goal": "Finish remaining zero-application media coverage quickly",
       "result": "High-yield category audit completed",
       "notes": "Confirmed exact category inventories: Tagohi 9, Soja Futagoyama 17, Neesima Residence Gunma 4, Tsutsujigaoka Tatebayashi 6, Isesaki Meijikan 2, Fujioka Sakurayama 6. Existing individually verified zero-application files remain promoted; category-only files remain review until their own description-page licenses are confirmed."
+    },
+    {
+      "id": "2026-09-28-fast-finish-pass-2",
+      "goal": "Convert remaining exact-target zero-application candidates and identify high-value supporting media",
+      "verified_promotions": [
+        "Takogunpi.jpg"
+      ],
+      "notes": "Tagohi historical PD asset promoted. Waseda high-resolution rubbing queued for rights review. Exact categories reconfirmed for Tsutsujigaoka (6), Neesima Residence Gunma (4), Soja Futagoyama (17)."
     }
   ],
   "source_policy": {
