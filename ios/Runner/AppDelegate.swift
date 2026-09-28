@@ -21,7 +21,12 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
-    let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "CollectionCardGallery")
+    guard let registrar = engineBridge.pluginRegistry.registrar(
+      forPlugin: "CollectionCardGallery"
+    ) else {
+      return
+    }
+
     let channel = FlutterMethodChannel(
       name: "jp.seichiquest.app/collection_card_gallery",
       binaryMessenger: registrar.messenger()
@@ -44,7 +49,13 @@ import UIKit
       PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
         guard status == .authorized || status == .limited else {
           DispatchQueue.main.async {
-            result(FlutterError(code: "PERMISSION_DENIED", message: "写真への追加が許可されていません", details: nil))
+            result(
+              FlutterError(
+                code: "PERMISSION_DENIED",
+                message: "写真への追加が許可されていません",
+                details: nil
+              )
+            )
           }
           return
         }
@@ -57,9 +68,15 @@ import UIKit
         } completionHandler: { success, error in
           DispatchQueue.main.async {
             if success {
-              result(nil)
+              result(NSNull())
             } else {
-              result(FlutterError(code: "SAVE_FAILED", message: error?.localizedDescription ?? "写真を保存できません", details: nil))
+              result(
+                FlutterError(
+                  code: "SAVE_FAILED",
+                  message: error?.localizedDescription ?? "写真を保存できません",
+                  details: nil
+                )
+              )
             }
           }
         }
