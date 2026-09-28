@@ -909,6 +909,81 @@
       "height": 481,
       "embedded_watermark": false,
       "notes": "Individual Commons file page metadata verified. Preserve required attribution/license terms."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "oze_numa",
+      "spot_name": "尾瀬沼",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Ozenuma_06.jpg",
+      "author": "Σ64",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "width": 3796,
+      "height": 2530,
+      "embedded_watermark": false,
+      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "oze_numa",
+      "spot_name": "尾瀬沼",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Forest_in_Oze_13.jpg",
+      "author": "Σ64",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "width": 3888,
+      "height": 2592,
+      "embedded_watermark": false,
+      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "kiryu_textile",
+      "spot_name": "桐生織物記念館",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Kiryu%EF%BC%88%E6%A1%90%E7%94%9F%E7%B9%94%E7%89%A9%E8%A8%98%E5%BF%B5%E9%A4%A8%EF%BC%89_-_panoramio.jpg",
+      "author": "kcomiida",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 2560,
+      "height": 1920,
+      "embedded_watermark": false,
+      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "kiryu_textile",
+      "spot_name": "桐生織物記念館",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Kiryu_Textile_Hall.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 5358,
+      "height": 3468,
+      "embedded_watermark": false,
+      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "shimonita",
+      "spot_name": "道の駅しもにた周辺",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Kamiosaka%2C_Shimonita%2C_Kanra_District%2C_Gunma_Prefecture_370-2621%2C_Japan_-_panoramio_%281%29.jpg",
+      "author": "yuukokukirei",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "width": 1500,
+      "height": 1051,
+      "embedded_watermark": false,
+      "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms."
     }
   ],
   "spot_readiness": {
@@ -932,20 +1007,20 @@
       "verified_images": 4,
       "ready": true
     },
-    "shima_sekizenkan": {
+    "sekizenkan": {
       "verified_images": 2,
       "ready": false
     },
-    "haruna_lake": {
-      "verified_images": 1,
+    "lake_haruna": {
+      "verified_images": 2,
       "ready": false
     },
     "myogi_shrine": {
       "verified_images": 2,
       "ready": false
     },
-    "shorinzan_daruma": {
-      "verified_images": 3,
+    "shorinzan_daruma_ji": {
+      "verified_images": 5,
       "ready": true
     },
     "morinji": {
@@ -956,13 +1031,13 @@
       "verified_images": 1,
       "ready": false
     },
-    "nukisaki_shrine": {
-      "verified_images": 3,
+    "nukisaki_jinja": {
+      "verified_images": 4,
       "ready": true
     },
     "oze_numa": {
-      "verified_images": 2,
-      "ready": false
+      "verified_images": 4,
+      "ready": true
     },
     "gunma_pref_office": {
       "verified_images": 3,
@@ -972,17 +1047,9 @@
       "verified_images": 4,
       "ready": true
     },
-    "shorinzan_daruma_ji": {
-      "verified_images": 2,
-      "ready": false
-    },
     "byakue_daikannon": {
       "verified_images": 3,
       "ready": true
-    },
-    "nukisaki_jinja": {
-      "verified_images": 1,
-      "ready": false
     },
     "tanigawadake_ropeway": {
       "verified_images": 2,
@@ -996,10 +1063,6 @@
       "verified_images": 2,
       "ready": false
     },
-    "lake_haruna": {
-      "verified_images": 1,
-      "ready": false
-    },
     "tayama_katai_museum": {
       "verified_images": 3,
       "ready": true
@@ -1011,6 +1074,20 @@
     "akagi_onuma": {
       "verified_images": 3,
       "ready": true
+    },
+    "kiryu_textile": {
+      "verified_images": 2,
+      "ready": false
+    },
+    "shimonita": {
+      "verified_images": 1,
+      "ready": false
     }
+  },
+  "spot_key_aliases": {
+    "haruna_lake": "lake_haruna",
+    "nukisaki_shrine": "nukisaki_jinja",
+    "shorinzan_daruma": "shorinzan_daruma_ji",
+    "shima_sekizenkan": "sekizenkan"
   }
 }
