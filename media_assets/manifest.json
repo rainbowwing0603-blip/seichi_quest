@@ -3950,6 +3950,30 @@
       "cache_path": "media_assets/cache/sachinoike/3a20a2adf25caa83.jpg",
       "source_file_bytes": 2134882,
       "reuse_requires_application": false
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "funatsu_denjihei",
+      "spot_name": "船津傳次平像",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:NDL839753_%E6%99%AE%E9%80%9A%E8%BE%B2%E4%BA%8B%E6%94%B9%E8%89%9B%E8%A9%B1%E7%AD%86%E8%A8%98.pdf",
+      "author": "船津伝次平 / National Diet Library",
+      "license": "Public Domain (PD-scan / PD-Japan)",
+      "license_url": "https://commons.wikimedia.org/wiki/Commons:Copyright_tags/Country-specific_tags#Japan",
+      "width": 5706,
+      "height": 4383,
+      "embedded_watermark": false,
+      "asset_role": "supporting",
+      "notes": "1893 publication by/attributed to 船津伝次平. Commons individual file page explicitly marks the scan/public-domain original as public domain. Historical supporting material only; it does not depict the canonical statue and is not onsite.",
+      "commercial_use": true,
+      "modification_allowed": true,
+      "share_alike_required": false,
+      "credit_text": "",
+      "source_verified_at": "2026-09-28",
+      "canonical_card": "ろ",
+      "canonical_display_order": 43,
+      "reuse_requires_application": false
     }
   ],
   "spot_readiness": {
@@ -3963,14 +3987,129 @@
       "onsite_images": 5,
       "ready": true
     },
-    "usui_sekisho": {
+    "kusatsu_yubatake": {
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
+    },
+    "fukiware_falls": {
       "verified_images": 4,
       "onsite_images": 4,
+      "ready": true
+    },
+    "tomioka_silk_mill": {
+      "verified_images": 4,
+      "onsite_images": 4,
+      "ready": true
+    },
+    "shima_onsen": {
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
+    },
+    "lake_haruna": {
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
+    },
+    "myogi_shrine": {
+      "verified_images": 5,
+      "onsite_images": 5,
       "ready": true
     },
     "shorinzan_daruma_ji": {
       "verified_images": 5,
       "onsite_images": 5,
+      "ready": true
+    },
+    "morinji": {
+      "verified_images": 4,
+      "onsite_images": 1,
+      "ready": true
+    },
+    "tago_hi": {
+      "verified_images": 4,
+      "onsite_images": 2,
+      "ready": true
+    },
+    "nukisaki_jinja": {
+      "verified_images": 4,
+      "onsite_images": 4,
+      "ready": true
+    },
+    "oze_numa": {
+      "verified_images": 4,
+      "onsite_images": 3,
+      "ready": true
+    },
+    "byakue_daikannon": {
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
+    },
+    "tanigawadake_ropeway": {
+      "verified_images": 4,
+      "onsite_images": 2,
+      "ready": true
+    },
+    "usui_sekisho": {
+      "verified_images": 4,
+      "onsite_images": 4,
+      "ready": true
+    },
+    "akagi_onuma": {
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
+    },
+    "agatsuma_gorge": {
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
+    },
+    "kiryu_textile": {
+      "verified_images": 4,
+      "onsite_images": 4,
+      "ready": true
+    },
+    "seki_takakazu": {
+      "verified_images": 4,
+      "onsite_images": 1,
+      "ready": true
+    },
+    "sakurayama_fujioka": {
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
+    },
+    "tsutsuji_gaoka": {
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
+    },
+    "niijima_residence": {
+      "verified_images": 3,
+      "onsite_images": 2,
+      "ready": true
+    },
+    "ikushina_jinja": {
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
+    },
+    "nippon_kinunosato": {
+      "verified_images": 1,
+      "onsite_images": 1,
+      "ready": false
+    },
+    "yubiso_station": {
+      "verified_images": 5,
+      "onsite_images": 3,
+      "ready": true
+    },
+    "isesaki_meijikan": {
+      "verified_images": 3,
+      "onsite_images": 2,
       "ready": true
     },
     "daikoin": {
@@ -3983,65 +4122,15 @@
       "onsite_images": 3,
       "ready": true
     },
-    "kiryu_textile": {
-      "verified_images": 4,
-      "onsite_images": 4,
-      "ready": true
-    },
-    "kusatsu_yubatake": {
-      "verified_images": 3,
-      "onsite_images": 3,
-      "ready": true
-    },
-    "mechanical_silk_site": {
-      "verified_images": 0,
-      "onsite_images": 0,
-      "ready": false
-    },
     "yorimasa_uchimura": {
       "verified_images": 1,
       "onsite_images": 1,
       "ready": false
     },
-    "sakurayama_fujioka": {
-      "verified_images": 3,
-      "onsite_images": 3,
-      "ready": true
-    },
     "ide_futagoyama": {
       "verified_images": 3,
       "onsite_images": 3,
       "ready": true
-    },
-    "akagi_onuma": {
-      "verified_images": 3,
-      "onsite_images": 3,
-      "ready": true
-    },
-    "oze_numa": {
-      "verified_images": 4,
-      "onsite_images": 3,
-      "ready": true
-    },
-    "kizaki_irojizo": {
-      "verified_images": 0,
-      "onsite_images": 0,
-      "ready": false
-    },
-    "fukiware_falls": {
-      "verified_images": 4,
-      "onsite_images": 4,
-      "ready": true
-    },
-    "gunma_history_museum": {
-      "verified_images": 3,
-      "onsite_images": 2,
-      "ready": true
-    },
-    "sachinoike": {
-      "verified_images": 2,
-      "onsite_images": 1,
-      "ready": false
     },
     "mozaemon_jizo": {
       "verified_images": 3,
@@ -4053,98 +4142,28 @@
       "onsite_images": 3,
       "ready": true
     },
-    "haraichi_cedar": {
-      "verified_images": 2,
-      "onsite_images": 2,
-      "ready": false
-    },
-    "tomioka_silk_mill": {
-      "verified_images": 4,
-      "onsite_images": 4,
-      "ready": true
-    },
-    "shiobara_tasuke": {
-      "verified_images": 2,
-      "onsite_images": 0,
-      "ready": false
-    },
-    "konnyaku_park": {
-      "verified_images": 0,
-      "onsite_images": 0,
-      "ready": false
-    },
-    "lake_haruna": {
-      "verified_images": 3,
-      "onsite_images": 3,
-      "ready": true
-    },
-    "tsutsuji_gaoka": {
-      "verified_images": 3,
-      "onsite_images": 3,
-      "ready": true
-    },
-    "byakue_daikannon": {
-      "verified_images": 3,
-      "onsite_images": 3,
-      "ready": true
-    },
-    "morinji": {
-      "verified_images": 4,
-      "onsite_images": 1,
-      "ready": true
-    },
-    "niijima_residence": {
-      "verified_images": 3,
-      "onsite_images": 2,
-      "ready": true
-    },
     "tayama_katai_residence": {
       "verified_images": 3,
       "onsite_images": 3,
       "ready": true
     },
-    "nippon_kinunosato": {
-      "verified_images": 1,
-      "onsite_images": 1,
+    "gunma_history_museum": {
+      "verified_images": 3,
+      "onsite_images": 2,
+      "ready": true
+    },
+    "haraichi_cedar": {
+      "verified_images": 2,
+      "onsite_images": 2,
       "ready": false
     },
-    "tanigawadake_ropeway": {
-      "verified_images": 4,
-      "onsite_images": 2,
-      "ready": true
-    },
-    "tago_hi": {
-      "verified_images": 4,
-      "onsite_images": 2,
-      "ready": true
-    },
-    "isesaki_meijikan": {
+    "funatsu_denjihei": {
       "verified_images": 3,
-      "onsite_images": 2,
-      "ready": true
+      "onsite_images": 0,
+      "ready": false
     },
-    "myogi_shrine": {
-      "verified_images": 5,
-      "onsite_images": 5,
-      "ready": true
-    },
-    "agatsuma_gorge": {
-      "verified_images": 3,
-      "onsite_images": 3,
-      "ready": true
-    },
-    "nukisaki_jinja": {
-      "verified_images": 4,
-      "onsite_images": 4,
-      "ready": true
-    },
-    "shima_onsen": {
-      "verified_images": 3,
-      "onsite_images": 3,
-      "ready": true
-    },
-    "thunder_diner": {
-      "verified_images": 0,
+    "shiobara_tasuke": {
+      "verified_images": 2,
       "onsite_images": 0,
       "ready": false
     },
@@ -4153,25 +4172,10 @@
       "onsite_images": 2,
       "ready": true
     },
-    "yubiso_station": {
-      "verified_images": 5,
-      "onsite_images": 3,
-      "ready": true
-    },
-    "ikushina_jinja": {
-      "verified_images": 3,
-      "onsite_images": 3,
-      "ready": true
-    },
-    "funatsu_denjihei": {
+    "sachinoike": {
       "verified_images": 2,
-      "onsite_images": 0,
-      "ready": false
-    },
-    "seki_takakazu": {
-      "verified_images": 4,
       "onsite_images": 1,
-      "ready": true
+      "ready": false
     }
   },
   "spot_key_aliases": {
