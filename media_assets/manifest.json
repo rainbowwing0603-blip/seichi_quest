@@ -624,6 +624,186 @@
       "height": 3456,
       "embedded_watermark": false,
       "notes": "Individual Commons file page/license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "numata_castle",
+      "spot_name": "沼田城跡",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Ruins_of_Numata_Castle_01.JPG",
+      "author": "Abasaa",
+      "license": "Public Domain",
+      "license_url": "",
+      "width": 2560,
+      "height": 1920,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page/license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "numata_castle",
+      "spot_name": "沼田城跡",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Stone_wall_of_Numata_Castle.JPG",
+      "author": "Abasaa",
+      "license": "Public Domain",
+      "license_url": "",
+      "width": 2560,
+      "height": 1920,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page/license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "numata_castle",
+      "spot_name": "沼田城跡",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Numata_Park.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 4588,
+      "height": 2575,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page/license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "usui_sekisho",
+      "spot_name": "碓氷関所跡",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Usui_Sekisho_museum_ruins.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 5472,
+      "height": 3648,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page/license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "lake_haruna",
+      "spot_name": "榛名湖",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Haruna00.JPG",
+      "author": "Mass Ave 975",
+      "license": "GFDL / CC BY-SA (dual licensed)",
+      "license_url": "",
+      "width": 3296,
+      "height": 2472,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page/license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "gunma_pref_office",
+      "spot_name": "群馬県庁",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Gunma_Prefectural_Government_Building_Showa_Government_Building.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 4320,
+      "height": 2426,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page/license verified."
     }
-  ]
+  ],
+  "spot_readiness": {
+    "onioshidashi": {
+      "verified_images": 2,
+      "ready": false
+    },
+    "ikaho_stone_steps": {
+      "verified_images": 1,
+      "ready": false
+    },
+    "kusatsu_yubatake": {
+      "verified_images": 3,
+      "ready": true
+    },
+    "fukiware_falls": {
+      "verified_images": 3,
+      "ready": true
+    },
+    "tomioka_silk_mill": {
+      "verified_images": 4,
+      "ready": true
+    },
+    "shima_sekizenkan": {
+      "verified_images": 2,
+      "ready": false
+    },
+    "haruna_lake": {
+      "verified_images": 1,
+      "ready": false
+    },
+    "myogi_shrine": {
+      "verified_images": 2,
+      "ready": false
+    },
+    "shorinzan_daruma": {
+      "verified_images": 3,
+      "ready": true
+    },
+    "morinji": {
+      "verified_images": 2,
+      "ready": false
+    },
+    "tago_stele": {
+      "verified_images": 1,
+      "ready": false
+    },
+    "nukisaki_shrine": {
+      "verified_images": 3,
+      "ready": true
+    },
+    "oze_numa": {
+      "verified_images": 2,
+      "ready": false
+    },
+    "gunma_pref_office": {
+      "verified_images": 2,
+      "ready": false
+    },
+    "gunma_pref_office_view": {
+      "verified_images": 2,
+      "ready": false
+    },
+    "shorinzan_daruma_ji": {
+      "verified_images": 2,
+      "ready": false
+    },
+    "byakue_daikannon": {
+      "verified_images": 3,
+      "ready": true
+    },
+    "nukisaki_jinja": {
+      "verified_images": 1,
+      "ready": false
+    },
+    "tanigawadake_ropeway": {
+      "verified_images": 2,
+      "ready": false
+    },
+    "numata_castle": {
+      "verified_images": 3,
+      "ready": true
+    },
+    "usui_sekisho": {
+      "verified_images": 1,
+      "ready": false
+    },
+    "lake_haruna": {
+      "verified_images": 1,
+      "ready": false
+    }
+  }
 }
