@@ -1903,17 +1903,17 @@
       "event_slug": "jomo-karuta-gunma",
       "spot_key": "agatsuma_gorge",
       "spot_name": "吾妻峡",
-      "status": "needs_metadata_review",
+      "status": "verified_candidate",
       "source": "Wikimedia Commons",
       "file_page": "https://commons.wikimedia.org/wiki/File:Agatsuma_Valley_01.jpg",
-      "author": "Flickr contributor / Commons transfer",
-      "license": "license pending individual extraction",
-      "license_url": "",
+      "author": "Kuru man",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
       "width": 2112,
       "height": 2816,
       "embedded_watermark": false,
       "asset_role": "onsite",
-      "notes": "Correct target and dimensions confirmed; excluded from READY until exact license metadata is extracted."
+      "notes": "Exact Agatsuma Valley/Gunma target. Commons confirms Flickr source was reviewed by FlickreviewR and licensed CC BY 2.0. No application required."
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -2540,8 +2540,8 @@
       "ready": true
     },
     "agatsuma_gorge": {
-      "verified_images": 1,
-      "onsite_images": 1,
+      "verified_images": 2,
+      "onsite_images": 2,
       "ready": false
     },
     "kiryu_textile": {
@@ -2893,6 +2893,14 @@
         "八木節まつり歩行者天国2"
       ],
       "notes": "Nippon Kinunosato exact CC BY-SA 4.0 verified. Three exact Kiryu Yagi-bushi festival onsite images verified CC BY-SA 4.0, bringing that spot to READY."
+    },
+    {
+      "id": "2026-09-28-bulk-finish-pass-5",
+      "goal": "Close remaining zero-application gaps",
+      "verified_promotions": [
+        "Agatsuma Valley 01.jpg"
+      ],
+      "notes": "Exact Commons page verifies Kuru man / Flickr, CC BY 2.0, FlickreviewR-reviewed. Soja Futagoyama exact category has 17 files and Neesima Residence exact category has 4, but individual licenses still require confirmation before promotion."
     }
   ],
   "source_policy": {
