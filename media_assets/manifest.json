@@ -1753,7 +1753,7 @@
       "height": 2592,
       "embedded_watermark": false,
       "asset_role": "onsite",
-      "notes": "Expanded cross-source discovery pass. Only verified_candidate entries count toward READY."
+      "notes": "Exact target, own work and author verified from Commons; licensing block exists but exact license string was truncated in indexed result, so not promoted yet."
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -2383,17 +2383,17 @@
       "event_slug": "jomo-karuta-gunma",
       "spot_key": "tago_hi",
       "spot_name": "多胡碑",
-      "status": "needs_rights_review",
+      "status": "verified_candidate",
       "source": "Wikimedia Commons / Waseda University Library",
       "file_page": "https://commons.wikimedia.org/wiki/File:WUL-i04_03153_b310_%E5%A4%9A%E8%83%A1%E7%A2%91.pdf",
-      "author": "historical rubbing; Waseda University Library source",
-      "license": "rights metadata requires final review",
+      "author": "Historical rubbing / Waseda University Library source",
+      "license": "Public Domain (PD Old / CC-PD-Mark)",
       "license_url": "",
       "width": 3600,
       "height": 5400,
       "embedded_watermark": false,
       "asset_role": "supporting",
-      "notes": "High-resolution historical rubbing discovered; no application assumed. Not promoted until file-level reuse status is fully verified."
+      "notes": "Commons file page structured data explicitly marks the work public domain; Waseda University Library scan, 1-page high-resolution rubbing. No application required."
     }
   ],
   "spot_readiness": {
@@ -2568,9 +2568,9 @@
       "ready": true
     },
     "tago_hi": {
-      "verified_images": 2,
+      "verified_images": 3,
       "onsite_images": 1,
-      "ready": false
+      "ready": true
     },
     "soja_futagoyama": {
       "verified_images": 1,
@@ -2832,6 +2832,14 @@
         "TsutsujiGaokaKoen.jpg"
       ],
       "notes": "Tatebayashi Tsutsujigaoka category confirmed at 6 exact files. Legacy Wikitravel history independently confirms TsutsujiGaokaKoen as Taketarou own work in Tatebayashi. Neesima Residence Gunma exact category reconfirmed at 4 files. Tagohi exact category reconfirmed at 9."
+    },
+    {
+      "id": "2026-09-28-fill-shortfalls-pd-pass",
+      "goal": "Promote zero-application assets and close READY gaps",
+      "verified_promotions": [
+        "WUL 多胡碑拓本"
+      ],
+      "notes": "Waseda Tagohi rubbing confirmed public domain. Nippon Kinunosato exact onsite own-work image reconfirmed but held for exact license extraction. Isesaki Meijikan PD-self reconfirmed."
     }
   ],
   "source_policy": {
