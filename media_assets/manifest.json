@@ -1663,33 +1663,33 @@
       "event_slug": "jomo-karuta-gunma",
       "spot_key": "shimokubo_dam",
       "spot_name": "下久保ダム",
-      "status": "needs_metadata_review",
+      "status": "verified_candidate",
       "source": "Wikimedia Commons",
       "file_page": "https://commons.wikimedia.org/wiki/File:%E4%B8%8B%E4%B9%85%E4%BF%9D%E3%83%80%E3%83%A0.jpg",
       "author": "スティーブ・ミズキ",
-      "license": "license requires individual-page extraction",
-      "license_url": "",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
       "width": 4000,
       "height": 2250,
       "embedded_watermark": false,
       "asset_role": "onsite",
-      "notes": "Expanded cross-source discovery pass. Only verified_candidate entries count toward READY."
+      "notes": "Individual Commons page verifies Shimokubo Dam, own work, author, coordinates and CC BY-SA 4.0."
     },
     {
       "event_slug": "jomo-karuta-gunma",
       "spot_key": "shimokubo_dam",
       "spot_name": "下久保ダム",
-      "status": "needs_metadata_review",
+      "status": "verified_candidate",
       "source": "Wikimedia Commons",
       "file_page": "https://commons.wikimedia.org/wiki/File:Shimokubo_Dam.jpg",
       "author": "Qurren",
-      "license": "license requires individual-page extraction",
-      "license_url": "",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "width": 2304,
       "height": 3072,
       "embedded_watermark": false,
       "asset_role": "onsite",
-      "notes": "Expanded cross-source discovery pass. Only verified_candidate entries count toward READY."
+      "notes": "Individual Commons page verifies Shimokubo Dam, author, coordinates and CC BY-SA 3.0 (also GFDL/multi-license)."
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -2111,17 +2111,17 @@
       "event_slug": "jomo-karuta-gunma",
       "spot_key": "soja_futagoyama",
       "spot_name": "二子山古墳",
-      "status": "needs_metadata_review",
+      "status": "verified_candidate",
       "source": "Wikimedia Commons",
       "file_page": "https://commons.wikimedia.org/wiki/File:%E7%B7%8F%E7%A4%BE%E4%BA%8C%E5%AD%90%E5%B1%B1%E5%8F%A4%E5%A2%B3%E5%87%BA%E5%9C%9F_%E9%A0%AD%E6%A4%8E%E5%A4%A7%E5%88%80_(%E5%BE%A9%E5%85%83).JPG",
-      "author": "pending individual-page extraction",
-      "license": "per-file Commons license pending extraction",
+      "author": "Saigen Jiro",
+      "license": "Public Domain (PD-self)",
       "license_url": "",
       "width": 5005,
       "height": 2190,
       "embedded_watermark": false,
-      "asset_role": "onsite",
-      "notes": "Exact target/category and resolution verified from Commons category listing. Not counted toward READY until per-file author/license metadata is verified."
+      "asset_role": "supporting",
+      "notes": "Individual Commons structured data verifies PD-self and category association with Soja Futagoyama Kofun; museum artifact, therefore supporting rather than onsite landscape."
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -2170,6 +2170,22 @@
       "embedded_watermark": false,
       "asset_role": "onsite",
       "notes": "Exact target/category and resolution verified from Commons category listing. Not counted toward READY until per-file author/license metadata is verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "shimokubo_dam",
+      "spot_name": "下久保ダム",
+      "status": "needs_metadata_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Shimokubo-615-r1-2.jpg",
+      "author": "pending extraction",
+      "license": "pending individual-page extraction",
+      "license_url": "",
+      "width": 741,
+      "height": 515,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Exact Shimokubo Dam target verified; rights metadata still to extract."
     }
   ],
   "spot_readiness": {
@@ -2334,14 +2350,19 @@
       "ready": false
     },
     "shimokubo_dam": {
-      "verified_images": 1,
-      "onsite_images": 1,
-      "ready": false
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
     },
     "yubiso_station": {
       "verified_images": 5,
       "onsite_images": 5,
       "ready": true
+    },
+    "soja_futagoyama": {
+      "verified_images": 1,
+      "onsite_images": 0,
+      "ready": false
     }
   },
   "spot_key_aliases": {
