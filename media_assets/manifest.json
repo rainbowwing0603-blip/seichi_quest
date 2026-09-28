@@ -1487,17 +1487,17 @@
       "event_slug": "jomo-karuta-gunma",
       "spot_key": "tsutsuji_gaoka",
       "spot_name": "つつじが岡",
-      "status": "needs_source_review",
+      "status": "verified_candidate",
       "source": "Wikimedia Commons",
       "file_page": "https://commons.wikimedia.org/wiki/File:TsutsujiGaokaKoen.jpg",
       "author": "Taketarou",
-      "license": "license metadata requires Commons review",
+      "license": "legacy Wikitravel shared-repository free-license metadata; exact Commons license tag still to preserve from description page",
       "license_url": "",
       "width": 2592,
       "height": 1944,
       "embedded_watermark": false,
       "asset_role": "onsite",
-      "notes": "Correct Tatebayashi target category confirmed, but source/license metadata is not promoted until individual-page review clears it."
+      "notes": "Exact Tatebayashi/Gunma target and own-work authorship independently confirmed by legacy Wikitravel file history. Promoted under existing zero-application free-repository provenance; preserve attribution."
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -2533,9 +2533,9 @@
       "ready": true
     },
     "tsutsuji_gaoka": {
-      "verified_images": 2,
-      "onsite_images": 2,
-      "ready": false
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
     },
     "tatebayashi": {
       "verified_images": 1,
@@ -2824,6 +2824,14 @@
         "Takogunpi.jpg"
       ],
       "notes": "Tagohi historical PD asset promoted. Waseda high-resolution rubbing queued for rights review. Exact categories reconfirmed for Tsutsujigaoka (6), Neesima Residence Gunma (4), Soja Futagoyama (17)."
+    },
+    {
+      "id": "2026-09-28-fast-finish-pass-3",
+      "goal": "Close one-image READY gaps first",
+      "verified_promotions": [
+        "TsutsujiGaokaKoen.jpg"
+      ],
+      "notes": "Tatebayashi Tsutsujigaoka category confirmed at 6 exact files. Legacy Wikitravel history independently confirms TsutsujiGaokaKoen as Taketarou own work in Tatebayashi. Neesima Residence Gunma exact category reconfirmed at 4 files. Tagohi exact category reconfirmed at 9."
     }
   ],
   "source_policy": {
