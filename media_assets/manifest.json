@@ -2426,6 +2426,54 @@
       "embedded_watermark": false,
       "asset_role": "onsite",
       "notes": "Exact Kiryu Yagi-bushi festival scene; Commons confirms own work and CC BY-SA 4.0. No application required."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "status": "source_discovery",
+      "width": 0,
+      "height": 0,
+      "embedded_watermark": false,
+      "spot_key": "agatsuma_gorge",
+      "spot_name": "吾妻峡",
+      "source": "Wikimedia Commons via Trek.zone gallery",
+      "file_page": "unresolved:agatsuma-kurofune-1",
+      "author": "くろふね",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "asset_role": "onsite",
+      "notes": "Third-party gallery identifies an additional exact Agatsuma Gorge Commons image by くろふね under CC BY 3.0. Original Commons file URL unresolved, therefore discovery only."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "status": "source_discovery",
+      "width": 0,
+      "height": 0,
+      "embedded_watermark": false,
+      "spot_key": "agatsuma_gorge",
+      "spot_name": "吾妻峡",
+      "source": "Wikimedia Commons via Trek.zone gallery",
+      "file_page": "unresolved:agatsuma-kurofune-2",
+      "author": "くろふね",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "asset_role": "onsite",
+      "notes": "Second additional exact Agatsuma Gorge Commons image by くろふね under CC BY 3.0. Original Commons file URL unresolved, therefore discovery only."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "status": "source_discovery",
+      "width": 0,
+      "height": 0,
+      "embedded_watermark": false,
+      "spot_key": "agatsuma_gorge",
+      "spot_name": "吾妻峡",
+      "source": "Wikimedia Commons via Trek.zone gallery",
+      "file_page": "unresolved:agatsuma-qurren",
+      "author": "Qurren",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "asset_role": "onsite",
+      "notes": "Additional exact Agatsuma Gorge Commons image by Qurren under CC BY-SA 4.0. Original Commons file URL unresolved, therefore discovery only."
     }
   ],
   "spot_readiness": {
@@ -2906,6 +2954,11 @@
       "id": "2026-09-28-bulk-finish-pass-6",
       "goal": "Parallel zero-application shortfall sweep",
       "notes": "Parallel searches reconfirmed: Soja Futagoyama exact category 17 files; Neesima Residence Gunma exact category 4; Ikushina Jinja category 4; Isesaki Meijikan category 2. Agatsuma external gallery identifies additional reusable photos credited to くろふね (CC BY 3.0) and Qurren (CC BY-SA 4.0), but filenames/original Commons pages were not resolved in this pass, so none were promoted without source-page verification."
+    },
+    {
+      "id": "2026-09-28-bulk-finish-pass-7",
+      "goal": "Capture all high-confidence zero-application discoveries while preserving verification gate",
+      "notes": "Added three exact Agatsuma Gorge reusable-license discoveries (2x CC BY 3.0, 1x CC BY-SA 4.0) as source_discovery only until original Commons file URLs are resolved. Reconfirmed Soja Futagoyama 17 exact files, Neesima Residence Gunma 4 exact files, Ikushina Jinja 4 exact files."
     }
   ],
   "source_policy": {
