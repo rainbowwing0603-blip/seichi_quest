@@ -1210,6 +1210,86 @@
       "embedded_watermark": false,
       "asset_role": "regional",
       "notes": "Individual Commons metadata/location/license checked. Preserve attribution where required."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "sekizenkan",
+      "spot_name": "四万温泉積善館",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Sekizenkan,_Shima_Onsen,_Nakanojo,_Gunma_-_May_20,_2008.jpg",
+      "author": "pentaboxes",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "width": 0,
+      "height": 0,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons page/license/location checked via web search; preserve attribution and ShareAlike where applicable."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "tsutsuji_gaoka",
+      "spot_name": "つつじが岡",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:TsutsujiParkTatebayashi20100502.jpg",
+      "author": "Uploader/self-published",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 0,
+      "height": 0,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons page/license/location checked via web search; preserve attribution and ShareAlike where applicable."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "tatebayashi",
+      "spot_name": "館林周辺",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Koinobori_at_Tatebayashi,_Gunma,_Japan;_May_2014.jpg",
+      "author": "Yoshikazu TAKADA",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "width": 0,
+      "height": 0,
+      "embedded_watermark": false,
+      "asset_role": "regional",
+      "notes": "Individual Commons page/license/location checked via web search; preserve attribution and ShareAlike where applicable."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "kanra_history",
+      "spot_name": "甘楽町周辺",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Kanra-machi_Historical_Museum_Old_Kanrasha_Obata-gumi_warehouse_1.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 0,
+      "height": 0,
+      "embedded_watermark": false,
+      "asset_role": "regional",
+      "notes": "Individual Commons page/license/location checked via web search; preserve attribution and ShareAlike where applicable."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "ikaho_shrine",
+      "spot_name": "伊香保神社",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:%E4%BC%8A%E9%A6%99%E4%BF%9D%E7%A5%9E%E7%A4%BE_Ikaho_shrine_-_panoramio.jpg",
+      "author": "Panoramio source; author on file page",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "width": 0,
+      "height": 0,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons page/license/location checked via web search; preserve attribution and ShareAlike where applicable."
     }
   ],
   "spot_readiness": {
@@ -1239,9 +1319,9 @@
       "ready": true
     },
     "sekizenkan": {
-      "verified_images": 2,
-      "onsite_images": 2,
-      "ready": false
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
     },
     "lake_haruna": {
       "verified_images": 2,
@@ -1344,6 +1424,26 @@
       "ready": false
     },
     "sakurayama_fujioka": {
+      "verified_images": 1,
+      "onsite_images": 1,
+      "ready": false
+    },
+    "tsutsuji_gaoka": {
+      "verified_images": 1,
+      "onsite_images": 1,
+      "ready": false
+    },
+    "tatebayashi": {
+      "verified_images": 1,
+      "onsite_images": 0,
+      "ready": false
+    },
+    "kanra_history": {
+      "verified_images": 1,
+      "onsite_images": 0,
+      "ready": false
+    },
+    "ikaho_shrine": {
       "verified_images": 1,
       "onsite_images": 1,
       "ready": false
