@@ -1290,6 +1290,70 @@
       "embedded_watermark": false,
       "asset_role": "onsite",
       "notes": "Individual Commons page/license/location checked via web search; preserve attribution and ShareAlike where applicable."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "tanigawadake_ropeway",
+      "spot_name": "谷川岳ロープウェイ",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Tenjindaira_Station_survey.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 4338,
+      "height": 3258,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons metadata/location/license verified; preserve attribution and ShareAlike terms."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "usui_sekisho",
+      "spot_name": "碓氷関所跡",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Usui_Sekisho_cenotaph.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 5472,
+      "height": 3648,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons metadata/location/license verified; preserve attribution and ShareAlike terms."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "usui_sekisho",
+      "spot_name": "碓氷関所跡",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Usui_Sekisho_Ojigiishi.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 5472,
+      "height": 3648,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons metadata/location/license verified; preserve attribution and ShareAlike terms."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "tanigawadake_ropeway",
+      "spot_name": "谷川岳ロープウェイ",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Tanigawadake.jpg",
+      "author": "New Japan",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 3648,
+      "height": 2736,
+      "embedded_watermark": false,
+      "asset_role": "regional",
+      "notes": "Individual Commons metadata/location/license verified; preserve attribution and ShareAlike terms."
     }
   ],
   "spot_readiness": {
@@ -1374,9 +1438,9 @@
       "ready": true
     },
     "tanigawadake_ropeway": {
-      "verified_images": 2,
-      "onsite_images": 2,
-      "ready": false
+      "verified_images": 4,
+      "onsite_images": 3,
+      "ready": true
     },
     "numata_castle": {
       "verified_images": 3,
@@ -1384,9 +1448,9 @@
       "ready": true
     },
     "usui_sekisho": {
-      "verified_images": 2,
-      "onsite_images": 2,
-      "ready": false
+      "verified_images": 4,
+      "onsite_images": 4,
+      "ready": true
     },
     "tayama_katai_museum": {
       "verified_images": 3,
