@@ -389,6 +389,76 @@
       "width": 3856,
       "height": 2571,
       "embedded_watermark": false
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "fukiware_falls",
+      "spot_name": "吹割の滝",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Fukiware_Falls_14.jpg",
+      "author": "Σ64",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "width": 6000,
+      "height": 4000,
+      "embedded_watermark": false
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "fukiware_falls",
+      "spot_name": "吹割の滝",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Fukiware_Falls_01.jpg",
+      "author": "Σ64",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "width": 3888,
+      "height": 2592,
+      "embedded_watermark": false
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "gunma_pref_office",
+      "spot_name": "群馬県庁",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Gunma_pref-office_1.jpg",
+      "author": "Bakkai",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 960,
+      "height": 1280,
+      "embedded_watermark": false
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "gunma_pref_office_view",
+      "spot_name": "群馬県庁展望",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:View_from_Gunma_Prefectural_Government_Building_east.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 5962,
+      "height": 2556,
+      "embedded_watermark": false
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "gunma_pref_office_view",
+      "spot_name": "群馬県庁展望",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:View_from_Gunma_Prefectural_Government_Building_north.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 6432,
+      "height": 2757,
+      "embedded_watermark": false
     }
   ]
 }
