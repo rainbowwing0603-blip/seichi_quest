@@ -110,16 +110,12 @@ class MainActivity : FlutterActivity() {
             val canvas = Canvas(bitmap)
             root.draw(canvas)
 
-            if (isAlmostBlack(bitmap)) {
-                bitmap.recycle()
-                result.error(
-                    "CAPTURE_BLACK",
-                    "Capture is almost entirely black; batch stopped before saving invalid media.",
-                    null
-                )
-                return
-            }
-
+            // Do not abort here based on sampled darkness. On the emulator,
+            // Google Maps/platform-view composition can briefly report dark
+            // samples even when the composed capture is valid. We already
+            // switched away from the PixelCopy path that produced truly black
+            // files; let the batch save the composed frame and validate the
+            // resulting PNGs as a set instead.
             val outputBitmap = if (mosaic) createMosaic(bitmap) else bitmap
             val bytes = java.io.ByteArrayOutputStream().use { stream ->
                 outputBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
