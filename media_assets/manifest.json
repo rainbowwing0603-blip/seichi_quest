@@ -1089,5 +1089,93 @@
     "nukisaki_shrine": "nukisaki_jinja",
     "shorinzan_daruma": "shorinzan_daruma_ji",
     "shima_sekizenkan": "sekizenkan"
+  },
+  "external_source_catalog": {
+    "updated_at": "2026-09-28",
+    "policy": "External libraries are discovery sources only. Do not mark an individual asset verified until its own page/download terms and attribution are recorded.",
+    "sources": [
+      {
+        "id": "gunma_official_photo_library",
+        "name": "Gunma Official Tourist Guide Image Library",
+        "url": "https://www.visit-gunma.jp/en/for-businesses/image-library/",
+        "terms_url": "https://www.visit-gunma.jp/en/for-businesses/terms-of-service/",
+        "status": "approved_source_with_terms",
+        "use_case": "Gunma tourism promotion",
+        "notes": "Royalty-free library; editing/processing permitted. Resale/transfer/rental and products whose marketability depends on the photos are prohibited. Copyright belongs to Gunma Prefecture."
+      },
+      {
+        "id": "gunma_kanko_photo",
+        "name": "観光ぐんま写真館",
+        "url": "https://gunma-kanko.jp/library/",
+        "terms_url": "https://gunma-kanko.jp/library/download",
+        "status": "conditional_application_source",
+        "use_case": "Tourism promotion",
+        "notes": "Requires form submission and agreement. Web use requires '観光ぐんま写真館提供' and a link to the site."
+      },
+      {
+        "id": "maebashi_cvb",
+        "name": "前橋まるごとガイド 観光写真ダウンロード",
+        "url": "https://www.maebashi-cvb.com/photo/",
+        "terms_url": "https://www.maebashi-cvb.com/photo/guide",
+        "status": "conditional_application_source",
+        "use_case": "Maebashi tourism promotion",
+        "notes": "Free; application form required. Processing permitted unless it seriously damages the image. Credit is requested."
+      },
+      {
+        "id": "numata_kanko",
+        "name": "沼田市観光協会 フォトライブラリ",
+        "url": "https://numata-kankou.jp/photo/index.html",
+        "status": "conditional_application_source",
+        "use_case": "Numata tourism promotion",
+        "notes": "Free for commercial and non-commercial tourism PR, but download is supplied after application/association response."
+      },
+      {
+        "id": "minakami_tourism",
+        "name": "みなかみ町観光協会 写真・映像素材",
+        "url": "https://www.enjoy-minakami.jp/faq/",
+        "status": "conditional_promo_source",
+        "use_case": "Minakami tourism promotion",
+        "notes": "Association-provided materials may be used only for promoting Minakami tourism."
+      },
+      {
+        "id": "takasaki_photo",
+        "name": "高崎写真集",
+        "url": "https://www.city.takasaki.gunma.jp/site/photos/index-2.html",
+        "status": "conditional_source",
+        "use_case": "Takasaki promotional/editorial assets",
+        "notes": "Separate usage restrictions apply; redistribution enabling secondary use is prohibited. Verify each intended use before ingesting."
+      },
+      {
+        "id": "midori_kanko",
+        "name": "みどり市観光協会 観光写真素材",
+        "url": "https://16106midori.jp/photo_form/",
+        "status": "manual_approval_required",
+        "use_case": "Midori tourism promotion",
+        "notes": "Advance application required for ads/web/publications; one use per application; credit required; secondary use and transfer prohibited."
+      },
+      {
+        "id": "gunma_open_data",
+        "name": "群馬県オープンデータ",
+        "url": "https://toukei.pref.gunma.jp/notice.html",
+        "status": "open_data_source_review_per_item",
+        "use_case": "Open-data content",
+        "notes": "Site terms apply, but third-party content and content with separate rules must follow those separate conditions."
+      }
+    ]
+  },
+  "source_selection_policy": {
+    "external_priority": [
+      "Wikimedia Commons Public Domain/CC0/CC BY",
+      "Gunma/open-government data with explicit reuse terms",
+      "Official tourism photo libraries with explicit promotional reuse terms",
+      "CC BY-SA",
+      "Manual-permission libraries"
+    ],
+    "never_auto_ingest": [
+      "application_required_without_approval",
+      "third_party_rights_unclear",
+      "no_explicit_reuse_terms",
+      "embedded_watermark"
+    ]
   }
 }
