@@ -3014,6 +3014,11 @@
         "Seki Kowa portrait"
       ],
       "notes": "Seki Takakazu set completed with two Fujioka onsite CC BY-SA 3.0 images plus supporting licensed/PD material. Also normalized duplicate tago_stele key to tago_hi. Remaining gaps are not marked complete without file-level license evidence."
+    },
+    {
+      "id": "2026-09-28-canonical-44-audit",
+      "goal": "Repair media inventory against production canonical event data",
+      "notes": "Pulled all 44 active Jomo Karuta event contents directly from production Supabase. Previous media manifest assumptions were materially stale: several mapped targets differ from production (e.g. し is 保渡田古墳群・井出二子山古墳, not 総社二子山古墳; け/ち/つ/ら/り and others also differ). Canonical inventory stored in manifest. Do not mark 44/44 complete until assets are remapped and verified against these exact production targets."
     }
   ],
   "source_policy": {
@@ -3024,5 +3029,233 @@
       "photographer_permission_required"
     ],
     "notes": "User explicitly prefers zero-application sourcing. Only assets with already-granted reusable licenses/public-domain status can become verified_candidate."
+  },
+  "canonical_event_inventory": {
+    "source": "Supabase public.events + event_contents + contents + places",
+    "event_slug": "jomo-karuta-gunma",
+    "verified_at": "2026-09-28",
+    "count": 44,
+    "items": [
+      {
+        "display_order": 1,
+        "card": "あ",
+        "title": "鬼押出し園"
+      },
+      {
+        "display_order": 2,
+        "card": "い",
+        "title": "伊香保温泉石段街"
+      },
+      {
+        "display_order": 3,
+        "card": "う",
+        "title": "碓氷関所跡"
+      },
+      {
+        "display_order": 4,
+        "card": "え",
+        "title": "少林山達磨寺"
+      },
+      {
+        "display_order": 5,
+        "card": "お",
+        "title": "大光院（呑龍様）"
+      },
+      {
+        "display_order": 6,
+        "card": "か",
+        "title": "高崎駅"
+      },
+      {
+        "display_order": 7,
+        "card": "き",
+        "title": "桐生織物記念館"
+      },
+      {
+        "display_order": 8,
+        "card": "く",
+        "title": "草津温泉・湯畑"
+      },
+      {
+        "display_order": 9,
+        "card": "け",
+        "title": "日本最初の器械製糸所跡"
+      },
+      {
+        "display_order": 10,
+        "card": "こ",
+        "title": "頼政神社・内村鑑三「上州人」碑"
+      },
+      {
+        "display_order": 11,
+        "card": "さ",
+        "title": "桜山公園"
+      },
+      {
+        "display_order": 12,
+        "card": "し",
+        "title": "保渡田古墳群・井出二子山古墳"
+      },
+      {
+        "display_order": 13,
+        "card": "す",
+        "title": "赤城大沼"
+      },
+      {
+        "display_order": 14,
+        "card": "せ",
+        "title": "尾瀬沼・三平下"
+      },
+      {
+        "display_order": 15,
+        "card": "そ",
+        "title": "木崎宿・色地蔵"
+      },
+      {
+        "display_order": 16,
+        "card": "た",
+        "title": "吹割の滝"
+      },
+      {
+        "display_order": 17,
+        "card": "ち",
+        "title": "群馬県立歴史博物館"
+      },
+      {
+        "display_order": 18,
+        "card": "つ",
+        "title": "さちの池"
+      },
+      {
+        "display_order": 19,
+        "card": "て",
+        "title": "茂左衛門地蔵尊"
+      },
+      {
+        "display_order": 20,
+        "card": "と",
+        "title": "道の駅月夜野矢瀬親水公園"
+      },
+      {
+        "display_order": 21,
+        "card": "な",
+        "title": "安中原市杉並木"
+      },
+      {
+        "display_order": 22,
+        "card": "に",
+        "title": "富岡製糸場"
+      },
+      {
+        "display_order": 23,
+        "card": "ぬ",
+        "title": "塩原太助翁記念公園（塩原太助生家）"
+      },
+      {
+        "display_order": 24,
+        "card": "ね",
+        "title": "こんにゃくパーク"
+      },
+      {
+        "display_order": 25,
+        "card": "の",
+        "title": "榛名湖"
+      },
+      {
+        "display_order": 26,
+        "card": "は",
+        "title": "つつじが岡公園"
+      },
+      {
+        "display_order": 27,
+        "card": "ひ",
+        "title": "高崎白衣大観音"
+      },
+      {
+        "display_order": 28,
+        "card": "ふ",
+        "title": "茂林寺"
+      },
+      {
+        "display_order": 29,
+        "card": "へ",
+        "title": "新島襄旧宅"
+      },
+      {
+        "display_order": 30,
+        "card": "ほ",
+        "title": "田山花袋旧居"
+      },
+      {
+        "display_order": 31,
+        "card": "ま",
+        "title": "群馬県立日本絹の里"
+      },
+      {
+        "display_order": 32,
+        "card": "み",
+        "title": "谷川岳ロープウェイ"
+      },
+      {
+        "display_order": 33,
+        "card": "む",
+        "title": "多胡碑"
+      },
+      {
+        "display_order": 34,
+        "card": "め",
+        "title": "いせさき明治館"
+      },
+      {
+        "display_order": 35,
+        "card": "も",
+        "title": "妙義神社"
+      },
+      {
+        "display_order": 36,
+        "card": "や",
+        "title": "吾妻峡"
+      },
+      {
+        "display_order": 37,
+        "card": "ゆ",
+        "title": "上野國一之宮 貫前神社"
+      },
+      {
+        "display_order": 38,
+        "card": "よ",
+        "title": "四万温泉"
+      },
+      {
+        "display_order": 39,
+        "card": "ら",
+        "title": "雷と空風義理人情食堂"
+      },
+      {
+        "display_order": 40,
+        "card": "り",
+        "title": "吉岡自然エネルギーパーク"
+      },
+      {
+        "display_order": 41,
+        "card": "る",
+        "title": "湯檜曽駅"
+      },
+      {
+        "display_order": 42,
+        "card": "れ",
+        "title": "生品神社"
+      },
+      {
+        "display_order": 43,
+        "card": "ろ",
+        "title": "船津傳次平像"
+      },
+      {
+        "display_order": 44,
+        "card": "わ",
+        "title": "関孝和像・算聖の碑"
+      }
+    ]
   }
 }
