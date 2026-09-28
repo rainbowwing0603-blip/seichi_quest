@@ -2,6 +2,7 @@ package jp.seichiquest.app
 
 import android.content.pm.ApplicationInfo
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.os.Build
 import android.os.Environment
 import android.os.Handler
@@ -100,52 +101,42 @@ class MainActivity : FlutterActivity() {
             return
         }
 
+        // Media Studio runs only in debug and debug uses RenderMode.texture.
+        // Draw the composed decor view directly instead of PixelCopy. On the
+        // affected emulator PixelCopy reported SUCCESS while returning a fully
+        // black bitmap, so its success code cannot be trusted here.
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        PixelCopy.request(
-            window,
-            bitmap,
-            { copyResult ->
-                if (copyResult != PixelCopy.SUCCESS) {
-                    bitmap.recycle()
-                    result.error(
-                        "CAPTURE_FAILED",
-                        "PixelCopy failed: $copyResult",
-                        null
-                    )
-                    return@request
-                }
+        try {
+            val canvas = Canvas(bitmap)
+            root.draw(canvas)
 
-                try {
-                    if (isAlmostBlack(bitmap)) {
-                        bitmap.recycle()
-                        result.error(
-                            "CAPTURE_BLACK",
-                            "Capture is almost entirely black; batch stopped before saving invalid media.",
-                            null
-                        )
-                        return@request
-                    }
+            if (isAlmostBlack(bitmap)) {
+                bitmap.recycle()
+                result.error(
+                    "CAPTURE_BLACK",
+                    "Capture is almost entirely black; batch stopped before saving invalid media.",
+                    null
+                )
+                return
+            }
 
-                    val outputBitmap = if (mosaic) createMosaic(bitmap) else bitmap
-                    val bytes = java.io.ByteArrayOutputStream().use { stream ->
-                        outputBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-                        stream.toByteArray()
-                    }
-                    if (outputBitmap !== bitmap) outputBitmap.recycle()
-                    bitmap.recycle()
-                    savePng(bytes, name, "SeichiQuest/MediaStudio", result)
-                } catch (error: Exception) {
-                    bitmap.recycle()
-                    result.error("CAPTURE_FAILED", error.message, null)
-                }
-            },
-            Handler(Looper.getMainLooper())
-        )
+            val outputBitmap = if (mosaic) createMosaic(bitmap) else bitmap
+            val bytes = java.io.ByteArrayOutputStream().use { stream ->
+                outputBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                stream.toByteArray()
+            }
+            if (outputBitmap !== bitmap) outputBitmap.recycle()
+            bitmap.recycle()
+            savePng(bytes, name, "SeichiQuest/MediaStudio", result)
+        } catch (error: Exception) {
+            if (!bitmap.isRecycled) bitmap.recycle()
+            result.error("CAPTURE_FAILED", error.message, null)
+        }
     }
 
     private fun isAlmostBlack(source: Bitmap): Boolean {
-        // Sample a grid rather than scanning every pixel. This catches the
-        // all-black PixelCopy failure cheaply and aborts the batch on item 1.
+        // Sample a grid rather than scanning every pixel. This catches capture
+        // failures cheaply and aborts the batch before invalid media is saved.
         val columns = 24
         val rows = 40
         var dark = 0
