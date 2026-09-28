@@ -75,8 +75,12 @@ def fetch(asset):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--max-files', type=int, default=0, help='Limit newly downloaded files per run (0: all)')
+    parser.add_argument('--spot', default='', help='Only download assets whose cache path contains this spot key')
     args = parser.parse_args()
     assets = [a for a in json.loads(MANIFEST.read_text(encoding='utf-8'))['assets'] if a['status'] == 'verified_candidate']
+    if args.spot:
+        key = args.spot.casefold()
+        assets = [a for a in assets if key in a.get('cache_path', '').casefold()]
     results = []
     downloaded = 0
     for asset in assets:
