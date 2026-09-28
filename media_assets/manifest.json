@@ -1234,14 +1234,14 @@
       "status": "verified_candidate",
       "source": "Wikimedia Commons",
       "file_page": "https://commons.wikimedia.org/wiki/File:TsutsujiParkTatebayashi20100502.jpg",
-      "author": "Uploader/self-published",
+      "author": "Taketarou",
       "license": "CC BY-SA 3.0",
       "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
-      "width": 0,
-      "height": 0,
+      "width": 3072,
+      "height": 2304,
       "embedded_watermark": false,
       "asset_role": "onsite",
-      "notes": "Individual Commons page/license/location checked via web search; preserve attribution and ShareAlike where applicable."
+      "notes": "Individual Commons page confirms Tatebayashi target, own work, author and CC BY-SA 3.0 (multi-licensed)."
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -1391,7 +1391,7 @@
       "event_slug": "jomo-karuta-gunma",
       "spot_key": "tsutsuji_gaoka",
       "spot_name": "つつじが岡",
-      "status": "needs_source_review",
+      "status": "verified_candidate",
       "source": "Wikimedia Commons",
       "file_page": "https://commons.wikimedia.org/wiki/File:TsutsujiKoenTunnel.jpg",
       "author": "Taketarou",
@@ -1401,7 +1401,7 @@
       "height": 1944,
       "embedded_watermark": false,
       "asset_role": "onsite",
-      "notes": "Correct Tatebayashi location and license found, but Commons page itself flags imported metadata as requiring review; excluded from READY until cleared."
+      "notes": "Individual Commons page/structured data confirms Tatebayashi Tsutsujigaoka Park, uploader-owned source and CC BY-SA 1.0."
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -2341,8 +2341,8 @@
       "ready": true
     },
     "tsutsuji_gaoka": {
-      "verified_images": 1,
-      "onsite_images": 1,
+      "verified_images": 2,
+      "onsite_images": 2,
       "ready": false
     },
     "tatebayashi": {
@@ -2552,6 +2552,15 @@
       "goal": "Continue nonstop expansion and rights verification",
       "verified_added": 1,
       "notes": "Confirmed another independently licensed Kiryu Textile Memorial Hall image. Ikushina result was checked for duplication. Search noise from unrelated Sakurayama locations was explicitly rejected. Gunma Neesima Residence category reconfirmed at 4 exact files, but individual author/license data still needs extraction before promotion."
+    },
+    {
+      "id": "2026-09-28-tsutsujigaoka-rights-clearance",
+      "goal": "Convert queued exact-target assets into usable verified media",
+      "verified_promotions": [
+        "TsutsujiParkTatebayashi20100502.jpg",
+        "TsutsujiKoenTunnel.jpg"
+      ],
+      "notes": "Cross-checked exact Tatebayashi category (6 files). Himeji Sakurayama search noise explicitly rejected."
     }
   ]
 }
