@@ -170,13 +170,16 @@ class _MediaStudioPageState extends State<_MediaStudioPage>
     return normalized.isEmpty ? 'spot' : normalized;
   }
 
-  Future<void> _capture(String name) async {
+  Future<void> _capture(String name, {bool mosaic = false}) async {
     if (!mounted) return;
     setState(() => _capturing = true);
     try {
       await WidgetsBinding.instance.endOfFrame;
       await Future<void>.delayed(const Duration(milliseconds: 80));
-      await _captureChannel.invokeMethod<void>('capturePng', {'name': name});
+      await _captureChannel.invokeMethod<void>('capturePng', {
+        'name': name,
+        'mosaic': mosaic,
+      });
     } finally {
       if (mounted) {
         setState(() => _capturing = false);
@@ -235,7 +238,7 @@ class _MediaStudioPageState extends State<_MediaStudioPage>
         });
         await WidgetsBinding.instance.endOfFrame;
         await Future<void>.delayed(const Duration(milliseconds: 700));
-        await _capture('${prefix}_stamp_get_SAMPLE.png');
+        await _capture('${prefix}_stamp_get_SAMPLE.png', mosaic: true);
 
         if (!mounted) return;
         setState(() => _completed = index + 1);
