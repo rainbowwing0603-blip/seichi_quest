@@ -10,10 +10,13 @@ from pathlib import Path
 import time
 import urllib.parse
 import urllib.request
+import urllib.error
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / 'media_assets/manifest.json'
 MAX_BYTES = 40 * 1024 * 1024
+USER_AGENT = 'SeichiQuestMediaCache/1.1 (https://github.com/rainbowwing0603-blip/seichi_quest) Python-urllib'
+MAX_RETRIES = 3
 
 
 def fetch(asset):
@@ -28,25 +31,45 @@ def fetch(asset):
         return (asset['file_page'], 'already cached')
     dest.parent.mkdir(parents=True, exist_ok=True)
     temp = dest.with_suffix(dest.suffix + '.part')
-    try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'SeichiQuestMediaCache/1.0 (licensed Commons originals)'})
-        with urllib.request.urlopen(req, timeout=90) as response, temp.open('wb') as output:
-            actual = urllib.parse.urlsplit(response.url)
-            if actual.hostname != 'upload.wikimedia.org':
-                raise ValueError('unexpected redirect')
-            total = 0
-            while chunk := response.read(1024 * 1024):
-                total += len(chunk)
-                if total > MAX_BYTES:
-                    raise ValueError('file too large')
-                output.write(chunk)
-        if total != asset['source_file_bytes']:
-            raise ValueError(f'byte count mismatch: {total}')
-        os.replace(temp, dest)
-        return (asset['file_page'], 'downloaded')
-    except Exception as error:
-        temp.unlink(missing_ok=True)
-        return (asset['file_page'], f'failed: {error}')
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            req = urllib.request.Request(url, headers={
+                'User-Agent': USER_AGENT,
+                'Accept': 'image/*,*/*;q=0.8',
+            })
+            with urllib.request.urlopen(req, timeout=90) as response, temp.open('wb') as output:
+                actual = urllib.parse.urlsplit(response.url)
+                if actual.hostname != 'upload.wikimedia.org':
+                    raise ValueError('unexpected redirect')
+                total = 0
+                while chunk := response.read(1024 * 1024):
+                    total += len(chunk)
+                    if total > MAX_BYTES:
+                        raise ValueError('file too large')
+                    output.write(chunk)
+            if total != asset['source_file_bytes']:
+                raise ValueError(f'byte count mismatch: {total}')
+            os.replace(temp, dest)
+            return (asset['file_page'], 'downloaded')
+        except urllib.error.HTTPError as error:
+            temp.unlink(missing_ok=True)
+            if error.code != 429:
+                return (asset['file_page'], f'failed: HTTP {error.code}')
+            retry_after = error.headers.get('Retry-After')
+            if retry_after and retry_after.isdigit():
+                wait = min(int(retry_after), 120)
+            else:
+                wait = min(5 * (2 ** attempt), 60)
+            if attempt + 1 >= MAX_RETRIES:
+                return (asset['file_page'], f'failed: HTTP 429 after {MAX_RETRIES} attempts')
+            print(f'HTTP 429; respecting Retry-After/backoff ({wait}s) before retry {attempt + 2}/{MAX_RETRIES}...')
+            time.sleep(wait)
+        except Exception as error:
+            temp.unlink(missing_ok=True)
+            return (asset['file_page'], f'failed: {error}')
+
+    return (asset['file_page'], 'failed: retry limit reached')
 
 
 def main():
