@@ -72,11 +72,16 @@ class MainActivity : FlutterActivity() {
                 return@setMethodCallHandler
             }
 
-            captureWindowPng(name, result)
+            val mosaic = call.argument<Boolean>("mosaic") ?: false
+            captureWindowPng(name, mosaic, result)
         }
     }
 
-    private fun captureWindowPng(name: String, result: MethodChannel.Result) {
+    private fun captureWindowPng(
+        name: String,
+        mosaic: Boolean,
+        result: MethodChannel.Result
+    ) {
         val root = window.decorView.rootView
         val width = root.width
         val height = root.height
@@ -101,10 +106,12 @@ class MainActivity : FlutterActivity() {
                 }
 
                 try {
+                    val outputBitmap = if (mosaic) createMosaic(bitmap) else bitmap
                     val bytes = java.io.ByteArrayOutputStream().use { stream ->
-                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                        outputBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
                         stream.toByteArray()
                     }
+                    if (outputBitmap !== bitmap) outputBitmap.recycle()
                     bitmap.recycle()
                     savePng(bytes, name, "SeichiQuest/MediaStudio", result)
                 } catch (error: Exception) {
@@ -114,6 +121,21 @@ class MainActivity : FlutterActivity() {
             },
             Handler(Looper.getMainLooper())
         )
+    }
+
+    private fun createMosaic(source: Bitmap): Bitmap {
+        // Coarse, intentionally irreversible teaser treatment. The entire
+        // acquisition capture is reduced to large pixels so card artwork,
+        // frame/background, copy and other reward details stay a surprise.
+        val blockSize = 28
+        val smallWidth = kotlin.math.max(1, source.width / blockSize)
+        val smallHeight = kotlin.math.max(1, source.height / blockSize)
+        val small = Bitmap.createScaledBitmap(source, smallWidth, smallHeight, false)
+        return try {
+            Bitmap.createScaledBitmap(small, source.width, source.height, false)
+        } finally {
+            small.recycle()
+        }
     }
 
     private fun savePng(
