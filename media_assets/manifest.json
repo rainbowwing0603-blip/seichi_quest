@@ -1418,6 +1418,134 @@
       "embedded_watermark": false,
       "asset_role": "onsite",
       "notes": "Individual Commons metadata/location/license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "myogi_shrine",
+      "spot_name": "妙義神社",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Myogi-jinja_Haiden-Heiden-Honden_2.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 4320,
+      "height": 3240,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual file/category metadata and reuse terms verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "morinji",
+      "spot_name": "茂林寺",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:MorinjinumaEvening.JPG",
+      "author": "Taketarou",
+      "license": "Public Domain",
+      "license_url": "",
+      "width": 1600,
+      "height": 1200,
+      "embedded_watermark": false,
+      "asset_role": "regional",
+      "notes": "Individual file/category metadata and reuse terms verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "sakurayama_fujioka",
+      "spot_name": "桜山公園",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Sakurayama_spring.jpg",
+      "author": "Tatsuo TANABE",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "width": 2000,
+      "height": 1333,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual file/category metadata and reuse terms verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "sakurayama_fujioka",
+      "spot_name": "桜山公園",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Sakurayama_winter.jpg",
+      "author": "Tatsuo TANABE",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "width": 2000,
+      "height": 1333,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual file/category metadata and reuse terms verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "tsutsuji_gaoka",
+      "spot_name": "つつじが岡",
+      "status": "needs_source_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:TsutsujiGaokaKoen.jpg",
+      "author": "Taketarou",
+      "license": "license metadata requires Commons review",
+      "license_url": "",
+      "width": 2592,
+      "height": 1944,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Correct Tatebayashi target category confirmed, but source/license metadata is not promoted until individual-page review clears it."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "tsutsuji_gaoka",
+      "spot_name": "つつじが岡",
+      "status": "needs_source_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:TsutsujiKouen.JPG",
+      "author": "Taketarou",
+      "license": "license metadata requires Commons review",
+      "license_url": "",
+      "width": 3072,
+      "height": 1728,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Correct Tatebayashi target category confirmed, but source/license metadata is not promoted until individual-page review clears it."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "tsutsuji_gaoka",
+      "spot_name": "つつじが岡",
+      "status": "needs_source_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:TsutsujiTatebayashi.jpg",
+      "author": "Taketarou",
+      "license": "license metadata requires Commons review",
+      "license_url": "",
+      "width": 2592,
+      "height": 1944,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Correct Tatebayashi target category confirmed, but source/license metadata is not promoted until individual-page review clears it."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "tsutsuji_gaoka",
+      "spot_name": "つつじが岡",
+      "status": "needs_source_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Tsutsujigaoka_Park_Gate,_Tatebayashi.JPG",
+      "author": "Taketarou",
+      "license": "license metadata requires individual verification",
+      "license_url": "",
+      "width": 3101,
+      "height": 2326,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Correct Tatebayashi target category confirmed, but source/license metadata is not promoted until individual-page review clears it."
     }
   ],
   "spot_readiness": {
@@ -1457,8 +1585,8 @@
       "ready": false
     },
     "myogi_shrine": {
-      "verified_images": 4,
-      "onsite_images": 4,
+      "verified_images": 5,
+      "onsite_images": 5,
       "ready": true
     },
     "shorinzan_daruma_ji": {
@@ -1467,7 +1595,7 @@
       "ready": true
     },
     "morinji": {
-      "verified_images": 3,
+      "verified_images": 4,
       "onsite_images": 3,
       "ready": true
     },
@@ -1552,9 +1680,9 @@
       "ready": false
     },
     "sakurayama_fujioka": {
-      "verified_images": 1,
-      "onsite_images": 1,
-      "ready": false
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
     },
     "tsutsuji_gaoka": {
       "verified_images": 1,
@@ -1687,6 +1815,13 @@
         "Sakurayama Fujioka category files"
       ],
       "notes": "30-image sweep started. Only individually verified items are promoted; category hits and imported/unreviewed Commons metadata remain queued."
+    },
+    {
+      "id": "2026-09-28-shortfall-sweep",
+      "goal": "Process remaining media shortfalls",
+      "result": "Partial: exhausted immediately verifiable web-indexed candidates in this pass; unresolved items retained in review queue rather than fabricated.",
+      "verified_added": 4,
+      "review_queue_added": 4
     }
   ]
 }
