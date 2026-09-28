@@ -70,7 +70,7 @@ function MakePhoto([string]$src,[string]$out,[double]$dur,[string]$caption,[int]
 function MakeCard([string]$out,[double]$dur,[string]$caption,[int]$size=86) {
   $ass=WriteAss ([IO.Path]::GetFileNameWithoutExtension($out)) $caption $size "5" 0
   $vf="ass=filename='$ass'"
-  & $ffmpeg -hide_banner -loglevel error -y -f lavfi -i "color=c=0x10162b:s=1080x1920:d=$dur:r=30" -vf $vf -c:v libx264 -pix_fmt yuv420p -an $out
+  & $ffmpeg -hide_banner -loglevel error -y -f lavfi -i "color=c=0x10162b:s=1080x1920:r=30" -t $dur -vf $vf -c:v libx264 -pix_fmt yuv420p -an $out
   if ($LASTEXITCODE -ne 0) { throw "ffmpeg failed: $out" }
 }
 
