@@ -59,7 +59,7 @@ Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
 Dialogue: 0,0:00:00.00,9:59:59.00,Default,,0,0,0,,$txt
 "@
   [IO.File]::WriteAllText($native,$ass,$utf8)
-  return $native.Replace("\","/").Replace(":","\\:").Replace("'","\\'")
+  return ("media_assets/video_work/tiktok_01_onioshidashi/" + $name + ".ass")
 }
 function MakePhoto([string]$src,[string]$out,[double]$dur,[string]$caption,[int]$size=74) {
   $ass=WriteAss ([IO.Path]::GetFileNameWithoutExtension($out)) $caption $size "8" 120
