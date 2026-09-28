@@ -93,6 +93,7 @@ class _MediaStudioPageState extends State<_MediaStudioPage>
   bool _loading = true;
   bool _generating = false;
   bool _capturing = false;
+  bool _captureSurfaceReady = false;
   _CapturePhase _phase = _CapturePhase.map;
   int _completed = 0;
   String _status = '準備中…';
@@ -172,26 +173,31 @@ class _MediaStudioPageState extends State<_MediaStudioPage>
 
   Future<void> _capture(String name, {bool mosaic = false}) async {
     if (!mounted) return;
-    setState(() => _capturing = true);
+    setState(() {
+      _capturing = true;
+      _captureSurfaceReady = false;
+    });
     try {
-      // _capturing hides the Media Studio controls. Wait for a complete
-      // Flutter frame after setState so the hidden state is actually painted
-      // before Android draws the view tree into the capture bitmap.
-      final framePainted = Completer<void>();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!framePainted.isCompleted) framePainted.complete();
-      });
-      WidgetsBinding.instance.scheduleFrame();
-      await framePainted.future;
+      // Keep the control panel mounted but transparent during capture. Removing
+      // it from the tree changed the platform-view composition on the emulator
+      // and could produce CAPTURE_BLACK. Opacity keeps layout/composition stable.
       await WidgetsBinding.instance.endOfFrame;
-      await Future<void>.delayed(const Duration(milliseconds: 120));
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+      if (!mounted) return;
+      setState(() => _captureSurfaceReady = true);
+      await WidgetsBinding.instance.endOfFrame;
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+
       await _captureChannel.invokeMethod<void>('capturePng', {
         'name': name,
         'mosaic': mosaic,
       });
     } finally {
       if (mounted) {
-        setState(() => _capturing = false);
+        setState(() {
+          _capturing = false;
+          _captureSurfaceReady = false;
+        });
       }
     }
   }
@@ -353,24 +359,29 @@ class _MediaStudioPageState extends State<_MediaStudioPage>
           if (_phase == _CapturePhase.stamp)
             const Positioned.fill(child: _SampleWatermark()),
 
-          // Controls are hidden automatically while PixelCopy is taking a
-          // capture, because native capture receives the exclusion rect.
-          if (!_capturing)
-            Positioned(
+          // Keep controls in the tree so Google Maps/platform-view composition
+          // remains stable, but make them fully transparent for the saved frame.
+          Positioned(
             left: 12,
             right: 12,
             bottom: 12,
             child: SafeArea(
               top: false,
-              child: _StudioControls(
-                event: event,
-                events: _events,
-                itemCount: _items.length,
-                completed: _completed,
-                status: _status,
-                generating: _generating,
-                onEventChanged: _selectEvent,
-                onGenerate: _generateAll,
+              child: IgnorePointer(
+                ignoring: _capturing,
+                child: Opacity(
+                  opacity: _capturing && _captureSurfaceReady ? 0.0 : 1.0,
+                  child: _StudioControls(
+                    event: event,
+                    events: _events,
+                    itemCount: _items.length,
+                    completed: _completed,
+                    status: _status,
+                    generating: _generating,
+                    onEventChanged: _selectEvent,
+                    onGenerate: _generateAll,
+                  ),
+                ),
               ),
             ),
           ),
