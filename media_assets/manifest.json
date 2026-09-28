@@ -864,6 +864,51 @@
       "height": 3448,
       "embedded_watermark": false,
       "notes": "License and dimensions verified; exact author attribution must be extracted before automated use."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "fukiware_falls",
+      "spot_name": "吹割の滝",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Fukiware_Falls_05.jpg",
+      "author": "Σ64",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "width": 3783,
+      "height": 2522,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page metadata verified. Preserve required attribution/license terms."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "usui_sekisho",
+      "spot_name": "碓氷関所跡",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Gunma_Prefectural_Road_Route_92_Usui_Sekisho.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 5472,
+      "height": 3648,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page metadata verified. Preserve required attribution/license terms."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "gunma_pref_office",
+      "spot_name": "群馬県庁",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Gunma_Prefectural_Government_Building_1986.jpg",
+      "author": "Japan Ministry of Land, Infrastructure, Transport and Tourism; retouch Qurren",
+      "license": "Attribution-only permission",
+      "license_url": "",
+      "width": 641,
+      "height": 481,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page metadata verified. Preserve required attribution/license terms."
     }
   ],
   "spot_readiness": {
@@ -880,7 +925,7 @@
       "ready": true
     },
     "fukiware_falls": {
-      "verified_images": 3,
+      "verified_images": 4,
       "ready": true
     },
     "tomioka_silk_mill": {
@@ -920,8 +965,8 @@
       "ready": false
     },
     "gunma_pref_office": {
-      "verified_images": 2,
-      "ready": false
+      "verified_images": 3,
+      "ready": true
     },
     "gunma_pref_office_view": {
       "verified_images": 4,
@@ -948,7 +993,7 @@
       "ready": true
     },
     "usui_sekisho": {
-      "verified_images": 1,
+      "verified_images": 2,
       "ready": false
     },
     "lake_haruna": {
