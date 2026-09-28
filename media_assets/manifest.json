@@ -804,6 +804,66 @@
       "height": 3734,
       "embedded_watermark": false,
       "notes": "Individual Commons file page/license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "akagi_onuma",
+      "spot_name": "赤城大沼",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Akagi_oonuma_lake_(39919349981).jpg",
+      "author": "Raita Futo",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "width": 5709,
+      "height": 3806,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page, author, dimensions and license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "akagi_onuma",
+      "spot_name": "赤城大沼",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Lake_Onuma_@_Mount_Akagi_area_(14204969214).jpg",
+      "author": "Guilhem Vellut",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "width": 3968,
+      "height": 2976,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page, author, dimensions and license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "akagi_onuma",
+      "spot_name": "赤城大沼",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Lake_Onuma_@_Mount_Akagi_area_(14018414660).jpg",
+      "author": "Guilhem Vellut",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "width": 3968,
+      "height": 2976,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page, author, dimensions and license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "agatsuma_gorge",
+      "spot_name": "吾妻峡",
+      "status": "needs_metadata_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Agatsuma_Gorge_Aerial_photograph.jpg",
+      "author": "Panoramio source; author metadata requires final attribution extraction",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 4592,
+      "height": 3448,
+      "embedded_watermark": false,
+      "notes": "License and dimensions verified; exact author attribution must be extracted before automated use."
     }
   ],
   "spot_readiness": {
@@ -902,6 +962,10 @@
     "niijima_jo": {
       "verified_images": 1,
       "ready": false
+    },
+    "akagi_onuma": {
+      "verified_images": 3,
+      "ready": true
     }
   }
 }
