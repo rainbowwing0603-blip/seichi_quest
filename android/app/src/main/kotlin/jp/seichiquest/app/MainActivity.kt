@@ -1,6 +1,6 @@
 package jp.seichiquest.app
 
-import android.app.Application
+import android.content.pm.ApplicationInfo
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.Environment
@@ -51,7 +51,7 @@ class MainActivity : FlutterActivity() {
             // point, and the native capture bridge also refuses non-debuggable
             // builds even if someone discovers the channel name.
             val debuggable =
-                (applicationInfo.flags and Application.FLAG_DEBUGGABLE) != 0
+                (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
             if (!debuggable) {
                 result.error(
                     "DEBUG_ONLY",
