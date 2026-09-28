@@ -2186,6 +2186,22 @@
       "embedded_watermark": false,
       "asset_role": "onsite",
       "notes": "Exact Shimokubo Dam target verified; rights metadata still to extract."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "embedded_watermark": false,
+      "notes": "Individual Commons page verified: exact target/category, author, dimensions and license.",
+      "spot_key": "kiryu_textile",
+      "spot_name": "桐生織物記念館",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Kiryu_Orimono_Kinenkan.jpg",
+      "author": "Ki-ak",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 2048,
+      "height": 1536,
+      "asset_role": "onsite"
     }
   ],
   "spot_readiness": {
@@ -2305,8 +2321,8 @@
       "ready": false
     },
     "kiryu_textile": {
-      "verified_images": 3,
-      "onsite_images": 3,
+      "verified_images": 4,
+      "onsite_images": 4,
       "ready": true
     },
     "shimonita": {
@@ -2530,6 +2546,12 @@
       "goal": "Continue nonstop verification of remaining media shortfalls",
       "result": "No new safe promotions from this web-index pass",
       "notes": "Ran targeted web-index searches for Soja Futagoyama Kofun, Neesima Residence (Gunma), Ikushina Jinja and Tagohi with license terms. Search returned no indexed results. Existing review candidates remain unpromoted rather than guessing author/license metadata."
+    },
+    {
+      "id": "2026-09-28-cross-index-verification-pass-2",
+      "goal": "Continue nonstop expansion and rights verification",
+      "verified_added": 1,
+      "notes": "Confirmed another independently licensed Kiryu Textile Memorial Hall image. Ikushina result was checked for duplication. Search noise from unrelated Sakurayama locations was explicitly rejected. Gunma Neesima Residence category reconfirmed at 4 exact files, but individual author/license data still needs extraction before promotion."
     }
   ]
 }
