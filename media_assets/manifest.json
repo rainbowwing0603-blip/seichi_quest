@@ -1786,6 +1786,150 @@
       "embedded_watermark": false,
       "asset_role": "supporting",
       "notes": "Expanded cross-source discovery pass. Only verified_candidate entries count toward READY."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "yubiso_station",
+      "spot_name": "湯檜曽駅",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Yubiso_Station-01.jpg",
+      "author": "Gohachiyasu1214",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 4320,
+      "height": 3240,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons page confirms target, author and license."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "yubiso_station",
+      "spot_name": "湯檜曽駅",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Yubiso_Station-02.jpg",
+      "author": "Gohachiyasu1214",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 4450,
+      "height": 3337,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons page confirms target, author and license."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "yubiso_station",
+      "spot_name": "湯檜曽駅",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Former_Yubiso_Station-02.jpg",
+      "author": "Gohachiyasu1214",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 4352,
+      "height": 3264,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons page confirms target, author and license."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "yubiso_station",
+      "spot_name": "湯檜曽駅",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Former_Yubiso_Station-05.jpg",
+      "author": "Gohachiyasu1214",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 4352,
+      "height": 3264,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons page confirms target, author and license."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "yubiso_station",
+      "spot_name": "湯檜曽駅",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:YubisoSt1.jpg",
+      "author": "Kouchiumi",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 1024,
+      "height": 768,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons page confirms target, author and license."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "yubiso_station",
+      "spot_name": "湯檜曽駅",
+      "status": "needs_metadata_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:JR_Joetsu_Line_Yubiso_Station_building.jpg",
+      "author": "Mister0124",
+      "license": "Commons free license; exact version pending extraction",
+      "license_url": "",
+      "width": 4134,
+      "height": 2990,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Correct target and dimensions confirmed; excluded from READY until exact license metadata is extracted."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "yubiso_station",
+      "spot_name": "湯檜曽駅",
+      "status": "needs_metadata_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:JR_Joetsu_Line_Yubiso_Station_Outbound_Underground_Platform.jpg",
+      "author": "Mister0124",
+      "license": "Commons free license; exact version pending extraction",
+      "license_url": "",
+      "width": 4334,
+      "height": 2990,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Correct target and dimensions confirmed; excluded from READY until exact license metadata is extracted."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "agatsuma_gorge",
+      "spot_name": "吾妻峡",
+      "status": "needs_metadata_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Agatsuma_Valley_01.jpg",
+      "author": "Flickr contributor / Commons transfer",
+      "license": "license pending individual extraction",
+      "license_url": "",
+      "width": 2112,
+      "height": 2816,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Correct target and dimensions confirmed; excluded from READY until exact license metadata is extracted."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "tago_hi",
+      "spot_name": "多胡碑",
+      "status": "needs_metadata_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:%E5%A4%9A%E8%83%A1%E7%A2%91%E8%A8%98%E5%BF%B5%E9%A4%A8.JPG",
+      "author": "Commons contributor",
+      "license": "license pending individual extraction",
+      "license_url": "",
+      "width": 2048,
+      "height": 1536,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Correct target and dimensions confirmed; excluded from READY until exact license metadata is extracted."
     }
   ],
   "spot_readiness": {
@@ -1953,6 +2097,11 @@
       "verified_images": 1,
       "onsite_images": 1,
       "ready": false
+    },
+    "yubiso_station": {
+      "verified_images": 5,
+      "onsite_images": 5,
+      "ready": true
     }
   },
   "spot_key_aliases": {
@@ -2101,6 +2250,13 @@
       "result": "Partial: exhausted immediately verifiable web-indexed candidates in this pass; unresolved items retained in review queue rather than fabricated.",
       "verified_added": 4,
       "review_queue_added": 4
+    },
+    {
+      "id": "2026-09-28-yubiso-deep-sweep",
+      "goal": "Exploit newly discovered high-density Commons categories",
+      "verified_added": 5,
+      "review_queue_added": 4,
+      "notes": "Yubiso category contains 38 files; selected high-resolution representative files first. More remain available for later curation."
     }
   ]
 }
