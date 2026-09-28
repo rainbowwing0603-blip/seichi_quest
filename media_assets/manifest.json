@@ -2630,6 +2630,27 @@
         "url": "https://www.city.maebashi.gunma.jp/soshiki/seisaku/kohobrand/gyomu/1_1/2/2678.html",
         "status": "official_reference_permission_check",
         "notes": "Official Maebashi page contains a Funatsu Denjihei image and confirms his association with Jomo Karuta; image reuse permission not established."
+      },
+      {
+        "id": "bunka_online_gunma",
+        "name": "文化遺産オンライン（群馬県）",
+        "url": "https://online.bunka.go.jp/heritages/search?prefecture_cd=10",
+        "status": "reference_rights_per_item",
+        "notes": "High-quality images exist for Gunma cultural properties, including Tagohi and Futagoyama Kofun. Rights/reuse must be checked per image/holding institution before ingestion."
+      },
+      {
+        "id": "ndl_funatsu",
+        "name": "国立国会図書館サーチ（船津伝次平）",
+        "url": "https://ndlsearch.ndl.go.jp/search?keyword=%E8%88%B9%E6%B4%A5%E4%BC%9D%E6%AC%A1%E5%B9%B3",
+        "status": "reference_restricted_access",
+        "notes": "Books and digitized records include portrait-related material, but some are NDL/on-site or limited-access; not an automatic reusable image source."
+      },
+      {
+        "id": "gunma_ouenbito_seichi",
+        "name": "群馬県 ぐんま応援びと『上毛かるた聖地巡礼』",
+        "url": "https://www.pref.gunma.jp/page/749952.html",
+        "status": "permission_candidate",
+        "notes": "Award page links to user-submitted photos of Onioshidashi, Kusatsu and Shorinzan. Copyright remains permission-sensitive; useful as a photographer outreach lead, not auto-ingest."
       }
     ]
   },
@@ -2711,6 +2732,12 @@
       "goal": "Expand beyond direct landmark-name search into related exact-target/category media",
       "review_queue_added": 9,
       "notes": "Added remaining high-resolution Soja Futagoyama category candidates and related Tagohi-category archaeological context. Search also reconfirmed 6-file Tatebayashi Tsutsujigaoka, 4-file Gunma Neesima Residence, 9-file Tagohi and 6-file Fujioka Sakurayama categories. Unrelated Himeji/Morioka Sakurayama hits rejected."
+    },
+    {
+      "id": "2026-09-28-open-data-cultural-archives-sweep",
+      "goal": "Expand discovery beyond Commons into tourism libraries, cultural-property databases, NDL and prefectural photo campaigns",
+      "result": "3 new source families catalogued; no image promoted without explicit reusable-image terms.",
+      "notes": "Maebashi tourism library confirmed free tourism-PR use with application workflow, modification allowed within limits, credit requested, and restrictions including secondary distribution/portal use. Gunma tourism photo library also has application/credit conditions. These require use-case review before ingesting app-distributed binaries."
     }
   ]
 }
