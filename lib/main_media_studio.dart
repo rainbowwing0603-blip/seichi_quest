@@ -174,8 +174,17 @@ class _MediaStudioPageState extends State<_MediaStudioPage>
     if (!mounted) return;
     setState(() => _capturing = true);
     try {
+      // _capturing hides the Media Studio controls. Wait for a complete
+      // Flutter frame after setState so the hidden state is actually painted
+      // before Android draws the view tree into the capture bitmap.
+      final framePainted = Completer<void>();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!framePainted.isCompleted) framePainted.complete();
+      });
+      WidgetsBinding.instance.scheduleFrame();
+      await framePainted.future;
       await WidgetsBinding.instance.endOfFrame;
-      await Future<void>.delayed(const Duration(milliseconds: 80));
+      await Future<void>.delayed(const Duration(milliseconds: 120));
       await _captureChannel.invokeMethod<void>('capturePng', {
         'name': name,
         'mosaic': mosaic,
