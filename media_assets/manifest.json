@@ -854,16 +854,16 @@
       "event_slug": "jomo-karuta-gunma",
       "spot_key": "agatsuma_gorge",
       "spot_name": "吾妻峡",
-      "status": "needs_metadata_review",
+      "status": "verified_candidate",
       "source": "Wikimedia Commons",
       "file_page": "https://commons.wikimedia.org/wiki/File:Agatsuma_Gorge_Aerial_photograph.jpg",
-      "author": "Panoramio source; author metadata requires final attribution extraction",
+      "author": "YOSHIFUMI OGISO",
       "license": "CC BY-SA 3.0",
       "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "width": 4592,
       "height": 3448,
       "embedded_watermark": false,
-      "notes": "License and dimensions verified; exact author attribution must be extracted before automated use."
+      "notes": "Individual Commons page verified; target location and reuse terms checked."
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -984,6 +984,66 @@
       "height": 1051,
       "embedded_watermark": false,
       "notes": "Individual Commons page verified via web search. Location checked against the target area; preserve attribution/license terms."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "seki_takakazu",
+      "spot_name": "関孝和ゆかり",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Seki_Takakazu_grave.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 4608,
+      "height": 3456,
+      "embedded_watermark": false,
+      "notes": "Individual Commons page verified; target location and reuse terms checked."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "sakurayama_fujioka",
+      "spot_name": "桜山公園",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Mt.mikabo_peaks_from_sakurayama.jpg",
+      "author": "Tatsuo TANABE",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "width": 2000,
+      "height": 1333,
+      "embedded_watermark": false,
+      "notes": "Individual Commons page verified; target location and reuse terms checked."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "shimonita",
+      "spot_name": "道の駅しもにた周辺",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Joshin-railway_trains_in_Shimonita-station.jpg",
+      "author": "Rsa",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 2988,
+      "height": 2188,
+      "embedded_watermark": false,
+      "notes": "Individual Commons page verified; target location and reuse terms checked."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "shimonita",
+      "spot_name": "道の駅しもにた周辺",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Shimonita_Konjac_ac_%282%29.jpg",
+      "author": "Asturio Cantabrio",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 5939,
+      "height": 3949,
+      "embedded_watermark": false,
+      "notes": "Individual Commons page verified; target location and reuse terms checked."
     }
   ],
   "spot_readiness": {
@@ -1075,11 +1135,23 @@
       "verified_images": 3,
       "ready": true
     },
+    "agatsuma_gorge": {
+      "verified_images": 1,
+      "ready": false
+    },
     "kiryu_textile": {
       "verified_images": 2,
       "ready": false
     },
     "shimonita": {
+      "verified_images": 3,
+      "ready": true
+    },
+    "seki_takakazu": {
+      "verified_images": 1,
+      "ready": false
+    },
+    "sakurayama_fujioka": {
       "verified_images": 1,
       "ready": false
     }
