@@ -1064,8 +1064,8 @@
       "width": 4608,
       "height": 3456,
       "embedded_watermark": false,
-      "notes": "Individual Commons page verified; target location and reuse terms checked.",
-      "asset_role": "supporting"
+      "notes": "Fujioka, Gunma grave; own work; CC BY-SA 3.0. No application required.",
+      "asset_role": "onsite"
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -2474,6 +2474,54 @@
       "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
       "asset_role": "onsite",
       "notes": "Additional exact Agatsuma Gorge Commons image by Qurren under CC BY-SA 4.0. Original Commons file URL unresolved, therefore discovery only."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "seki_takakazu",
+      "spot_name": "関孝和ゆかり",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "embedded_watermark": false,
+      "file_page": "https://commons.wikimedia.org/wiki/File:Seki_Takakazu_monument.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 3156,
+      "height": 4258,
+      "asset_role": "onsite",
+      "notes": "Fujioka, Gunma monument; own work; CC BY-SA 3.0. No application required."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "seki_takakazu",
+      "spot_name": "関孝和ゆかり",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "embedded_watermark": false,
+      "file_page": "https://commons.wikimedia.org/wiki/File:Hatsubi_Sanpou.jpg",
+      "author": "Momotarou2012",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 2928,
+      "height": 2196,
+      "asset_role": "supporting",
+      "notes": "Replica of Seki Takakazu's Hatsubi Sanpou; own photograph; CC BY-SA 3.0. No application required."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "seki_takakazu",
+      "spot_name": "関孝和ゆかり",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "embedded_watermark": false,
+      "file_page": "https://commons.wikimedia.org/wiki/File:Seki_Kowa.jpg",
+      "author": "historical artwork; author unknown",
+      "license": "Public Domain Mark / PD-Art (PD-old-100)",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "width": 454,
+      "height": 470,
+      "asset_role": "supporting",
+      "notes": "Faithful reproduction of public-domain historical portrait. No application required."
     }
   ],
   "spot_readiness": {
@@ -2527,10 +2575,10 @@
       "onsite_images": 3,
       "ready": true
     },
-    "tago_stele": {
-      "verified_images": 1,
-      "onsite_images": 1,
-      "ready": false
+    "tago_hi": {
+      "verified_images": 4,
+      "onsite_images": 2,
+      "ready": true
     },
     "nukisaki_jinja": {
       "verified_images": 4,
@@ -2603,9 +2651,9 @@
       "ready": false
     },
     "seki_takakazu": {
-      "verified_images": 1,
-      "onsite_images": 0,
-      "ready": false
+      "verified_images": 4,
+      "onsite_images": 2,
+      "ready": true
     },
     "sakurayama_fujioka": {
       "verified_images": 3,
@@ -2657,11 +2705,6 @@
       "onsite_images": 5,
       "ready": true
     },
-    "tago_hi": {
-      "verified_images": 3,
-      "onsite_images": 1,
-      "ready": true
-    },
     "soja_futagoyama": {
       "verified_images": 1,
       "onsite_images": 0,
@@ -2678,7 +2721,8 @@
     "nukisaki_shrine": "nukisaki_jinja",
     "shorinzan_daruma": "shorinzan_daruma_ji",
     "shima_sekizenkan": "sekizenkan",
-    "niijima_jo": "niijima_residence"
+    "niijima_jo": "niijima_residence",
+    "tago_stele": "tago_hi"
   },
   "external_source_catalog": {
     "updated_at": "2026-09-28",
@@ -2959,6 +3003,17 @@
       "id": "2026-09-28-bulk-finish-pass-7",
       "goal": "Capture all high-confidence zero-application discoveries while preserving verification gate",
       "notes": "Added three exact Agatsuma Gorge reusable-license discoveries (2x CC BY 3.0, 1x CC BY-SA 4.0) as source_discovery only until original Commons file URLs are resolved. Reconfirmed Soja Futagoyama 17 exact files, Neesima Residence Gunma 4 exact files, Ikushina Jinja 4 exact files."
+    },
+    {
+      "id": "2026-09-28-bulk-completion-pass-8",
+      "goal": "Bulk-complete remaining media set",
+      "verified_promotions": [
+        "Seki Takakazu monument",
+        "Seki Takakazu grave",
+        "Hatsubi Sanpou",
+        "Seki Kowa portrait"
+      ],
+      "notes": "Seki Takakazu set completed with two Fujioka onsite CC BY-SA 3.0 images plus supporting licensed/PD material. Also normalized duplicate tago_stele key to tago_hi. Remaining gaps are not marked complete without file-level license evidence."
     }
   ],
   "source_policy": {
