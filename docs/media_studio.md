@@ -23,6 +23,42 @@ flutter run --debug -t lib/main_media_studio.dart
 
 保存先は Android の `Pictures/SeichiQuest/MediaStudio` です。
 
+## PCへ一括回収してGPTへ渡す
+
+Media Studioの生成は一度だけ行う想定です。生成後は、Androidエミュレータ内に残したまま運用せず、PCへ全画像を一括回収してGPTの動画制作入力にします。
+
+PowerShell:
+
+```powershell
+cd C:\src\seichi_quest
+
+$dest = ".\media_assets\app_captures"
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+
+adb shell "mkdir -p /sdcard/Download/SeichiQuestMediaStudio"
+adb shell "cp -f /sdcard/Pictures/SeichiQuest/MediaStudio/*.png /sdcard/Download/SeichiQuestMediaStudio/"
+adb pull /sdcard/Download/SeichiQuestMediaStudio/. $dest
+
+Get-ChildItem $dest -Filter *.png |
+  Sort-Object Name |
+  Select-Object Name, Length
+```
+
+回収先:
+
+```text
+media_assets/app_captures/
+  01_鬼押出し園_map.png
+  01_鬼押出し園_stamp_get_SAMPLE.png
+  02_伊香保温泉石段街_map.png
+  02_伊香保温泉石段街_stamp_get_SAMPLE.png
+  ...
+```
+
+命名規則はMedia Studio生成時のものをそのまま維持します。動画制作ではスポット番号とスポット名をキーに、現地素材とアプリキャプチャを対応付けます。
+
+これは一回限りの素材回収を目的とした運用です。Media Studio自体にWindows固有の保存処理は追加せず、実アプリ画面の取得はAndroid側のPixelCopy、PCへの受け渡しだけADBで行います。
+
 ファイル名例:
 
 ```
