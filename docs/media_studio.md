@@ -18,7 +18,7 @@ flutter run --debug -t lib/main_media_studio.dart
 4. タイル安定待ち
 5. 通常MAP素材を保存
 6. STAMP GET状態を表示
-7. 大きな `SAMPLE` 表示を焼き込んだ素材を保存
+7. 獲得素材は背景・フレーム・札・文字を含む画面全体を粗いモザイク化し、内容を伏せた状態で保存
 8. 次のスポットへ進む
 
 保存先は Android の `Pictures/SeichiQuest/MediaStudio` です。
@@ -49,7 +49,7 @@ Get-ChildItem $dest -Filter *.png |
 ```text
 media_assets/app_captures/
   01_鬼押出し園_map.png
-  01_鬼押出し園_stamp_get_SAMPLE.png
+  01_鬼押出し園_stamp_get_SAMPLE.png  # 獲得画面全体を粗いモザイク化
   02_伊香保温泉石段街_map.png
   02_伊香保温泉石段街_stamp_get_SAMPLE.png
   ...
@@ -75,7 +75,8 @@ media_assets/app_captures/
 - collection_history へ書き込まない
 - SharedPreferences の獲得状態を書き換えない
 - ランキング・実績へ反映しない
-- 疑似獲得画像には必ず `SAMPLE`
+- 疑似獲得画像は画面全体を粗いモザイク化し、背景・フレーム・札・文字を含む獲得内容を動画で公開しない
+- `SAMPLE` 表示も残し、Media Studio由来の疑似獲得素材であることを区別する
 - 本番の `MapPage` を再利用し、動画専用の偽UIを作らない
 - 画面キャプチャはAndroid `PixelCopy` で実ウィンドウを取得するため、Google MapsのPlatformViewも含める
 
