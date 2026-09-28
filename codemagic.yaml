@@ -7,6 +7,7 @@ workflows:
     environment:
       flutter: 3.47.1
       xcode: latest
+      cocoapods: default
       vars:
         # Google official sample AdMob app ID for iOS.
         # Production signing/release will replace this with a Codemagic secret.
@@ -21,6 +22,9 @@ workflows:
 
       - name: Run tests
         script: flutter test
+
+      - name: Install iOS dependencies
+        script: find . -name "Podfile" -execdir pod install \;
 
       - name: Configure unsigned iOS test values
         script: |
