@@ -1546,6 +1546,102 @@
       "embedded_watermark": false,
       "asset_role": "onsite",
       "notes": "Correct Tatebayashi target category confirmed, but source/license metadata is not promoted until individual-page review clears it."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "niijima_residence",
+      "spot_name": "新島襄旧宅",
+      "status": "needs_metadata_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Neesima%27s_Residence_(Gunma)_1.jpg",
+      "author": "Commons contributor; exact author pending page extraction",
+      "license": "license pending individual-page extraction",
+      "license_url": "",
+      "width": 4167,
+      "height": 3123,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Correct target/category and dimensions verified; excluded from READY until individual author/license metadata is extracted."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "niijima_residence",
+      "spot_name": "新島襄旧宅",
+      "status": "needs_metadata_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Neesima%27s_Residence_(Gunma)_2.jpg",
+      "author": "Commons contributor; exact author pending page extraction",
+      "license": "license pending individual-page extraction",
+      "license_url": "",
+      "width": 4081,
+      "height": 3067,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Correct target/category and dimensions verified; excluded from READY until individual author/license metadata is extracted."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "kiryu_textile",
+      "spot_name": "桐生織物記念館",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:%E6%A1%90%E7%94%9F%E7%B9%94%E7%89%A9%E8%A8%98%E5%BF%B5%E9%A4%A8.jpg",
+      "author": "Shenchen13",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 3648,
+      "height": 2736,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual file page verifies target location, author and license."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "ikushina_jinja",
+      "spot_name": "生品神社",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Ikushina_Jinja02.jpg",
+      "author": "MChew",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "width": 854,
+      "height": 1200,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual file page verifies target location, author and license."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "sakurayama_fujioka",
+      "spot_name": "桜山公園",
+      "status": "needs_metadata_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Sakurayama_Park_Autumn_Season.jpg",
+      "author": "Commons contributor; exact author pending page extraction",
+      "license": "license pending individual-page extraction",
+      "license_url": "",
+      "width": 1200,
+      "height": 1600,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Correct target/category and dimensions verified; excluded from READY until individual author/license metadata is extracted."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "sakurayama_fujioka",
+      "spot_name": "桜山公園",
+      "status": "needs_metadata_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Mount_Sakurayama.jpg",
+      "author": "Commons contributor; exact author pending page extraction",
+      "license": "license pending individual-page extraction",
+      "license_url": "",
+      "width": 2000,
+      "height": 1333,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Correct target/category and dimensions verified; excluded from READY until individual author/license metadata is extracted."
     }
   ],
   "spot_readiness": {
@@ -1649,7 +1745,7 @@
       "onsite_images": 3,
       "ready": true
     },
-    "niijima_jo": {
+    "niijima_residence": {
       "verified_images": 1,
       "onsite_images": 0,
       "ready": false
@@ -1665,9 +1761,9 @@
       "ready": false
     },
     "kiryu_textile": {
-      "verified_images": 2,
-      "onsite_images": 2,
-      "ready": false
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
     },
     "shimonita": {
       "verified_images": 5,
@@ -1703,13 +1799,19 @@
       "verified_images": 1,
       "onsite_images": 1,
       "ready": false
+    },
+    "ikushina_jinja": {
+      "verified_images": 1,
+      "onsite_images": 1,
+      "ready": false
     }
   },
   "spot_key_aliases": {
     "haruna_lake": "lake_haruna",
     "nukisaki_shrine": "nukisaki_jinja",
     "shorinzan_daruma": "shorinzan_daruma_ji",
-    "shima_sekizenkan": "sekizenkan"
+    "shima_sekizenkan": "sekizenkan",
+    "niijima_jo": "niijima_residence"
   },
   "external_source_catalog": {
     "updated_at": "2026-09-28",
@@ -1781,6 +1883,27 @@
         "status": "open_data_source_review_per_item",
         "use_case": "Open-data content",
         "notes": "Site terms apply, but third-party content and content with separate rules must follow those separate conditions."
+      },
+      {
+        "id": "gunma_fc_isesaki_meijikan",
+        "name": "ぐんまフィルムコミッション いせさき明治館",
+        "url": "https://www.gunma-fc.jp/location/isesaki-meijikan/",
+        "status": "location_reference_permission_check",
+        "notes": "Official location database provides multiple interior/exterior images and facility contact. Do not ingest images until reuse permission is confirmed."
+      },
+      {
+        "id": "nippon_kinunosato_official",
+        "name": "群馬県立日本絹の里 公式サイト",
+        "url": "https://www.nippon-kinunosato.or.jp/guide/",
+        "status": "official_reference_permission_check",
+        "notes": "Official site contains facility images; no blanket promotional reuse license found in current search, so permission check required."
+      },
+      {
+        "id": "ota_ikushina_official",
+        "name": "太田市 生品神社",
+        "url": "https://www.city.ota.gunma.jp/page/4186.html",
+        "status": "official_reference_permission_check",
+        "notes": "Official municipal page contains an onsite image; reuse terms must be checked before ingestion."
       }
     ]
   },
