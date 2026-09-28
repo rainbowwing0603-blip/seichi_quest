@@ -459,6 +459,66 @@
       "width": 6432,
       "height": 2757,
       "embedded_watermark": false
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "tomioka_silk_mill",
+      "spot_name": "富岡製糸場",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:TomiokaSilkMillDormitory.JPG",
+      "author": "Ippukucho",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "width": 4240,
+      "height": 2832,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page/license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "lake_haruna",
+      "spot_name": "榛名湖",
+      "status": "needs_metadata_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Lake_Haruna_in_February_(a).jpg",
+      "author": "Unknown in search extract",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "width": 0,
+      "height": 0,
+      "embedded_watermark": false,
+      "notes": "License verified in source extract; author metadata must be verified before automated use."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "shorinzan_daruma_ji",
+      "spot_name": "少林山達磨寺",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Daruma_dolls_at_Daruma-ji_(Takasaki)_2010-04-01_01.jpg",
+      "author": "puffyjet",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "width": 3872,
+      "height": 2592,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page/license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "shorinzan_daruma_ji",
+      "spot_name": "少林山達磨寺",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Daruma_dolls_at_Daruma-ji_(Takasaki)_2010-04-01_02.jpg",
+      "author": "puffyjet",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "width": 3872,
+      "height": 2592,
+      "embedded_watermark": false,
+      "notes": "Individual Commons file page/license verified."
     }
   ]
 }
