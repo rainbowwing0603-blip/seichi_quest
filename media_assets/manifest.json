@@ -1919,17 +1919,17 @@
       "event_slug": "jomo-karuta-gunma",
       "spot_key": "tago_hi",
       "spot_name": "多胡碑",
-      "status": "needs_metadata_review",
+      "status": "verified_candidate",
       "source": "Wikimedia Commons",
       "file_page": "https://commons.wikimedia.org/wiki/File:%E5%A4%9A%E8%83%A1%E7%A2%91%E8%A8%98%E5%BF%B5%E9%A4%A8.JPG",
-      "author": "Commons contributor",
-      "license": "license pending individual extraction",
-      "license_url": "",
+      "author": "Bonsaiship",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
       "width": 2048,
       "height": 1536,
       "embedded_watermark": false,
       "asset_role": "onsite",
-      "notes": "Correct target and dimensions confirmed; excluded from READY until exact license metadata is extracted."
+      "notes": "Individual Commons page confirms 多胡碑記念館, own work by Bonsaiship, CC BY-SA 3.0; no application required."
     },
     {
       "event_slug": "jomo-karuta-gunma",
@@ -2551,6 +2551,11 @@
       "onsite_images": 5,
       "ready": true
     },
+    "tago_hi": {
+      "verified_images": 1,
+      "onsite_images": 1,
+      "ready": false
+    },
     "soja_futagoyama": {
       "verified_images": 1,
       "onsite_images": 0,
@@ -2781,6 +2786,14 @@
       "goal": "Expand only zero-application reusable media",
       "added": 2,
       "notes": "Found a strong exact-target PD-self image for Isesaki Meijikan. Dedicated category has 2 files. Search also rejected unrelated Sakurayama/Tsutsujigaoka results by coordinates/category."
+    },
+    {
+      "id": "2026-09-28-shortfall-fill-pass",
+      "goal": "Fill remaining zero-application READY shortfalls",
+      "verified_promotions": [
+        "多胡碑記念館.JPG"
+      ],
+      "notes": "Tagohi category reconfirmed at 9 files. Museum image rights fully verified. Broad searches for Ikushina, Neesima, Tsutsujigaoka, Agatsuma and Fujioka Sakurayama were also run; unrelated same-name Sakurayama results were rejected."
     }
   ],
   "source_policy": {
