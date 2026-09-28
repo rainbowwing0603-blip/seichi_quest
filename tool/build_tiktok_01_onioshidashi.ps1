@@ -26,11 +26,17 @@ $photos = @($manifest.assets | Where-Object {
 } | Select-Object -First 3)
 if ($photos.Count -lt 3) { throw "Three verified onioshidashi photos were not found in manifest.json." }
 
-foreach ($p in $photos) {
-  if (-not (Test-Path $p.cache_path)) {
-    New-Item -ItemType Directory -Force (Split-Path $p.cache_path -Parent) | Out-Null
-    Invoke-WebRequest -Uri $p.download_url -OutFile $p.cache_path
-  }
+$missing = @($photos | Where-Object { -not (Test-Path $_.cache_path) })
+if ($missing.Count -gt 0) {
+  Write-Host ""
+  Write-Host "Required licensed photos are not present in media_assets/cache." -ForegroundColor Yellow
+  Write-Host "Wikimedia is rate-limiting downloads (HTTP 429), so this builder will not retry the network." -ForegroundColor Yellow
+  Write-Host "Missing cache files:" -ForegroundColor Yellow
+  $missing | ForEach-Object { Write-Host ("  " + $_.cache_path) }
+  Write-Host ""
+  Write-Host "Run this later, then rerun this builder:" -ForegroundColor Cyan
+  Write-Host "  python tool/download_media_assets.py --max-files 3" -ForegroundColor Cyan
+  throw "Required local photo assets are missing."
 }
 
 function WriteTextFile([string]$name,[string]$value) {
