@@ -1354,6 +1354,70 @@
       "embedded_watermark": false,
       "asset_role": "regional",
       "notes": "Individual Commons metadata/location/license verified; preserve attribution and ShareAlike terms."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "myogi_shrine",
+      "spot_name": "妙義神社",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Myogi-jinja_staircase_of_165_steps.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 1136,
+      "height": 1526,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons metadata/location/license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "myogi_shrine",
+      "spot_name": "妙義神社",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Myogi-jinja_sakura.jpg",
+      "author": "Qurren",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 3796,
+      "height": 2848,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons metadata/location/license verified."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "tsutsuji_gaoka",
+      "spot_name": "つつじが岡",
+      "status": "needs_source_review",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:TsutsujiKoenTunnel.jpg",
+      "author": "Taketarou",
+      "license": "CC BY-SA 1.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/1.0/",
+      "width": 2592,
+      "height": 1944,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Correct Tatebayashi location and license found, but Commons page itself flags imported metadata as requiring review; excluded from READY until cleared."
+    },
+    {
+      "event_slug": "jomo-karuta-gunma",
+      "spot_key": "morinji",
+      "spot_name": "茂林寺",
+      "status": "verified_candidate",
+      "source": "Wikimedia Commons",
+      "file_page": "https://commons.wikimedia.org/wiki/File:Tatebayashi_Taxidermy_Of_Raccoon_Dog_At_Morinji_1.JPG",
+      "author": "京浜にけ",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "width": 2060,
+      "height": 3090,
+      "embedded_watermark": false,
+      "asset_role": "onsite",
+      "notes": "Individual Commons metadata/location/license verified."
     }
   ],
   "spot_readiness": {
@@ -1393,9 +1457,9 @@
       "ready": false
     },
     "myogi_shrine": {
-      "verified_images": 2,
-      "onsite_images": 2,
-      "ready": false
+      "verified_images": 4,
+      "onsite_images": 4,
+      "ready": true
     },
     "shorinzan_daruma_ji": {
       "verified_images": 5,
@@ -1403,9 +1467,9 @@
       "ready": true
     },
     "morinji": {
-      "verified_images": 2,
-      "onsite_images": 2,
-      "ready": false
+      "verified_images": 3,
+      "onsite_images": 3,
+      "ready": true
     },
     "tago_stele": {
       "verified_images": 1,
@@ -1606,5 +1670,23 @@
       "no_explicit_reuse_terms",
       "embedded_watermark"
     ]
-  }
+  },
+  "discovery_batches": [
+    {
+      "id": "2026-09-28-bulk-30-target",
+      "target": 30,
+      "verified_added": 3,
+      "review_queue_added": 1,
+      "discovered_not_ingested": [
+        "TsutsujiGaokaKoen.jpg",
+        "TsutsujiKouen.JPG",
+        "TsutsujiTatebayashi.jpg",
+        "Tsutsujigaoka Park Gate, Tatebayashi.JPG",
+        "Myogi-jinja additional category files",
+        "Morinji additional category files",
+        "Sakurayama Fujioka category files"
+      ],
+      "notes": "30-image sweep started. Only individually verified items are promoted; category hits and imported/unreviewed Commons metadata remain queued."
+    }
+  ]
 }
