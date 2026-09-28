@@ -10,10 +10,20 @@ import android.view.PixelCopy
 import android.content.ContentValues
 import android.provider.MediaStore
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.RenderMode
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    // PixelCopy cannot reliably capture Flutter's default Surface render target
+    // on some emulator/Android combinations. Media Studio runs only in debug,
+    // so use a Texture render target there; release keeps the normal Surface.
+    override fun getRenderMode(): RenderMode {
+        val debuggable =
+            (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        return if (debuggable) RenderMode.texture else RenderMode.surface
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -106,6 +116,16 @@ class MainActivity : FlutterActivity() {
                 }
 
                 try {
+                    if (isAlmostBlack(bitmap)) {
+                        bitmap.recycle()
+                        result.error(
+                            "CAPTURE_BLACK",
+                            "Capture is almost entirely black; batch stopped before saving invalid media.",
+                            null
+                        )
+                        return@request
+                    }
+
                     val outputBitmap = if (mosaic) createMosaic(bitmap) else bitmap
                     val bytes = java.io.ByteArrayOutputStream().use { stream ->
                         outputBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
@@ -121,6 +141,34 @@ class MainActivity : FlutterActivity() {
             },
             Handler(Looper.getMainLooper())
         )
+    }
+
+    private fun isAlmostBlack(source: Bitmap): Boolean {
+        // Sample a grid rather than scanning every pixel. This catches the
+        // all-black PixelCopy failure cheaply and aborts the batch on item 1.
+        val columns = 24
+        val rows = 40
+        var dark = 0
+        var sampled = 0
+
+        for (row in 0 until rows) {
+            val y = ((row + 0.5) * source.height / rows)
+                .toInt()
+                .coerceIn(0, source.height - 1)
+            for (column in 0 until columns) {
+                val x = ((column + 0.5) * source.width / columns)
+                    .toInt()
+                    .coerceIn(0, source.width - 1)
+                val pixel = source.getPixel(x, y)
+                val red = android.graphics.Color.red(pixel)
+                val green = android.graphics.Color.green(pixel)
+                val blue = android.graphics.Color.blue(pixel)
+                if (red < 12 && green < 12 && blue < 12) dark++
+                sampled++
+            }
+        }
+
+        return sampled > 0 && dark.toDouble() / sampled >= 0.98
     }
 
     private fun createMosaic(source: Bitmap): Bitmap {
