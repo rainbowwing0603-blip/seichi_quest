@@ -13,6 +13,8 @@ class BannerAdWidget extends StatefulWidget {
 }
 
 class _BannerAdWidgetState extends State<BannerAdWidget> {
+  // Screenshot capture mode. Keep ads completely dormant while enabled.
+  static const bool _screenshotMode = true;
   static const int _maxBannerHeight = 50;
 
   BannerAd? _bannerAd;
@@ -47,6 +49,11 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
+    if (_screenshotMode) {
+      _disposeCurrentBanner();
+      return;
+    }
 
     final availableWidth = MediaQuery.sizeOf(context).width;
     if (availableWidth <= 0) {
@@ -161,7 +168,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isLoaded || _bannerAd == null) {
+    if (_screenshotMode || !_isLoaded || _bannerAd == null) {
       return const SizedBox.shrink();
     }
 
