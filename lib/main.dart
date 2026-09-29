@@ -319,12 +319,13 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   static const WeatherRefreshPolicy _weatherRefreshPolicy =
       WeatherRefreshPolicy();
 
-  // 天気エフェクトの性能・見た目確認用。現在は曇りを強制。リリース前に false へ戻すこと。
-  static const bool _forceCloudyForVisualTest = false;
+  // Screenshot capture mode: force clear weather for stable promotional captures.
+  // Return this to false before release.
+  static const bool _forceClearForScreenshot = true;
   RealWorldState? _realWorldState = RealWorldState.fromLocalTime(
     DateTime.now(),
-    weather: _forceCloudyForVisualTest
-        ? WeatherCondition.cloudy
+    weather: _forceClearForScreenshot
+        ? WeatherCondition.clear
         : WeatherCondition.unknown,
   );
   DateTime? _lastWeatherFetchAt;
@@ -1712,11 +1713,11 @@ class _SeichiMapPageState extends State<SeichiMapPage>
 
       setState(() {
         final currentState = state.atCurrentTime(DateTime.now());
-        _realWorldState = _forceCloudyForVisualTest
+        _realWorldState = _forceClearForScreenshot
             ? RealWorldState(
                 season: currentState.season,
                 dayPhase: currentState.dayPhase,
-                weather: WeatherCondition.cloudy,
+                weather: WeatherCondition.clear,
                 temperatureCelsius: currentState.temperatureCelsius,
                 strongWindExpected: currentState.strongWindExpected,
                 observedAt: currentState.observedAt,
