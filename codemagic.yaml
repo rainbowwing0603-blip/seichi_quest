@@ -1,0 +1,39 @@
+workflows:
+  ios-unsigned-check:
+    name: iOS unsigned readiness check
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    environment:
+      flutter: 3.47.1
+      xcode: latest
+      cocoapods: default
+      vars:
+        # Google official sample AdMob app ID for iOS.
+        # Production signing/release will replace this with a Codemagic secret.
+        ADMOB_IOS_APP_ID: "ca-app-pub-3940256099942544~1458002511"
+
+    scripts:
+      - name: Resolve Flutter dependencies
+        script: flutter pub get
+
+      - name: Analyze
+        script: flutter analyze
+
+      - name: Run tests
+        script: flutter test
+
+      - name: Install iOS dependencies
+        script: find . -name "Podfile" -execdir pod install \;
+
+      - name: Configure unsigned iOS test values
+        script: |
+          printf '\nADMOB_IOS_APP_ID=%s\n' "$ADMOB_IOS_APP_ID" >> ios/Flutter/Generated.xcconfig
+          printf 'GOOGLE_MAPS_API_KEY=\n' >> ios/Flutter/Generated.xcconfig
+
+      - name: Build iOS without code signing
+        script: flutter build ios --debug --no-codesign
+
+    artifacts:
+      - build/ios/iphoneos/**/*.app
+      - /tmp/xcodebuild_logs/*.log

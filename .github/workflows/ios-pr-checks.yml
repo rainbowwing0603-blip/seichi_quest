@@ -1,0 +1,56 @@
+name: iOS PR checks
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "ios/**"
+      - "lib/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - ".github/workflows/ios-pr-checks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-unsigned-build:
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter 3.47.1
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.1"
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Configure unsigned iOS test values
+        run: |
+          printf '\nADMOB_IOS_APP_ID=ca-app-pub-3940256099942544~1458002511\n' >> ios/Flutter/Generated.xcconfig
+          printf 'GOOGLE_MAPS_API_KEY=\n' >> ios/Flutter/Generated.xcconfig
+
+      - name: Build iOS without code signing
+        run: flutter build ios --debug --no-codesign

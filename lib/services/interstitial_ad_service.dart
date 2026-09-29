@@ -34,11 +34,15 @@ class InterstitialAdService {
 
   // Debug/ProfileではGoogle公式テスト広告、
   // Releaseでは聖地クエスト本番広告を使用する。
-  static const String _testInterstitialAdUnitId =
+  static const String _androidTestInterstitialAdUnitId =
       'ca-app-pub-3940256099942544/1033173712';
+  static const String _iosTestInterstitialAdUnitId =
+      'ca-app-pub-3940256099942544/4411468910';
 
-  static const String _productionInterstitialAdUnitId =
+  static const String _androidProductionInterstitialAdUnitId =
       'ca-app-pub-1391846841313915/4859337718';
+  static const String _iosProductionInterstitialAdUnitId =
+      String.fromEnvironment('ADMOB_IOS_INTERSTITIAL_AD_UNIT_ID');
 
   final DateTime _sessionStartedAt = DateTime.now();
 
@@ -49,14 +53,26 @@ class InterstitialAdService {
   bool _isLoading = false;
   bool _isShowing = false;
 
-  bool get hasProductionAdUnitId => true;
+  bool get hasProductionAdUnitId {
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return true;
+    }
+    return _iosProductionInterstitialAdUnitId.isNotEmpty;
+  }
 
   String? get _adUnitId {
+    final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+
     if (kReleaseMode) {
-      return _productionInterstitialAdUnitId;
+      final id = isIOS
+          ? _iosProductionInterstitialAdUnitId
+          : _androidProductionInterstitialAdUnitId;
+      return id.isEmpty ? null : id;
     }
 
-    return _testInterstitialAdUnitId;
+    return isIOS
+        ? _iosTestInterstitialAdUnitId
+        : _androidTestInterstitialAdUnitId;
   }
 
   void preload() {

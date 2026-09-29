@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'collection_history_service.dart';
 import 'widgets/banner_ad_widget.dart';
 import 'widgets/collection_page.dart';
+import 'widgets/collection_card_page.dart';
 import 'widgets/quest_page.dart';
 import 'widgets/ranking_page.dart';
 import 'widgets/map_page.dart';
@@ -2416,6 +2417,22 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (didCompleteQuest) {
       await _showQuestCompleteDialog(totalCount: _seichiList.length);
     }
+
+    // The existing stamp animation and achievement dialogs finish first.
+    final event = _currentEvent;
+    if (mounted && event != null && event.id == currentEventId &&
+        newlyCollectedSeichi.isNotEmpty) {
+      final item = newlyCollectedSeichi.first;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${item.title}の獲得記念カードを作れます'),
+        action: SnackBarAction(label: 'カードを見る', onPressed: () {
+          if (!mounted || _currentEventId != event.id) return;
+          Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) =>
+            CollectionCardPage(event: event, item: item,
+              collectedCount: _getCollectedCount(), totalCount: _eventTotalCount)));
+        }),
+      ));
+    }
   }
 
   // ============================================================
@@ -3623,6 +3640,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       case 2:
         return CollectionPage(
           eventId: _currentEventId,
+          event: _currentEvent,
           questItems: _seichiList,
           collectedIds: _collectedIds,
           totalCount: _eventTotalCount,

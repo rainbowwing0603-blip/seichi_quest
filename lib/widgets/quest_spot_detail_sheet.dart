@@ -13,6 +13,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
     this.isNext = false,
     this.eventNames = const <String>[],
     this.onShowOnMap,
+    this.onOpenCollectionCard,
     this.onSetNextDestination,
     this.eventTheme = QuestEventThemePolicy.sharedTheme,
   });
@@ -22,6 +23,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
   final bool isNext;
   final List<String> eventNames;
   final VoidCallback? onShowOnMap;
+  final VoidCallback? onOpenCollectionCard;
   final VoidCallback? onSetNextDestination;
   final QuestEventTheme eventTheme;
 
@@ -32,6 +34,7 @@ class QuestSpotDetailSheet extends StatelessWidget {
     bool isNext = false,
     List<String> eventNames = const <String>[],
     VoidCallback? onShowOnMap,
+    VoidCallback? onOpenCollectionCard,
     VoidCallback? onSetNextDestination,
     QuestEventTheme eventTheme = QuestEventThemePolicy.sharedTheme,
   }) {
@@ -46,6 +49,10 @@ class QuestSpotDetailSheet extends StatelessWidget {
           collected: collected,
           isNext: isNext,
           eventNames: eventNames,
+          onOpenCollectionCard: onOpenCollectionCard == null ? null : () {
+            Navigator.of(sheetContext).pop();
+            onOpenCollectionCard();
+          },
           onShowOnMap: onShowOnMap == null ? null : () {
             Navigator.of(sheetContext).pop();
             onShowOnMap();
@@ -100,6 +107,11 @@ class QuestSpotDetailSheet extends StatelessWidget {
               if (collected && eventNames.isNotEmpty) ...[
                 const SizedBox(height: 14),
                 _buildEventNames(),
+              ],
+              if (collected && onOpenCollectionCard != null) ...[
+                const SizedBox(height: 16),
+                QuestPrimaryButton(label: '獲得記念カードを見る',
+                  icon: Icons.card_giftcard_rounded, onPressed: onOpenCollectionCard),
               ],
               if (onShowOnMap != null) ...[
                 const SizedBox(height: 16),

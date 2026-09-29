@@ -21,16 +21,28 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   // Debug/ProfileではGoogle公式テスト広告、
   // Releaseでは聖地クエスト本番広告を使用する。
-  static const String _testBannerAdUnitId =
+  static const String _androidTestBannerAdUnitId =
       'ca-app-pub-3940256099942544/9214589741';
+  static const String _iosTestBannerAdUnitId =
+      'ca-app-pub-3940256099942544/2934735716';
 
-  static const String _productionBannerAdUnitId =
+  static const String _androidProductionBannerAdUnitId =
       'ca-app-pub-1391846841313915/2597290432';
+  static const String _iosProductionBannerAdUnitId =
+      String.fromEnvironment('ADMOB_IOS_BANNER_AD_UNIT_ID');
 
-  static String get _bannerAdUnitId =>
-      kReleaseMode
-          ? _productionBannerAdUnitId
-          : _testBannerAdUnitId;
+  static String? get _bannerAdUnitId {
+    final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+
+    if (kReleaseMode) {
+      final id = isIOS
+          ? _iosProductionBannerAdUnitId
+          : _androidProductionBannerAdUnitId;
+      return id.isEmpty ? null : id;
+    }
+
+    return isIOS ? _iosTestBannerAdUnitId : _androidTestBannerAdUnitId;
+  }
 
   @override
   void didChangeDependencies() {
@@ -78,8 +90,14 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       '(adaptive=${adaptiveSize?.width}x${adaptiveSize?.height})',
     );
 
+    final adUnitId = _bannerAdUnitId;
+    if (adUnitId == null) {
+      appDebugPrint('[ADS] banner disabled: iOS production ad unit is not configured');
+      return;
+    }
+
     final banner = BannerAd(
-      adUnitId: _bannerAdUnitId,
+      adUnitId: adUnitId,
       size: adSize,
       request: const AdRequest(),
       listener: BannerAdListener(
