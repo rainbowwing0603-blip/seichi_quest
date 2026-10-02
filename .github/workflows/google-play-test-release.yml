@@ -1,6 +1,6 @@
 name: Google Play Test Release
 
-on:
+'on':
   workflow_dispatch:
     inputs:
       track:
