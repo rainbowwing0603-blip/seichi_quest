@@ -1,0 +1,41 @@
+name: Google Play API check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  play-api-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: jomokaruta
+          workload_identity_provider: projects/152400953721/locations/global/workloadIdentityPools/seichi-quest-github/providers/seichi-quest-github
+          service_account: seichi-quest-play-api@jomokaruta.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+
+      - name: Verify Google Play Developer API access
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PACKAGE_NAME: jp.seichiquest.app
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --silent --show-error --fail-with-body \
+            -X POST \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}/edits" \
+            -d '{}')"
+          edit_id="$(printf '%s' "$response" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+          echo "Authenticated to Google Play Developer API."
+          echo "Temporary edit created successfully; no edit is committed."
+          echo "edit_id=${edit_id}"
