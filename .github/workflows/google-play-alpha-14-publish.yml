@@ -69,7 +69,17 @@ jobs:
           curl -sS --fail-with-body -X PUT "${auth[@]}" -H "Content-Type: application/json" "$api/edits/${edit_id}/tracks/${track}" -d "$body" >/dev/null
           echo "Alpha track staged with versionCode 14"
 
-          curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/json" "$api/edits/${edit_id}:commit" -d '{}' >/dev/null
+          echo "Validating edit before commit"
+          curl -sS --fail-with-body -X POST "${auth[@]}" "$api/edits/${edit_id}:validate" >/dev/null
+
+          commit_out="$(mktemp)"
+          commit_code="$(curl -sS -o "$commit_out" -w '%{http_code}' -X POST "${auth[@]}" "$api/edits/${edit_id}:commit")"
+          echo "COMMIT_HTTP_STATUS=${commit_code}"
+          if [[ ! "$commit_code" =~ ^2 ]]; then
+            python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); e=d.get("error",{}); print("COMMIT_API_MESSAGE="+str(e.get("message","unknown"))); print("COMMIT_API_STATUS="+str(e.get("status","unknown"))); print("COMMIT_API_REASONS="+",".join(str(x.get("reason","unknown")) for x in e.get("errors",[]))); print("COMMIT_API_DETAILS="+str(e.get("details",[])))' "$commit_out" || { echo "COMMIT_NON_JSON_RESPONSE"; head -c 1500 "$commit_out"; echo; }
+            exit 1
+          fi
+          rm -f "$commit_out"
           trap - EXIT
           echo "PUBLISHED_VERSION_CODE=14"
           echo "PUBLISHED_TRACK=alpha"
