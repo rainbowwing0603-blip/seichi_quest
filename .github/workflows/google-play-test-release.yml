@@ -133,18 +133,7 @@ jobs:
             code="$(curl -sS -o "$tmp" -w '%{http_code}' "$@")"
             if [[ ! "$code" =~ ^2 ]]; then
               echo "::error title=Google Play API ${label} failed::HTTP ${code}"
-              python3 - "$tmp" <<'PY'
-              import json,sys
-              p=sys.argv[1]
-              try:
-                  d=json.load(open(p))
-                  e=d.get("error",{})
-                  print("Google Play API error:", e.get("message","unknown error"))
-                  for item in e.get("errors",[]):
-                      print("reason:", item.get("reason","unknown"))
-              except Exception:
-                  print("Google Play API returned a non-JSON error response.")
-              PY
+              python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); e=d.get("error",{}); print("Google Play API error:", e.get("message","unknown error")); [print("reason:", x.get("reason","unknown")) for x in e.get("errors",[])]' "$tmp" || echo "Google Play API returned a non-JSON error response."
               rm -f "$tmp"
               return 1
             fi
