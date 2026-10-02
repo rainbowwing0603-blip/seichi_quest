@@ -37,7 +37,6 @@ jobs:
   test-release:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: google-play-test-release
     steps:
       - name: Guard production
         shell: bash
