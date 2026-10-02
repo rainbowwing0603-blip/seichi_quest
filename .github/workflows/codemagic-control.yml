@@ -1,0 +1,106 @@
+name: Codemagic Control Bridge
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  codemagic:
+    if: >
+      github.event.issue.title == '[Control] Codemagic' &&
+      github.actor == 'rainbowwing0603-blip' &&
+      startsWith(github.event.comment.body, '/codemagic ')
+    runs-on: ubuntu-latest
+    env:
+      CODEMAGIC_API_TOKEN: ${{ secrets.CODEMAGIC_API_TOKEN }}
+      CODEMAGIC_APP_NAME: seichi_quest
+      CODEMAGIC_WORKFLOW_ID: ios-unsigned-check
+    steps:
+      - name: Execute Codemagic command
+        id: cm
+        shell: bash
+        run: |
+          set -euo pipefail
+          command_text="${{ github.event.comment.body }}"
+          read -r _ action arg <<< "$command_text"
+
+          if [ -z "${CODEMAGIC_API_TOKEN:-}" ]; then
+            echo "result=❌ CODEMAGIC_API_TOKEN is not configured." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          api() {
+            curl --fail-with-body --silent --show-error \
+              -H "Accept: application/json" \
+              -H "Content-Type: application/json" \
+              -H "x-auth-token: $CODEMAGIC_API_TOKEN" \
+              "$@"
+          }
+
+          case "$action" in
+            apps)
+              response="$(api https://api.codemagic.io/apps)"
+              app_id="$(printf '%s' "$response" | jq -r --arg name "$CODEMAGIC_APP_NAME" '.applications[] | select(.appName == $name) | ._id' | head -n1)"
+              if [ -z "$app_id" ]; then
+                result="❌ Codemagic app '$CODEMAGIC_APP_NAME' was not found."
+              else
+                result="✅ Codemagic API connected. App: $CODEMAGIC_APP_NAME, appId: $app_id, workflow: $CODEMAGIC_WORKFLOW_ID"
+              fi
+              ;;
+            build)
+              branch="${arg:-feature/android-next-release}"
+              response="$(api https://api.codemagic.io/apps)"
+              app_id="$(printf '%s' "$response" | jq -r --arg name "$CODEMAGIC_APP_NAME" '.applications[] | select(.appName == $name) | ._id' | head -n1)"
+              if [ -z "$app_id" ]; then
+                result="❌ Codemagic app '$CODEMAGIC_APP_NAME' was not found."
+              else
+                payload="$(jq -nc --arg appId "$app_id" --arg workflowId "$CODEMAGIC_WORKFLOW_ID" --arg branch "$branch" '{appId:$appId,workflowId:$workflowId,branch:$branch}')"
+                build_response="$(api -X POST --data "$payload" https://api.codemagic.io/builds)"
+                build_id="$(printf '%s' "$build_response" | jq -r '.buildId // empty')"
+                result="🚀 Codemagic build started. branch: $branch, buildId: $build_id"
+              fi
+              ;;
+            status)
+              if [[ ! "${arg:-}" =~ ^[0-9a-fA-F]{24}$ ]]; then
+                result="❌ Usage: /codemagic status <24-character-build-id>"
+              else
+                response="$(api "https://codemagic.io/api/v3/builds/$arg")"
+                status="$(printf '%s' "$response" | jq -r '.data.status // "unknown"')"
+                result="ℹ️ Codemagic build $arg status: $status"
+              fi
+              ;;
+            cancel)
+              if [[ ! "${arg:-}" =~ ^[0-9a-fA-F]{24}$ ]]; then
+                result="❌ Usage: /codemagic cancel <24-character-build-id>"
+              else
+                api -X POST "https://api.codemagic.io/builds/$arg/cancel" >/dev/null
+                result="🛑 Cancel requested for Codemagic build $arg."
+              fi
+              ;;
+            *)
+              result="❌ Unknown command. Use apps, build [branch], status <build-id>, or cancel <build-id>."
+              ;;
+          esac
+
+          {
+            echo 'result<<EOF'
+            echo "$result"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Reply to control issue
+        uses: actions/github-script@v8
+        env:
+          RESULT: ${{ steps.cm.outputs.result }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: process.env.RESULT
+            })
