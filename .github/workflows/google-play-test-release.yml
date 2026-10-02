@@ -61,6 +61,18 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Restore Android release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_KEYSTORE_BASE64" || { echo "Missing ANDROID_KEYSTORE_BASE64 secret"; exit 1; }
+          test -n "$ANDROID_KEY_PROPERTIES" || { echo "Missing ANDROID_KEY_PROPERTIES secret"; exit 1; }
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          printf '%s' "$ANDROID_KEY_PROPERTIES" > android/key.properties
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -72,6 +84,12 @@ jobs:
 
       - name: Build Android App Bundle
         run: flutter build appbundle --release
+
+      - name: Verify AAB exists
+        shell: bash
+        run: |
+          test -s build/app/outputs/bundle/release/app-release.aab
+          ls -lh build/app/outputs/bundle/release/app-release.aab
 
       - name: Authenticate to Google Cloud
         id: auth
