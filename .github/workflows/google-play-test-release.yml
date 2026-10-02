@@ -72,6 +72,13 @@ jobs:
           test -n "$ANDROID_KEY_PROPERTIES" || { echo "Missing ANDROID_KEY_PROPERTIES secret"; exit 1; }
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
           printf '%s' "$ANDROID_KEY_PROPERTIES" > android/key.properties
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/key.properties")
+          lines = p.read_text().splitlines()
+          lines = ["storeFile=upload-keystore.jks" if line.startswith("storeFile=") else line for line in lines]
+          p.write_text("\n".join(lines) + "\n")
+          PY
 
       - name: Install dependencies
         run: flutter pub get
@@ -122,7 +129,7 @@ jobs:
           upload="$(curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/octet-stream" --data-binary "@${AAB}" "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/${PACKAGE_NAME}/edits/${edit_id}/bundles?uploadType=media")"
           version_code="$(printf '%s' "$upload" | python3 -c 'import json,sys; print(json.load(sys.stdin)["versionCode"])')"
 
-          body="$(python3 -c 'import json,os; print(json.dumps({"releases":[{"status":os.environ["RELEASE_STATUS"],"versionCodes":[os.environ["VERSION_CODE"]]}]}))' VERSION_CODE="$version_code")"
+          body="$(VERSION_CODE="$version_code" python3 -c 'import json,os; print(json.dumps({"releases":[{"status":os.environ["RELEASE_STATUS"],"versionCodes":[os.environ["VERSION_CODE"]]}]}))')"
           curl -sS --fail-with-body -X PUT "${auth[@]}" -H "Content-Type: application/json" "$api/edits/${edit_id}/tracks/${TRACK}" -d "$body" >/dev/null
 
           curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/json" "$api/edits/${edit_id}:commit" -d '{}' >/dev/null
