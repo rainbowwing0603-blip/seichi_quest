@@ -98,6 +98,14 @@ jobs:
           test -s build/app/outputs/bundle/release/app-release.aab
           ls -lh build/app/outputs/bundle/release/app-release.aab
 
+      - name: Preserve AAB for API retry
+        uses: actions/upload-artifact@v4
+        with:
+          name: play-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v3
@@ -133,7 +141,9 @@ jobs:
             code="$(curl -sS -o "$tmp" -w '%{http_code}' "$@")"
             if [[ ! "$code" =~ ^2 ]]; then
               echo "::error title=Google Play API ${label} failed::HTTP ${code}"
-              python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); e=d.get("error",{}); print("Google Play API error:", e.get("message","unknown error")); [print("reason:", x.get("reason","unknown")) for x in e.get("errors",[])]' "$tmp" || echo "Google Play API returned a non-JSON error response."
+              echo "HTTP_STATUS=${code}"
+              echo "PLAY_API_STAGE=${label}"
+              python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); e=d.get("error",{}); print("PLAY_API_MESSAGE="+str(e.get("message","unknown error"))); print("PLAY_API_STATUS="+str(e.get("status","unknown"))); print("PLAY_API_REASONS="+",".join(str(x.get("reason","unknown")) for x in e.get("errors",[])))' "$tmp" || { echo "PLAY_API_NON_JSON_RESPONSE"; head -c 1000 "$tmp"; echo; }
               rm -f "$tmp"
               return 1
             fi
