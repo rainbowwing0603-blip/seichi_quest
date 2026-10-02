@@ -1,0 +1,112 @@
+name: Google Play Test Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: "Test track only"
+        required: true
+        default: "alpha"
+        type: choice
+        options:
+          - alpha
+          - beta
+          - internal
+      branch:
+        description: "Branch to build"
+        required: true
+        default: "feature/android-next-release"
+      release_status:
+        description: "Play release status"
+        required: true
+        default: "completed"
+        type: choice
+        options:
+          - draft
+          - completed
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: google-play-test-release
+  cancel-in-progress: false
+
+jobs:
+  test-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: google-play-test-release
+    steps:
+      - name: Guard production
+        shell: bash
+        env:
+          TRACK: ${{ inputs.track }}
+        run: |
+          case "$TRACK" in
+            alpha|beta|internal) ;;
+            *) echo "Production or unknown track is forbidden."; exit 1 ;;
+          esac
+
+      - name: Checkout selected branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build Android App Bundle
+        run: flutter build appbundle --release
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: jomokaruta
+          workload_identity_provider: projects/152400953721/locations/global/workloadIdentityPools/seichi-quest-github/providers/seichi-quest-github
+          service_account: seichi-quest-play-api@jomokaruta.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+          create_credentials_file: false
+
+      - name: Upload AAB to test track
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PACKAGE_NAME: jp.seichiquest.app
+          TRACK: ${{ inputs.track }}
+          RELEASE_STATUS: ${{ inputs.release_status }}
+          AAB: build/app/outputs/bundle/release/app-release.aab
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}"
+          auth=(-H "Authorization: Bearer ${ACCESS_TOKEN}")
+          edit="$(curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/json" "$api/edits" -d '{}')"
+          edit_id="$(printf '%s' "$edit" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+          cleanup() { curl -sS -X DELETE "${auth[@]}" "$api/edits/${edit_id}" >/dev/null || true; }
+          trap cleanup EXIT
+
+          upload="$(curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/octet-stream" --data-binary "@${AAB}" "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/${PACKAGE_NAME}/edits/${edit_id}/bundles?uploadType=media")"
+          version_code="$(printf '%s' "$upload" | python3 -c 'import json,sys; print(json.load(sys.stdin)["versionCode"])')"
+
+          body="$(python3 -c 'import json,os; print(json.dumps({"releases":[{"status":os.environ["RELEASE_STATUS"],"versionCodes":[os.environ["VERSION_CODE"]]}]}))' VERSION_CODE="$version_code")"
+          curl -sS --fail-with-body -X PUT "${auth[@]}" -H "Content-Type: application/json" "$api/edits/${edit_id}/tracks/${TRACK}" -d "$body" >/dev/null
+
+          curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/json" "$api/edits/${edit_id}:commit" -d '{}' >/dev/null
+          trap - EXIT
+          echo "Published versionCode ${version_code} to test track ${TRACK} with status ${RELEASE_STATUS}."
