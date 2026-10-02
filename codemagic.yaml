@@ -1,4 +1,3 @@
-# Codemagic webhook trigger verification
 workflows:
   ios-unsigned-check:
     name: iOS unsigned readiness check
@@ -8,6 +7,7 @@ workflows:
     triggering:
       events:
         - push
+        - pull_request
       branch_patterns:
         - pattern: 'feature/android-next-release'
           include: true
