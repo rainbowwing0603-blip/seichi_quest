@@ -126,12 +126,38 @@ jobs:
           cleanup() { curl -sS -X DELETE "${auth[@]}" "$api/edits/${edit_id}" >/dev/null || true; }
           trap cleanup EXIT
 
-          upload="$(curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/octet-stream" --data-binary "@${AAB}" "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/${PACKAGE_NAME}/edits/${edit_id}/bundles?uploadType=media")"
+          request() {
+            local label="$1"; shift
+            local tmp code
+            tmp="$(mktemp)"
+            code="$(curl -sS -o "$tmp" -w '%{http_code}' "$@")"
+            if [[ ! "$code" =~ ^2 ]]; then
+              echo "::error title=Google Play API ${label} failed::HTTP ${code}"
+              python3 - "$tmp" <<'PY'
+import json,sys
+p=sys.argv[1]
+try:
+    d=json.load(open(p))
+    e=d.get("error",{})
+    print("Google Play API error:", e.get("message","unknown error"))
+    for item in e.get("errors",[]):
+        print("reason:", item.get("reason","unknown"))
+except Exception:
+    print("Google Play API returned a non-JSON error response.")
+PY
+              rm -f "$tmp"
+              return 1
+            fi
+            cat "$tmp"
+            rm -f "$tmp"
+          }
+
+          upload="$(request "bundle upload" -X POST "${auth[@]}" -H "Content-Type: application/octet-stream" --data-binary "@${AAB}" "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/${PACKAGE_NAME}/edits/${edit_id}/bundles?uploadType=media")"
           version_code="$(printf '%s' "$upload" | python3 -c 'import json,sys; print(json.load(sys.stdin)["versionCode"])')"
 
           body="$(VERSION_CODE="$version_code" python3 -c 'import json,os; print(json.dumps({"releases":[{"status":os.environ["RELEASE_STATUS"],"versionCodes":[os.environ["VERSION_CODE"]]}]}))')"
-          curl -sS --fail-with-body -X PUT "${auth[@]}" -H "Content-Type: application/json" "$api/edits/${edit_id}/tracks/${TRACK}" -d "$body" >/dev/null
+          request "track update" -X PUT "${auth[@]}" -H "Content-Type: application/json" "$api/edits/${edit_id}/tracks/${TRACK}" -d "$body" >/dev/null
 
-          curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/json" "$api/edits/${edit_id}:commit" -d '{}' >/dev/null
+          request "edit commit" -X POST "${auth[@]}" -H "Content-Type: application/json" "$api/edits/${edit_id}:commit" -d '{}' >/dev/null
           trap - EXIT
           echo "Published versionCode ${version_code} to test track ${TRACK} with status ${RELEASE_STATUS}."
