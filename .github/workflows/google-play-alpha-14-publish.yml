@@ -1,0 +1,76 @@
+name: Google Play Alpha 14 Publish
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+
+concurrency:
+  group: google-play-alpha-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: google-play-test-release
+    steps:
+      - name: Download preserved versionCode 14 AAB
+        uses: actions/download-artifact@v4
+        with:
+          name: play-release-aab
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 37073660036
+          path: artifact
+
+      - name: Verify AAB
+        run: |
+          set -euo pipefail
+          test -s artifact/app-release.aab
+          ls -lh artifact/app-release.aab
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: jomokaruta
+          workload_identity_provider: projects/152400953721/locations/global/workloadIdentityPools/seichi-quest-github/providers/seichi-quest-github
+          service_account: seichi-quest-play-api@jomokaruta.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+          create_credentials_file: false
+
+      - name: Publish versionCode 14 to Alpha
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="jp.seichiquest.app"
+          track="alpha"
+          api="https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${package}"
+          auth=(-H "Authorization: Bearer ${ACCESS_TOKEN}")
+
+          edit="$(curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/json" "$api/edits" -d '{}')"
+          edit_id="$(printf '%s' "$edit" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+          cleanup() { curl -sS -X DELETE "${auth[@]}" "$api/edits/${edit_id}" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+
+          upload="$(curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/octet-stream" --data-binary @artifact/app-release.aab "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/${package}/edits/${edit_id}/bundles?uploadType=media")"
+          version_code="$(printf '%s' "$upload" | python3 -c 'import json,sys; print(json.load(sys.stdin)["versionCode"])')"
+          echo "Uploaded VERSION_CODE=${version_code}"
+          test "$version_code" = "14" || { echo "Refusing to publish unexpected versionCode ${version_code}"; exit 1; }
+
+          body='{"releases":[{"status":"completed","versionCodes":["14"]}]}'
+          curl -sS --fail-with-body -X PUT "${auth[@]}" -H "Content-Type: application/json" "$api/edits/${edit_id}/tracks/${track}" -d "$body" >/dev/null
+          echo "Alpha track staged with versionCode 14"
+
+          curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/json" "$api/edits/${edit_id}:commit" -d '{}' >/dev/null
+          trap - EXIT
+          echo "PUBLISHED_VERSION_CODE=14"
+          echo "PUBLISHED_TRACK=alpha"
+          echo "PUBLISHED_STATUS=completed"
