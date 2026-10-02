@@ -1,17 +1,45 @@
-name: Google Play API check
+name: Google Play Control Bridge
 
 on:
   workflow_dispatch:
+    inputs:
+      command:
+        description: "Safe command: status | tracks | test-release <track> <aab-url/path is not supported here>"
+        required: true
+        default: "status"
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
   id-token: write
+  issues: write
 
 jobs:
-  play-api-check:
+  play-control:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.title == '[Control] Google Play' &&
+       github.actor == 'rainbowwing0603-blip' &&
+       startsWith(github.event.comment.body, '/play '))
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
+      - name: Resolve command
+        id: cmd
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_COMMAND: ${{ inputs.command }}
+          COMMENT_COMMAND: ${{ github.event.comment.body }}
+        shell: bash
+        run: |
+          if [ "$EVENT_NAME" = "issue_comment" ]; then
+            cmd="${COMMENT_COMMAND#/play }"
+          else
+            cmd="$DISPATCH_COMMAND"
+          fi
+          printf 'command=%s\n' "$cmd" >> "$GITHUB_OUTPUT"
+
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v3
@@ -23,25 +51,51 @@ jobs:
           access_token_scopes: https://www.googleapis.com/auth/androidpublisher
           create_credentials_file: false
 
-      - name: Verify Google Play Developer API access
+      - name: Run safe Play command
+        id: play
         env:
           ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
           PACKAGE_NAME: jp.seichiquest.app
+          COMMAND: ${{ steps.cmd.outputs.command }}
         shell: bash
         run: |
           set -euo pipefail
-          response="$(curl --silent --show-error --fail-with-body \
-            -X POST \
-            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-            -H "Content-Type: application/json" \
-            "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}/edits" \
-            -d '{}')"
-          edit_id="$(printf '%s' "$response" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+          api="https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}"
+          auth=(-H "Authorization: Bearer ${ACCESS_TOKEN}" -H "Content-Type: application/json")
+          edit="$(curl -sS --fail-with-body -X POST "${auth[@]}" "$api/edits" -d '{}')"
+          edit_id="$(printf '%s' "$edit" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+          cleanup() { curl -sS -X DELETE -H "Authorization: Bearer ${ACCESS_TOKEN}" "$api/edits/${edit_id}" >/dev/null || true; }
+          trap cleanup EXIT
 
-          curl --silent --show-error --fail-with-body \
-            -X DELETE \
-            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-            "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}/edits/${edit_id}"
+          case "$COMMAND" in
+            status)
+              out="Google Play API: connected. Package: ${PACKAGE_NAME}. No production-changing operation executed."
+              ;;
+            tracks)
+              tracks="$(curl -sS --fail-with-body -H "Authorization: Bearer ${ACCESS_TOKEN}" "$api/edits/${edit_id}/tracks")"
+              out="$(printf '%s' "$tracks" | python3 -c 'import json,sys; d=json.load(sys.stdin); print("\n".join([f"{t.get(chr(116)+chr(114)+chr(97)+chr(99)+chr(107),chr(63))}: "+", ".join([r.get(chr(115)+chr(116)+chr(97)+chr(116)+chr(117)+chr(115),chr(63))+" "+"/".join(r.get(chr(118)+chr(101)+chr(114)+chr(115)+chr(105)+chr(111)+chr(110)+chr(67)+chr(111)+chr(100)+chr(101)+chr(115),[])) for r in t.get(chr(114)+chr(101)+chr(108)+chr(101)+chr(97)+chr(115)+chr(101)+chr(115),[])]) for t in d.get(chr(116)+chr(114)+chr(97)+chr(99)+chr(107)+chr(115),[])]))')"
+              ;;
+            *)
+              echo "Unsupported safe command: $COMMAND" >&2
+              exit 2
+              ;;
+          esac
+          {
+            echo 'result<<EOF'
+            echo "$out"
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
 
-          echo "Google Play Developer API authentication and app access verified."
-          echo "Temporary edit deleted; no release or store data changed."
+      - name: Reply to control issue
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@v8
+        env:
+          RESULT: ${{ steps.play.outputs.result }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '✅ ' + process.env.RESULT
+            })
