@@ -8,12 +8,9 @@ on:
         required: true
         default: "alpha"
         type: choice
-        options:
-          - alpha
-          - beta
-          - internal
+        options: [alpha, beta, internal]
       branch:
-        description: "Branch to build"
+        description: "Branch to build and release"
         required: true
         default: "feature/android-next-release"
       release_status:
@@ -21,9 +18,7 @@ on:
         required: true
         default: "completed"
         type: choice
-        options:
-          - draft
-          - completed
+        options: [draft, completed]
 
 permissions:
   contents: read
@@ -34,20 +29,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  test-release:
+  release:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: google-play-test-release
     steps:
-      - name: Guard production
-        shell: bash
+      - name: Guard test-only release
         env:
           TRACK: ${{ inputs.track }}
         run: |
-          case "$TRACK" in
-            alpha|beta|internal) ;;
-            *) echo "Production or unknown track is forbidden."; exit 1 ;;
-          esac
+          set -euo pipefail
+          case "$TRACK" in alpha|beta|internal) ;; *) echo "Production or unknown track is forbidden."; exit 1 ;; esac
 
       - name: Checkout selected branch
         uses: actions/checkout@v5
@@ -65,46 +57,30 @@ jobs:
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
-        shell: bash
         run: |
           set -euo pipefail
-          test -n "$ANDROID_KEYSTORE_BASE64" || { echo "Missing ANDROID_KEYSTORE_BASE64 secret"; exit 1; }
-          test -n "$ANDROID_KEY_PROPERTIES" || { echo "Missing ANDROID_KEY_PROPERTIES secret"; exit 1; }
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEY_PROPERTIES"
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
           printf '%s' "$ANDROID_KEY_PROPERTIES" > android/key.properties
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("android/key.properties")
-          lines = p.read_text().splitlines()
-          lines = ["storeFile=upload-keystore.jks" if line.startswith("storeFile=") else line for line in lines]
-          p.write_text("\n".join(lines) + "\n")
-          PY
+          python3 -c 'from pathlib import Path; p=Path("android/key.properties"); lines=p.read_text().splitlines(); p.write_text("\n".join("storeFile=upload-keystore.jks" if x.startswith("storeFile=") else x for x in lines)+"\n")'
 
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Analyze
-        run: flutter analyze
-
-      - name: Test
-        run: flutter test
-
-      - name: Build Android App Bundle
-        run: flutter build appbundle --release
-
-      - name: Verify AAB exists
-        shell: bash
+      - name: Validate and build
         run: |
+          set -euo pipefail
+          flutter pub get
+          flutter analyze
+          flutter test
+          flutter build appbundle --release
           test -s build/app/outputs/bundle/release/app-release.aab
-          ls -lh build/app/outputs/bundle/release/app-release.aab
 
-      - name: Preserve AAB for API retry
+      - name: Preserve release AAB
         uses: actions/upload-artifact@v4
         with:
-          name: play-release-aab
+          name: play-release-aab-${{ github.run_id }}
           path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
 
       - name: Authenticate to Google Cloud
         id: auth
@@ -117,46 +93,32 @@ jobs:
           access_token_scopes: https://www.googleapis.com/auth/androidpublisher
           create_credentials_file: false
 
-      - name: Upload AAB to test track
+      - name: Publish to test track
         env:
           ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
-          PACKAGE_NAME: jp.seichiquest.app
           TRACK: ${{ inputs.track }}
           RELEASE_STATUS: ${{ inputs.release_status }}
-          AAB: build/app/outputs/bundle/release/app-release.aab
-        shell: bash
         run: |
           set -euo pipefail
-          api="https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}"
-          auth=(-H "Authorization: Bearer ${ACCESS_TOKEN}")
+          package="jp.seichiquest.app"
+          aab="build/app/outputs/bundle/release/app-release.aab"
+          api="https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$package"
+          auth=(-H "Authorization: Bearer $ACCESS_TOKEN")
+
           edit="$(curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/json" "$api/edits" -d '{}')"
           edit_id="$(printf '%s' "$edit" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
-          cleanup() { curl -sS -X DELETE "${auth[@]}" "$api/edits/${edit_id}" >/dev/null || true; }
+          cleanup() { curl -sS -X DELETE "${auth[@]}" "$api/edits/$edit_id" >/dev/null 2>&1 || true; }
           trap cleanup EXIT
 
-          request() {
-            local label="$1"; shift
-            local tmp code
-            tmp="$(mktemp)"
-            code="$(curl -sS -o "$tmp" -w '%{http_code}' "$@")"
-            if [[ ! "$code" =~ ^2 ]]; then
-              echo "::error title=Google Play API ${label} failed::HTTP ${code}"
-              echo "HTTP_STATUS=${code}"
-              echo "PLAY_API_STAGE=${label}"
-              python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); e=d.get("error",{}); print("PLAY_API_MESSAGE="+str(e.get("message","unknown error"))); print("PLAY_API_STATUS="+str(e.get("status","unknown"))); print("PLAY_API_REASONS="+",".join(str(x.get("reason","unknown")) for x in e.get("errors",[])))' "$tmp" || { echo "PLAY_API_NON_JSON_RESPONSE"; head -c 1000 "$tmp"; echo; }
-              rm -f "$tmp"
-              return 1
-            fi
-            cat "$tmp"
-            rm -f "$tmp"
-          }
-
-          upload="$(request "bundle upload" -X POST "${auth[@]}" -H "Content-Type: application/octet-stream" --data-binary "@${AAB}" "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/${PACKAGE_NAME}/edits/${edit_id}/bundles?uploadType=media")"
+          upload="$(curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/octet-stream" --data-binary "@$aab" "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/$package/edits/$edit_id/bundles?uploadType=media")"
           version_code="$(printf '%s' "$upload" | python3 -c 'import json,sys; print(json.load(sys.stdin)["versionCode"])')"
+          echo "Uploaded versionCode $version_code"
 
-          body="$(VERSION_CODE="$version_code" python3 -c 'import json,os; print(json.dumps({"releases":[{"status":os.environ["RELEASE_STATUS"],"versionCodes":[os.environ["VERSION_CODE"]]}]}))')"
-          request "track update" -X PUT "${auth[@]}" -H "Content-Type: application/json" "$api/edits/${edit_id}/tracks/${TRACK}" -d "$body" >/dev/null
+          body="$(VERSION_CODE="$version_code" RELEASE_STATUS="$RELEASE_STATUS" python3 -c 'import json,os; print(json.dumps({"releases":[{"status":os.environ["RELEASE_STATUS"],"versionCodes":[os.environ["VERSION_CODE"]]}]}))')"
+          curl -sS --fail-with-body -X PUT "${auth[@]}" -H "Content-Type: application/json" "$api/edits/$edit_id/tracks/$TRACK" -d "$body" >/dev/null
 
-          request "edit commit" -X POST "${auth[@]}" -H "Content-Type: application/json" "$api/edits/${edit_id}:commit" -d '{}' >/dev/null
+          curl -sS --fail-with-body -X POST "${auth[@]}" "$api/edits/$edit_id:validate" >/dev/null
+          curl -sS --fail-with-body -X POST "${auth[@]}" "$api/edits/$edit_id:commit" >/dev/null
           trap - EXIT
-          echo "Published versionCode ${version_code} to test track ${TRACK} with status ${RELEASE_STATUS}."
+
+          echo "Published versionCode $version_code to $TRACK with status $RELEASE_STATUS."
