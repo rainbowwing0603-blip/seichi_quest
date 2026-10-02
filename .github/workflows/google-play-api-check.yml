@@ -21,6 +21,7 @@ jobs:
           service_account: seichi-quest-play-api@jomokaruta.iam.gserviceaccount.com
           token_format: access_token
           access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+          create_credentials_file: false
 
       - name: Verify Google Play Developer API access
         env:
@@ -36,6 +37,11 @@ jobs:
             "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}/edits" \
             -d '{}')"
           edit_id="$(printf '%s' "$response" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
-          echo "Authenticated to Google Play Developer API."
-          echo "Temporary edit created successfully; no edit is committed."
-          echo "edit_id=${edit_id}"
+
+          curl --silent --show-error --fail-with-body \
+            -X DELETE \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}/edits/${edit_id}"
+
+          echo "Google Play Developer API authentication and app access verified."
+          echo "Temporary edit deleted; no release or store data changed."
