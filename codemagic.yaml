@@ -4,6 +4,18 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
 
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'feature/android-next-release'
+          include: true
+          source: true
+        - pattern: 'main'
+          include: true
+          source: true
+      cancel_previous_builds: true
+
     environment:
       flutter: 3.47.1
       xcode: latest
