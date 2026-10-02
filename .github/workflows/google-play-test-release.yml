@@ -114,6 +114,14 @@ jobs:
           version_code="$(printf '%s' "$upload" | python3 -c 'import json,sys; print(json.load(sys.stdin)["versionCode"])')"
           echo "Uploaded versionCode $version_code"
 
+          current_tracks="$(curl -sS --fail-with-body "${auth[@]}" "$api/edits/$edit_id/tracks")"
+          max_existing="$(printf '%s' "$current_tracks" | python3 -c 'import json,sys; d=json.load(sys.stdin); xs=[int(v) for t in d.get("tracks",[]) for r in t.get("releases",[]) for v in r.get("versionCodes",[])]; print(max(xs) if xs else 0)')"
+          echo "Highest existing Play versionCode: $max_existing"
+          if (( version_code <= max_existing )); then
+            echo "::error::Refusing release: AAB versionCode $version_code must be greater than existing Play versionCode $max_existing."
+            exit 1
+          fi
+
           body="$(VERSION_CODE="$version_code" RELEASE_STATUS="$RELEASE_STATUS" python3 -c 'import json,os; print(json.dumps({"releases":[{"status":os.environ["RELEASE_STATUS"],"versionCodes":[os.environ["VERSION_CODE"]]}]}))')"
           curl -sS --fail-with-body -X PUT "${auth[@]}" -H "Content-Type: application/json" "$api/edits/$edit_id/tracks/$TRACK" -d "$body" >/dev/null
 
