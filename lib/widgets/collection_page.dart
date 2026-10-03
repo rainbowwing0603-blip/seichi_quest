@@ -89,7 +89,10 @@ class CollectionPage extends StatelessWidget {
             progress: progress,
           ),
           _buildCollectionFilter(),
-          if (kDebugMode && event != null && questItems.isNotEmpty)
+          if (kDebugMode &&
+              !const bool.fromEnvironment('SCREENSHOT_MODE') &&
+              event != null &&
+              questItems.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
               child: OutlinedButton.icon(
