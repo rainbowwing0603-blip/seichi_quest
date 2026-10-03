@@ -679,43 +679,49 @@ class CollectionPage extends StatelessWidget {
             width: 1.1,
           ),
         ),
-        child: CustomPaint(
-          painter: _CollectionLockedSlotPainter(),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 37,
-                    height: 37,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.58),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.92),
+        child: ClipRRect(
+          // CustomPaint itself does not clip to the Container's decoration.
+          // Keep the locked-slot stripes strictly inside the rounded slot.
+          borderRadius: BorderRadius.circular(11),
+          clipBehavior: Clip.antiAlias,
+          child: CustomPaint(
+            painter: const _CollectionLockedSlotPainter(),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 37,
+                      height: 37,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.58),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.92),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.lock_outline_rounded,
+                        size: 18,
+                        color: QuestUiTokens.mutedInk.withValues(alpha: 0.56),
                       ),
                     ),
-                    child: Icon(
-                      Icons.lock_outline_rounded,
-                      size: 18,
-                      color: QuestUiTokens.mutedInk.withValues(alpha: 0.56),
+                    const SizedBox(height: 8),
+                    Text(
+                      '未獲得',
+                      style: TextStyle(
+                        color: QuestUiTokens.mutedInk.withValues(alpha: 0.66),
+                        fontSize: 8,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '未獲得',
-                    style: TextStyle(
-                      color: QuestUiTokens.mutedInk.withValues(alpha: 0.66),
-                      fontSize: 8,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       );
