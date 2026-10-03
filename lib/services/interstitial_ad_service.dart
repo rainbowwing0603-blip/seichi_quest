@@ -10,6 +10,9 @@ class InterstitialAdService {
 
   static final InterstitialAdService instance = InterstitialAdService._();
 
+  static const bool _screenshotMode =
+      bool.fromEnvironment('SCREENSHOT_MODE');
+
   static const Duration _productionStartupGracePeriod = Duration(minutes: 10);
   static const Duration _productionMinimumInterval = Duration(minutes: 30);
   static const Duration _productionStampGracePeriod = Duration(minutes: 5);
@@ -76,6 +79,7 @@ class InterstitialAdService {
   }
 
   void preload() {
+    if (_screenshotMode) return;
     unawaited(_preloadWhenReady());
   }
 
@@ -124,6 +128,8 @@ class InterstitialAdService {
   }
 
   bool canShowNow({required Duration screenStay, DateTime? now}) {
+    if (_screenshotMode) return false;
+
     final currentTime = now ?? DateTime.now();
 
     if (_isShowing || _interstitialAd == null) {
