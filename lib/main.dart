@@ -80,6 +80,7 @@ import 'services/account_refresh_coordinator.dart';
 import 'services/app_settings_service.dart';
 import 'services/interstitial_ad_service.dart';
 import 'services/ad_sdk_service.dart';
+import 'services/ad_placement_policy.dart';
 import 'services/announcement_service.dart';
 import 'services/app_version_service.dart';
 
@@ -477,6 +478,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   String? _collectedName;
 
   bool _isCollecting = false;
+  int _activeStampChecks = 0;
+  bool _startupAnnouncementActive = false;
+  DateTime? _startupAnnouncementClosedAt;
 
   late AnimationController _sonarController;
   late AnimationController _mapSonarController;
@@ -783,6 +787,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Future<void> _showStartupAnnouncementsIfNeeded() async {
     if (_startupAnnouncementsShown || !mounted || _shouldShowOnboarding) return;
     _startupAnnouncementsShown = true;
+    _startupAnnouncementActive = true;
     try {
       final announcements = await _announcementService.loadUnreadStartup();
       if (!mounted || announcements.isEmpty) {
@@ -805,6 +810,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       await _loadUnreadAnnouncementCount();
     } catch (error) {
       appDebugPrint('[ANNOUNCEMENTS] startup display failed: $error');
+    } finally {
+      _startupAnnouncementActive = false;
+      _startupAnnouncementClosedAt = DateTime.now();
     }
   }
 
@@ -2100,6 +2108,15 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   // ============================================================
 
   Future<void> _checkStampDistance() async {
+    _activeStampChecks++;
+    try {
+      await _checkStampDistanceWithoutAds();
+    } finally {
+      _activeStampChecks--;
+    }
+  }
+
+  Future<void> _checkStampDistanceWithoutAds() async {
     if (_isCollecting) {
       return;
     }
@@ -3175,6 +3192,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   }
 
   Future<void> _showEventExplore({bool favoriteOnly = false}) async {
+    final openedAt = DateTime.now();
     final result = await Navigator.of(context).push<Object?>(
       MaterialPageRoute(
         builder: (_) => EventExplorePage(
@@ -3195,6 +3213,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     );
 
     if (result == null) {
+      await _showInterstitialAfterSafeScreen(openedAt: openedAt);
       return;
     }
 
@@ -3385,13 +3404,48 @@ class _SeichiMapPageState extends State<SeichiMapPage>
   Future<void> _showInterstitialAfterSafeScreen({
     required DateTime openedAt,
   }) async {
-    if (!mounted) {
+    if (!mounted ||
+        ModalRoute.of(context)?.isCurrent != true ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
       return;
     }
 
-    final screenStay = DateTime.now().difference(openedAt);
+    final now = DateTime.now();
+    final blockingContexts = <AdBlockingContext>{
+      if (_isLoading || !_isOnboardingReady) AdBlockingContext.startup,
+      if (_shouldShowOnboarding) AdBlockingContext.onboarding,
+      if (_startupAnnouncementActive ||
+          (_startupAnnouncementClosedAt != null &&
+              now.difference(_startupAnnouncementClosedAt!) <
+                  const Duration(minutes: 2)))
+        AdBlockingContext.startupAnnouncement,
+      if (_isLoadingLocation || _activeStampChecks > 0)
+        AdBlockingContext.gpsCriticalFlow,
+      if (_isCollecting || _justCollected) AdBlockingContext.stampCollection,
+      if (_errorMessage != null) AdBlockingContext.permissionOrErrorDialog,
+    };
+    // Protect approach to any uncollected nearby spot, not only NEXT.
+    final position = _currentPosition;
+    if (position != null) {
+      for (final item in _locationQuestItems) {
+        if (_collectedIds.contains(item.id)) continue;
+        final distance = _locationService.distanceBetween(
+          startLatitude: position.latitude,
+          startLongitude: position.longitude,
+          endLatitude: item.latitude,
+          endLongitude: item.longitude,
+        );
+        if (distance <= item.stampRadiusMeters + 100) {
+          blockingContexts.add(AdBlockingContext.nearDestination);
+          break;
+        }
+      }
+    }
 
-    await InterstitialAdService.instance.showIfEligible(screenStay: screenStay);
+    await InterstitialAdService.instance.showIfEligible(
+      screenStay: now.difference(openedAt),
+      blockingContexts: blockingContexts,
+    );
   }
 
   Widget _buildMyPage() {
@@ -3471,7 +3525,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           ),
         );
 
-        await _showInterstitialAfterSafeScreen(openedAt: openedAt);
       },
       onShowProfile: () async {
         await Navigator.of(context)
@@ -3526,16 +3579,14 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         );
       },
       onShowNotifications: () async {
-        final openedAt = DateTime.now();
-
         await Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const NotificationSettingsPage()),
         );
 
-        await _showInterstitialAfterSafeScreen(openedAt: openedAt);
       },
       unreadAnnouncementCount: _unreadAnnouncementCount,
       onShowAnnouncements: () async {
+        final openedAt = DateTime.now();
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => AnnouncementsPage(
@@ -3545,6 +3596,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
           ),
         );
         await _loadUnreadAnnouncementCount();
+        await _showInterstitialAfterSafeScreen(openedAt: openedAt);
       },
       onShowLegal: () async {
         await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LegalInfoPage()));
