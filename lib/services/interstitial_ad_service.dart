@@ -124,6 +124,17 @@ class InterstitialAdService {
     );
   }
 
+  bool tryBeginRewardedAd() {
+    if (_isShowing) return false;
+    _isShowing = true;
+    return true;
+  }
+
+  void finishRewardedAd({required bool shown}) {
+    if (shown) _lastShownAt = DateTime.now();
+    _isShowing = false;
+  }
+
   void markStampCollected() {
     _lastStampCollectedAt = DateTime.now();
   }

@@ -22,6 +22,12 @@ ContentBlock blockWithVisibility(String? visibility) {
 
 void main() {
   group('ContentRevealPolicy', () {
+    test('preview unlocks story but never hidden content or other roles', () {
+      expect(ContentRevealPolicy.isVisible(blockWithVisibility('after_collection'), collected: false, storyPreview: true), isTrue);
+      expect(ContentRevealPolicy.isVisible(blockWithVisibility('hidden'), collected: false, storyPreview: true), isFalse);
+      final card = ContentBlock(id: 'card', contentId: 'content', type: ContentBlockType.text, role: 'picture_card', title: null, body: null, mediaPath: null, altText: null, linkUrl: null, displayOrder: 1, metadata: const {'visibility': 'after_collection'});
+      expect(ContentRevealPolicy.isVisible(card, collected: false, storyPreview: true), isFalse);
+    });
     test('未設定は互換性のため常時表示', () {
       final block = blockWithVisibility(null);
 
