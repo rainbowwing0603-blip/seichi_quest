@@ -3405,6 +3405,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     required DateTime openedAt,
   }) async {
     if (!mounted ||
+        _selectedTab == 0 ||
         ModalRoute.of(context)?.isCurrent != true ||
         WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
       return;
