@@ -86,7 +86,9 @@ class _QuestItemContentSectionState extends State<QuestItemContentSection> with 
               .loadForContent(contentId);
     unawaited(_contentFuture?.then((blocks) {
       if (!mounted || generation != _generation || widget.collected ||
-          !blocks.any(ContentRevealPolicy.isStoryPreviewEligible)) return;
+          !blocks.any(ContentRevealPolicy.isStoryPreviewEligible)) {
+        return;
+      }
       _hasPreviewableStory = true;
       unawaited(_refreshPreview());
       _refreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -161,17 +163,21 @@ class _QuestItemContentSectionState extends State<QuestItemContentSection> with 
           ModalRoute.of(context)?.isCurrent == true &&
           WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed);
       if (!earned) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('閲覧権は付与されていません。広告を表示できない場合は、時間をおいてお試しください。')),
         );
+        }
         return;
       }
       final remaining = await _previewService.grant(contentId, expectedUserId: user);
       if (mounted && generation == _generation) _setPreview(remaining);
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('閲覧期限を確認できませんでした。通信状態を確認してお試しください。')),
       );
+      }
     } finally {
       if (mounted) setState(() => _watching = false);
     }

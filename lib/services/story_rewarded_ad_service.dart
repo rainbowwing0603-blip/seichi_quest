@@ -15,7 +15,9 @@ class StoryRewardedAdService {
   String? get adUnitId {
     if (_screenshotMode || kIsWeb ||
         (defaultTargetPlatform != TargetPlatform.android &&
-         defaultTargetPlatform != TargetPlatform.iOS)) return null;
+         defaultTargetPlatform != TargetPlatform.iOS)) {
+      return null;
+    }
     final ios = defaultTargetPlatform == TargetPlatform.iOS;
     if (!kReleaseMode) {
       return ios ? 'ca-app-pub-3940256099942544/1712485313'
