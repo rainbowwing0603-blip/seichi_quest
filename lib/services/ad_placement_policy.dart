@@ -45,6 +45,22 @@ class AdPlacementPolicy {
         placement == AdPlacement.eventExploreInline;
   }
 
+  bool allowsInterstitialTiming({
+    required Duration screenStay,
+    required Duration sessionAge,
+    required Duration? sinceLastShown,
+    required Duration? sinceLastStamp,
+    required Duration minimumScreenStay,
+    required Duration startupGracePeriod,
+    required Duration minimumInterval,
+    required Duration stampGracePeriod,
+  }) {
+    return screenStay >= minimumScreenStay &&
+        sessionAge >= startupGracePeriod &&
+        (sinceLastShown == null || sinceLastShown >= minimumInterval) &&
+        (sinceLastStamp == null || sinceLastStamp >= stampGracePeriod);
+  }
+
   bool allowsInterstitial({
     required AdPlacement placement,
     required Set<AdBlockingContext> blockingContexts,
