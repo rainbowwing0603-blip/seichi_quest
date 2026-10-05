@@ -73,4 +73,47 @@ void main() {
       );
     });
   });
+  group('production interstitial timing boundaries', () {
+    bool eligible({
+      Duration screenStay = const Duration(seconds: 10),
+      Duration sessionAge = const Duration(minutes: 3),
+      Duration? sinceLastShown,
+      Duration? sinceLastStamp,
+    }) => policy.allowsInterstitialTiming(
+      screenStay: screenStay,
+      sessionAge: sessionAge,
+      sinceLastShown: sinceLastShown,
+      sinceLastStamp: sinceLastStamp,
+      minimumScreenStay: const Duration(seconds: 10),
+      startupGracePeriod: const Duration(minutes: 3),
+      minimumInterval: const Duration(minutes: 15),
+      stampGracePeriod: const Duration(minutes: 2),
+    );
+
+    test('first ad allowed at startup and screen-stay boundaries', () {
+      expect(eligible(), isTrue);
+      expect(eligible(sessionAge: const Duration(seconds: 179)), isFalse);
+      expect(eligible(screenStay: const Duration(seconds: 9)), isFalse);
+    });
+
+    test('repeated ads wait 15 minutes independently of session age', () {
+      expect(eligible(sinceLastShown: const Duration(seconds: 899)), isFalse);
+      expect(eligible(sinceLastShown: const Duration(minutes: 15)), isTrue);
+    });
+
+    test('stamp cooldown blocks an otherwise eligible ad', () {
+      expect(eligible(sinceLastStamp: const Duration(seconds: 119)), isFalse);
+      expect(eligible(sinceLastStamp: const Duration(minutes: 2)), isTrue);
+    });
+
+    test('every protected context blocks a natural exit', () {
+      for (final context in AdBlockingContext.values) {
+        expect(policy.allowsInterstitial(
+          placement: AdPlacement.naturalExitInterstitial,
+          blockingContexts: {context},
+        ), isFalse, reason: context.name);
+      }
+    });
+  });
+
 }
