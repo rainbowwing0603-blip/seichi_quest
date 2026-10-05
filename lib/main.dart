@@ -3506,7 +3506,6 @@ class _SeichiMapPageState extends State<SeichiMapPage>
         await _showInterstitialAfterSafeScreen(openedAt: openedAt);
       },
       onShowSyncStatus: () async {
-        final openedAt = DateTime.now();
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => SyncStatusPage(
