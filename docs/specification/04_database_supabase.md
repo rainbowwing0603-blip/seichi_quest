@@ -6,7 +6,7 @@
 旧 `seichi` テーブルは本番に存在しない。
 
 ## 現行migration
-本番履歴は2026-09-27確認時点で `20260926225451_add_app_release_policy` まで適用済み。Git側には2026-09-26時点の最新コードツリーで `20260926122330_use_server_time_for_collection` までが確認できるため、**20260926後半の本番migrationをGitへ回収することが要確認事項**。
+本番migrationは、2026-09-26後半のapp release policy関連までGitへ回収済み。さらにStory Preview用 `20261005231529_story_preview_server_time.sql` をGit管理下へ追加済み。productionへの適用状態はSupabase migration履歴を正本として確認し、Gitにあることだけで本番適用済みとは判定しない。
 
 ## Edge Functions
 本番確認:
