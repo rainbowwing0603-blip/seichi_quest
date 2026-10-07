@@ -19,8 +19,6 @@ class RecommendedEventsCard extends StatefulWidget {
 }
 
 class _RecommendedEventsCardState extends State<RecommendedEventsCard> {
-  final EventRecommendationService _service = EventRecommendationService();
-
   bool _loading = true;
   List<EventRecommendation> _recommendations =
       const <EventRecommendation>[];
@@ -34,7 +32,8 @@ class _RecommendedEventsCardState extends State<RecommendedEventsCard> {
 
   Future<void> _load() async {
     try {
-      final recommendations = await _service.load(limit: 5);
+      final service = EventRecommendationService();
+      final recommendations = await service.load(limit: 5);
 
       if (!mounted) {
         return;
@@ -48,7 +47,7 @@ class _RecommendedEventsCardState extends State<RecommendedEventsCard> {
       }
 
       final events =
-          await _service.loadEventsForRecommendations(recommendations);
+          await service.loadEventsForRecommendations(recommendations);
 
       if (!mounted) {
         return;
