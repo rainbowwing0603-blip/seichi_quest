@@ -19,3 +19,11 @@ Gitへ入れないもの: Android upload keystore、key.propertiesのpassword類
 
 ## Privacy
 公開プライバシーポリシーは `docs/privacy/index.html` 等で管理する。収集データ、第三者SDK、アカウント削除、位置情報の扱いを変更した場合はポリシーも同じ変更単位でレビューする。
+
+
+
+## 2026-10-08差分反映
+- Webのアカウント削除ページはメール/パスワードで本人確認後、Supabase Auth tokenを取得してdelete-account Edge Functionを呼び出す。
+- 匿名利用者はWebページではメール本人確認できないため、アプリ内アカウント画面から削除する。
+- 公開削除ページにはpublishable keyのみを置き、service_role key等は置かない。
+- iOSのGoogle Maps / AdMob設定は秘密値をコードへ直書きせず、build/runtime configurationを利用する。
