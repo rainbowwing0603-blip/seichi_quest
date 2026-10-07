@@ -25,3 +25,14 @@ Supabase project ref: `wxlvhpmolrtcwryaazfb`、Tokyoリージョン、PostgreSQL
 
 ## 注意
 `main.dart` には依然として多くの調停責務がある。今後の機能追加は新しい巨大分岐をmainへ増やすより、Service/Policy/Coordinatorへ切り出す。
+
+
+
+## 2026-10-08差分反映
+- Mobile Ads / local notificationsは初回Flutter frame後へ遅延初期化し、Google Maps等のネイティブ初期化とmain thread負荷を分散する。
+- Bannerはadaptive sizeを試行し、50dpを超える場合は通常Bannerへフォールバックする。
+- Interstitialはstartup 3分、前回から15分、stamp後2分、画面滞在10秒をRelease基準とし、AdPlacementPolicyのblocking contextを通して自然な区切りだけで表示する。
+- Rewarded Story PreviewはStoryRewardedAdService / StoryPreviewService / ContentRevealPolicyで分離する。
+- SCREENSHOT_MODEはBanner/Interstitial/デバッグ用記念カード表示を抑制する。
+- iOSはplatform-specific AdMob unitをbuild-time configurationで注入できる構造とする。
+- Google Play / Codemagic操作はGitHub Actionsから安全な制御ブリッジ経由で実行できる。Production trackはtest-release workflowから選択できない。
