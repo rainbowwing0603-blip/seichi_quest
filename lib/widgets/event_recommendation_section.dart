@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/event.dart';
 import '../models/event_recommendation.dart';
+import 'event_detail_page.dart';
 import 'quest_ui.dart';
 
 class EventRecommendationSection extends StatelessWidget {
@@ -9,12 +10,12 @@ class EventRecommendationSection extends StatelessWidget {
     super.key,
     required this.events,
     required this.recommendations,
-    required this.onEventTap,
+    this.onEventTap,
   });
 
   final List<Event> events;
   final List<EventRecommendation> recommendations;
-  final ValueChanged<Event> onEventTap;
+  final ValueChanged<Event>? onEventTap;
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +108,7 @@ class EventRecommendationSection extends StatelessWidget {
               rank: index + 1,
               event: items[index].event!,
               recommendation: items[index].recommendation,
-              onTap: () => onEventTap(items[index].event!),
+              onTap: () => onEventTap?.call(items[index].event!),
             ),
             if (index != items.length - 1) const SizedBox(height: 8),
           ],
