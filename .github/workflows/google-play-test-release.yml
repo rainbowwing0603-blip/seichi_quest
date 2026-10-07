@@ -67,14 +67,16 @@ jobs:
 
       - name: Validate and build
         env:
-          STORY_REWARDED_AD_UNIT_ID: ${{ vars.ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID }}
+          STORY_REWARDED_AD_UNIT_ID: ${{ vars.ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID || secrets.ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID || 'ca-app-pub-1391846841313915/2032059471' }}
         run: |
           set -euo pipefail
+          test -n "$STORY_REWARDED_AD_UNIT_ID"
           flutter pub get
           flutter analyze
           flutter test
           flutter build appbundle --release --dart-define="ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID=$STORY_REWARDED_AD_UNIT_ID"
           test -s build/app/outputs/bundle/release/app-release.aab
+          echo "Rewarded story ad unit configured."
 
       - name: Preserve release AAB
         uses: actions/upload-artifact@v4
