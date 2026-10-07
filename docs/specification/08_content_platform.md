@@ -13,6 +13,11 @@ role未指定はdefault。現行PresentationPolicyでは picture_card → readin
 
 render可能条件は、textはbody有り、imageはmedia_path有り、linkはhttp/httpsかつhost有り。無効・空ブロックは描画しない。
 
+## Story preview
+`story`、`history`、`field_guide`、`description` 等の対象blockは、未獲得状態でもRewarded Adによる1時間限定プレビューの対象になり得る。これはContentBlockの表示権だけを一時的に与えるもので、stamp/achievement/cardの獲得状態を変更しない。
+
+プレビュー期限はSupabase server clockを基準に判定し、アプリ再開時・resume時・毎分で期限を再評価する。通信失敗時は安全側としてプレビューを終了する。
+
 ## Legacy fallback
 render可能blockのroleに応じて旧reading/description/imageを隠す。readingがあればlegacy readingを、description/aboutがあればlegacy descriptionを、picture_cardがあればlegacy imageをフォールバック表示しない。汎用データ未整備でも旧データで画面を成立させる移行設計。
 
