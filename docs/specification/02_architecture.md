@@ -20,5 +20,8 @@ Supabase project ref: `wxlvhpmolrtcwryaazfb`、Tokyoリージョン、PostgreSQL
 ## 状態
 ユーザー、現在イベント、獲得ID、GPS位置、NEXT、推奨ルート、プロフィール、ランク、レベル、設定をメイン状態が統合する。永続化はSupabaseとSharedPreferencesの双方を使う。
 
+## 広告状態
+広告はBanner / Interstitial / Rewardedを分離して扱う。Rewarded Story Previewは `StoryRewardedAdService` と `StoryPreviewService` が担当し、ContentBlock表示側はRewarded利用可否と一時 entitlement を参照する。Android ReleaseのRewarded ad unit IDはbuild-time `--dart-define` から注入する。
+
 ## 注意
 `main.dart` には依然として多くの調停責務がある。今後の機能追加は新しい巨大分岐をmainへ増やすより、Service/Policy/Coordinatorへ切り出す。
