@@ -25,3 +25,10 @@ Cドライブだけでは物理故障に弱い。別物理ディスクFドライ
 
 ## 署名鍵
 Android upload keystoreはコード以上に重要。秘密鍵そのものとpasswordは分離して安全に保管し、チャットやGitへ貼らない。
+
+
+
+## 2026-10-08差分反映
+Story Preview用migration `20261005231529_story_preview_server_time.sql` をGit管理下に追加した。DB変更はmigrationとして復旧対象に含める。
+
+Version 12以降に追加されたGitHub Actions / Codemagic制御設定も運用復旧対象だが、GitHub Secrets、Codemagic token、Google Cloud Workload Identityの秘密値そのものはGitへ保存しない。
