@@ -4,6 +4,7 @@ import '../models/achievement.dart';
 import '../models/quest_item.dart';
 import '../services/achievement_service.dart';
 import 'quest_ui.dart';
+import 'recommended_events_card.dart';
 
 class QuestPage extends StatelessWidget {
   const QuestPage({
@@ -111,6 +112,8 @@ class QuestPage extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 14),
+            const RecommendedEventsCard(),
             const SizedBox(height: 18),
             if (total == 0)
               _buildEmptyQuestCard()
