@@ -27,3 +27,15 @@
 
 ## 原則
 「イベント」「収集物」「物理地点」を分離する。同一地点に複数コンテンツを紐付けられ、画像が無いコンテンツでもUIが破綻しないことを前提とする。ユーザー向け表示へGPS検証用・管理用メタデータを露出しない。
+
+
+
+## 2026-10-08差分反映
+Version 12（1.0.0+12）以降、以下を現行機能として追加・更新した。
+- 記念カード導線をAndroid/iOS共通のコレクション機能へ統合。
+- アプリ内お知らせ、更新Policy、Google Play test release運用を強化。
+- AdMobのBanner / Interstitialを起動負荷とUX制約を考慮して再構成。
+- スクリーンショット用のopt-in modeを追加し、広告とデバッグ用記念カード導線を非表示にできるようにした。
+- 未獲得コンテンツのvisibility制御と、Rewarded Adによる1時間Story Previewを追加。
+- iOSのbundle identifier、Google Maps、AdMob platform-specific unit、Codemagic unsigned buildの準備を追加。
+- Webからのアカウント削除導線を追加。
