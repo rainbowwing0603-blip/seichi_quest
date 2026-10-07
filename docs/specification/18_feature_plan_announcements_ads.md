@@ -13,15 +13,34 @@
 1. AdPlacementPolicyを純粋ロジックとして追加
 2. Release初期値を起動後3分、Interstitial間15分、スタンプ後2分、対象画面10秒に再構成
 3. セッション最大回数は設けず、自然な区切りを必須条件にする
-4. Banner/Inline/Interstitialを独立した3層として管理
+4. Banner / Inline / Interstitialを独立した3層として管理
 5. 既存Bannerを邪魔にならない画面で維持する。利用可能幅からanchored adaptive sizeを取得し、高さ50dp以下のみ採用、超える場合は通常50dp Bannerへフォールバックする
 6. スクロール画面用Inline広告Widgetを追加
-7. まず少数配置で実測し、問題がなければランキング/イベント探索等へ段階展開
+7. 少数配置から実測し、問題がなければランキング/イベント探索等へ段階展開
+
+## Phase 2.5 Rewarded Story Preview
+**実装済み**
+
+- 未獲得地点の対象story/history/field_guide/descriptionをRewarded Adで1時間だけ閲覧
+- ユーザーが明示的にCTAを押した場合のみ広告表示
+- スタンプ、実績、カード獲得状態は変更しない
+- Supabase server clockで期限判定
+- Release AndroidのRewarded IDをbuild-time `--dart-define` で注入
+- ReleaseでIDが無い場合はCTAを非表示
+- Version 16でRelease Rewarded ID未注入を検出し、Version 17でworkflow側の空値対策を実施
 
 ## Phase 3 運用
 管理画面からお知らせ作成・予約公開・停止を可能にする。イベントend_at連動の終了間近通知は、手動運用が安定した後に自動化する。
 
 ## リリース判定
 flutter analyze / flutter test、匿名ユーザーでのRLS、複数未読、期限切れ、イベントなし一般通知、広告ロード失敗、広告禁止ゾーン、オフライン時の表示を確認する。
+
+Rewarded Story Previewについては、Version 17で以下を実機確認する。
+1. 未獲得かつ対象storyがある地点でCTA表示
+2. Rewarded Ad表示
+3. 報酬コールバック後に1時間だけ閲覧可能
+4. スタンプが増えない
+5. 1時間経過後に再びロック
+6. アプリ再開後もserver clock基準で期限が維持される
 
 広告については短時間/長時間セッションの両方を検証し、Interstitialが出なさすぎる状態と、自然な区切りを越えて過剰表示される状態の双方を確認する。
