@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../models/event.dart';
 import '../models/event_recommendation.dart';
-import 'event_detail_page.dart';
 import 'quest_ui.dart';
 
 class EventRecommendationSection extends StatelessWidget {
