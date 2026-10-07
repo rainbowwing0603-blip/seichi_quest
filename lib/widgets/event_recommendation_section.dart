@@ -170,7 +170,7 @@ class _RecommendationTile extends StatelessWidget {
                     width: 46,
                     height: 46,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _fallbackIcon(),
+                    errorBuilder: (_, _, _) => _fallbackIcon(),
                   ),
                 )
               else
