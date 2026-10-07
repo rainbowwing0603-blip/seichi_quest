@@ -14,10 +14,11 @@
 | ソナー | `painters/sonar_painter.dart`, `widgets/map_page.dart` | Place radius |
 | 天候・太陽 | `weather_service.dart`, `solar_position_service.dart`, `weather_effect_overlay.dart` | external HTTP / local solar calculation |
 | コンテンツ | `content_block_service.dart`, `content_block_renderer.dart`, `quest_spot_detail_sheet.dart` | `contents`, `event_contents`, `content_blocks`, Storage |
+| 物語プレビュー | `services/story_rewarded_ad_service.dart`, `services/story_preview_service.dart`, `widgets/quest_item_content_section.dart` | Supabase server-time RPC / local entitlement |
 | 実績 | `progression_service.dart`, `widgets/quest_page.dart` | `achievements`, `event_achievements` |
 | ランキング | `widgets/ranking_page.dart` | ranking RPC群 |
 | お知らせ | `announcement_service.dart`, announcements widgets | `announcements`, `announcement_reads` |
-| 広告 | `ad_placement_policy.dart`, banner/interstitial services | Android AdMob settings |
+| 広告 | `ad_placement_policy.dart`, banner/interstitial services, `story_rewarded_ad_service.dart` | Android AdMob settings / build-time Rewarded ID |
 | 設定 | `app_settings_service.dart`, `app_settings_page.dart` | SharedPreferences |
 | アプリ更新 | `app_version_service.dart` | `app_release_policies` |
 | アカウント | `account_page.dart`, `session_service.dart` | Auth, `delete-account` |
@@ -25,4 +26,4 @@
 | Privacy | app/account UI | `docs/privacy/index.html` |
 
 ## 更新
-ファイル移動・責務分割時はこの表も更新する。テーブルやRPCを削除する前に、対応するFlutter参照が残っていないか確認する。ユーザー向け表示と内部セキュリティ/GPS検証メタデータの境界もレビュー対象とする。
+ファイル移動・責務分割時はこの表も更新する。機能追加時は対応する仕様書と同じ変更単位でこの表を更新する。テーブルやRPCを削除する前に、対応するFlutter参照が残っていないか確認する。ユーザー向け表示と内部セキュリティ/GPS検証メタデータの境界もレビュー対象とする。
