@@ -25,3 +25,11 @@ Advisorは、policy無しRLSテーブル、public schemaのPostGIS extension、S
 
 ## 変更原則
 DDLはmigrationとして管理し、適用後は本番migration履歴・RLS・RPC・アプリ互換を確認する。productionへ手作業で先行変更した場合は必ずGitへ回収する。ユーザー向けデータと、location_source / confidence / security metadata等の内部運用データを表示層で混同しない。
+
+
+
+## 2026-10-08差分反映
+- Story Preview用の `public.story_preview_server_time()` RPCを追加。authenticatedのみexecute可能で、collection/content/reward recordは変更しない。
+- Version 17のStory Previewはこのserver clockを基準に1時間期限を判定する。
+- `app_release_policies` はアプリ更新判定の正本。Play配信状態と先行して矛盾させない。
+- 本番Edge Functionのaccount deletionは内部認証を要求したうえでadmin API削除を行う仕様を正本とする。
