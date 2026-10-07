@@ -20,7 +20,8 @@ class _ProfilePageState extends State<ProfilePage> {
   final _displayNameController = TextEditingController();
 
   static const _ageGroups = <String>[
-    '10代以下',
+    '未設定',
+    '10代',
     '20代',
     '30代',
     '40代',
@@ -30,11 +31,20 @@ class _ProfilePageState extends State<ProfilePage> {
     '回答しない',
   ];
 
+  static const _genderOptions = <String>[
+    '未設定',
+    '男性',
+    '女性',
+    'その他',
+    '回答しない',
+  ];
+
   bool _isLoading = true;
   bool _isSaving = false;
 
   String? _errorMessage;
   String? _ageGroup;
+  String? _gender;
   String _avatarKey = 'adventurer';
 
   final LevelService _levelService = const LevelService();
@@ -73,7 +83,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       final data = await _client
           .from('profiles')
-          .select('display_name, age_group, avatar_key')
+          .select('display_name, age_group, gender, avatar_key')
           .eq('id', user.id)
           .maybeSingle();
 
@@ -84,6 +94,10 @@ class _ProfilePageState extends State<ProfilePage> {
       _displayNameController.text = data?['display_name']?.toString() ?? '';
 
       final loadedAgeGroup = data?['age_group']?.toString();
+      final normalizedAgeGroup = loadedAgeGroup == '10代以下'
+          ? '10代'
+          : loadedAgeGroup;
+      final loadedGender = data?['gender']?.toString();
 
       final loadedAvatarKey = data?['avatar_key']?.toString();
 
@@ -98,7 +112,8 @@ class _ProfilePageState extends State<ProfilePage> {
       }
 
       setState(() {
-        _ageGroup = _ageGroups.contains(loadedAgeGroup) ? loadedAgeGroup : null;
+        _ageGroup = _ageGroups.contains(normalizedAgeGroup) ? normalizedAgeGroup : null;
+        _gender = _genderOptions.contains(loadedGender) ? loadedGender : null;
 
         _avatarKey = profileAvatarOptionForKey(loadedAvatarKey).key;
 
@@ -155,6 +170,7 @@ class _ProfilePageState extends State<ProfilePage> {
         'id': user.id,
         'display_name': displayName,
         'age_group': _ageGroup,
+        'gender': _gender,
         'avatar_key': _avatarKey,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       }, onConflict: 'id');
@@ -788,6 +804,227 @@ class _ProfilePageState extends State<ProfilePage> {
                                       _ageGroup ?? '年代を選択',
                                       style: TextStyle(
                                         color: _ageGroup == null
+                                            ? QuestUiTokens.mutedInk
+                                            : QuestUiTokens.ink,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    color: QuestUiTokens.mutedInk,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      _buildSection(
+                        title: '性別',
+                        description: 'おすすめ機能に使うための任意項目です。未設定でもアプリは利用できます。',
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () async {
+                              final selected =
+                                  await showModalBottomSheet<String>(
+                                context: context,
+                                useSafeArea: true,
+                                backgroundColor: Colors.transparent,
+                                barrierColor: QuestUiTokens.ink.withValues(
+                                  alpha: 0.48,
+                                ),
+                                builder: (sheetContext) {
+                                  return Container(
+                                    decoration: const BoxDecoration(
+                                      color: QuestUiTokens.background,
+                                      borderRadius: BorderRadius.vertical(
+                                        top: Radius.circular(30),
+                                      ),
+                                    ),
+                                    child: SafeArea(
+                                      top: false,
+                                      child: SingleChildScrollView(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          20,
+                                          11,
+                                          20,
+                                          24,
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Container(
+                                              width: 42,
+                                              height: 4,
+                                              decoration: BoxDecoration(
+                                                color: QuestUiTokens.mutedInk
+                                                    .withValues(alpha: 0.45),
+                                                borderRadius:
+                                                    BorderRadius.circular(99),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 18),
+                                            const Text(
+                                              '性別を選択',
+                                              style: TextStyle(
+                                                fontSize: 19,
+                                                fontWeight: FontWeight.w900,
+                                                color: QuestUiTokens.ink,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 14),
+                                            ..._genderOptions.map((value) {
+                                              final isSelected =
+                                                  (_gender == null &&
+                                                      value == '未設定') ||
+                                                  value == _gender;
+                                              return Padding(
+                                                padding:
+                                                    const EdgeInsets.only(
+                                                      bottom: 9,
+                                                    ),
+                                                child: Material(
+                                                  color: Colors.transparent,
+                                                  child: InkWell(
+                                                    onTap: () {
+                                                      Navigator.of(
+                                                        sheetContext,
+                                                      ).pop(value);
+                                                    },
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          18,
+                                                        ),
+                                                    child: AnimatedContainer(
+                                                      duration: const Duration(
+                                                        milliseconds: 180,
+                                                      ),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                        horizontal: 15,
+                                                        vertical: 14,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        gradient: isSelected
+                                                            ? QuestUiTokens
+                                                                .primaryGradient
+                                                            : null,
+                                                        color: isSelected
+                                                            ? null
+                                                            : Colors.white,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              18,
+                                                            ),
+                                                        border: Border.all(
+                                                          color: isSelected
+                                                              ? Colors
+                                                                  .transparent
+                                                              : QuestUiTokens
+                                                                  .ink
+                                                                  .withValues(
+                                                                    alpha: 0.06,
+                                                                  ),
+                                                        ),
+                                                      ),
+                                                      child: Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: Text(
+                                                              value,
+                                                              style: TextStyle(
+                                                                color:
+                                                                    isSelected
+                                                                        ? Colors
+                                                                            .white
+                                                                        : QuestUiTokens
+                                                                            .ink,
+                                                                fontSize: 14,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w800,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          if (isSelected)
+                                                            const Icon(
+                                                              Icons
+                                                                  .check_circle_rounded,
+                                                              color:
+                                                                  Colors.white,
+                                                              size: 20,
+                                                            )
+                                                          else
+                                                            const Icon(
+                                                              Icons
+                                                                  .chevron_right_rounded,
+                                                              color:
+                                                                  QuestUiTokens
+                                                                      .mutedInk,
+                                                              size: 20,
+                                                            ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            }),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+
+                              if (!mounted || selected == null) {
+                                return;
+                              }
+
+                              setState(() {
+                                _gender =
+                                    selected == '未設定' ? null : selected;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(
+                              QuestUiTokens.controlRadius,
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 15,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                color: QuestUiTokens.cyan.withValues(
+                                  alpha: 0.035,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  QuestUiTokens.controlRadius,
+                                ),
+                                border: Border.all(
+                                  color: QuestUiTokens.ink.withValues(
+                                    alpha: 0.06,
+                                  ),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.wc_rounded,
+                                    color: QuestUiTokens.cyan,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      _gender ?? '未設定',
+                                      style: TextStyle(
+                                        color: _gender == null
                                             ? QuestUiTokens.mutedInk
                                             : QuestUiTokens.ink,
                                         fontSize: 14,
