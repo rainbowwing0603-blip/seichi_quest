@@ -71,3 +71,14 @@ Banner/Inline/Interstitial/Rewardedは役割が異なる。BannerやInlineが表
 初期値の3分/15分/2分/10秒は固定仕様ではなくクローズドテストの基準値とする。広告収益だけでなく、1セッション当たり表示回数、セッション継続、スタンプ獲得完了、広告直後離脱、画面滞在、Rewarded利用率を確認する。
 
 長時間利用者にはInterstitial条件を満たすたび3回目以降も表示可能とする。一方で短時間利用者へ無理にInterstitialを表示しない。Rewardedはユーザー価値が明確な場合のみ利用される構造を維持する。
+
+
+
+## 2026-10-08実装差分
+Version 12以降の実装では、Policyだけでなく実コード側にも以下を反映している。
+- Banner: adaptive sizeを試し、50dp超なら通常50dpへfallback。
+- Interstitial: Release 3分/15分/2分/10秒の時間条件を実装。
+- Blocking contextが存在する場合は自然な区切りでもInterstitialを開始しない。
+- Rewarded Story Previewはユーザー操作によるopt-inのみ。
+- SCREENSHOT_MODEでは広告を表示しない。
+- Rewarded表示中とInterstitial表示中の全画面広告重複を防止する。
