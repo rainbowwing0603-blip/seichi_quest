@@ -66,12 +66,14 @@ jobs:
           python3 -c 'from pathlib import Path; p=Path("android/key.properties"); lines=p.read_text().splitlines(); p.write_text("\n".join("storeFile=upload-keystore.jks" if x.startswith("storeFile=") else x for x in lines)+"\n")'
 
       - name: Validate and build
+        env:
+          STORY_REWARDED_AD_UNIT_ID: ${{ vars.ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID }}
         run: |
           set -euo pipefail
           flutter pub get
           flutter analyze
           flutter test
-          flutter build appbundle --release
+          flutter build appbundle --release --dart-define="ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID=$STORY_REWARDED_AD_UNIT_ID"
           test -s build/app/outputs/bundle/release/app-release.aab
 
       - name: Preserve release AAB

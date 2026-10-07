@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'ad_sdk_service.dart';
+import 'ad_placement_policy.dart';
 
 class InterstitialAdService {
   InterstitialAdService._();
@@ -13,10 +14,10 @@ class InterstitialAdService {
   static const bool _screenshotMode =
       bool.fromEnvironment('SCREENSHOT_MODE');
 
-  static const Duration _productionStartupGracePeriod = Duration(minutes: 10);
-  static const Duration _productionMinimumInterval = Duration(minutes: 30);
-  static const Duration _productionStampGracePeriod = Duration(minutes: 5);
-  static const Duration _productionMinimumScreenStay = Duration(seconds: 15);
+  static const Duration _productionStartupGracePeriod = Duration(minutes: 3);
+  static const Duration _productionMinimumInterval = Duration(minutes: 15);
+  static const Duration _productionStampGracePeriod = Duration(minutes: 2);
+  static const Duration _productionMinimumScreenStay = Duration(seconds: 10);
 
   static const Duration _debugStartupGracePeriod = Duration.zero;
   static const Duration _debugMinimumInterval = Duration(seconds: 30);
@@ -123,6 +124,17 @@ class InterstitialAdService {
     );
   }
 
+  bool tryBeginRewardedAd() {
+    if (_isShowing) return false;
+    _isShowing = true;
+    return true;
+  }
+
+  void finishRewardedAd({required bool shown}) {
+    if (shown) _lastShownAt = DateTime.now();
+    _isShowing = false;
+  }
+
   void markStampCollected() {
     _lastStampCollectedAt = DateTime.now();
   }
@@ -136,32 +148,32 @@ class InterstitialAdService {
       return false;
     }
 
-    if (screenStay < minimumScreenStay) {
-      return false;
-    }
-
-    if (currentTime.difference(_sessionStartedAt) < _startupGracePeriod) {
-      return false;
-    }
-
-    final lastShownAt = _lastShownAt;
-
-    if (lastShownAt != null &&
-        currentTime.difference(lastShownAt) < _minimumInterval) {
-      return false;
-    }
-
-    final lastStampCollectedAt = _lastStampCollectedAt;
-
-    if (lastStampCollectedAt != null &&
-        currentTime.difference(lastStampCollectedAt) < _stampGracePeriod) {
-      return false;
-    }
-
-    return true;
+    return const AdPlacementPolicy().allowsInterstitialTiming(
+      screenStay: screenStay,
+      sessionAge: currentTime.difference(_sessionStartedAt),
+      sinceLastShown: _lastShownAt == null
+          ? null
+          : currentTime.difference(_lastShownAt!),
+      sinceLastStamp: _lastStampCollectedAt == null
+          ? null
+          : currentTime.difference(_lastStampCollectedAt!),
+      minimumScreenStay: minimumScreenStay,
+      startupGracePeriod: _startupGracePeriod,
+      minimumInterval: _minimumInterval,
+      stampGracePeriod: _stampGracePeriod,
+    );
   }
 
-  Future<bool> showIfEligible({required Duration screenStay}) async {
+  Future<bool> showIfEligible({
+    required Duration screenStay,
+    required Set<AdBlockingContext> blockingContexts,
+  }) async {
+    if (!const AdPlacementPolicy().allowsInterstitial(
+      placement: AdPlacement.naturalExitInterstitial,
+      blockingContexts: blockingContexts,
+    )) {
+      return false;
+    }
     if (!canShowNow(screenStay: screenStay)) {
       preload();
       return false;
