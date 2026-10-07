@@ -7,13 +7,17 @@
 ## Current baseline
 
 - Android applicationId: `jp.seichiquest.app`
-- Flutter version: `1.0.0+12`
+- Flutter/Dart: 3.47.1 / 3.13.1
+- 現在のソース version: `1.0.0+17`
 - Backend: Supabase
 - Map: Google Maps
 - Collection: GPS + server-side validation + offline retry
 - Map presentation: spot / cluster / regional progress
 - Features: NEXT destination, sonar, weather/season/day-phase effects, achievements, ranking, announcements, ads, local notifications
-- Current specification baseline: 2026-09-27
+- Story preview: Rewarded Adによる1時間限定プレビューを実装
+- Current specification baseline: 2026-10-08
+
+Version 17はリリース準備済みのソース状態であり、Google Playへの配信完了とは別に扱います。実配布状態はPlay Consoleを正本として確認します。
 
 仕様・運用・DB・リリースの正本は [docs/specification/README.md](docs/specification/README.md) を参照してください。
 
