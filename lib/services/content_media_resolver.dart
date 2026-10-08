@@ -16,6 +16,10 @@ class ContentMediaResolver {
       return null;
     }
 
+    if (normalizedPath.startsWith('assets/')) {
+      return normalizedPath;
+    }
+
     final uri = Uri.tryParse(normalizedPath);
 
     if (uri != null &&
