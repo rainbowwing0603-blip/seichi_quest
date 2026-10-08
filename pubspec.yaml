@@ -33,6 +33,8 @@ flutter:
   assets:
     - assets/collection_cards/travel_frame.png
     - assets/collection_cards/jomo_karuta_gunma_frame.png
+    - assets/karuta/絵札/
+    - assets/karuta/読み札/
     - assets/map_markers/marker_uncollected.png
     - assets/map_markers/marker_collected.png
     - assets/map_markers/marker_next.png
