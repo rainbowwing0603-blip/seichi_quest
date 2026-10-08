@@ -87,9 +87,24 @@ import 'services/app_version_service.dart';
 // Supabase
 // ============================================================
 
-const supabaseUrl = 'https://wxlvhpmolrtcwryaazfb.supabase.co';
-
-const supabasePublishableKey = 'sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w';
+// Closed-test defaults keep existing testers connected to the current project.
+// Production builds MUST override APP_ENV, SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY
+// through the release workflow; the guard below rejects the test project in production.
+const _closedTestSupabaseUrl = 'https://wxlvhpmolrtcwryaazfb.supabase.co';
+const _closedTestSupabasePublishableKey =
+    'sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w';
+const appEnvironment = String.fromEnvironment(
+  'APP_ENV',
+  defaultValue: 'closed_test',
+);
+const supabaseUrl = String.fromEnvironment(
+  'SUPABASE_URL',
+  defaultValue: _closedTestSupabaseUrl,
+);
+const supabasePublishableKey = String.fromEnvironment(
+  'SUPABASE_PUBLISHABLE_KEY',
+  defaultValue: _closedTestSupabasePublishableKey,
+);
 
 // ============================================================
 // アプリ起動
@@ -98,6 +113,14 @@ const supabasePublishableKey = 'sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w';
 Future<void> main() async {
   final startupWatch = Stopwatch()..start();
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (appEnvironment == 'production' &&
+      (supabaseUrl == _closedTestSupabaseUrl ||
+          supabasePublishableKey == _closedTestSupabasePublishableKey)) {
+    throw StateError(
+      'Production build is still configured with the closed-test Supabase project.',
+    );
+  }
 
   await supabase.Supabase.initialize(
     url: supabaseUrl,
