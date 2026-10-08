@@ -2,7 +2,7 @@
 
 基準日: 2026-09-27  
 基準コード: `fix/destination-range-and-float` `3e4b1a89b52f52f09376b8c3d9a5b9e9726a2540`  
-アプリ版: `1.0.0+12`  
+アプリ版: `versionName は pubspec.yaml で管理、versionCode はPlayリリースWorkflowで自動採番`  
 配布状態: GitHub Releasesは未作成。SupabaseのAndroidリリースポリシーは `latest_build=11 / minimum_build=11`。Play Console上の実配布buildはこのリポジトリだけでは断定しない。
 
 このディレクトリは、聖地クエストの実装・運用・復旧をコードと本番Supabaseから逆引きできる正本として管理する。記述は原則として **実装済み / 一部実装 / 将来構想 / 要確認** を区別する。
