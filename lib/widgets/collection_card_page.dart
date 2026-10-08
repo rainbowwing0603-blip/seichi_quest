@@ -408,28 +408,24 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
                           children: [
                             SizedBox(
                               width: 145,
-                              child: AspectRatio(
-                                aspectRatio: 730 / 909,
-                                child: _buildKarutaPanel(
-                                  image: hasArtwork ? _artwork : null,
-                                  fallbackText: widget.item.title,
-                                ),
+                              height: 181,
+                              child: _buildKarutaPanel(
+                                image: hasArtwork ? _artwork : null,
+                                fallbackText: widget.item.title,
                               ),
                             ),
                             const SizedBox(width: 10),
                             SizedBox(
                               width: 145,
-                              child: AspectRatio(
-                                aspectRatio: 730 / 909,
-                                child: _buildKarutaPanel(
-                                  image: _hideArtwork ? null : _readingArtwork,
-                                  fallbackText:
-                                      readingText?.trim().isNotEmpty == true
-                                      ? readingText!
-                                      : (widget.item.description.trim().isNotEmpty
-                                          ? widget.item.description.trim()
-                                          : widget.item.title),
-                                ),
+                              height: 181,
+                              child: _buildKarutaPanel(
+                                image: _hideArtwork ? null : _readingArtwork,
+                                fallbackText:
+                                    readingText?.trim().isNotEmpty == true
+                                    ? readingText!
+                                    : (widget.item.description.trim().isNotEmpty
+                                        ? widget.item.description.trim()
+                                        : widget.item.title),
                               ),
                             ),
                           ],
