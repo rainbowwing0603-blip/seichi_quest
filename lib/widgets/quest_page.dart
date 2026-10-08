@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/achievement.dart';
 import '../models/quest_item.dart';
+import '../models/event.dart';
 import '../services/achievement_service.dart';
 import 'quest_ui.dart';
 
@@ -14,6 +15,8 @@ class QuestPage extends StatelessWidget {
     required this.total,
     required this.onShowDestination,
     required this.onExploreEvents,
+    required this.events,
+    required this.onEventTap,
     required this.eventAchievements,
     this.itemLabel = 'スポット',
   });
@@ -24,6 +27,8 @@ class QuestPage extends StatelessWidget {
   final int total;
   final VoidCallback onShowDestination;
   final VoidCallback onExploreEvents;
+  final List<Event> events;
+  final ValueChanged<Event> onEventTap;
   final List<Achievement> eventAchievements;
   final String itemLabel;
 
@@ -111,6 +116,8 @@ class QuestPage extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            _buildRecommendedQuestSection(),
             const SizedBox(height: 18),
             if (total == 0)
               _buildEmptyQuestCard()
@@ -188,6 +195,123 @@ class QuestPage extends StatelessWidget {
           icon: Icons.auto_awesome_rounded,
         ),
       ],
+    );
+  }
+
+  Widget _buildRecommendedQuestSection() {
+    final recommended = events.take(3).toList(growable: false);
+
+    if (recommended.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 2, bottom: 9),
+          child: Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded,
+                  size: 16, color: QuestUiTokens.primary),
+              SizedBox(width: 6),
+              Text(
+                'おすすめクエスト',
+                style: TextStyle(
+                  color: QuestUiTokens.ink,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 112,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: recommended.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              final event = recommended[index];
+              return SizedBox(
+                width: 235,
+                child: GestureDetector(
+                  onTap: () => onEventTap(event),
+                  child: QuestGlassCard(
+                    padding: const EdgeInsets.all(13),
+                    borderRadius: 18,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            color: QuestUiTokens.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: event.coverImageUrl != null
+                              ? Image.network(
+                                  event.coverImageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => _buildEventIcon(event),
+                                )
+                              : _buildEventIcon(event),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                event.name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: QuestUiTokens.ink,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.2,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                event.eventStatusText(),
+                                style: const TextStyle(
+                                  color: QuestUiTokens.mutedInk,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          size: 20,
+                          color: QuestUiTokens.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEventIcon(Event event) {
+    return Center(
+      child: Text(
+        event.iconUrl ?? '🗺️',
+        style: const TextStyle(fontSize: 27),
+      ),
     );
   }
 
