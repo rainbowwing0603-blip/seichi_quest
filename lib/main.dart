@@ -3257,6 +3257,9 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       total: _eventTotalCount,
       onShowDestination: _moveCameraToNextSeichi,
       onExploreEvents: _showEventExplore,
+      onRecommendedEventTap: (event) async {
+        await _selectEvent(event);
+      },
       eventAchievements: _eventAchievements,
       itemLabel: _currentEventItemLabel,
     );
