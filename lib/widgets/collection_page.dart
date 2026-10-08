@@ -688,9 +688,11 @@ class CollectionPage extends StatelessWidget {
             width: 1.1,
           ),
         ),
-        child: CustomPaint(
-          painter: _CollectionLockedSlotPainter(),
-          child: Stack(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: CustomPaint(
+            painter: _CollectionLockedSlotPainter(),
+            child: Stack(
             alignment: Alignment.center,
             children: [
               Column(
@@ -723,8 +725,9 @@ class CollectionPage extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       );
