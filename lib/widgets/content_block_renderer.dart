@@ -126,6 +126,7 @@ class ContentBlockRenderer extends StatelessWidget {
 
     final caption = block.body;
     final isHero = block.role == 'hero';
+    final isLocalAsset = imageUrl.startsWith('assets/');
 
     return _buildSection(
       context,
@@ -137,20 +138,35 @@ class ContentBlockRenderer extends StatelessWidget {
             borderRadius: BorderRadius.circular(isHero ? 20 : 16),
             child: AspectRatio(
               aspectRatio: _aspectRatioFor(block),
-              child: Image.network(
-                imageUrl,
-                cacheWidth: (MediaQuery.sizeOf(context).width *
-                        MediaQuery.devicePixelRatioOf(context))
-                    .ceil()
-                    .clamp(1, 2048),
-                width: double.infinity,
-                height: double.infinity,
-                fit: _imageFitFor(block),
-                semanticLabel: block.altText,
-                errorBuilder: (context, error, stackTrace) {
-                  return const SizedBox.shrink();
-                },
-              ),
+              child: isLocalAsset
+                  ? Image.asset(
+                      imageUrl,
+                      cacheWidth: (MediaQuery.sizeOf(context).width *
+                              MediaQuery.devicePixelRatioOf(context))
+                          .ceil()
+                          .clamp(1, 2048),
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: _imageFitFor(block),
+                      semanticLabel: block.altText,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const SizedBox.shrink();
+                      },
+                    )
+                  : Image.network(
+                      imageUrl,
+                      cacheWidth: (MediaQuery.sizeOf(context).width *
+                              MediaQuery.devicePixelRatioOf(context))
+                          .ceil()
+                          .clamp(1, 2048),
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: _imageFitFor(block),
+                      semanticLabel: block.altText,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const SizedBox.shrink();
+                      },
+                    ),
             ),
           ),
           if (caption != null && caption.isNotEmpty) ...[
