@@ -104,7 +104,7 @@ jobs:
           flutter pub get
           flutter analyze
           flutter test
-          flutter build appbundle --release --build-name="$version_name" --build-number="$next_version_code" --dart-define="ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID=$STORY_REWARDED_AD_UNIT_ID"
+          flutter build appbundle --release --build-name="$version_name" --build-number="$next_version_code" --dart-define="APP_ENV=closed_test" --dart-define="ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID=$STORY_REWARDED_AD_UNIT_ID"
           test -s build/app/outputs/bundle/release/app-release.aab
 
           echo "version_name=$version_name" >> "$GITHUB_OUTPUT"
