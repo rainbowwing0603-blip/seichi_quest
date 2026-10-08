@@ -114,6 +114,16 @@ jobs:
           cleanup() { curl -sS -X DELETE "${auth[@]}" "$api/edits/$edit_id" >/dev/null 2>&1 || true; }
           trap cleanup EXIT
 
+          current_tracks="$(curl -sS --fail-with-body "${auth[@]}" "$api/edits/$edit_id/tracks")"
+          max_existing="$(printf '%s' "$current_tracks" | python3 -c 'import json,sys; d=json.load(sys.stdin); xs=[int(v) for t in d.get("tracks",[]) for r in t.get("releases",[]) for v in r.get("versionCodes",[])]; print(max(xs) if xs else 0)')"
+          expected_version_code="$(python3 -c 'import re; s=open("pubspec.yaml", encoding="utf-8").read(); m=re.search(r"^version:\s+[^+]+\\+(\\d+)", s, re.M); assert m, "Could not read Flutter versionCode from pubspec.yaml"; print(m.group(1))')"
+          echo "Highest existing Play versionCode: $max_existing"
+          echo "Expected AAB versionCode from pubspec.yaml: $expected_version_code"
+          if (( expected_version_code <= max_existing )); then
+            echo "::error::Refusing release before upload: versionCode $expected_version_code must be greater than existing Play versionCode $max_existing."
+            exit 1
+          fi
+
           echo "Play API: bundle upload"
           upload_http_code="$(curl -sS -X POST "${auth[@]}" -H "Content-Type: application/octet-stream" --data-binary "@$aab" -o /tmp/play-upload-response.json -w "%{http_code}" "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/$package/edits/$edit_id/bundles?uploadType=media")"
           if [[ "$upload_http_code" != 2* ]]; then
@@ -125,11 +135,8 @@ jobs:
           version_code="$(printf '%s' "$upload" | python3 -c 'import json,sys; print(json.load(sys.stdin)["versionCode"])')"
           echo "Uploaded versionCode $version_code"
 
-          current_tracks="$(curl -sS --fail-with-body "${auth[@]}" "$api/edits/$edit_id/tracks")"
-          max_existing="$(printf '%s' "$current_tracks" | python3 -c 'import json,sys; d=json.load(sys.stdin); xs=[int(v) for t in d.get("tracks",[]) for r in t.get("releases",[]) for v in r.get("versionCodes",[])]; print(max(xs) if xs else 0)')"
-          echo "Highest existing Play versionCode: $max_existing"
-          if (( version_code <= max_existing )); then
-            echo "::error::Refusing release: AAB versionCode $version_code must be greater than existing Play versionCode $max_existing."
+          if [[ "$version_code" != "$expected_version_code" ]]; then
+            echo "::error::AAB versionCode $version_code does not match pubspec.yaml versionCode $expected_version_code."
             exit 1
           fi
 
