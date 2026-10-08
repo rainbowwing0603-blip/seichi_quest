@@ -399,62 +399,69 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Expanded(
-                    child: hasReading
-                        ? Row(
-                            children: [
-                              Expanded(
-                                child: _buildKarutaPanel(
-                                  image: hasArtwork ? _artwork : null,
-                                  fallbackText: widget.item.title,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _buildKarutaPanel(
-                                  image: _hideArtwork ? null : _readingArtwork,
-                                  fallbackText:
-                                      readingText?.trim().isNotEmpty == true
-                                      ? readingText!
-                                      : (widget.item.description
-                                                .trim()
-                                                .isNotEmpty
-                                            ? widget.item.description.trim()
-                                            : widget.item.title),
-                                ),
-                              ),
-                            ],
-                          )
-                        : hasArtwork
-                        ? _buildKarutaPanel(
-                            image: _artwork,
-                            fallbackText: widget.item.title,
-                          )
-                        : Center(
-                            child: Container(
-                              padding: const EdgeInsets.all(18),
-                              decoration: BoxDecoration(
-                                color: const Color(0xAA061B30),
-                                border: Border.all(
-                                  color: const Color(0x8875E4E5),
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                widget.item.title,
-                                textAlign: TextAlign.center,
-                                maxLines: 4,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 32,
-                                  height: 1.22,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
+                  if (hasReading)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: AspectRatio(
+                            aspectRatio: 730 / 909,
+                            child: _buildKarutaPanel(
+                              image: hasArtwork ? _artwork : null,
+                              fallbackText: widget.item.title,
                             ),
                           ),
-                  ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: AspectRatio(
+                            aspectRatio: 730 / 909,
+                            child: _buildKarutaPanel(
+                              image: _hideArtwork ? null : _readingArtwork,
+                              fallbackText:
+                                  readingText?.trim().isNotEmpty == true
+                                  ? readingText!
+                                  : (widget.item.description.trim().isNotEmpty
+                                      ? widget.item.description.trim()
+                                      : widget.item.title),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  else if (hasArtwork)
+                    AspectRatio(
+                      aspectRatio: 730 / 909,
+                      child: _buildKarutaPanel(
+                        image: _artwork,
+                        fallbackText: widget.item.title,
+                      ),
+                    )
+                  else
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: const Color(0xAA061B30),
+                          border: Border.all(
+                            color: const Color(0x8875E4E5),
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          widget.item.title,
+                          textAlign: TextAlign.center,
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            height: 1.22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 21),
                   Container(
                     width: 40,
