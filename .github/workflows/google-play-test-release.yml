@@ -116,7 +116,7 @@ jobs:
 
           current_tracks="$(curl -sS --fail-with-body "${auth[@]}" "$api/edits/$edit_id/tracks")"
           max_existing="$(printf '%s' "$current_tracks" | python3 -c 'import json,sys; d=json.load(sys.stdin); xs=[int(v) for t in d.get("tracks",[]) for r in t.get("releases",[]) for v in r.get("versionCodes",[])]; print(max(xs) if xs else 0)')"
-          expected_version_code="$(python3 -c 'import re; s=open("pubspec.yaml", encoding="utf-8").read(); m=re.search(r"^version:\s+[^+]+\\+(\\d+)", s, re.M); assert m, "Could not read Flutter versionCode from pubspec.yaml"; print(m.group(1))')"
+          expected_version_code="$(python3 -c 'import re; s=open("pubspec.yaml", encoding="utf-8").read(); m=re.search(r"^version:\s+[^+]+\+(\d+)", s, re.M); assert m, "Could not read Flutter versionCode from pubspec.yaml"; print(m.group(1))')"
           echo "Highest existing Play versionCode: $max_existing"
           echo "Expected AAB versionCode from pubspec.yaml: $expected_version_code"
           if (( expected_version_code <= max_existing )); then
