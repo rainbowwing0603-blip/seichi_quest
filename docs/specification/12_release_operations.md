@@ -39,9 +39,9 @@ AAB作成とPlay Consoleへのアップロードは別事実として記録す�
 
 ## クローズドテスト更新手順
 1. 提出対象commitを固定し、Git statusがcleanであることを確認。
-2. Play Consoleで投入済み最大versionCodeを確認し、それより大きい番号を設定。
+2. `versionName` が今回のリリース判断に合っていることを確認する。`versionCode` は手動設定せず、GitHub ActionsがPlay上の最大値 + 1を自動採番する。
 3. `flutter pub get`、`flutter analyze`、`flutter test`、Release AAB build。
 4. 実機/エミュレータで主要導線をスモークテスト。mock locationはdebugではテスト可能、release/profileでは拒否する。
 5. Play ConsoleへAAB登録、リリースノート入力、審査/配信状態を確認。
-6. commit、versionName、versionCode、AAB SHA-256、提出日時、Play状態をリリース記録へ残す。
+6. commit、versionName、Workflowログに出力された自動採番versionCode、AAB SHA-256、提出日時、Play状態をリリース記録へ残す。
 7. Supabase `app_release_policies` のlatest/minimumを、実配布状態と矛盾しないタイミングで更新する。
