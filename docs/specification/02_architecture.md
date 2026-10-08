@@ -22,3 +22,8 @@ Supabase project ref: `wxlvhpmolrtcwryaazfb`、Tokyoリージョン、PostgreSQL
 
 ## 注意
 `main.dart` には依然として多くの調停責務がある。今後の機能追加は新しい巨大分岐をmainへ増やすより、Service/Policy/Coordinatorへ切り出す。
+
+## 環境分離
+- クローズドテスト版は既存Supabaseプロジェクト `wxlvhpmolrtcwryaazfb` を利用し、既存テスト履歴を維持する。
+- 本番版は別Supabaseプロジェクトを利用する。環境は `APP_ENV`、`SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY` でビルド時に明示する。
+- 本番環境のURL/key未設定やテスト用設定の誤用を検知できるよう、production起動時にテスト用接続先を拒否する。
