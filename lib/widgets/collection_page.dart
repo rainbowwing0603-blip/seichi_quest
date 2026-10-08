@@ -627,30 +627,39 @@ class CollectionPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(7),
         child: ColoredBox(
           color: Colors.white,
-          child: Image.network(
-            imageUrl,
-            fit: BoxFit.contain,
-            alignment: Alignment.center,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) {
-                return child;
-              }
+          child: imageUrl.startsWith('assets/')
+              ? Image.asset(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.center,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Center(child: _buildStampVisual(item, collected));
+                  },
+                )
+              : Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.center,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) {
+                      return child;
+                    }
 
-              return Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: QuestUiTokens.primary.withValues(alpha: 0.55),
-                  ),
+                    return Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: QuestUiTokens.primary.withValues(alpha: 0.55),
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return Center(child: _buildStampVisual(item, collected));
+                  },
                 ),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) {
-              return Center(child: _buildStampVisual(item, collected));
-            },
-          ),
         ),
       ),
     );
