@@ -2,7 +2,7 @@ name: seichi_quest
 description: "位置情報を使って現地を巡り、イベントや地域のスポットを集める聖地巡礼クエストアプリ。"
 publish_to: 'none'
 
-version: 1.0.0+18
+version: 1.0.0+19
 environment:
   sdk: ^3.13.1
 
