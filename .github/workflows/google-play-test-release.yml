@@ -12,7 +12,7 @@ on:
       branch:
         description: "Branch to build and release"
         required: true
-        default: "main"
+        default: "feature/android-next-release"
       release_status:
         description: "Play release status"
         required: true
