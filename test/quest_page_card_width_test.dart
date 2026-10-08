@@ -25,6 +25,7 @@ void main() {
               eventAchievements: const [],
               onShowDestination: () {},
               onExploreEvents: () {},
+              onRecommendedEventTap: (_) {},
             ),
           ),
         ),
