@@ -406,24 +406,30 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            AspectRatio(
-                              aspectRatio: 730 / 909,
-                              child: _buildKarutaPanel(
-                                image: hasArtwork ? _artwork : null,
-                                fallbackText: widget.item.title,
+                            SizedBox(
+                              width: 145,
+                              child: AspectRatio(
+                                aspectRatio: 730 / 909,
+                                child: _buildKarutaPanel(
+                                  image: hasArtwork ? _artwork : null,
+                                  fallbackText: widget.item.title,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 10),
-                            AspectRatio(
-                              aspectRatio: 730 / 909,
-                              child: _buildKarutaPanel(
-                                image: _hideArtwork ? null : _readingArtwork,
-                                fallbackText:
-                                    readingText?.trim().isNotEmpty == true
-                                    ? readingText!
-                                    : (widget.item.description.trim().isNotEmpty
-                                        ? widget.item.description.trim()
-                                        : widget.item.title),
+                            SizedBox(
+                              width: 145,
+                              child: AspectRatio(
+                                aspectRatio: 730 / 909,
+                                child: _buildKarutaPanel(
+                                  image: _hideArtwork ? null : _readingArtwork,
+                                  fallbackText:
+                                      readingText?.trim().isNotEmpty == true
+                                      ? readingText!
+                                      : (widget.item.description.trim().isNotEmpty
+                                          ? widget.item.description.trim()
+                                          : widget.item.title),
+                                ),
                               ),
                             ),
                           ],
@@ -433,11 +439,14 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
                   else if (hasArtwork)
                     Expanded(
                       child: Center(
-                        child: AspectRatio(
-                          aspectRatio: 730 / 909,
-                          child: _buildKarutaPanel(
-                            image: _artwork,
-                            fallbackText: widget.item.title,
+                        child: SizedBox(
+                          width: 250,
+                          child: AspectRatio(
+                            aspectRatio: 730 / 909,
+                            child: _buildKarutaPanel(
+                              image: _artwork,
+                              fallbackText: widget.item.title,
+                            ),
                           ),
                         ),
                       ),
@@ -579,10 +588,11 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
     required String fallbackText,
   }) {
     return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: const BoxDecoration(
-        color: Color(0xEAF3FBFC),
-        boxShadow: [
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: const Color(0xEAF3FBFC),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
           BoxShadow(
             color: Color(0x88010C20),
             blurRadius: 22,
