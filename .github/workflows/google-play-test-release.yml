@@ -114,7 +114,14 @@ jobs:
           cleanup() { curl -sS -X DELETE "${auth[@]}" "$api/edits/$edit_id" >/dev/null 2>&1 || true; }
           trap cleanup EXIT
 
-          upload="$(curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/octet-stream" --data-binary "@$aab" "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/$package/edits/$edit_id/bundles?uploadType=media")"
+          echo "Play API: bundle upload"
+          upload_http_code="$(curl -sS -X POST "${auth[@]}" -H "Content-Type: application/octet-stream" --data-binary "@$aab" -o /tmp/play-upload-response.json -w "%{http_code}" "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/$package/edits/$edit_id/bundles?uploadType=media")"
+          if [[ "$upload_http_code" != 2* ]]; then
+            echo "Play API bundle upload HTTP $upload_http_code"
+            cat /tmp/play-upload-response.json
+            exit 1
+          fi
+          upload="$(cat /tmp/play-upload-response.json)"
           version_code="$(printf '%s' "$upload" | python3 -c 'import json,sys; print(json.load(sys.stdin)["versionCode"])')"
           echo "Uploaded versionCode $version_code"
 
@@ -127,9 +134,12 @@ jobs:
           fi
 
           body="$(VERSION_CODE="$version_code" RELEASE_STATUS="$RELEASE_STATUS" python3 -c 'import json,os; print(json.dumps({"releases":[{"status":os.environ["RELEASE_STATUS"],"versionCodes":[os.environ["VERSION_CODE"]]}]}))')"
+          echo "Play API: update $TRACK track"
           curl -sS --fail-with-body -X PUT "${auth[@]}" -H "Content-Type: application/json" "$api/edits/$edit_id/tracks/$TRACK" -d "$body" >/dev/null
 
+          echo "Play API: validate edit"
           curl -sS --fail-with-body -X POST "${auth[@]}" "$api/edits/$edit_id:validate" >/dev/null
+          echo "Play API: commit edit"
           curl -sS --fail-with-body -X POST "${auth[@]}" "$api/edits/$edit_id:commit" >/dev/null
           trap - EXIT
 
