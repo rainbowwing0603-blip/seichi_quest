@@ -7,7 +7,7 @@
 ## Current baseline
 
 - Android applicationId: `jp.seichiquest.app`
-- Flutter version: `1.0.0+12`
+- App version name: managed in `pubspec.yaml`; Android Play `versionCode` is assigned automatically by the release workflow
 - Backend: Supabase
 - Map: Google Maps
 - Collection: GPS + server-side validation + offline retry
