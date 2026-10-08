@@ -4,7 +4,12 @@
 applicationId `jp.seichiquest.app`。Releaseはupload keystoreで署名する。秘密鍵・password・key.propertiesはGitへ入れない。
 
 ## Version
-Flutter `pubspec.yaml` のversionName/versionCodeを使用。versionCodeはPlayへ一度投入した値を再利用しない。
+- 人が決めるのは `pubspec.yaml` の `versionName`（例: `version: 1.0.0`）だけ。正式リリースの番号は別途判断し、ここで固定しない。
+- `versionCode` は手動管理しない。PlayリリースWorkflowがGoogle Playの既存App Bundleを照会し、最大値 + 1をビルド時に `--build-number` へ渡す。
+- `versionName` は `--build-name` で渡す。AABのversionCodeをAPI応答と照合し、不一致なら停止する。
+- リリースWorkflowはテストトラック（alpha / beta / internal）のみを許可する。Production公開は別の明示的な手順で行う。
+- Play側の既存versionCodeを取得できない場合は、推測値で続行せず失敗させる。既存Bundleの最大値を基準にし、番号を再利用しない。
+- `pubspec.yaml` に `+NN` を書かない。ローカルビルドでは必要に応じて明示的な `--build-number` を指定するが、Play配布用番号はWorkflowに任せる。
 
 ## 2026-09-27 現行状態
 - 開発ブランチ: `fix/destination-range-and-float`
