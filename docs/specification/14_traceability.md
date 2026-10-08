@@ -24,5 +24,8 @@
 | DB変更 | Flutter呼出し側 | `supabase/migrations/*.sql` |
 | Privacy | app/account UI | `docs/privacy/index.html` |
 
+| リリース・採番 | `.github/workflows/google-play-test-release.yml`, `pubspec.yaml` | Google Play Android Publisher API（既存Bundle最大versionCode + 1） |
+| 仕様更新ゲート | `.github/workflows/specification-update-gate.yml` | PRの変更ファイルを検査し、実装・DB・CI/CD変更時の仕様書更新を要求 |
+
 ## 更新
 ファイル移動・責務分割時はこの表も更新する。テーブルやRPCを削除する前に、対応するFlutter参照が残っていないか確認する。ユーザー向け表示と内部セキュリティ/GPS検証メタデータの境界もレビュー対象とする。
