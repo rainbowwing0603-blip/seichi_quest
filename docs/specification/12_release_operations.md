@@ -45,3 +45,12 @@ AAB作成とPlay Consoleへのアップロードは別事実として記録す�
 5. Play ConsoleへAAB登録、リリースノート入力、審査/配信状態を確認。
 6. commit、versionName、Workflowログに出力された自動採番versionCode、AAB SHA-256、提出日時、Play状態をリリース記録へ残す。
 7. Supabase `app_release_policies` のlatest/minimumを、実配布状態と矛盾しないタイミングで更新する。
+
+## Supabase環境の分離
+- 現在のSupabaseプロジェクト `wxlvhpmolrtcwryaazfb` はクローズドテスト用として維持し、既存のテスト履歴を削除しない。
+- 本番用には別のSupabaseプロジェクトを使用する。テスト用と本番用のAuthユーザーID・スタンプ履歴・イベント参加状態は自動共有・自動移行しない。
+- Flutterは `APP_ENV`、`SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY` のDart defineで接続先を切り替える。未指定時の既定値はクローズドテスト環境。
+- `APP_ENV=production` のビルドでクローズドテスト用URLまたはキーが残っている場合は、起動時に停止する。
+- クローズドテスト用Play Workflowは必ず `APP_ENV=closed_test` を指定する。本番用Workflowは、本番Supabase URLとpublishable keyをGitHub Environmentの保護された変数/Secretsから渡し、テスト用既定値へのフォールバックを許さない。
+- 本番プロジェクトはスキーマ・RLS・RPC・Edge Functions・Storage・Auth設定を検証し、イベント/スポット等のマスターデータを反映してから接続先を有効化する。ユーザー履歴は、別途移行方針が承認されない限り移行しない。
+- 本番プロジェクト作成時は東京リージョン `ap-northeast-1` を優先候補とし、作成前に費用を確認する。
