@@ -309,7 +309,7 @@ class QuestPage extends StatelessWidget {
   Widget _buildEventIcon(Event event) {
     return Center(
       child: Text(
-        event.iconUrl ?? '🗺️',
+        '🗺️',
         style: const TextStyle(fontSize: 27),
       ),
     );
