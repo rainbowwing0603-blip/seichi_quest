@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/achievement.dart';
+import '../models/event.dart';
 import '../models/quest_item.dart';
 import '../services/achievement_service.dart';
 import 'quest_ui.dart';
@@ -15,6 +16,7 @@ class QuestPage extends StatelessWidget {
     required this.total,
     required this.onShowDestination,
     required this.onExploreEvents,
+    required this.onRecommendedEventTap,
     required this.eventAchievements,
     this.itemLabel = 'スポット',
   });
@@ -25,6 +27,7 @@ class QuestPage extends StatelessWidget {
   final int total;
   final VoidCallback onShowDestination;
   final VoidCallback onExploreEvents;
+  final ValueChanged<Event> onRecommendedEventTap;
   final List<Achievement> eventAchievements;
   final String itemLabel;
 
@@ -113,7 +116,7 @@ class QuestPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
-            const RecommendedEventsCard(),
+            RecommendedEventsCard(onEventTap: onRecommendedEventTap),
             const SizedBox(height: 18),
             if (total == 0)
               _buildEmptyQuestCard()
