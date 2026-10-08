@@ -128,6 +128,18 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
   }
 
   Future<Uint8List?> _downloadImage(String url) async {
+    if (url.startsWith('assets/')) {
+      try {
+        final data = await rootBundle.load(url);
+        return data.buffer.asUint8List(
+          data.offsetInBytes,
+          data.lengthInBytes,
+        );
+      } catch (_) {
+        return null;
+      }
+    }
+
     final client = HttpClient();
     try {
       final response = await client
