@@ -400,41 +400,46 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
                   ),
                   const SizedBox(height: 14),
                   if (hasReading)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: AspectRatio(
-                            aspectRatio: 730 / 909,
-                            child: _buildKarutaPanel(
-                              image: hasArtwork ? _artwork : null,
-                              fallbackText: widget.item.title,
+                    Expanded(
+                      child: Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            AspectRatio(
+                              aspectRatio: 730 / 909,
+                              child: _buildKarutaPanel(
+                                image: hasArtwork ? _artwork : null,
+                                fallbackText: widget.item.title,
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: AspectRatio(
-                            aspectRatio: 730 / 909,
-                            child: _buildKarutaPanel(
-                              image: _hideArtwork ? null : _readingArtwork,
-                              fallbackText:
-                                  readingText?.trim().isNotEmpty == true
-                                  ? readingText!
-                                  : (widget.item.description.trim().isNotEmpty
-                                      ? widget.item.description.trim()
-                                      : widget.item.title),
+                            const SizedBox(width: 10),
+                            AspectRatio(
+                              aspectRatio: 730 / 909,
+                              child: _buildKarutaPanel(
+                                image: _hideArtwork ? null : _readingArtwork,
+                                fallbackText:
+                                    readingText?.trim().isNotEmpty == true
+                                    ? readingText!
+                                    : (widget.item.description.trim().isNotEmpty
+                                        ? widget.item.description.trim()
+                                        : widget.item.title),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
+                      ),
                     )
                   else if (hasArtwork)
-                    AspectRatio(
-                      aspectRatio: 730 / 909,
-                      child: _buildKarutaPanel(
-                        image: _artwork,
-                        fallbackText: widget.item.title,
+                    Expanded(
+                      child: Center(
+                        child: AspectRatio(
+                          aspectRatio: 730 / 909,
+                          child: _buildKarutaPanel(
+                            image: _artwork,
+                            fallbackText: widget.item.title,
+                          ),
+                        ),
                       ),
                     )
                   else
@@ -574,11 +579,10 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
     required String fallbackText,
   }) {
     return Container(
-      padding: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: const Color(0xEAF3FBFC),
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: const [
+      padding: const EdgeInsets.all(2),
+      decoration: const BoxDecoration(
+        color: Color(0xEAF3FBFC),
+        boxShadow: [
           BoxShadow(
             color: Color(0x88010C20),
             blurRadius: 22,
@@ -603,35 +607,32 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
               ),
             ),
           Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: double.infinity,
-                color: const Color(0xFFF7F6F2),
-                alignment: Alignment.center,
-                child: image != null
-                    ? Image.memory(
-                        image,
-                        fit: BoxFit.contain,
-                        gaplessPlayback: true,
-                        width: double.infinity,
-                      )
-                    : Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Text(
-                          fallbackText,
-                          textAlign: TextAlign.center,
-                          maxLines: 10,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF1B3441),
-                            fontSize: 15,
-                            height: 1.5,
-                            fontWeight: FontWeight.w800,
-                          ),
+            child: Container(
+              width: double.infinity,
+              color: const Color(0xFFF7F6F2),
+              alignment: Alignment.center,
+              child: image != null
+                  ? Image.memory(
+                      image,
+                      fit: BoxFit.contain,
+                      gaplessPlayback: true,
+                      width: double.infinity,
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                        fallbackText,
+                        textAlign: TextAlign.center,
+                        maxLines: 10,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF1B3441),
+                          fontSize: 15,
+                          height: 1.5,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-              ),
+                    ),
             ),
           ),
         ],
