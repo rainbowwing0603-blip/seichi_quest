@@ -29,3 +29,5 @@
 
 ## 更新
 ファイル移動・責務分割時はこの表も更新する。テーブルやRPCを削除する前に、対応するFlutter参照が残っていないか確認する。ユーザー向け表示と内部セキュリティ/GPS検証メタデータの境界もレビュー対象とする。
+
+| Supabase環境分離 | `lib/main.dart`、リリースWorkflow | `APP_ENV` / `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY`。本番は別Supabaseプロジェクトを使用 |
