@@ -160,3 +160,8 @@ The function pins an empty `search_path` and schema-qualifies its relations. Thi
 The migration was executed inside an explicit transaction against the closed-test schema with a temporary authenticated-role context, then rolled back. The RPC returned successfully and the role could read its own participation row; a follow-up catalog check confirmed the function was absent after rollback. This validates SQL syntax and the happy path without persisting schema/data changes. Negative tests (unauthenticated, inactive/missing event, cross-user access, direct writes after migration) remain required before applying the migration.
 
 A second rollback-only privilege check also passed: `authenticated` can execute the RPC, `anon` cannot, and `authenticated` has no direct INSERT/UPDATE/DELETE privileges on `user_event_participations`. No schema or row changes were persisted.
+
+
+### Leave-participation RPC validation
+
+A rollback-only authenticated-role test on the closed-test schema called `ensure_event_participation`, then `leave_event_participation` for a non-current active event. It observed one row marked inactive with a non-null server-generated `left_at`, then rolled back the transaction. This test did not persist the function or data changes.
