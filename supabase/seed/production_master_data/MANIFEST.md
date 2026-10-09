@@ -24,3 +24,8 @@ Total exported rows: **10,320** across 13 master/reference tables.
 All data files use `jsonb_populate_recordset` and `ON CONFLICT DO NOTHING`. Place geography is serialized as EWKT and was successfully parsed into `geography` in a rollback-only production bootstrap rehearsal. The single event cover URL pointing to the closed-test Supabase project was nulled; local `assets/...` references are retained.
 
 Not included: `announcements`, `app_release_policies`, Storage objects, Auth/users, profiles, visits, collection history, preferences, favorites, participation, announcement reads, location-security data, reset ledgers, or admin membership. These omissions are intentional.
+
+
+## Validation status
+
+All 47 SQL files were individually executed against the closed-test schema inside explicit transactions and rolled back. This validated SQL syntax and row-to-column type conversion for every exported row. The PostGIS EWKT conversion for place rows was additionally tested against the empty production project with the candidate schema. The source catalog reports zero unvalidated constraints across the app schemas. No seed file was applied permanently to either project.
