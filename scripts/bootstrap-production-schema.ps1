@@ -32,7 +32,7 @@ if ($seedFiles.Count -ne 47) {
 
 $builder = [System.Text.StringBuilder]::new()
 [void]$builder.AppendLine('BEGIN;')
-[void]$builder.AppendLine(@'
+$guardSql = @'
 DO $guard$
 DECLARE
   v_has_migration_history boolean;
@@ -63,7 +63,7 @@ foreach ($file in $seedFiles) {
     [void]$builder.AppendLine([System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8))
 }
 
-[void]$builder.AppendLine(@'
+$validateSql = @'
 DO $validate$
 DECLARE
   v_bad_rls integer;
