@@ -35,12 +35,12 @@ The scripts are intentionally guarded and default to dry-run. Neither script con
    .\scripts\repair-production-migration-history.ps1 -Apply
    ```
    The repair script verifies the linked project ref and queries the database to ensure the full bootstrap actually succeeded before it can mark any version as applied. Review its version list during the dry-run.
-7. Apply the four post-baseline migrations (participation RPC, preference RPC, profile-write RPC, and atomic registry replacement) and verify history alignment:
+7. Apply the five post-baseline migrations (participation RPC, preference RPC, profile-write RPC, atomic registry replacement, and place timestamp preservation) and verify history alignment:
    ```powershell
    supabase db push
    supabase migration list
    ```
-   These migrations are idempotent and their current definitions are also represented in the clean baseline. The push records the current source migration history without replaying the old bootstrap chain.
+   These migrations are idempotent and their current definitions are also represented in the clean baseline. The place trigger preserves supplied source timestamps on INSERT while still refreshing `updated_at` on content UPDATE. The push records the current source migration history without replaying the old bootstrap chain.
 
 ## Still separate from database cutover
 
