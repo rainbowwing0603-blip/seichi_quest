@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import * as cheerio from "npm:cheerio@1.1.2";
 import * as XLSX from "npm:xlsx@0.18.5";
 
-const IMPORT_KEY = "sq-roadside-20260925-fixed-source-import-v1";
+const IMPORT_KEY = Deno.env.get("ROADSIDESTATION_IMPORT_KEY");
 const MLIT_XLS = "https://www.mlit.go.jp/road/Michi-no-Eki/file/list.xls";
 const MLIT_PAGE = "https://www.mlit.go.jp/road/Michi-no-Eki/list.html";
 const REGION_URLS = Array.from({length:10},(_,i)=>`https://www.seaview.jp/rs/${101+i}-111.htm`);
@@ -21,7 +21,16 @@ function coord(href:string):[number,number]|null {
 }
 
 Deno.serve(async(req:Request)=>{ try {
-  if(req.headers.get("x-import-key")!==IMPORT_KEY) return new Response("forbidden",{status:403});
+  if (req.method !== "POST") {
+    return new Response("method not allowed", { status: 405, headers: { "Allow": "POST" } });
+  }
+  if (!IMPORT_KEY) {
+    console.error("[registry-import] required secret ROADSIDESTATION_IMPORT_KEY is not configured");
+    return Response.json({ ok: false, error: "maintenance function is not configured" }, { status: 503 });
+  }
+  if (req.headers.get("x-import-key") !== IMPORT_KEY) {
+    return new Response("forbidden", { status: 403 });
+  }
   const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   // 1) Authoritative registry from MLIT XLS.
@@ -103,4 +112,8 @@ Deno.serve(async(req:Request)=>{ try {
   }
   const {count}=await sb.from("roadside_station_registry").select("*",{count:"exact",head:true});
   return Response.json({ok:true,official:master.length,total:count,gunma_linked:linked});
-} catch(e){ return Response.json({ok:false,error:String(e),detail:e,stack:(e as any)?.stack},{status:500}); }});
+} catch (e) {
+  // Keep stack traces and source details in server logs only.
+  console.error("[registry-import] failed", e);
+  return Response.json({ ok: false, error: "registry import failed" }, { status: 500 });
+}});
