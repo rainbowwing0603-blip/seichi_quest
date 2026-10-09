@@ -15,6 +15,7 @@ Create or verify the GitHub Environment named `production`. Store credentials th
 - Secret `ANDROID_KEY_ALIAS`.
 - Secret `ANDROID_KEY_PASSWORD`.
 - Secret `GOOGLE_MAPS_API_KEY`: production Android Maps key, restricted to the production package and signing certificate where applicable.
+- Variable `ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID`: the production AdMob rewarded-ad unit used to unlock a spot's story for one hour. Do not use Google's test ad unit.
 
 Do not add a service-account publishing credential to this workflow. It intentionally has no Play publishing step.
 
