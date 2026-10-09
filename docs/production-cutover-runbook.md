@@ -2,22 +2,28 @@
 
 **Target project:** `npirfaoxcarfuqjlwgav` (`seichi-quest-production`)
 
+## Live status, checked 2026-10-09
+
+The clean production schema and all 10,320 curated master/reference rows have now been applied and validated. The live DB has 25 application tables, 24 reviewed RLS policies, RLS on every application table, no `public.seichi`, no test-project Storage URLs in master data, and zero user-specific rows copied. All expected table counts, spatial lookup, event-content foreign-key joins, and atomic registry RPC grants were verified.
+
+**Do not run `scripts/bootstrap-production-schema.ps1 -Apply` again.** It is a one-time script that correctly refuses to run when application tables already exist. The next database step is migration-history repair using the guarded script below, followed by `supabase db push`. The migration history currently has no recorded migrations. Auth anonymous sign-in, Storage policies/assets, deployed Edge Function secret rotation, and production release-policy setup remain separate pre-release gates.
+
 ## Critical warning
 
 Do **not** run `supabase db push` against the empty production project before the clean bootstrap. The repository contains historical migrations that assume an older schema and may recreate or depend on the retired `public.seichi` model. The production bootstrap candidate is the reviewed current-state baseline; it must be applied first, then the pre-baseline migration history must be reconciled before normal pushes.
 
 The scripts are intentionally guarded and default to dry-run. Neither script contains a database password or publishable key.
 
-## One-time cutover
+## One-time cutover (bootstrap steps already completed)
 
-1. Merge/review the production-bootstrap PR and update the local checkout to that commit.
-2. Confirm the target project ref in the Supabase Dashboard is `npirfaoxcarfuqjlwgav`. The current production project was confirmed empty during preparation.
+1. Merge/review the production-bootstrap PR and update the local checkout to that commit. The schema/data bootstrap portion is already complete; use the remaining steps for migration-history reconciliation only.
+2. Confirm the target project ref in the Supabase Dashboard is `npirfaoxcarfuqjlwgav`. The schema and master data are now present; do not assume the project is empty.
 3. Link the CLI to production:
    ```powershell
    supabase link --project-ref npirfaoxcarfuqjlwgav
    ```
 4. Set `SUPABASE_DB_URL` in the current PowerShell session to the **direct database connection URI** for that production project. Do not commit it, put it in a script, or paste it into chat.
-5. Run the dry-run, inspect the target and file counts, then apply the schema and all curated master data in one PostgreSQL transaction:
+5. **Historical step, already completed. Do not rerun.** The guarded bootstrap script was prepared for the original empty-project state and will refuse against the live populated schema.
    ```powershell
    .\scripts\bootstrap-production-schema.ps1
    .\scripts\bootstrap-production-schema.ps1 -Apply
