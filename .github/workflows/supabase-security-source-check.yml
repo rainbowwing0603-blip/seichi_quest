@@ -8,6 +8,8 @@ on:
       - "supabase/**"
       - "docs/production-schema-target.md"
       - "scripts/check_supabase_security_source.py"
+      - "scripts/*.ps1"
+      - "docs/production-cutover-runbook.md"
       - ".github/workflows/supabase-security-source-check.yml"
   workflow_dispatch:
 
@@ -34,5 +36,7 @@ jobs:
           supabase/functions/import-roadside-station-registry/index.ts
           supabase/functions/enrich-roadside-station-gps/index.ts
           supabase/functions/reconcile-roadside-station-gps/index.ts
+      - name: Validate production PowerShell scripts parse
+        run: pwsh -NoLogo -NoProfile -File scripts/check_powershell_syntax.ps1
       - name: Check Supabase source guardrails
         run: python scripts/check_supabase_security_source.py
