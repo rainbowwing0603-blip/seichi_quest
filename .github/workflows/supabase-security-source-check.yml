@@ -38,5 +38,15 @@ jobs:
           supabase/functions/reconcile-roadside-station-gps/index.ts
       - name: Validate production PowerShell scripts parse
         run: pwsh -NoLogo -NoProfile -File scripts/check_powershell_syntax.ps1
+      - name: Install PostgreSQL client for guarded script dry-runs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Dry-run production bootstrap and master-data import scripts
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:ci-placeholder@db.npirfaoxcarfuqjlwgav.supabase.co:5432/postgres
+        run: |
+          pwsh -NoLogo -NoProfile -File scripts/bootstrap-production-schema.ps1
+          pwsh -NoLogo -NoProfile -File scripts/import-production-master-data.ps1
       - name: Check Supabase source guardrails
         run: python scripts/check_supabase_security_source.py
