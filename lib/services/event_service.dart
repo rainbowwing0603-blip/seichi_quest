@@ -108,11 +108,10 @@ class EventService {
     }
 
     try {
-      await _client.from('user_event_preferences').upsert({
-        'user_id': user.id,
-        'current_event_id': eventId,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }, onConflict: 'user_id');
+      await _client.rpc(
+        'set_current_event_preference',
+        params: {'p_event_id': eventId},
+      );
 
       appDebugPrint('[EVENT] preference saved: eventId=$eventId');
     } catch (error) {
