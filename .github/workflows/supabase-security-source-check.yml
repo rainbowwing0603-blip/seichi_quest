@@ -1,0 +1,28 @@
+name: Supabase Security Source Check
+
+on:
+  pull_request:
+    branches:
+      - feature/android-next-release
+    paths:
+      - "supabase/**"
+      - "docs/production-schema-target.md"
+      - "scripts/check_supabase_security_source.py"
+      - ".github/workflows/supabase-security-source-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check Supabase source guardrails
+        run: python scripts/check_supabase_security_source.py
