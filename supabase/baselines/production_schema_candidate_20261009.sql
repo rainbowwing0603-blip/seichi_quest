@@ -1270,7 +1270,11 @@ CREATE OR REPLACE FUNCTION public.set_places_updated_at()
  SET search_path TO 'public'
 AS $function$
 begin
-  new.updated_at = now();
+  -- Preserve imported/source timestamps on INSERT; the column default supplies now()
+  -- when no timestamp is provided. Only content edits advance updated_at.
+  if tg_op = 'UPDATE' then
+    new.updated_at = now();
+  end if;
   new.location =
     gis.st_setsrid(
       gis.st_makepoint(new.longitude, new.latitude),
