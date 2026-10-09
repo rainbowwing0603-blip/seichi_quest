@@ -42,7 +42,7 @@ require("atomic registry RPC pins search_path and uses SECURITY DEFINER", "SECUR
 require("atomic registry RPC is not executable by anon/authenticated", "REVOKE ALL ON FUNCTION public.replace_roadside_station_registry(jsonb) FROM PUBLIC, anon, authenticated" in (ROOT / "supabase/migrations/20261009030000_atomic_roadside_station_registry_import.sql").read_text(encoding="utf-8"));
 require("production baseline includes atomic registry RPC", "public.replace_roadside_station_registry" in candidate);
 require("migration repair requires atomic registry RPC and service-role-only grant", "to_regprocedure('public.replace_roadside_station_registry(jsonb)') IS NOT NULL" in repair_script_content and "has_function_privilege('service_role', 'public.replace_roadside_station_registry(jsonb)', 'EXECUTE')" in repair_script_content);
-require("migration repair refuses when user-specific rows exist", "(SELECT count(*) FROM public.profiles) = 0" in repair_script_content and "(SELECT count(*) FROM public.collection_history) = 0" in repair_script_content);
+require("migration repair refuses when user-specific rows exist", "(SELECT count(*) FROM public.profiles) = 0" in repair_script_content and "(SELECT count(*) FROM public.collection_history) = 0" in repair_script_content and "(SELECT count(*) FROM public.location_security_events) = 0" in repair_script_content and "(SELECT count(*) FROM public.user_event_favorites) = 0" in repair_script_content);
 
 require("registry errors do not return stack to clients", "stack:(e as any)?.stack" not in importer and 'error: "registry import failed"' in importer)
 require("account deletion restricts method", 'req.method !== "POST"' in delete_account)
