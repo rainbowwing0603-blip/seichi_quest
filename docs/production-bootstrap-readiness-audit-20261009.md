@@ -54,7 +54,7 @@ Five advisor `rls_enabled_no_policy` findings are intentional for server-only ta
 
 - The guarded repair marked the 75 historical migration versions as applied after the production preflight and exact confirmation. It did not replay the historical SQL files.
 - The five reviewed post-baseline migrations were then applied successfully: participation RPC, preference RPC, profile-write RPC, atomic roadside-station registry replacement, and place timestamp preservation.
-- `supabase migration list --linked` now shows all 80 local and remote versions matching.
+- At the post-cutover verification point, `supabase migration list --linked` showed all 80 local and remote versions matching; the new story-preview grant migration is now pending review/application.
 - Read-only checks after the push confirmed 25 public application tables, 24 public RLS policies, zero public application tables without RLS, and no direct client INSERT/UPDATE/DELETE/TRUNCATE grants on the restricted user/activity tables reviewed.
 - Master-data counts remain consistent: 51 events, 1,713 places, 2,742 contents, and 2,721 event-content mappings. All 1,713 places have non-null `updated_at`, latitude/longitude, and geography `location`.
 - The source CI workflows for Flutter, iOS, Edge Functions, specification gate, and Supabase security source checks passed for the reviewed audit commit before this documentation refresh.
