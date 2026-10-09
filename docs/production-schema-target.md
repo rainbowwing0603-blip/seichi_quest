@@ -132,3 +132,6 @@ The remaining hosted setting that cannot be verified through the available proje
 
 
 A second rollback-only production smoke test exercised the client-facing read RPCs under the authenticated role against the seeded Jomo Karuta event. Results: `get_event_contents_page` returned 20 rows, `get_event_contents_nearby` returned 20 rows for a Gunma coordinate, `get_event_geo_scopes` returned 3 rows, and progress, regional-map-progress, and social-stats RPCs each returned their expected summary row. The synthetic Auth user and profile were rolled back; a post-check again confirmed zero Auth users, profiles, and preferences.
+
+
+The main stamp-collection write path was also exercised in a rollback-only production transaction. A synthetic anonymous user called `record_place_visit_and_collect` at the exact coordinates of an active Jomo Karuta place; it returned one collection result and created one visit plus one collection-history row inside the transaction. The test then rolled back, and a privileged post-check confirmed that Auth users, visits, and collection history are all still zero. Direct client SELECT on `place_visits` remains intentionally denied; verification of those rows was done only after resetting the role.
