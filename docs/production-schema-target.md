@@ -108,3 +108,15 @@ Re-queried the live production project read-only after the source-check repair. 
 - Supabase migration history is still uninitialized: \`supabase_migrations.schema_migrations\` does not exist and the Supabase migration listing is empty. Do not run \`supabase db push\` until the guarded history-repair step is completed from the reviewed repository checkout.
 
 The security-source CI failure was traced to two concrete type-check setup issues, not application behavior: Deno was not auto-installing the importer's npm dependencies, and standalone type-checking lacked the Supabase runtime's \`EdgeRuntime.waitUntil\` declaration. The workflow now uses \`deno check --node-modules-dir=auto\`; the two maintenance functions declare the provided runtime type. The latest Supabase Security Source Check completed successfully.
+
+
+## Advisor review and migration-history edge case
+
+The production Supabase advisors were reviewed after the live cutover:
+
+- **RLS enabled with no policy (5 tables): intentional default-deny.** \`event_collection_resets\`, \`location_security_events\`, \`location_security_states\`, \`place_visits\`, and \`roadside_station_registry\` have no direct \`anon\`/\`authenticated\` table privileges for SELECT or mutation. Access is through narrowly scoped RPCs or service-role maintenance only.
+- **SECURITY DEFINER callable by anon:** only \`get_public_ranking\`, intentionally public. It returns chosen display name/avatar key and event ranking counts, not account IDs or location data. It has a pinned empty search path and caps results at 100.
+- **SECURITY DEFINER callable by authenticated (12 advisor findings):** reviewed as intended RPC endpoints. All have a fixed empty search path and derive user-specific access from \`auth.uid()\`; the registry replacement RPC is service-role-only. The only anon-executable app function is the public-ranking endpoint.
+- **Unused-index advisor (30 findings):** the production project has only just been bootstrapped and has no meaningful production query history yet. Indexes are retained until workload statistics exist; do not drop them based on zero usage immediately after cutover.
+
+A catalog-driven check examined all **34 foreign-key constraints** from public application tables to public/Auth tables and found **0 violations**. The migration-history repair script was also corrected to include both historical 8-digit migration filenames as well as the newer 14-digit versions; otherwise those two legacy versions could have been omitted from the repair list and replayed by \`supabase db push\`.
