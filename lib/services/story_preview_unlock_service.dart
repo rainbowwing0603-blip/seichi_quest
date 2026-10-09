@@ -16,6 +16,8 @@ class StoryPreviewUnlockService {
   final SupabaseClient _client;
   final Future<SharedPreferences> Function() _preferencesLoader;
 
+  bool get hasAuthenticatedUser => _client.auth.currentUser != null;
+
   String _keyFor(String contentId) {
     final userId = _client.auth.currentUser?.id ?? 'signed-out';
     return 'story_preview_expiry_${userId}_${contentId.trim()}';
