@@ -34,6 +34,8 @@ $builder = [System.Text.StringBuilder]::new()
 [void]$builder.AppendLine('BEGIN;')
 [void]$builder.AppendLine(@'
 DO $guard$
+DECLARE
+  v_has_migration_history boolean;
 BEGIN
   IF EXISTS (
     SELECT 1
@@ -45,9 +47,12 @@ BEGIN
     RAISE EXCEPTION 'Production application schemas are not empty. Refusing bootstrap.';
   END IF;
 
-  IF to_regclass('supabase_migrations.schema_migrations') IS NOT NULL
-     AND EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations) THEN
-    RAISE EXCEPTION 'Production migration history is not empty. Refusing one-time bootstrap.';
+  IF to_regclass('supabase_migrations.schema_migrations') IS NOT NULL THEN
+    EXECUTE 'SELECT EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations)'
+      INTO v_has_migration_history;
+    IF v_has_migration_history THEN
+      RAISE EXCEPTION 'Production migration history is not empty. Refusing one-time bootstrap.';
+    END IF;
   END IF;
 END
 $guard$;
