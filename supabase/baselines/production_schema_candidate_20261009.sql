@@ -2005,6 +2005,7 @@ REVOKE EXECUTE ON FUNCTION gis.st_estimatedextent(text, text) FROM PUBLIC, anon,
 REVOKE EXECUTE ON FUNCTION gis.st_estimatedextent(text, text, text) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION gis.st_estimatedextent(text, text, text, boolean) FROM PUBLIC, anon, authenticated;
 
+GRANT EXECUTE ON FUNCTION public.story_preview_server_time() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.save_my_profile(text, text, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.set_current_event_preference(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.ensure_event_participation(uuid) TO authenticated;
