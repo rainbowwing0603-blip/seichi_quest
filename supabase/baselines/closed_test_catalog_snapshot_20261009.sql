@@ -1,18 +1,18 @@
 -- Catalog-derived snapshot from the live closed-test Supabase database.
 -- Captured: 2026-10-09. Source project: wxlvhpmolrtcwryaazfb.
--- NOT a drop-in executable migration: review dependencies, extension schema, ownership, role grants,
--- sequences, function grants, policies, and ordering before replaying into production.
--- This file excludes extension-owned public.spatial_ref_sys and all user data.
+-- NOT a drop-in executable migration: review extension dependencies, ownership, role/function/sequence grants,
+-- object order, Auth configuration, Storage buckets/policies, and any Supabase-managed objects before replaying.
+-- Excludes extension-owned public.spatial_ref_sys, extension-owned functions, and all row data.
 -- Never apply this snapshot to production without a reviewed deployment plan.
 
--- Extensions present in source:
--- http 1.6 (schema extensions)
--- pg_stat_statements 1.11 (schema extensions)
--- pgcrypto 1.3 (schema extensions)
--- plpgsql 1.0 (schema pg_catalog)
--- postgis 3.3.7 (schema public)
--- supabase_vault 0.3.1 (schema vault)
--- uuid-ossp 1.1 (schema extensions)
+-- Source extensions:
+-- http 1.6 in schema extensions
+-- pg_stat_statements 1.11 in schema extensions
+-- pgcrypto 1.3 in schema extensions
+-- plpgsql 1.0 in schema pg_catalog
+-- postgis 3.3.7 in schema public
+-- supabase_vault 0.3.1 in schema vault
+-- uuid-ossp 1.1 in schema extensions
 
 -- 1. Table columns
 CREATE TABLE private.admin_users (
@@ -307,7 +307,7 @@ CREATE TABLE public.user_event_preferences (
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
--- 2. Constraints
+-- 2. Table constraints
 ALTER TABLE private.admin_users ADD CONSTRAINT admin_users_pkey PRIMARY KEY (user_id);
 ALTER TABLE private.admin_users ADD CONSTRAINT admin_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 ALTER TABLE public.achievements ADD CONSTRAINT achievements_pkey PRIMARY KEY (id);
@@ -404,7 +404,7 @@ ALTER TABLE public.user_event_preferences ADD CONSTRAINT user_event_preferences_
 ALTER TABLE public.user_event_preferences ADD CONSTRAINT user_event_preferences_pkey PRIMARY KEY (user_id);
 ALTER TABLE public.user_event_preferences ADD CONSTRAINT user_event_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
--- 3. Explicit indexes not already created by PRIMARY KEY / UNIQUE constraints
+-- 3. Indexes; PK/unique backing indexes may be represented by the constraints above.
 CREATE INDEX announcement_reads_announcement_idx ON public.announcement_reads USING btree (announcement_id);
 CREATE INDEX announcement_reads_user_read_at_idx ON public.announcement_reads USING btree (user_id, read_at DESC);
 CREATE INDEX announcements_event_idx ON public.announcements USING btree (event_id) WHERE (event_id IS NOT NULL);
@@ -522,13 +522,13 @@ CREATE POLICY user_event_preferences_insert_own ON public.user_event_preferences
 CREATE POLICY user_event_preferences_select_own ON public.user_event_preferences AS PERMISSIVE FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
 CREATE POLICY user_event_preferences_update_own ON public.user_event_preferences AS PERMISSIVE FOR UPDATE TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
 
--- 6. Triggers
+-- 6. Non-internal triggers
 CREATE TRIGGER enforce_location_collection_cooldown BEFORE INSERT ON collection_history FOR EACH ROW EXECUTE FUNCTION enforce_location_collection_cooldown();
 CREATE TRIGGER events_set_updated_at BEFORE UPDATE ON events FOR EACH ROW EXECUTE FUNCTION set_events_updated_at();
 CREATE TRIGGER places_set_updated_at BEFORE INSERT OR UPDATE OF latitude, longitude, name, radius_meters, address, prefecture, city, category, description, icon, image_url, official_url, is_active ON places FOR EACH ROW EXECUTE FUNCTION set_places_updated_at();
 CREATE TRIGGER profiles_set_updated_at BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
--- 7. Function definitions. Restore only after dependencies and extensions exist.
+-- 7. All non-extension-owned public/private function definitions
 CREATE OR REPLACE FUNCTION private.is_admin()
  RETURNS boolean
  LANGUAGE sql
@@ -571,6 +571,44 @@ begin
 
   return new;
 end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.get_collection_series_progress(p_series_code text)
+ RETURNS TABLE(region_code text, region_name text, region_level text, collected_count bigint, total_count bigint, completion_percent numeric)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+with me as (select auth.uid() uid),
+series as (select id from public.collection_series where code=p_series_code and is_active),
+scopes as (
+ select r.id,r.code,r.name,r.level,r.display_order
+ from series s join public.collection_series_regions sr on sr.series_id=s.id and sr.is_active
+ join public.geo_regions r on r.id=sr.region_id and r.is_active
+),
+eligible as (
+ select sc.id region_id,sp.place_id
+ from scopes sc
+ join public.geo_region_prefectures gp on gp.region_id=sc.id
+ join series s on true
+ join public.collection_series_places sp on sp.series_id=s.id and sp.prefecture=gp.prefecture
+),
+visited as (
+ select distinct ch.place_id from public.collection_history ch,me
+ where ch.user_id=me.uid and ch.place_id is not null
+ union
+ select distinct pv.place_id from public.place_visits pv,me
+ where pv.user_id=me.uid and pv.place_id is not null
+)
+select sc.code,sc.name,sc.level,
+ count(distinct e.place_id) filter(where v.place_id is not null)::bigint,
+ count(distinct e.place_id)::bigint,
+ case when count(distinct e.place_id)=0 then 0::numeric
+ else round(100.0*count(distinct e.place_id) filter(where v.place_id is not null)/count(distinct e.place_id),1) end
+from scopes sc left join eligible e on e.region_id=sc.id left join visited v on v.place_id=e.place_id
+group by sc.id,sc.code,sc.name,sc.level,sc.display_order
+order by case sc.level when 'prefecture' then 1 when 'regional' then 2 else 3 end,sc.display_order,sc.name;
 $function$
 ;
 
@@ -711,6 +749,41 @@ where case lower(coalesce(p_collection_state,'all'))
 order by display_order,title,event_content_id
 offset greatest(0,coalesce(p_offset,0))
 limit greatest(1,least(coalesce(p_limit,100),200));
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.get_event_geo_scopes(p_event_id uuid)
+ RETURNS TABLE(region_code text, region_name text, region_level text, total_count bigint, collected_count bigint, completion_percent numeric)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+with scopes as (
+ select distinct gr.id,gr.code,gr.name,gr.level,gr.display_order
+ from public.event_contents ec
+ join public.places p on p.id=ec.place_id
+ join public.geo_region_prefectures grp on grp.prefecture=p.prefecture
+ join public.geo_regions gr on gr.id=grp.region_id and gr.is_active
+ where ec.event_id=p_event_id and ec.is_active and p.is_active
+),
+eligible as (
+ select s.id region_id,ec.id event_content_id
+ from scopes s
+ join public.geo_region_prefectures grp on grp.region_id=s.id
+ join public.places p on p.prefecture=grp.prefecture and p.is_active
+ join public.event_contents ec on ec.place_id=p.id and ec.event_id=p_event_id and ec.is_active
+),
+mine as (
+ select distinct ch.event_content_id from public.collection_history ch
+ where ch.user_id=(select auth.uid()) and ch.event_id=p_event_id
+)
+select s.code,s.name,s.level,count(distinct e.event_content_id),
+ count(distinct e.event_content_id) filter(where m.event_content_id is not null),
+ case when count(distinct e.event_content_id)=0 then 0::numeric else
+ round(100.0*count(distinct e.event_content_id) filter(where m.event_content_id is not null)/count(distinct e.event_content_id),1) end
+from scopes s left join eligible e on e.region_id=s.id left join mine m on m.event_content_id=e.event_content_id
+group by s.id,s.code,s.name,s.level,s.display_order
+order by case s.level when 'prefecture' then 1 when 'regional' then 2 else 3 end,s.display_order,s.name
 $function$
 ;
 
@@ -918,6 +991,16 @@ AS $function$
       where favorite.event_id = p_event_id
         and favorite.user_id = auth.uid()
     ) as is_favorited;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.get_my_admin_status()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO ''
+AS $function$
+  select private.is_admin();
 $function$
 ;
 
@@ -1509,28 +1592,14 @@ end;
 $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.st_estimatedextent(text, text)
- RETURNS box2d
- LANGUAGE c
- STABLE STRICT SECURITY DEFINER
-AS '$libdir/postgis-3', $function$gserialized_estimated_extent$function$
+CREATE OR REPLACE FUNCTION public.story_preview_server_time()
+ RETURNS timestamp with time zone
+ LANGUAGE sql
+ SET search_path TO ''
+AS $function$ select pg_catalog.clock_timestamp(); $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.st_estimatedextent(text, text, text)
- RETURNS box2d
- LANGUAGE c
- STABLE STRICT SECURITY DEFINER
-AS '$libdir/postgis-3', $function$gserialized_estimated_extent$function$
-;
-
-CREATE OR REPLACE FUNCTION public.st_estimatedextent(text, text, text, boolean)
- RETURNS box2d
- LANGUAGE c
- STABLE STRICT SECURITY DEFINER
-AS '$libdir/postgis-3', $function$gserialized_estimated_extent$function$
-;
-
--- 8. Table grants inventory (source state; review, then encode explicit grants separately)
+-- 8. Table privilege inventory (comments only; not an applied grant plan)
 -- postgres DELETE ON private.admin_users
 -- postgres INSERT ON private.admin_users
 -- postgres REFERENCES ON private.admin_users
@@ -1914,3 +1983,5 @@ AS '$libdir/postgis-3', $function$gserialized_estimated_extent$function$
 -- service_role REFERENCES ON public.user_event_preferences
 -- service_role TRIGGER ON public.user_event_preferences
 -- service_role TRUNCATE ON public.user_event_preferences
+-- 9. Sequences in public/private
+-- public.location_security_events_id_seq owner=postgres
