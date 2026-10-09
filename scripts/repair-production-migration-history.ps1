@@ -36,7 +36,19 @@ SELECT CASE
    AND (SELECT count(*) FROM public.contents) = 2742
    AND (SELECT count(*) FROM public.event_contents) = 2721
    AND (SELECT count(*) FROM public.content_blocks) = 336
+   AND (SELECT count(*) FROM public.achievements) = 18
+   AND (SELECT count(*) FROM public.event_achievements) = 18
+   AND (SELECT count(*) FROM public.geo_regions) = 57
+   AND (SELECT count(*) FROM public.geo_region_prefectures) = 141
+   AND (SELECT count(*) FROM public.collection_series) = 1
+   AND (SELECT count(*) FROM public.collection_series_places) = 1231
+   AND (SELECT count(*) FROM public.collection_series_regions) = 57
    AND (SELECT count(*) FROM public.roadside_station_registry) = 1234
+   AND EXISTS (SELECT 1 FROM pg_event_trigger WHERE evtname = 'ensure_rls')
+   AND NOT has_table_privilege('authenticated', 'public.user_event_participations', 'INSERT')
+   AND NOT has_table_privilege('authenticated', 'public.user_event_participations', 'UPDATE')
+   AND NOT has_table_privilege('authenticated', 'public.user_event_preferences', 'INSERT')
+   AND NOT has_table_privilege('authenticated', 'public.user_event_preferences', 'UPDATE')
    AND NOT EXISTS (
      SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
      WHERE n.nspname='public' AND c.relkind IN ('r','p')
