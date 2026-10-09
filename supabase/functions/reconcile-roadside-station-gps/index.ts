@@ -1,4 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+// The Supabase Edge Runtime provides this global; declare it for standalone Deno type-checking.
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 import { createClient } from "npm:@supabase/supabase-js@2";
 import * as cheerio from "npm:cheerio@1.1.2";
 const KEY = Deno.env.get("ROADSIDESTATION_GPS_RECONCILE_KEY");
