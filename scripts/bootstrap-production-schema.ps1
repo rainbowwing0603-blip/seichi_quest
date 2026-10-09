@@ -147,7 +147,7 @@ try {
     Write-Host "Curated seed SQL files: $($seedFiles.Count)"
     Write-Host "Combined SQL size: $sizeMb MB"
     Write-Host "Preflight guard: production public schema must be empty"
-    Write-Host "Validation: 25 tables, 26 policies, RLS, no retired seichi table, all 10,320 master rows"
+    Write-Host "Validation: 25 tables, 24 policies, RLS, no retired seichi table, all 10,320 master rows"
     if (-not $Apply) {
         Write-Host 'DRY RUN ONLY. No database changes made. Re-run with -Apply after reviewing the target and confirming the DB URI.'
         return
