@@ -84,23 +84,18 @@ Deno.serve(async(req:Request)=>{ try {
   }
   if(master.length!==1234) return Response.json({ok:false,stage:"mlit_parse",parsed:master.length,sheets:wb.SheetNames},{status:409});
 
-  // GPS enrichment is intentionally a separate pass after the official registry import.
-  // 3) Replace only the registry staging table after all validation passed.
-  const {error:de}=await sb.from("roadside_station_registry").delete().not("id","is",null); if(de)throw de;
-  for(let i=0;i<master.length;i+=250){
-    const {error}=await sb.from("roadside_station_registry").insert(master.slice(i,i+250)); if(error)throw error;
+  // The database RPC stages, validates, upserts and removes stale rows in one transaction.
+  // Existing place links and GPS-enrichment fields are preserved for matching stations.
+  const {data:replacementResult,error:replacementError}=await sb.rpc(
+    "replace_roadside_station_registry",
+    {p_rows:master},
+  );
+  if(replacementError)throw replacementError;
+  if(!replacementResult?.ok || replacementResult.total!==1234){
+    throw new Error("Atomic registry replacement returned an unexpected result");
   }
 
-  // 4) Preserve known opening-pending status for the 3 latest registrations.
-  for(const x of [
-    ["神奈川県","やどりきテラス 清流の里"],
-    ["兵庫県","こんだ温泉ぬくもりの郷"],
-    ["熊本県","くらたけ天草戦国ミュージアム"],
-  ]){
-    await sb.from("roadside_station_registry").update({status:"opening_pending"}).eq("prefecture",x[0]).eq("official_name",x[1]);
-  }
-
-  // 5) Re-link already verified Gunma places.
+  // Re-link already verified Gunma places.
   const {data:gp,error:gpe}=await sb.from("places").select("id,name,prefecture,city,location_verified_at").eq("category","roadside_station").eq("prefecture","群馬県"); if(gpe)throw gpe;
   let linked=0;
   for(const p of gp??[]){
