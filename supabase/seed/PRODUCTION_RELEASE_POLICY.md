@@ -31,9 +31,9 @@ BEGIN;
 INSERT INTO public.app_release_policies
   (platform, latest_build, minimum_build, latest_version, store_url, update_message, is_active, updated_at)
 VALUES
-  ('android', <escape>ANDROID_BUILD_NUMBER</escape>, <escape>MINIMUM_SUPPORTED_BUILD</escape>,
-   '<escape>SHIPPED_VERSION</escape>', '<escape>PUBLIC_PLAY_STORE_LISTING_URL</escape>',
-   '<escape>OPTIONAL_UPDATE_MESSAGE</escape>', true, now())
+  ('android', ANDROID_BUILD_NUMBER, MINIMUM_SUPPORTED_BUILD,
+   'SHIPPED_VERSION', 'PUBLIC_PLAY_STORE_LISTING_URL',
+   'OPTIONAL_UPDATE_MESSAGE', true, now())
 ON CONFLICT (platform) DO UPDATE SET
   latest_build = EXCLUDED.latest_build,
   minimum_build = EXCLUDED.minimum_build,
