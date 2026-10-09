@@ -1,5 +1,7 @@
 # Production schema cutover and security audit
 
+**Live status update: 2026-10-10.** The migration-history repair and five post-baseline migrations are now complete; all 80 local and remote migration versions match. The section below titled “Migration history and rollout gates” reflects the current state. The production app is not yet cleared for release.
+
 Date: 2026-10-09
 Branch: `audit/production-bootstrap-readiness-20261009`
 Production project: `npirfaoxcarfuqjlwgav`
@@ -48,15 +50,25 @@ Five advisor `rls_enabled_no_policy` findings are intentional for server-only ta
 
 ## Migration history and rollout gates
 
-The live schema/data are present, but the Supabase CLI migration history has not yet been repaired/verified. A direct query found no `supabase_migrations.schema_migrations` relation, so do not assume `supabase migration list` is ready. Use a local checkout linked to the exact production project and follow `docs/production-cutover-runbook.md`; run the guarded history repair only after its live preflight passes, then run `supabase db push` and verify the resulting migration list. The schema bootstrap must not be rerun.
+### Live status as of 2026-10-10
 
-Still required before a production-configured app build:
-1. Verify Auth anonymous sign-in in the production dashboard because the app creates anonymous sessions when no session exists.
-2. Review Storage bucket/policies and any object migration separately. No Storage bytes were copied. The Jomo Karuta artwork permission remains unconfirmed; do not redistribute it until rights and hashes are reviewed.
-3. Rotate the previously deployed closed-test roadside-import key and configure `ROADSIDESTATION_IMPORT_KEY` as a Supabase secret before deploying the reviewed function. Source edits do not rotate a deployed secret or erase old Git history.
-4. Recover/review the missing `enrich-roadside-station-gps` and `reconcile-roadside-station-gps` function sources before deploying either.
-5. Add a deliberate production `app_release_policies` row only after the intended production build/version/minimum build/store URL are decided. The table is intentionally empty now.
-6. Finish GitHub Flutter and iOS CI runs, run functional smoke tests against production configuration, and only then prepare a production build. No Google Play track or app release has been changed by this work.
+- The guarded repair marked the 75 historical migration versions as applied after the production preflight and exact confirmation. It did not replay the historical SQL files.
+- The five reviewed post-baseline migrations were then applied successfully: participation RPC, preference RPC, profile-write RPC, atomic roadside-station registry replacement, and place timestamp preservation.
+- `supabase migration list --linked` now shows all 80 local and remote versions matching.
+- Read-only checks after the push confirmed 25 public application tables, 24 public RLS policies, zero public application tables without RLS, and no direct client INSERT/UPDATE/DELETE/TRUNCATE grants on the restricted user/activity tables reviewed.
+- Master-data counts remain consistent: 51 events, 1,713 places, 2,742 contents, and 2,721 event-content mappings. All 1,713 places have non-null `updated_at`, latitude/longitude, and geography `location`.
+- The source CI workflows for Flutter, iOS, Edge Functions, specification gate, and Supabase security source checks passed for the reviewed audit commit before this documentation refresh.
+
+### Remaining release gates
+
+1. **Auth:** verify anonymous sign-in in the production Supabase Dashboard. This setting cannot be proven from database grants or the local `config.toml`.
+2. **Storage and artwork:** production currently has zero Storage buckets and zero objects. Review intended bucket policies and asset rights separately; official Jomo Karuta artwork permission is not confirmed.
+3. **Maintenance Edge Functions:** only `delete-account` is deployed in production (active version 2, `verify_jwt=true`). Do not deploy roadside-station importer/GPS maintenance functions until independently generated V2 secrets are configured, their fail-closed and dry-run behavior is verified, and deployment/operation is explicitly approved.
+4. **Account deletion:** exercise the authenticated delete/cascade flow with a disposable test account before production release. Do not use a real user account as the test.
+5. **Release policy:** `app_release_policies` intentionally has zero rows at the pre-release stage. Add a reviewed row only after the actual production binary version/build and public store listing URL are confirmed. Do not copy closed-test values.
+6. **Production app:** build with `APP_ENV=production` and the production Supabase URL/publishable key; smoke-test the app, then separately review the Play Console track and uploaded AAB. No production app release has been performed by the database cutover.
+
+The production app is **not yet cleared for release**. Do not rerun the one-time bootstrap, re-import the master data, or replay the five applied migrations.
 
 ## Reproducibility and safety
 
