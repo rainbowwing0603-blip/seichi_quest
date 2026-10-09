@@ -125,3 +125,18 @@ This call-site pass is partial, not a claim that every Dart file and Edge Functi
 - Direct SELECT from `event_achievements`
 
 These are part of the client contract and must be included in the function/grant review. The per-user functions must derive the user from `auth.uid()`; public map/content functions should return only published content and bounded results. Do not blanket grant EXECUTE on all functions in `public`.
+
+
+## Live Supabase advisor baseline (closed-test project, 2026-10-09)
+
+Read-only Supabase security advisor run returned these notable findings. They are recorded as design inputs, not a mandate to copy the old setup:
+
+- **ERROR: RLS disabled in exposed schema** on extension-owned `public.spatial_ref_sys`. Treat this separately from app tables and PostGIS's supported schema layout; do not blindly alter extension internals.
+- **5 INFO findings: RLS enabled with no policies** on `private.admin_users`, `public.event_collection_resets`, `public.location_security_events`, `public.location_security_states`, and `public.roadside_station_registry`. The target should retain default-deny/no client grants for these tables; the advisor notice is not a reason to add permissive policies.
+- **PostGIS in public schema** is flagged. The production baseline should test whether PostGIS can be installed into a non-exposed schema with the required geography types/operators and all app SQL references adjusted. Do not relocate it without a clean-room extension test.
+- **4 anon-executable SECURITY DEFINER warnings** include the app's public-ranking function and three extension-owned PostGIS `st_estimatedextent` overloads. Review public-ranking's returned fields and keep extension-owned grants distinct from app-owned function grants.
+- **12 authenticated-executable SECURITY DEFINER warnings** include several app RPCs expected to be callable by the app. Review each body and explicitly grant only the needed signatures.
+- **Anonymous sign-in warnings** are expected to need a product-aware decision because the Flutter app currently uses Supabase anonymous sign-in. Do not disable anonymous sign-in without replacing that session flow.
+- **Leaked-password protection** was flagged in the advisor output; assess it for any password-based sign-in flow. The current inspected client flow is anonymous sign-in.
+
+Performance advisor also marked 20 indexes as unused in the observed workload. Since this test database has modest usage and several indexes support foreign keys or future queries, do not delete them solely from this signal. Re-evaluate indexes after the new schema and representative workload tests.
