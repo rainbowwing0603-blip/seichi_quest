@@ -189,3 +189,6 @@ A further rollback-only negative test confirmed `leave_event_participation` reje
 
 
 Profile RPC negative tests also rejected an unsupported age group and an unsupported avatar key with the expected validation errors. Both tests were rollback-only; the closed-test profile data was not changed.
+
+
+Production geospatial smoke tests passed against real master data: `get_event_contents_nearby` returned the expected colocated record at 0 m distance, and `get_event_contents_in_bounds` returned the record inside the requested coordinate box. All 1,713 places have non-null coordinates; PostGIS 3.3.7 is installed in the `gis` schema.
