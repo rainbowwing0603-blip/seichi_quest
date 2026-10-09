@@ -28,7 +28,7 @@ require("account deletion hides low-level auth details", "auth_message:" not in 
 require("production schema target exists", schema_target.is_file())
 require("read-only RLS audit SQL exists", audit_sql.is_file())
 migration = participation_migration.read_text(encoding="utf-8")
-require("participation RPC pins search_path", "SECURITY DEFINER\nSET search_path = \"\"" in migration)
+require("participation RPC pins search_path", "SECURITY DEFINER\nSET search_path = ''" in migration)
 require("participation writes are revoked from client roles", "REVOKE INSERT, UPDATE, DELETE ON TABLE public.user_event_participations FROM anon, authenticated" in migration)
 
 failed = [label for label, ok in checks if not ok]
