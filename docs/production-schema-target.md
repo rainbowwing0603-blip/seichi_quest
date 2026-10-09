@@ -211,3 +211,15 @@ The transaction was rolled back. A follow-up query confirmed the closed-test pro
 All three event-state RPCs also take a transaction-scoped per-user advisory lock, serializing preference changes, participation activation, and leave operations so concurrent requests cannot race around the “current event cannot be left” rule.
 
 After adding transaction-scoped per-user advisory locks, the preference/participation migration happy-path and privilege tests passed again inside a rollback-only transaction. The full bootstrap candidate was also rehearsed again against the empty production project and returned the same 25-table / 26-policy / RLS / function-grant validation results; the temporary probe and all DDL were rolled back.
+
+
+## Curated master-data export staged in GitHub
+
+Generated `supabase/seed/production_master_data/` from the closed-test DB without copying user-specific data. The export contains **10,320 rows across 13 master/reference tables in 47 SQL files**. See `supabase/seed/production_master_data/MANIFEST.md` for exact table counts and execution order.
+
+- Includes events, places, contents, event-content mappings, story/content blocks, achievements, geo-region mappings, collection-series mappings, and roadside-station registry.
+- Excludes user/Auth data, histories/visits, preferences/favorites/participation, announcement reads, location-security records, reset ledgers, announcements, and release-policy rows.
+- Nulls the one `events.cover_image_url` that pointed at the closed-test Supabase project. Local `assets/...` references are preserved; Storage object bytes are not copied.
+- SQL files are ordered by dependency and use `ON CONFLICT DO NOTHING` so an interrupted import can resume. They must be applied only after the schema is deployed to a clean production database.
+
+The event and first 250 place rows were imported inside a rollback-only transaction against the production project; all 250 geography values converted correctly from EWKT. The full export has not been applied to any project.
