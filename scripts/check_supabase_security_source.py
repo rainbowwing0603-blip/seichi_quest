@@ -41,6 +41,7 @@ require("new tables are not auto-exposed", "auto_expose_new_tables = false" in c
 require("missing seed.sql is not configured", '[db.seed]\n# Disabled until a curated seed file is checked in; the current ./seed.sql is missing.\nenabled = false\nsql_paths = []' in config)
 require("registry key comes from environment", 'Deno.env.get("ROADSIDESTATION_IMPORT_KEY")' in importer)
 require("registry importer does not hardcode a key literal", not re.search(r'''const\s+IMPORT_KEY\s*=\s*["']''', importer))
+require("supplemental registry keys use the same null separator", r'const k=x.prefecture+"\0"+x.official_name;' in importer and r'om.set(r.prefecture+"\0"+r.official_name,r)' in importer)
 require("registry importer fails closed if secret is missing", "if (!IMPORT_KEY)" in importer and "status: 503" in importer)
 require("registry importer restricts method", 'req.method !== "POST"' in importer)
 require("registry importer delegates replacement to atomic RPC", 'sb.rpc(\n    "replace_roadside_station_registry"' in importer and "DELETE FROM public.roadside_station_registry" not in importer)
