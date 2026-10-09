@@ -131,6 +131,8 @@ void main() {
         collectedCount: 1,
         total: 44,
         eventAchievements: const [],
+        events: const [],
+        onEventTap: (_) {},
         onShowDestination: noop,
         onExploreEvents: noop,
       ),
