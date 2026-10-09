@@ -135,3 +135,6 @@ A second rollback-only production smoke test exercised the client-facing read RP
 
 
 The main stamp-collection write path was also exercised in a rollback-only production transaction. A synthetic anonymous user called `record_place_visit_and_collect` at the exact coordinates of an active Jomo Karuta place; it returned one collection result and created one visit plus one collection-history row inside the transaction. The test then rolled back, and a privileged post-check confirmed that Auth users, visits, and collection history are all still zero. Direct client SELECT on `place_visits` remains intentionally denied; verification of those rows was done only after resetting the role.
+
+
+The production `delete-account` Edge Function is active at version 2 with gateway JWT verification enabled. Its deployed `index.ts` was compared byte-for-byte (after trimming surrounding whitespace) with the reviewed GitHub source and matched exactly. The Deno CI workflow now type-checks the registry importer, GPS enrichment, GPS reconciliation, and account deletion functions; run 7 passed all four checks.
