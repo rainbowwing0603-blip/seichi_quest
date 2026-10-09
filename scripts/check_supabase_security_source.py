@@ -39,7 +39,6 @@ require("registry importer does not hardcode a key literal", not re.search(r'''c
 require("registry importer fails closed if secret is missing", "if (!IMPORT_KEY)" in importer and "status: 503" in importer)
 require("registry importer restricts method", 'req.method !== "POST"' in importer)
 require("registry importer delegates replacement to atomic RPC", 'sb.rpc(\n    "replace_roadside_station_registry"' in importer and "DELETE FROM public.roadside_station_registry" not in importer)
-require("atomic registry RPC migration exists", (ROOT / "supabase/migrations/20261009030000_atomic_roadside_station_registry_replace.sql").is_file())
 require("registry importer uses atomic replacement RPC", 'replace_roadside_station_registry' in importer and '.from("roadside_station_registry").delete()' not in importer);
 require("atomic registry RPC pins search_path and uses SECURITY DEFINER", "SECURITY DEFINER\nSET search_path = ''" in (ROOT / "supabase/migrations/20261009030000_atomic_roadside_station_registry_import.sql").read_text(encoding="utf-8"));
 require("atomic registry RPC is not executable by anon/authenticated", "REVOKE ALL ON FUNCTION public.replace_roadside_station_registry(jsonb) FROM PUBLIC, anon, authenticated" in (ROOT / "supabase/migrations/20261009030000_atomic_roadside_station_registry_import.sql").read_text(encoding="utf-8"));
