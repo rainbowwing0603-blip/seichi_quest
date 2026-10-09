@@ -1742,6 +1742,8 @@ REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA private FROM anon, authenticated, 
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO service_role;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA private TO service_role;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO service_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA private TO service_role;
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA private TO service_role;
 
@@ -1779,7 +1781,9 @@ GRANT INSERT, DELETE ON TABLE public.user_event_favorites TO authenticated;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   REVOKE ALL PRIVILEGES ON TABLES FROM anon, authenticated, PUBLIC;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
-  REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+  REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  GRANT EXECUTE ON FUNCTIONS TO service_role;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   REVOKE ALL PRIVILEGES ON SEQUENCES FROM anon, authenticated, PUBLIC;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
@@ -1804,7 +1808,12 @@ BEGIN
   LOOP
     EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated', f.signature);
   END LOOP;
-END $$;
+END $;
+
+-- These extension-owned SECURITY DEFINER helpers are not part of the client API.
+REVOKE EXECUTE ON FUNCTION public.st_estimatedextent(text, text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.st_estimatedextent(text, text, text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.st_estimatedextent(text, text, text, boolean) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.set_current_event_preference(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.ensure_event_participation(uuid) TO authenticated;
