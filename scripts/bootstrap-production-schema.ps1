@@ -38,11 +38,16 @@ BEGIN
   IF EXISTS (
     SELECT 1
     FROM information_schema.tables
-    WHERE table_schema = 'public'
+    WHERE table_schema IN ('public', 'private', 'gis')
       AND table_type = 'BASE TABLE'
       AND table_name <> 'spatial_ref_sys'
   ) THEN
-    RAISE EXCEPTION 'Production public schema is not empty. Refusing bootstrap.';
+    RAISE EXCEPTION 'Production application schemas are not empty. Refusing bootstrap.';
+  END IF;
+
+  IF to_regclass('supabase_migrations.schema_migrations') IS NOT NULL
+     AND EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations) THEN
+    RAISE EXCEPTION 'Production migration history is not empty. Refusing one-time bootstrap.';
   END IF;
 END
 $guard$;
