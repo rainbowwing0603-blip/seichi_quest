@@ -4,14 +4,14 @@ Production maintenance functions are intentionally not deployed until their secr
 
 | Function | Required secret | Request header | Gateway JWT |
 |---|---|---|---|
-| `import-roadside-station-registry` | `ROADSIDESTATION_IMPORT_KEY` | `x-import-key` | Enable |
-| `enrich-roadside-station-gps` | `ROADSIDESTATION_GPS_ENRICH_KEY` | `x-import-key` | Enable |
-| `reconcile-roadside-station-gps` | `ROADSIDESTATION_GPS_RECONCILE_KEY` | `x-import-key` | Enable |
+| `import-roadside-station-registry` | `ROADSIDESTATION_IMPORT_KEY_V2` | `x-import-key` | Enable |
+| `enrich-roadside-station-gps` | `ROADSIDESTATION_GPS_ENRICH_KEY_V2` | `x-import-key` | Enable |
+| `reconcile-roadside-station-gps` | `ROADSIDESTATION_GPS_RECONCILE_KEY_V2` | `x-import-key` | Enable |
 
 ## Maintenance safeguards
 
 - All maintenance endpoints reject methods other than POST and fail closed with HTTP 503 if their required secret is missing. The two GPS endpoints also support OPTIONS for CORS; the registry importer is intended for server-side maintenance calls.
-- Rotate the old hardcoded keys used by deployed closed-test versions. Removing literals from the repository does not rotate the deployed key or remove it from Git history.
+- The active closed-test maintenance functions are being switched to new V2 secret names and gateway JWT verification. The old hardcoded keys are considered compromised because they existed in deployed source and Git history. Configure new, independently generated V2 secrets before using maintenance operations; until then, the functions fail closed with HTTP 503.
 - GPS enrichment/reconciliation run in **dry-run mode by default**. The request body must explicitly include `{"apply":true}` to persist candidate-coordinate updates. Use a valid JWT plus the corresponding secret header when deploying with gateway JWT verification enabled.
 - GPS candidates are range-checked, ambiguous station matches are skipped, and reconciliation merges its audit metadata rather than overwriting existing metadata.
 - Registry replacement goes through the service-role-only `replace_roadside_station_registry(jsonb)` RPC. It validates the full 1,234-row payload and performs upsert/stale-row removal atomically.
