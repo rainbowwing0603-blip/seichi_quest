@@ -1808,7 +1808,7 @@ BEGIN
   LOOP
     EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated', f.signature);
   END LOOP;
-END $;
+END $$;
 
 -- These extension-owned SECURITY DEFINER helpers are not part of the client API.
 REVOKE EXECUTE ON FUNCTION public.st_estimatedextent(text, text) FROM PUBLIC, anon, authenticated;
