@@ -111,3 +111,20 @@ A read-only policy inventory on the closed-test project confirms RLS is enabled 
 - Several admin update/insert/delete policies use the authenticated role but must be checked alongside their `is_admin()` predicates and function grants. The existence of a policy alone is not proof of least privilege.
 
 The production project's current empty-schema advisor result is not comparable to these test findings. Re-run advisors only after the approved schema and policies are installed.
+
+
+## Catalog-derived schema snapshot captured remotely
+
+A read-only catalog extraction from the live closed-test database was committed on this audit branch as `supabase/baselines/closed_test_catalog_snapshot_20261009.sql`.
+
+Captured counts:
+- 26 application tables (excluding extension-owned `public.spatial_ref_sys`)
+- 95 table constraints
+- 76 indexes
+- 39 RLS policies
+- 4 non-internal triggers
+- 27 selected function definitions (client RPCs and security-definer functions)
+- 383 table privilege inventory entries
+- Installed extensions include PostGIS 3.3.7 in `public`, pgcrypto/uuid-ossp/http/pg_stat_statements in `extensions`, and Supabase Vault in `vault`.
+
+This makes a current live catalog snapshot available without waiting for the PC. It is deliberately marked **not a drop-in executable migration**: extension installation/order, function dependencies, function EXECUTE grants, sequence privileges, ownership, role grants, all unselected functions, Storage buckets/policies, Auth settings, and any views/materialized views still need a separate verified pass. In particular, the target production project must not receive this file blindly. The next step is to compare the snapshot against repository migrations, fill any omissions, then create a reviewed idempotent production baseline and validation script.
