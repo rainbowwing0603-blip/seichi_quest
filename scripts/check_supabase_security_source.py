@@ -62,6 +62,7 @@ require("atomic registry RPC pins search_path and uses SECURITY DEFINER", "SECUR
 require("atomic registry RPC is not executable by anon/authenticated", "REVOKE ALL ON FUNCTION public.replace_roadside_station_registry(jsonb) FROM PUBLIC, anon, authenticated" in (ROOT / "supabase/migrations/20261009032000_atomic_roadside_station_registry_replace.sql").read_text(encoding="utf-8"));
 require("production baseline includes atomic registry RPC", "public.replace_roadside_station_registry" in candidate);
 require("place timestamp migration exists", places_timestamp_migration.is_file())
+require("read-only production verifier checks place timestamp preservation", "places_insert_timestamp_guard_missing" in (ROOT / "supabase/seed/production_master_data/VERIFY.sql").read_text(encoding="utf-8"))
 require("place timestamp migration preserves imported timestamps", "IF TG_OP = 'UPDATE' THEN" in places_timestamp and "NEW.updated_at = now()" in places_timestamp)
 require("baseline preserves source place timestamps on INSERT", "if tg_op = 'UPDATE' then" in candidate and "CREATE TRIGGER places_set_updated_at BEFORE INSERT OR UPDATE OF" in candidate)
 require("migration repair requires atomic registry RPC and service-role-only grant", "to_regprocedure('public.replace_roadside_station_registry(jsonb)') IS NOT NULL" in repair_script_content and "has_function_privilege('service_role', 'public.replace_roadside_station_registry(jsonb)', 'EXECUTE')" in repair_script_content);
