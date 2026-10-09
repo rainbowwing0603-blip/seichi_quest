@@ -20,6 +20,7 @@ audit_sql = ROOT / "supabase/security/production_rls_audit.sql"
 participation_migration = ROOT / "supabase/migrations/20261009010000_secure_event_participation_rpc.sql"
 preference_migration = ROOT / "supabase/migrations/20261009020000_secure_event_preference_rpc.sql"
 profile_migration = ROOT / "supabase/migrations/20261009031000_secure_profile_write_rpc.sql"
+registry_migration = ROOT / "supabase/migrations/20261009032000_atomic_roadside_station_registry_replace.sql"
 candidate_baseline = ROOT / "supabase/baselines/production_schema_candidate_20261009.sql"
 production_import = ROOT / "scripts/import-production-master-data.ps1"
 bootstrap_script = ROOT / "scripts/bootstrap-production-schema.ps1"
@@ -31,6 +32,7 @@ profile_page = (ROOT / "lib/widgets/profile_page.dart").read_text(encoding="utf-
 migration = participation_migration.read_text(encoding="utf-8")
 preference = preference_migration.read_text(encoding="utf-8")
 profile = profile_migration.read_text(encoding="utf-8")
+registry = registry_migration.read_text(encoding="utf-8")
 candidate = candidate_baseline.read_text(encoding="utf-8")
 repair_script_content = repair_script.read_text(encoding="utf-8")
 
@@ -83,6 +85,7 @@ require("preference writes are revoked from client roles", "REVOKE INSERT, UPDAT
 require("event service uses preference RPC", "set_current_event_preference" in event_service and ".from('user_event_preferences').upsert" not in event_service)
 require("profile RPC pins search_path", "SECURITY DEFINER\nSET search_path = ''" in profile)
 require("profile writes are revoked from client roles", "REVOKE INSERT, UPDATE, DELETE ON TABLE public.profiles FROM anon, authenticated" in profile)
+require("registry RPC has one least-privilege grant pair", registry.count("REVOKE ALL ON FUNCTION public.replace_roadside_station_registry(jsonb)") == 1 and registry.count("GRANT EXECUTE ON FUNCTION public.replace_roadside_station_registry(jsonb) TO service_role") == 1)
 require("profile RPC is in candidate with no direct write grant", "public.save_my_profile" in candidate and "GRANT INSERT (id, display_name" not in candidate and "GRANT UPDATE (display_name" not in candidate)
 require("both participation RPCs are in candidate", "public.ensure_event_participation" in candidate and "public.leave_event_participation" in candidate)
 require("preference RPC is in candidate", "public.set_current_event_preference" in candidate)
