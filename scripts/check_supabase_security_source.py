@@ -17,11 +17,14 @@ schema_target = ROOT / "docs/production-schema-target.md"
 audit_sql = ROOT / "supabase/security/production_rls_audit.sql"
 participation_migration = ROOT / "supabase/migrations/20261009010000_secure_event_participation_rpc.sql"
 preference_migration = ROOT / "supabase/migrations/20261009020000_secure_event_preference_rpc.sql"
+profile_migration = ROOT / "supabase/migrations/20261009030000_secure_profile_write_rpc.sql"
 candidate_baseline = ROOT / "supabase/baselines/production_schema_candidate_20261009.sql"
 event_service = (ROOT / "lib/services/event_service.dart").read_text(encoding="utf-8")
 event_explore = (ROOT / "lib/widgets/event_explore_page.dart").read_text(encoding="utf-8")
+profile_page = (ROOT / "lib/widgets/profile_page.dart").read_text(encoding="utf-8")
 migration = participation_migration.read_text(encoding="utf-8")
 preference = preference_migration.read_text(encoding="utf-8")
+profile = profile_migration.read_text(encoding="utf-8")
 candidate = candidate_baseline.read_text(encoding="utf-8")
 
 require("new tables are not auto-exposed", "auto_expose_new_tables = false" in config)
@@ -42,14 +45,19 @@ require("PostGIS is installed outside the exposed public schema", "CREATE EXTENS
 require("anon cannot use the PostGIS schema", "GRANT USAGE ON SCHEMA gis TO authenticated, service_role" in candidate and "GRANT USAGE ON SCHEMA gis TO anon" not in candidate)
 require("event service uses participation RPC", "ensure_event_participation" in event_service and ".from('user_event_participations').insert" not in event_service)
 require("event explore uses leave RPC", "leave_event_participation" in event_explore and ".from('user_event_participations')\n          .update" not in event_explore)
+require("profile page uses profile RPC", "save_my_profile" in profile_page and ".from('profiles').upsert" not in profile_page)
 require("participation RPC pins search_path", "SECURITY DEFINER\nSET search_path = ''" in migration)
 require("participation writes are revoked from client roles", "REVOKE INSERT, UPDATE, DELETE ON TABLE public.user_event_participations FROM anon, authenticated" in migration)
 require("preference RPC pins search_path", "SECURITY DEFINER\nSET search_path = ''" in preference)
 require("preference writes are revoked from client roles", "REVOKE INSERT, UPDATE, DELETE ON TABLE public.user_event_preferences FROM anon, authenticated" in preference)
 require("event service uses preference RPC", "set_current_event_preference" in event_service and ".from('user_event_preferences').upsert" not in event_service)
+require("profile RPC pins search_path", "SECURITY DEFINER\nSET search_path = ''" in profile)
+require("profile writes are revoked from client roles", "REVOKE INSERT, UPDATE, DELETE ON TABLE public.profiles FROM anon, authenticated" in profile)
+require("profile RPC is in candidate with no direct write grant", "public.save_my_profile" in candidate and "GRANT INSERT (id, display_name" not in candidate and "GRANT UPDATE (display_name" not in candidate)
 require("both participation RPCs are in candidate", "public.ensure_event_participation" in candidate and "public.leave_event_participation" in candidate)
 require("preference RPC is in candidate", "public.set_current_event_preference" in candidate)
 require("future public tables default to least privilege", "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public" in candidate and "REVOKE ALL PRIVILEGES ON TABLES FROM anon, authenticated, PUBLIC" in candidate)
+
 seed_dir = ROOT / "supabase/seed/production_master_data"
 require("master-data manifest exists", (seed_dir / "MANIFEST.md").is_file())
 require("post-import verifier exists", (seed_dir / "VERIFY.sql").is_file())
