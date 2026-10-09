@@ -60,4 +60,12 @@ AAB作成とPlay Consoleへのアップロードは別事実として記録す�
 
 本番Supabaseプロジェクト `npirfaoxcarfuqjlwgav`（東京リージョン）は作成済み。クリーンスキーマ25テーブル、RLS 24ポリシー、マスターデータ13テーブル10,320件を反映し、旧 `public.seichi` は存在しない。場所の地理座標、イベント/コンテンツの関連整合性、重複レジストリ、テストプロジェクトURL残存、ユーザー個人データ混入を確認し、いずれも問題なし。production `delete-account` Edge Function v2はJWT検証とPOST/OPTIONSのCORS preflightを有効にしてデプロイ済み。
 
-ただし、本番migration historyは未記録であり、ローカルSupabase CLIによる履歴修復と `supabase db push` が必要。さらにAuth匿名サインイン設定、Storage/権利確認、旧道の駅取込キーのローテーション、実機の削除フロー検証、production `app_release_policies` の設定が未完了。本番用ビルドやGoogle Play本番トラックへの公開は、これらのゲートが完了するまで行わない。
+2026-10-10時点の実行結果：ガード付きスクリプトで旧75件のmigration履歴を登録し、続けてレビュー済みの新規5件を本番へ適用済み。 `supabase migration list --linked` で80件すべてのLocal/Remote一致を確認した。主要マスターデータ件数とスポットの必須位置情報も再確認済み。
+
+残る本番リリース前ゲートは次のとおり。
+- Auth匿名サインイン：Supabase Dashboardで実設定を確認する。ローカルの `config.toml` だけでは本番設定の証明にならない。
+- Storage：本番バケット・オブジェクトは現在0件。必要なバケット/ポリシーと素材の権利を別途確認する。上毛かるた公式画像の許諾は未確認。
+- メンテナンス用Edge Functions：本番にあるのは `delete-account` v2（`verify_jwt=true`）のみ。道の駅/GPS用関数はV2 secret設定とテストを完了し、別途承認されるまで本番へデプロイしない。
+- アカウント削除：使い捨てテストアカウントで認証・削除カスケードを実機確認する。
+- `app_release_policies`：現在0件は初回本番リリース前の意図した状態。実際に公開するビルド番号/バージョンと公開ストアURLを確定してから登録し、クローズドテストの値を流用しない。
+- 本番アプリ：本番URLとpublishable keyでビルドし、実機スモークテスト後にPlay Consoleのトラックとアップロード済みAABを別途確認する。DB移行によって本番アプリを公開したわけではない。
