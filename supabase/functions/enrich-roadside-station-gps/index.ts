@@ -5,7 +5,7 @@ const KEY = Deno.env.get("ROADSIDESTATION_GPS_ENRICH_KEY");
 const URLS=Array.from({length:10},(_,i)=>`https://www.seaview.jp/rs/${101+i}-111.htm`);
 const norm=(v:string)=>v.replace(/^道の駅[\s　]*/,"").replace(/[\s　]+/g," ").trim();
 const coord=(h:string):[number,number]|null=>{const m=decodeURIComponent(h).match(/([+-]?\d{2}\.\d+)\s*[,，]\s*([+-]?\d{3}\.\d+)/);if(!m)return null;const lat=Number(m[1]),lon=Number(m[2]);return Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180?[lat,lon]:null;};
-async function run(){try{
+async function run(dryRun:boolean){try{
 
  const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
  const master:any[]=[];
@@ -29,8 +29,8 @@ async function run(){try{
      updates.set(id,{id,candidate_latitude:c[0],candidate_longitude:c[1],candidate_source:url,candidate_checked_at:new Date().toISOString(),candidate_confidence:"candidate"});
    }
  }
- for(const u of updates.values()){const {error}=await sb.from("roadside_station_registry").update(u).eq("id",u.id);if(error)throw error;}
- console.log(JSON.stringify({ok:true,master:master.length,matched:updates.size,ambiguous:ambiguous.size,unmatched:master.length-updates.size-ambiguous.size}));
+ if(!dryRun){for(const u of updates.values()){const {error}=await sb.from("roadside_station_registry").update(u).eq("id",u.id);if(error)throw error;}}
+ console.log(JSON.stringify({ok:true,dry_run:dryRun,master:master.length,matched:updates.size,ambiguous:ambiguous.size,unmatched:master.length-updates.size-ambiguous.size,updated:dryRun?0:updates.size}));
 }catch(e){console.error("[gps-enrich] job failed",e);throw e;}}
 const corsHeaders = {"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type, x-import-key","Access-Control-Allow-Methods":"POST, OPTIONS"};
 Deno.serve(async(req:Request)=>{
@@ -38,6 +38,8 @@ Deno.serve(async(req:Request)=>{
  if(req.method!=="POST")return new Response("method not allowed",{status:405,headers:{...corsHeaders,"Allow":"POST, OPTIONS"}});
  if(!KEY)return Response.json({ok:false,error:"maintenance function is not configured"},{status:503,headers:corsHeaders});
  if(req.headers.get("x-import-key")!==KEY)return new Response("forbidden",{status:403,headers:corsHeaders});
- EdgeRuntime.waitUntil(run().catch(e=>console.error("[gps-enrich] background job failed",e)));
- return Response.json({ok:true,started:true},{headers:corsHeaders});
+ const payload=await req.json().catch(()=>({}));
+ const dryRun=payload?.apply!==true;
+ EdgeRuntime.waitUntil(run(dryRun).catch(e=>console.error("[gps-enrich] background job failed",e)));
+ return Response.json({ok:true,started:true,dry_run:dryRun},{headers:corsHeaders});
 });
