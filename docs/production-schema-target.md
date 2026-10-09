@@ -310,3 +310,10 @@ The post-load integrity pass also returned zero orphan rows for event/content/pl
 Added migration `20261009030000_atomic_roadside_station_registry_replace.sql` for the `replace_roadside_station_registry(jsonb)` RPC already called by the maintenance Edge Function. It stages and validates the complete 1,234-row authoritative snapshot, upserts while preserving place links and locally verified status, removes stale registry entries, verifies the final count, and commits as one database transaction. EXECUTE is revoked from PUBLIC/anon/authenticated and granted only to `service_role`.
 
 A rollback-only rehearsal on the closed-test database created the RPC temporarily, submitted the existing 1,234-row registry as a normalized authoritative snapshot, confirmed the final count remained 1,234, and confirmed an empty/invalid payload was rejected. The transaction was rolled back. The production project remains unchanged. This closes the source/schema mismatch where the Edge Function called an RPC that previously existed only in the candidate baseline.
+
+
+## Seed SQL validation and guarded import runner
+
+All 47 master-data SQL files were individually executed inside rollback-only transactions against the closed-test schema to validate SQL syntax and object/column compatibility. Because that database already contains the source rows and the inserts are idempotent, those runs do **not** prove the inserts themselves work against an empty target. A production transaction separately proved that the candidate schema accepts all 51 event rows and 250 real place rows including EWKT geography conversion; the full 10,320-row cross-table import has not yet been rehearsed as one transaction.
+
+Added `scripts/import-production-master-data.ps1` with dry-run as the default, a production project-ref guard, typed confirmation, one transaction per file, stop-on-error behavior, resumable partial-import mode, and exact post-import row-count checks. GitHub static checks now guard these protections.
