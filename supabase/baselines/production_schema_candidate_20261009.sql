@@ -1495,6 +1495,11 @@ BEGIN
     RAISE EXCEPTION '認証が必要です.' USING ERRCODE = '28000';
   END IF;
 
+  -- Serialize this user's event-state mutations to avoid preference/leave races.
+  PERFORM pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(v_user_id::text, 0)
+  );
+
   IF p_event_id IS NULL THEN
     RAISE EXCEPTION 'event_idは必須です.' USING ERRCODE = '22023';
   END IF;
@@ -1546,6 +1551,11 @@ BEGIN
     RAISE EXCEPTION '認証が必要です.' USING ERRCODE = '28000';
   END IF;
 
+  -- Serialize this user's event-state mutations to avoid preference/leave races.
+  PERFORM pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(v_user_id::text, 0)
+  );
+
   IF p_event_id IS NULL THEN
     RAISE EXCEPTION 'event_idは必須です.' USING ERRCODE = '22023';
   END IF;
@@ -1581,6 +1591,11 @@ BEGIN
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION '認証が必要です.' USING ERRCODE = '28000';
   END IF;
+
+  -- Serialize this user's event-state mutations to avoid preference/leave races.
+  PERFORM pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(v_user_id::text, 0)
+  );
 
   IF p_event_id IS NULL THEN
     RAISE EXCEPTION 'event_idは必須です.' USING ERRCODE = '22023';
