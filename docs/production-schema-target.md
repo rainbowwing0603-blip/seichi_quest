@@ -236,3 +236,8 @@ The final clean candidate no longer creates the unused `private` schema or DB-si
 
 
 The final profile-write RPC migration was tested under an authenticated role in a rollback-only transaction: profile save succeeded for the caller's own row, direct profile INSERT/UPDATE privileges were absent, and the RPC EXECUTE grant was present. The final bootstrap rehearsal now reports 24 policies (profile insert/update policies were removed when direct profile writes were replaced with `save_my_profile`).
+
+
+## Source CI regression caught and corrected
+
+The first Flutter PR check after the event page API update failed because two test fixtures still constructed `QuestPage` without the new required `events` and `onEventTap` parameters. Updated `test/quest_page_card_width_test.dart` and `test/ui_gallery_test.dart` to provide explicit empty event lists and no-op tap callbacks. A fresh CI run was triggered; its result is pending at the time of this note.
