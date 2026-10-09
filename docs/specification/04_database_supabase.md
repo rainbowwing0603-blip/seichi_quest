@@ -52,6 +52,9 @@ DDLはmigrationとして管理し、適用後は本番migration履歴・RLS・RP
 
 ### イベント参加状態の書き込み
 
-クライアントから `user_event_participations` へ直接INSERT/UPDATEせず、`ensure_event_participation(p_event_id)` RPCを使う。RPCは `auth.uid()` からユーザーを確定し、イベントの有効性を検証して、`joined_at` / `updated_at` をDB時刻で設定する。クライアントには当該テーブルの直接INSERT/UPDATE/DELETE権限を付与しない。
+クライアントから `user_event_participations` へ直接INSERT/UPDATEせず、`ensure_event_participation(p_event_id)` / `leave_event_participation(p_event_id)` RPCを使う。RPCは `auth.uid()` からユーザーを確定し、イベントの有効性を検証して、`joined_at` / `updated_at` をDB時刻で設定する。クライアントには当該テーブルの直接INSERT/UPDATE/DELETE権限を付与しない。
 
 この変更はGit上にmigrationとFlutter側の呼び出し変更を用意した段階であり、テストDBへmigrationを適用していない。配布ビルドに含める前にmigration適用とRPCの実機検証が必要。
+
+
+参加状態のテストでは、テストDB上で両RPCを認証済みロールから呼び出し、参加状態の有効化・解除とサーバー時刻設定を確認した後、トランザクションをロールバックした。DBへの永続適用はしていない。
