@@ -45,6 +45,15 @@ SELECT CASE
    AND (SELECT count(*) FROM public.collection_series_regions) = 57
    AND (SELECT count(*) FROM public.roadside_station_registry) = 1234
    AND EXISTS (SELECT 1 FROM pg_event_trigger WHERE evtname = 'ensure_rls')
+   AND to_regprocedure('public.replace_roadside_station_registry(jsonb)') IS NOT NULL
+   AND NOT has_function_privilege('anon', 'public.replace_roadside_station_registry(jsonb)', 'EXECUTE')
+   AND NOT has_function_privilege('authenticated', 'public.replace_roadside_station_registry(jsonb)', 'EXECUTE')
+   AND has_function_privilege('service_role', 'public.replace_roadside_station_registry(jsonb)', 'EXECUTE')
+   AND (SELECT count(*) FROM public.profiles) = 0
+   AND (SELECT count(*) FROM public.place_visits) = 0
+   AND (SELECT count(*) FROM public.collection_history) = 0
+   AND (SELECT count(*) FROM public.user_event_preferences) = 0
+   AND (SELECT count(*) FROM public.user_event_participations) = 0
    AND NOT has_table_privilege('authenticated', 'public.user_event_participations', 'INSERT')
    AND NOT has_table_privilege('authenticated', 'public.user_event_participations', 'UPDATE')
    AND NOT has_table_privilege('authenticated', 'public.user_event_preferences', 'INSERT')
