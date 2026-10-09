@@ -77,7 +77,7 @@ Deno.serve(async(req:Request)=>{ try {
       {prefecture:"兵庫県",official_name:"こんだ温泉ぬくもりの郷",municipality:"丹波篠山市"},
       {prefecture:"熊本県",official_name:"くらたけ天草戦国ミュージアム",municipality:"天草市"},
     ]){
-      const k=x.prefecture+"\\0"+x.official_name;
+      const k=x.prefecture+"\0"+x.official_name;
       if(!om.has(k)) om.set(k,{...x,registration_round:65,official_source_url:"https://www.mlit.go.jp/report/press/road01_hh_002138.html",source_checked_at:new Date().toISOString(),status:"opening_pending",metadata:{source:"MLIT 65th registration press release",registration_date_text:"2026-09-04"}});
     }
     master=[...om.values()];
