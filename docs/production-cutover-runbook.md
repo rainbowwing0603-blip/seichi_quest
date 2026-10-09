@@ -79,3 +79,12 @@ Before a production store release, complete these gates in order:
 5. Only after the actual release and public Play URL are confirmed, populate the active Android `app_release_policies` row with the real version/build/store URL.
 
 These steps do not authorize store publication, database cleanup, or changes to the live release policy. Those remain separate reviewed actions.
+
+
+## Security Advisor interpretation (2026-10-10)
+
+The current `rls_enabled_no_policy` findings for `event_collection_resets`, `location_security_events`, `location_security_states`, `place_visits`, and `roadside_station_registry` are intentionally restrictive. These tables are server/RPC-owned; the Flutter client does not need direct table access. In particular, stamp collection writes `place_visits` through the authenticated `record_place_visit_and_collect` SECURITY DEFINER RPC. Do not add client policies just to silence the advisor.
+
+The `get_public_ranking(uuid, integer)` SECURITY DEFINER warning is also intentional for the public ranking feature: its return shape contains rank, display name, count, and the caller's `is_me` flag, but not the user ID. Its query filters to active profiles with non-empty display names and collected content. Keep the explicit grants reviewed in `20260925111207_harden_security_definer_execute_grants.sql`.
+
+The advisor's `auth_allow_anonymous_sign_ins` notices need to be read as policy-scope warnings, not proof of a data leak. Anonymous Auth users receive the `authenticated` database role. User-owned policies use `auth.uid()` and should return only the caller's own rows; active public catalog policies intentionally allow public reads. Do not globally revoke `authenticated` access from SECURITY DEFINER RPCs or public catalog reads. Revisit a finding only when its policy/function source demonstrates an actual overbroad result or write path.
