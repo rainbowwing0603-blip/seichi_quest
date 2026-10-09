@@ -228,3 +228,5 @@ Every one of the 47 seed SQL files was also executed individually against the cl
 
 
 The updated production candidate was re-run after relocating PostGIS into `gis`: `gis.spatial_ref_sys` exists, `public.spatial_ref_sys` does not, `anon` has no `USAGE` on `gis`, `authenticated` has the needed `USAGE`, all 25 app tables have RLS, and all app-owned SECURITY DEFINER functions have a pinned search path. EWKT seed rows still imported successfully into `gis.geography` in a rollback-only rehearsal.
+
+A final spatial smoke test under the `authenticated` role successfully executed `gis.st_distance` / `gis.st_makepoint` / `gis.st_setsrid`; the anonymous role has no `USAGE` on `gis`, the authenticated role does, and `public.spatial_ref_sys` does not exist in the target layout. All DDL was rolled back.
