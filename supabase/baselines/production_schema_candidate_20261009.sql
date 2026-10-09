@@ -946,10 +946,10 @@ begin
     -- 新規visit:
     -- この時点だけGPS距離判定を行う。
     -- --------------------------------------------------------
-    if not gis.gis.st_dwithin(
+    if not gis.st_dwithin(
       v_place.location,
-      gis.gis.st_setsrid(
-        gis.gis.st_makepoint(p_longitude, p_latitude),
+      gis.st_setsrid(
+        gis.st_makepoint(p_longitude, p_latitude),
         4326
       )::gis.geography,
       v_place.radius_meters
