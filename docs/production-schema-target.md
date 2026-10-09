@@ -241,3 +241,10 @@ The final profile-write RPC migration was tested under an authenticated role in 
 ## Source CI regression caught and corrected
 
 The first Flutter PR check after the event page API update failed because two test fixtures still constructed `QuestPage` without the new required `events` and `onEventTap` parameters. Updated `test/quest_page_card_width_test.dart` and `test/ui_gallery_test.dart` to provide explicit empty event lists and no-op tap callbacks. A fresh CI run was triggered; its result is pending at the time of this note.
+
+
+## Safe production cutover tooling
+
+Added `scripts/bootstrap-production-schema.ps1` and `scripts/repair-production-migration-history.ps1`, plus `docs/production-cutover-runbook.md`. The bootstrap script defaults to dry-run, verifies the database URI identifies the production project, refuses a non-empty public schema, assembles the baseline plus all 47 seed files, and applies everything in one transaction with post-load count/RLS/grant assertions. It prompts for an exact production-specific confirmation before applying.
+
+The migration-history script is a separate, guarded step. It refuses to mark legacy migration versions as applied until the live DB confirms the 25-table/26-policy schema, all 13 curated data counts, automatic RLS, and absence of `public.seichi`. This is necessary because the repository's historical migration chain is not a clean bootstrap; running `supabase db push` against a blank production project before the baseline would replay legacy migrations. Neither script has been run against production, and production remains empty.
