@@ -9,20 +9,8 @@ $baselineVersion = [long]'20261009010000'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $linkedProjectPath = Join-Path $repoRoot 'supabase/.temp/project-ref'
 
-if (-not (Get-Command supabase -ErrorAction SilentlyContinue)) { throw 'Supabase CLI is required.' }
-if (-not (Get-Command psql -ErrorAction SilentlyContinue)) { throw 'psql is required for the database preflight.' }
-if (-not (Test-Path -LiteralPath $linkedProjectPath)) {
-    throw 'Project is not linked. Run supabase link --project-ref npirfaoxcarfuqjlwgav first.'
-}
-$linkedProject = [System.IO.File]::ReadAllText($linkedProjectPath, [System.Text.Encoding]::UTF8).Trim()
-if ($linkedProject -cne $expectedProjectRef) {
-    throw "Linked project '$linkedProject' is not the expected production project '$expectedProjectRef'."
-}
-
-$databaseUrl = $env:SUPABASE_DB_URL
-if ([string]::IsNullOrWhiteSpace($databaseUrl) -or $databaseUrl -notmatch [regex]::Escape($expectedProjectRef)) {
-    throw "Set SUPABASE_DB_URL to the direct DB URI for production project '$expectedProjectRef'."
-}
+$supabaseCommand = Get-Command supabase -ErrorAction SilentlyContinue
+if (-not $supabaseCommand) { throw 'Supabase CLI is required.' }
 
 $preflightSql = @'
 SELECT CASE
@@ -74,9 +62,12 @@ SELECT CASE
   ELSE 'NOT_READY'
 END;
 '@
-$preflight = & psql --no-psqlrc --tuples-only --no-align --set ON_ERROR_STOP=1 --dbname $databaseUrl --command $preflightSql
-if ($LASTEXITCODE -ne 0 -or ($preflight | Out-String).Trim() -ne 'READY') {
-    throw 'Production bootstrap preflight failed. Do not repair migration history until the schema and master data are fully applied.'
+$preflight = & $supabaseCommand.Source db query --linked --project-ref $expectedProjectRef $preflightSql
+$preflightExitCode = $LASTEXITCODE
+$preflightText = $preflight | Out-String
+if ($preflightExitCode -ne 0 -or $preflightText -notmatch '(?m)[│|]\s*READY\s*[│|]') {
+    Write-Host $preflightText
+    throw 'Production bootstrap preflight failed. No migration history was changed. Do not repair until the schema and master data are fully applied.'
 }
 
 $migrationDirectory = Join-Path $repoRoot 'supabase/migrations'
@@ -97,8 +88,17 @@ Write-Host "Verified clean bootstrap: 25 tables, 24 policies, master data counts
 Write-Host "Migration versions to mark applied: $($versions.Count)"
 Write-Host ($versions -join ', ')
 if (-not $Apply) {
-    Write-Host 'DRY RUN ONLY. No migration history changed. Re-run with -Apply after reviewing the version list.'
+    Write-Host 'DRY RUN ONLY. Preflight used Supabase CLI; no migration history changed. Re-run with -Apply only after reviewing the version list and linking this worktree to production.'
     return
+}
+
+$linkedProjectPath = Join-Path $repoRoot 'supabase/.temp/project-ref'
+if (-not (Test-Path -LiteralPath $linkedProjectPath)) {
+    throw "Dry run passed, but applying requires this worktree to be linked first. Run: supabase link --project-ref $expectedProjectRef"
+}
+$linkedProject = [System.IO.File]::ReadAllText($linkedProjectPath, [System.Text.Encoding]::UTF8).Trim()
+if ($linkedProject -cne $expectedProjectRef) {
+    throw "Linked project '$linkedProject' is not the expected production project '$expectedProjectRef'. No repair was run."
 }
 
 $confirmation = Read-Host "Type REPAIR $expectedProjectRef to mark the listed legacy migrations applied"
