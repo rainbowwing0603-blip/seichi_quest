@@ -85,3 +85,36 @@ WHERE n.nspname='public' AND c.relkind IN ('r','p')
   AND c.relname <> 'spatial_ref_sys' AND NOT c.relispartition
   AND NOT c.relrowsecurity
 ORDER BY c.relname;
+
+
+-- Security and release inventory. These are observations, not destructive checks.
+SELECT 'app_tables_without_rls' AS check_name, count(*)::bigint AS value
+FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+WHERE n.nspname='public' AND c.relkind IN ('r','p')
+  AND c.relname <> 'spatial_ref_sys' AND NOT c.relispartition AND NOT c.relrowsecurity
+UNION ALL
+SELECT 'app_security_definer_without_fixed_search_path', count(*)::bigint
+FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+WHERE n.nspname IN ('public','private') AND p.prosecdef AND p.prokind='f'
+  AND NOT EXISTS (SELECT 1 FROM unnest(coalesce(p.proconfig, ARRAY[]::text[])) cfg WHERE cfg LIKE 'search_path=%')
+UNION ALL
+SELECT 'protected_table_direct_client_write_grants', count(*)::bigint
+FROM information_schema.role_table_grants
+WHERE table_schema='public'
+  AND table_name IN ('profiles','user_event_preferences','user_event_participations')
+  AND grantee IN ('anon','authenticated')
+  AND privilege_type IN ('INSERT','UPDATE','DELETE')
+UNION ALL
+SELECT 'storage_buckets', count(*)::bigint FROM storage.buckets
+UNION ALL
+SELECT 'storage_objects', count(*)::bigint FROM storage.objects
+UNION ALL
+SELECT 'auth_users', count(*)::bigint FROM auth.users
+UNION ALL
+SELECT 'production_release_policy_rows', count(*)::bigint FROM public.app_release_policies;
+
+-- Migration-history repair is intentionally a local Supabase CLI operation.
+SELECT
+  to_regclass('supabase_migrations.schema_migrations') IS NOT NULL AS migration_history_table_exists,
+  (SELECT count(*) FROM public.app_release_policies WHERE platform='android' AND is_active) AS active_android_release_policies,
+  (SELECT count(*) FROM public.app_release_policies WHERE platform='ios' AND is_active) AS active_ios_release_policies;
