@@ -69,6 +69,9 @@ require("migration repair requires atomic registry RPC and service-role-only gra
 require("migration repair refuses when user-specific rows exist", "(SELECT count(*) FROM public.profiles) = 0" in repair_script_content and "(SELECT count(*) FROM public.collection_history) = 0" in repair_script_content and "(SELECT count(*) FROM public.location_security_events) = 0" in repair_script_content and "(SELECT count(*) FROM public.user_event_favorites) = 0" in repair_script_content);
 
 require("registry errors do not return stack to clients", "stack:(e as any)?.stack" not in importer and 'error: "registry import failed"' in importer)
+require("delete-account gateway JWT verification is enabled", re.search(r'\[functions\.delete-account\][\s\S]*?verify_jwt\s*=\s*true', config) is not None)
+require("migration repair requires exactly 75 legacy versions", "if ($versions.Count -ne 75)" in repair_script_content)
+require("migration repair pins the five reviewed post-baseline versions", all(version in repair_script_content for version in ("20261009010000", "20261009020000", "20261009031000", "20261009032000", "20261009040000")) and "$postBaselineVersions.Count -ne $expectedPostBaselineVersions.Count" in repair_script_content)
 require("account deletion restricts method", 'req.method !== "POST"' in delete_account)
 require("account deletion hides low-level auth details", "auth_message:" not in delete_account and "delete_message:" not in delete_account)
 require("production schema target exists", schema_target.is_file())
