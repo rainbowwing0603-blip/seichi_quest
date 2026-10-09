@@ -7,7 +7,8 @@ const compact=(v:string)=>v.normalize("NFKC").toLowerCase().replace(/^道の駅/
 const coord=(h:string):[number,number]|null=>{const m=decodeURIComponent(h).match(/([+-]?\d{2}\.\d+)\s*[,，]\s*([+-]?\d{3}\.\d+)/);if(!m)return null;const lat=Number(m[1]),lon=Number(m[2]);return Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180?[lat,lon]:null;};
 async function run(){
  const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
- const master:any[]=[];for(let f=0;;f+=1000){const {data,error}=await sb.from("roadside_station_registry").select("id,official_name,prefecture,municipality,candidate_confidence").range(f,f+999);if(error)throw error;master.push(...(data??[]));if((data??[]).length<1000)break;}
+ const master:any[]=[];for(let f=0;;f+=1000){const {data,error}=await sb.from("roadside_station_registry").select("id,official_name,prefecture,municipality,candidate_confidence,metadata").range(f,f+999);if(error)throw error;master.push(...(data??[]));if((data??[]).length<1000)break;}
+ if(master.length!==1234)throw new Error(`Expected 1234 registry rows; got ${master.length}`);
  const targets=master.filter(r=>r.candidate_confidence==="unverified");
  const rows:any[]=[];
  for(const url of URLS){const res=await fetch(url,{headers:{"user-agent":"SeichiQuest/1.0 data-maintenance"}});if(!res.ok)continue;const html=new TextDecoder("shift_jis").decode(new Uint8Array(await res.arrayBuffer()));const $=cheerio.load(html);
@@ -17,7 +18,7 @@ async function run(){
  for(const t of targets){const tk=compact(t.official_name), muni=compact(t.municipality??"");let hits=rows.filter(r=>r.key===tk);
    if(hits.length!==1&&muni) hits=rows.filter(r=>(r.key.includes(tk)||tk.includes(r.key))&&compact(r.rowText).includes(muni));
    if(hits.length!==1){ambiguous.push({id:t.id,name:t.official_name,prefecture:t.prefecture,municipality:t.municipality,hits:hits.length});continue;}
-   const h=hits[0];const {error}=await sb.from("roadside_station_registry").update({candidate_latitude:h.lat,candidate_longitude:h.lon,candidate_source:h.url,candidate_checked_at:new Date().toISOString(),candidate_confidence:"candidate",metadata:{gps_match_method:"normalized_name_or_municipality"}}).eq("id",t.id);if(error)throw error;matched++;
+   const h=hits[0];const {error}=await sb.from("roadside_station_registry").update({candidate_latitude:h.lat,candidate_longitude:h.lon,candidate_source:h.url,candidate_checked_at:new Date().toISOString(),candidate_confidence:"candidate",metadata:{...(t.metadata??{}),gps_match_method:"normalized_name_or_municipality"}}).eq("id",t.id);if(error)throw error;matched++;
  }
  console.log(JSON.stringify({targets:targets.length,matched,remaining:ambiguous.length,ambiguous}));
 }
