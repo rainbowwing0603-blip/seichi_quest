@@ -184,3 +184,13 @@ This is a starting policy design, not yet executable SQL. The final policy set m
 7. Every security-definer function has a reviewed body, fixed search path, explicit EXECUTE grants, and a tested negative-access case.
 8. Storage object policies reject cross-user writes and path traversal, while approved public assets remain readable.
 9. Run Supabase security advisors after the new schema is applied; resolve real issues, document justified extension-owned findings, and verify with SQL-level privilege/policy tests.
+
+
+## Source-side hardening staged on the audit branch
+
+- `supabase/config.toml`: set `auto_expose_new_tables = false` so future public tables do not silently gain Data API access. Disabled the configured seed step because `supabase/seed.sql` was absent; curated master-data seeding will be added separately.
+- `supabase/functions/import-roadside-station-registry/index.ts`: removed the fixed import-key literal; reads `ROADSIDESTATION_IMPORT_KEY` from the Edge Function environment, rejects methods other than POST, and no longer returns stack/detail internals in client error bodies.
+- `supabase/functions/delete-account/index.ts`: restricts the handler to POST (plus OPTIONS preflight) and no longer returns underlying Auth/delete error details to the caller.
+- Added `docs/production-schema-target.md` and `supabase/security/production_rls_audit.sql` to describe the clean model and provide read-only privilege/RLS review queries.
+
+These are source changes staged for review, not deployed runtime changes. The registry importer is still explicitly blocked from production: its delete-and-reinsert sequence is not atomic, and it needs a staging/transactional replacement, secret provisioning, and negative authorization tests. Do not deploy it as-is. The account-deletion function also still needs end-to-end verification against the app's actual call path and cascade/retention behavior.
