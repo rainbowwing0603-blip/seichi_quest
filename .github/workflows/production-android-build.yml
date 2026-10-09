@@ -104,7 +104,6 @@ jobs:
           BUILD_NUMBER: ${{ inputs.build_number }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-          ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID: ${{ vars.ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID }}
         run: |
           set -euo pipefail
           version_name="$(python3 -c 'import re; s=open("pubspec.yaml", encoding="utf-8").read(); m=re.search(r"^version:\s+([0-9]+\.[0-9]+\.[0-9]+)(?:\+[0-9]+)?\s*$", s, re.M); assert m, "pubspec.yaml must contain version: MAJOR.MINOR.PATCH"; print(m.group(1))')"
