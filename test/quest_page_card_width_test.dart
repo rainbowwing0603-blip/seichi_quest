@@ -23,6 +23,8 @@ void main() {
               collectedCount: state.collected,
               total: state.total,
               eventAchievements: const [],
+              events: const [],
+              onEventTap: (_) {},
               onShowDestination: () {},
               onExploreEvents: () {},
             ),
