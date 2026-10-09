@@ -198,3 +198,6 @@ Geospatial verification also returned 1,713/1,713 places as non-empty `ST_Point`
 
 
 Asset-path reconciliation: the 88 distinct `assets/...` paths referenced by `contents.image_url` and `content_blocks.media_path` were compared with the Flutter repository tree on `feature/android-next-release`. **0 missing paths** were found. These are bundled app assets and do not need to be copied to Supabase Storage.
+
+
+Production release gate inventory is currently empty by design: 0 Storage buckets, 0 Storage objects, 0 Auth users, and 0 rows in `app_release_policies` (no active Android/iOS release policy). This is appropriate for the isolated schema/data bootstrap, but the app must not be treated as release-ready until the actual media-storage requirement, artwork rights, anonymous sign-in setting, and release-policy values are explicitly resolved.
