@@ -1,12 +1,15 @@
 # Production schema cutover runbook
 
+> **Live status update (2026-10-10):** Production migration-history repair and the five reviewed post-baseline migrations have completed. `supabase migration list --linked` shows all 80 local and remote versions matching. The production database and source checks were re-verified after the push. **Do not rerun** the historical `repair-production-migration-history.ps1 -Apply` or `supabase db push` steps below unless a new migration is intentionally added and reviewed. The old one-time procedure below is retained as an audit trail, not as the next action.
+
+
 **Target project:** `npirfaoxcarfuqjlwgav` (`seichi-quest-production`)
 
 ## Live status, checked 2026-10-09
 
 The clean production schema and all 10,320 curated master/reference rows have now been applied and validated. The live DB has 25 application tables, 24 reviewed RLS policies, RLS on every application table, no `public.seichi`, no test-project Storage URLs in master data, and zero user-specific rows copied. All expected table counts, spatial lookup, event-content foreign-key joins, and atomic registry RPC grants were verified.
 
-**Do not run `scripts/bootstrap-production-schema.ps1 -Apply` again.** It is a one-time script that correctly refuses to run when application tables already exist. The next database step is migration-history repair using the guarded script below, followed by `supabase db push`. The migration history currently has no recorded migrations. Auth anonymous sign-in, Storage policies/assets, deployed Edge Function secret rotation, and production release-policy setup remain separate pre-release gates.
+**Do not run `scripts/bootstrap-production-schema.ps1 -Apply` again.** It is a one-time script that correctly refuses to run when application tables already exist. Migration-history repair and the five post-baseline migrations were completed on 2026-10-10; see the live status update at the top. Do not repeat those one-time steps. At the time this original runbook section was written, the migration history had no recorded migrations; it was repaired on 2026-10-10. Auth anonymous sign-in, Storage policies/assets, deployed Edge Function secret rotation, and production release-policy setup remain separate pre-release gates.
 
 ## Critical warning
 
@@ -14,7 +17,7 @@ Do **not** run `supabase db push` against the empty production project before th
 
 The scripts are intentionally guarded and default to dry-run. Neither script contains a database password or publishable key.
 
-## One-time cutover (bootstrap steps already completed)
+## Historical one-time cutover procedure (bootstrap, history repair, and five migrations already completed; do not rerun)
 
 1. Review the production-bootstrap PR and update the local checkout to the reviewed commit. The schema/data bootstrap portion is already complete; only reconcile migration history and apply the five post-baseline migrations.
 2. Confirm the target project ref in the Supabase Dashboard is `npirfaoxcarfuqjlwgav`. The schema and master data are already present; do not assume the project is empty.
@@ -60,4 +63,4 @@ The baseline creates `app_release_policies` but deliberately leaves it empty. Be
 
 ## Place timestamp preservation check
 
-The five post-baseline migrations include `20261009040000_preserve_place_import_timestamps.sql`. The read-only `supabase/seed/production_master_data/VERIFY.sql` now emits `places_insert_timestamp_guard_missing`; its value must be **0** after the migration is applied. The production data timestamps have already been restored, but the trigger fix itself remains pending the guarded CLI migration-history repair and `supabase db push`.
+The five post-baseline migrations include `20261009040000_preserve_place_import_timestamps.sql`. The read-only `supabase/seed/production_master_data/VERIFY.sql` now emits `places_insert_timestamp_guard_missing`; its value must be **0** after the migration is applied. The production data timestamps were restored before the cutover. The trigger fix was applied on 2026-10-10; post-push checks found all 1,713 places have non-null `updated_at`, coordinates, and `location`. The migration list confirms all five post-baseline migrations are recorded remotely.
