@@ -92,6 +92,7 @@ require("preference RPC pins search_path", "SECURITY DEFINER\nSET search_path = 
 require("preference writes are revoked from client roles", "REVOKE INSERT, UPDATE, DELETE ON TABLE public.user_event_preferences FROM anon, authenticated" in preference)
 require("event service uses preference RPC", "set_current_event_preference" in event_service and ".from('user_event_preferences').upsert" not in event_service)
 require("profile RPC pins search_path", "SECURITY DEFINER\nSET search_path = ''" in profile)
+require("profile RPC display-name limit matches the 30-character table constraint", "char_length(v_display_name) > 30" in profile and "char_length(v_display_name) > 30" in candidate and "char_length(v_display_name) > 60" not in profile and "char_length(v_display_name) > 60" not in candidate)
 require("profile RPC allowlists age groups", all(x in profile for x in ("'10代以下'", "'20代'", "'回答しない'")))
 require("profile RPC allowlists avatar keys", all(x in profile for x in ("'adventurer'", "'mountain'", "'shrine'", "'camera'", "'train'", "'star'")))
 require("profile writes are revoked from client roles", "REVOKE INSERT, UPDATE, DELETE ON TABLE public.profiles FROM anon, authenticated" in profile)
