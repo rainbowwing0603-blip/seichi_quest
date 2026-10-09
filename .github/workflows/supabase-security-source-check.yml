@@ -24,5 +24,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check maintenance Edge Functions
+        run: >-
+          deno check
+          supabase/functions/import-roadside-station-registry/index.ts
+          supabase/functions/enrich-roadside-station-gps/index.ts
+          supabase/functions/reconcile-roadside-station-gps/index.ts
       - name: Check Supabase source guardrails
         run: python scripts/check_supabase_security_source.py
