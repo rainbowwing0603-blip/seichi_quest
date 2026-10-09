@@ -54,3 +54,10 @@ AAB作成とPlay Consoleへのアップロードは別事実として記録す�
 - クローズドテスト用Play Workflowは必ず `APP_ENV=closed_test` を指定する。本番用Workflowは、本番Supabase URLとpublishable keyをGitHub Environmentの保護された変数/Secretsから渡し、テスト用既定値へのフォールバックを許さない。
 - 本番プロジェクトはスキーマ・RLS・RPC・Edge Functions・Storage・Auth設定を検証し、イベント/スポット等のマスターデータを反映してから接続先を有効化する。ユーザー履歴は、別途移行方針が承認されない限り移行しない。
 - 本番プロジェクト作成時は東京リージョン `ap-northeast-1` を優先候補とし、作成前に費用を確認する。
+
+
+## 本番切替の現況（2026-10-09）
+
+本番Supabaseプロジェクト `npirfaoxcarfuqjlwgav`（東京リージョン）は作成済み。クリーンスキーマ25テーブル、RLS 24ポリシー、マスターデータ13テーブル10,320件を反映し、旧 `public.seichi` は存在しない。場所の地理座標、イベント/コンテンツの関連整合性、重複レジストリ、テストプロジェクトURL残存、ユーザー個人データ混入を確認し、いずれも問題なし。production `delete-account` Edge Function v1はJWT検証を有効にしてデプロイ済み。
+
+ただし、本番migration historyは未記録であり、ローカルSupabase CLIによる履歴修復と `supabase db push` が必要。さらにAuth匿名サインイン設定、Storage/権利確認、旧道の駅取込キーのローテーション、実機の削除フロー検証、production `app_release_policies` の設定が未完了。本番用ビルドやGoogle Play本番トラックへの公開は、これらのゲートが完了するまで行わない。
