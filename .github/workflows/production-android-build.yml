@@ -112,7 +112,7 @@ jobs:
             --build-number="$BUILD_NUMBER" \
             --dart-define="APP_ENV=production" \
             --dart-define="SUPABASE_URL=$SUPABASE_URL" \
-            --dart-define="SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PUBLISHABLE_KEY" \
+            --dart-define="SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PUBLISHABLE_KEY"
           test -s build/app/outputs/bundle/release/app-release.aab
           sha256sum build/app/outputs/bundle/release/app-release.aab | tee build/app/outputs/bundle/release/app-release.aab.sha256
           echo "Built versionName=$version_name versionCode=$BUILD_NUMBER (artifact only)."
