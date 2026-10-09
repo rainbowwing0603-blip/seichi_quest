@@ -172,7 +172,7 @@ A rollback-only authenticated-role test on the closed-test schema called `ensure
 The candidate SQL was run inside an explicit transaction against the empty production project and rolled back. It completed without SQL errors. The in-transaction validation query reported:
 
 - 25 app tables; 0 app tables without RLS.
-- 26 explicit client policies.
+- 24 explicit client policies.
 - Auth user trigger and the public-table RLS event trigger present.
 - 0 app-owned SECURITY DEFINER functions missing a pinned search path.
 - 0 anon-executable app functions other than the intended public-ranking RPC.
@@ -191,7 +191,7 @@ The Flutter event service now calls `set_current_event_preference(p_event_id)` r
 A rollback-only authenticated-role test passed: the RPC wrote the expected current-event preference, authenticated had no direct INSERT/UPDATE table privileges, and the RPC EXECUTE grant was present. The transaction was rolled back; no test data was persisted.
 
 
-A final rehearsal after the preference RPC change again passed on the empty production project inside a transaction: 25 app tables, 0 app tables without RLS, 26 policies, the auth-user trigger, automatic RLS enforcement for future public tables, 0 app-owned SECURITY DEFINER functions without a fixed search path, no unexpected anon-executable app functions, and no direct authenticated write privileges on participation or preference tables. The temporary probe table and all candidate DDL were rolled back; a follow-up inventory confirmed no app tables remain in production.
+A final rehearsal after the preference RPC change again passed on the empty production project inside a transaction: 25 app tables, 0 app tables without RLS, 24 policies, the auth-user trigger, automatic RLS enforcement for future public tables, 0 app-owned SECURITY DEFINER functions without a fixed search path, no unexpected anon-executable app functions, and no direct authenticated write privileges on participation or preference tables. The temporary probe table and all candidate DDL were rolled back; a follow-up inventory confirmed no app tables remain in production.
 
 
 ## Rollback-only RLS integration rehearsal against closed-test data
@@ -210,7 +210,7 @@ The transaction was rolled back. A follow-up query confirmed the closed-test pro
 
 All three event-state RPCs also take a transaction-scoped per-user advisory lock, serializing preference changes, participation activation, and leave operations so concurrent requests cannot race around the “current event cannot be left” rule.
 
-After adding transaction-scoped per-user advisory locks, the preference/participation migration happy-path and privilege tests passed again inside a rollback-only transaction. The full bootstrap candidate was also rehearsed again against the empty production project and returned the same 25-table / 26-policy / RLS / function-grant validation results; the temporary probe and all DDL were rolled back.
+After adding transaction-scoped per-user advisory locks, the preference/participation migration happy-path and privilege tests passed again inside a rollback-only transaction. The full bootstrap candidate was also rehearsed again against the empty production project and returned the same 25-table / 24-policy / RLS / function-grant validation results; the temporary probe and all DDL were rolled back.
 
 
 ## Curated master-data export staged in GitHub
@@ -232,4 +232,7 @@ The updated production candidate was re-run after relocating PostGIS into `gis`:
 A final spatial smoke test under the `authenticated` role successfully executed `gis.st_distance` / `gis.st_makepoint` / `gis.st_setsrid`; the anonymous role has no `USAGE` on `gis`, the authenticated role does, and `public.spatial_ref_sys` does not exist in the target layout. All DDL was rolled back.
 
 
-The final clean candidate no longer creates the unused `private` schema or DB-side admin membership table/function. The repeated rollback-only bootstrap rehearsal still passed with 25 app tables, 26 policies, zero app tables missing RLS, isolated PostGIS in `gis`, and all three state RPC grants present.
+The final clean candidate no longer creates the unused `private` schema or DB-side admin membership table/function. The repeated rollback-only bootstrap rehearsal still passed with 25 app tables, 24 policies, zero app tables missing RLS, isolated PostGIS in `gis`, and all four profile/event-state RPC grants present.
+
+
+The final profile-write RPC migration was tested under an authenticated role in a rollback-only transaction: profile save succeeded for the caller's own row, direct profile INSERT/UPDATE privileges were absent, and the RPC EXECUTE grant was present. The final bootstrap rehearsal now reports 24 policies (profile insert/update policies were removed when direct profile writes were replaced with `save_my_profile`).
