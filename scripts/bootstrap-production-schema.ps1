@@ -101,8 +101,8 @@ BEGIN
   SELECT count(*) INTO v_policy_count
   FROM pg_policies
   WHERE schemaname = 'public';
-  IF v_policy_count <> 26 THEN
-    RAISE EXCEPTION 'Expected 26 reviewed public policies, found %.', v_policy_count;
+  IF v_policy_count <> 24 THEN
+    RAISE EXCEPTION 'Expected 24 reviewed public policies, found %.', v_policy_count;
   END IF;
 
   IF (SELECT count(*) FROM public.events) <> 51
