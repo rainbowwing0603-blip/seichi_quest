@@ -77,3 +77,11 @@ Do not finalize RPC names or signatures until the current Flutter repository cal
 - `supabase/config.toml` disables automatic exposure of new tables and disables the currently broken seed configuration that pointed to a missing `supabase/seed.sql`.
 
 Important: registry import is still not production-ready. Its current delete-and-reinsert sequence is not atomic, and it still needs staging/transactional replacement, secret provisioning, request-rate controls, idempotency and an authorization test before deployment. Do not deploy this function as-is.
+
+
+## Additional live-catalog findings to address before the baseline is approved
+
+- `public.handle_new_user()` is SECURITY DEFINER and currently has `search_path = public`, unlike most app-owned SECURITY DEFINER functions whose path is pinned to an empty value and whose relations are schema-qualified. Its body schema-qualifies `public.profiles`, so the target should set its search path to empty as well and verify the auth trigger still works.
+- Several app-owned SECURITY DEFINER functions are intentionally executable by `authenticated`, and `get_public_ranking` is executable by `anon`. Keep only after reviewing each body and confirming the intended public fields/aggregate exposure. The target baseline must explicitly set EXECUTE grants after function creation because PostgreSQL defaults can otherwise expose new functions to PUBLIC.
+- Extension-owned PostGIS overloads also appear as SECURITY DEFINER and publicly executable. Do not blanket-revoke extension grants without testing PostGIS operations; distinguish extension-owned functions from app-owned functions in the privilege audit.
+- The prior registry import key has been removed from the current source, but the old value may remain in Git history and in the deployed closed-test function. Rotate/revoke it in the deployed environment before reuse. Tool access available for this task does not expose Edge Function secret management, so that rotation is a deployment gate rather than a completed action.
