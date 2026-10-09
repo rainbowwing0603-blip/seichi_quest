@@ -1538,6 +1538,42 @@ BEGIN
 END;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.leave_event_participation(p_event_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $function$
+DECLARE
+  v_user_id uuid := auth.uid();
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION '認証が必要です.' USING ERRCODE = '28000';
+  END IF;
+
+  IF p_event_id IS NULL THEN
+    RAISE EXCEPTION 'event_idは必須です.' USING ERRCODE = '22023';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.user_event_preferences pref
+    WHERE pref.user_id = v_user_id
+      AND pref.current_event_id = p_event_id
+  ) THEN
+    RAISE EXCEPTION '現在選択中のイベントは参加解除できません.' USING ERRCODE = '22023';
+  END IF;
+
+  UPDATE public.user_event_participations p
+  SET is_active = false,
+      left_at = now(),
+      updated_at = now()
+  WHERE p.user_id = v_user_id
+    AND p.event_id = p_event_id
+    AND p.is_active = true;
+END;
+$function$;
+
 ALTER FUNCTION public.handle_new_user() SET search_path = '';
 
 -- 4. RLS enablement
@@ -1614,6 +1650,10 @@ USING (EXISTS (SELECT 1 FROM public.geo_regions r WHERE r.id = region_id AND r.i
 CREATE POLICY geo_regions_read_active ON public.geo_regions FOR SELECT TO authenticated USING (is_active);
 CREATE POLICY places_select_active ON public.places FOR SELECT TO authenticated USING (is_active);
 CREATE POLICY profiles_select_own ON public.profiles FOR SELECT TO authenticated USING (id = (select auth.uid()));
+CREATE POLICY profiles_insert_own ON public.profiles FOR INSERT TO authenticated WITH CHECK (id = (select auth.uid()));
+CREATE POLICY profiles_update_own ON public.profiles FOR UPDATE TO authenticated
+USING (id = (select auth.uid()))
+WITH CHECK (id = (select auth.uid()));
 CREATE POLICY user_event_favorites_select_own ON public.user_event_favorites FOR SELECT TO authenticated USING ((select auth.uid()) = user_id);
 CREATE POLICY user_event_favorites_insert_own ON public.user_event_favorites FOR INSERT TO authenticated
 WITH CHECK (
@@ -1687,6 +1727,8 @@ TO authenticated;
 GRANT SELECT ON TABLE public.profiles, public.collection_history, public.announcement_reads,
   public.user_event_preferences, public.user_event_participations, public.user_event_favorites
 TO authenticated;
+GRANT INSERT (id, display_name, age_group, avatar_key, updated_at) ON TABLE public.profiles TO authenticated;
+GRANT UPDATE (display_name, age_group, avatar_key, updated_at) ON TABLE public.profiles TO authenticated;
 GRANT INSERT, UPDATE ON TABLE public.announcement_reads TO authenticated;
 GRANT INSERT, UPDATE ON TABLE public.user_event_preferences TO authenticated;
 GRANT INSERT, DELETE ON TABLE public.user_event_favorites TO authenticated;
@@ -1722,6 +1764,7 @@ BEGIN
 END $$;
 
 GRANT EXECUTE ON FUNCTION public.ensure_event_participation(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.leave_event_participation(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_collection_series_progress(text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_event_collection_counts(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_event_contents_by_ids(uuid, uuid[]) TO authenticated;
