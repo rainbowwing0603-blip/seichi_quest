@@ -4,7 +4,7 @@ This folder contains a curated export of **master/reference data only** from the
 
 ## Apply order
 
-Run the SQL files in lexicographic filename order **only after** the reviewed production schema candidate has been applied to an empty production database. Do not run this seed on the populated closed-test database. The inserts use `ON CONFLICT DO NOTHING` so an interrupted import can be resumed, but the target should be empty for the first import.
+Run only the **numbered master-data files** (`NNN_*.sql`) in lexicographic filename order, and only after the reviewed production schema candidate has been applied to an empty production database. Do not execute `VERIFY.sql` as a seed file. Do not run this seed on the populated closed-test database. The inserts use `ON CONFLICT DO NOTHING` so an interrupted import can be resumed, but the target should be empty for the first import.
 
 1. Events
 2. Places
@@ -31,7 +31,7 @@ Before the first production release, follow `PRODUCTION_RELEASE_POLICY.md` to in
 
 ## Guarded import runner
 
-Use `scripts/import-production-master-data.ps1` rather than manually pasting these files. It defaults to dry-run, requires `SUPABASE_DB_URL` to contain the expected production project ref, requires an explicit typed confirmation before writes, runs each SQL file in its own transaction, stops on the first error, and checks all 13 table counts against the manifest. A partial rerun requires the explicit `-ResumePartialImport` switch.
+Use `scripts/import-production-master-data.ps1` rather than manually pasting these files. It selects only numbered `NNN_*.sql` data files and explicitly excludes `VERIFY.sql`. It defaults to dry-run, requires `SUPABASE_DB_URL` to contain the expected production project ref, requires an explicit typed confirmation before writes, runs each data file in its own transaction, stops on the first error, and checks all 13 table counts against the manifest. A partial rerun requires the explicit `-ResumePartialImport` switch.
 
 Dry run:
 
