@@ -1569,6 +1569,49 @@ BEGIN
 END;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.set_current_event_preference(p_event_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $function$
+DECLARE
+  v_user_id uuid := auth.uid();
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION '認証が必要です.' USING ERRCODE = '28000';
+  END IF;
+
+  IF p_event_id IS NULL THEN
+    RAISE EXCEPTION 'event_idは必須です.' USING ERRCODE = '22023';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.events e
+    WHERE e.id = p_event_id
+      AND e.is_active = true
+  ) THEN
+    RAISE EXCEPTION '有効なイベントが見つかりません.' USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.user_event_preferences (
+    user_id,
+    current_event_id,
+    updated_at
+  )
+  VALUES (
+    v_user_id,
+    p_event_id,
+    now()
+  )
+  ON CONFLICT (user_id)
+  DO UPDATE SET
+    current_event_id = EXCLUDED.current_event_id,
+    updated_at = now();
+END;
+$function$;
+
 ALTER FUNCTION public.handle_new_user() SET search_path = '';
 
 -- 4. RLS enablement
@@ -1658,17 +1701,6 @@ WITH CHECK (
 CREATE POLICY user_event_favorites_delete_own ON public.user_event_favorites FOR DELETE TO authenticated USING ((select auth.uid()) = user_id);
 CREATE POLICY user_event_participations_select_own ON public.user_event_participations FOR SELECT TO authenticated USING ((select auth.uid()) = user_id);
 CREATE POLICY user_event_preferences_select_own ON public.user_event_preferences FOR SELECT TO authenticated USING ((select auth.uid()) = user_id);
-CREATE POLICY user_event_preferences_insert_own ON public.user_event_preferences FOR INSERT TO authenticated
-WITH CHECK (
-  (select auth.uid()) = user_id
-  AND EXISTS (SELECT 1 FROM public.events e WHERE e.id = current_event_id AND e.is_active)
-);
-CREATE POLICY user_event_preferences_update_own ON public.user_event_preferences FOR UPDATE TO authenticated
-USING ((select auth.uid()) = user_id)
-WITH CHECK (
-  (select auth.uid()) = user_id
-  AND EXISTS (SELECT 1 FROM public.events e WHERE e.id = current_event_id AND e.is_active)
-);
 
 -- 6. Non-internal triggers
 CREATE TRIGGER enforce_location_collection_cooldown BEFORE INSERT ON public.collection_history FOR EACH ROW EXECUTE FUNCTION public.enforce_location_collection_cooldown();
@@ -1725,7 +1757,6 @@ TO authenticated;
 GRANT INSERT (id, display_name, age_group, avatar_key, updated_at) ON TABLE public.profiles TO authenticated;
 GRANT UPDATE (display_name, age_group, avatar_key, updated_at) ON TABLE public.profiles TO authenticated;
 GRANT INSERT, UPDATE ON TABLE public.announcement_reads TO authenticated;
-GRANT INSERT, UPDATE ON TABLE public.user_event_preferences TO authenticated;
 GRANT INSERT, DELETE ON TABLE public.user_event_favorites TO authenticated;
 -- No direct client writes to collection_history, place_visits, participation, security, registry or reset tables.
 
@@ -1760,6 +1791,7 @@ BEGIN
   END LOOP;
 END $$;
 
+GRANT EXECUTE ON FUNCTION public.set_current_event_preference(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.ensure_event_participation(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.leave_event_participation(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_event_contents_by_ids(uuid, uuid[]) TO authenticated;
