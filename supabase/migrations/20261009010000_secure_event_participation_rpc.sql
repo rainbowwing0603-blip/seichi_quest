@@ -28,7 +28,7 @@ BEGIN
     RAISE EXCEPTION '有効なイベントが見つかりません.' USING ERRCODE = '22023';
   END IF;
 
-  INSERT INTO public.user_event_participations (
+  INSERT INTO public.user_event_participations AS participation (
     user_id,
     event_id,
     joined_at,
@@ -49,7 +49,7 @@ BEGIN
     is_active = true,
     left_at = NULL,
     updated_at = now()
-  WHERE public.user_event_participations.is_active IS DISTINCT FROM true;
+  WHERE participation.is_active IS DISTINCT FROM true;
 END;
 $function$;
 
