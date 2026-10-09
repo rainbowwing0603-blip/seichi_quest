@@ -48,7 +48,7 @@ jobs:
           test -n "$ANDROID_KEY_ALIAS"
           test -n "$ANDROID_KEY_PASSWORD"
           test -n "$GOOGLE_MAPS_API_KEY"
-          test -n "$ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID" || { echo "::error::ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID is missing."; exit 1; }
+          [[ "$ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID" =~ ^ca-app-pub-[0-9]+/[0-9]+$ ]] || { echo "::error::ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID has an invalid format."; exit 1; }
           [[ "$ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID" != "ca-app-pub-3940256099942544/5224354917" ]] || { echo "::error::Google test ad unit cannot be used in production."; exit 1; }
           echo "Production target validated; secret values will not be printed."
 
