@@ -1,9 +1,13 @@
 name: Flutter PR checks
 
 on:
+  push:
+    branches:
+      - "feature/**"
   pull_request:
     branches:
       - main
+      - feature/android-next-release
   workflow_dispatch:
 
 permissions:
