@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import * as cheerio from "npm:cheerio@1.1.2";
 import * as XLSX from "npm:xlsx@0.18.5";
 
-const IMPORT_KEY = Deno.env.get("ROADSIDESTATION_IMPORT_KEY");
+const IMPORT_KEY = Deno.env.get("ROADSIDESTATION_IMPORT_KEY_V2");
 const MLIT_XLS = "https://www.mlit.go.jp/road/Michi-no-Eki/file/list.xls";
 const MLIT_PAGE = "https://www.mlit.go.jp/road/Michi-no-Eki/list.html";
 const REGION_URLS = Array.from({length:10},(_,i)=>`https://www.seaview.jp/rs/${101+i}-111.htm`);
