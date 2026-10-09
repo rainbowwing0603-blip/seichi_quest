@@ -73,10 +73,11 @@ The separate `.github/workflows/production-android-build.yml` workflow is an art
 Before a production store release, complete these gates in order:
 
 1. Verify the protected GitHub Environment `production` has the production Supabase URL/key, existing Play upload keystore credentials, and restricted production Maps key.
-2. Verify the next version code in Play Console, then run the production artifact workflow and retain the AAB checksum.
-3. Install the exact AAB on a controlled test device and verify startup, anonymous sign-in, event/catalog reads, a stamp collection, collected-spot story content, and account deletion using a disposable account. Rewarded-ad story unlock is not implemented in the current Flutter source and must not be treated as a release acceptance test until a separate client implementation is reviewed and shipped.
-4. Re-check production RLS/security warnings and confirm the account deletion leaves no user-owned rows behind. Do not remove intended public read/ranking access just to clear advisor warnings.
-5. Only after the actual release and public Play URL are confirmed, populate the active Android `app_release_policies` row with the real version/build/store URL.
+2. Confirm `.github/workflows/production-android-build.yml` is present on the repository's default branch. PR #25 currently targets `feature/android-next-release`, which alone does not make a `workflow_dispatch` workflow available. Do not merge it to the default branch without the normal review/approval.
+3. Verify the next version code in Play Console, then run the production artifact workflow from the reviewed `feature/android-next-release` ref and retain the AAB checksum.
+4. Install the exact AAB on a controlled test device and verify startup, anonymous sign-in, event/catalog reads, a stamp collection, collected-spot story content, and account deletion using a disposable account. Rewarded-ad story unlock is not implemented in the current Flutter source and must not be treated as a release acceptance test until a separate client implementation is reviewed and shipped.
+5. Re-check production RLS/security warnings and confirm the account deletion leaves no user-owned rows behind. Do not remove intended public read/ranking access just to clear advisor warnings.
+6. Only after the actual release and public Play URL are confirmed, populate the active Android `app_release_policies` row with the real version/build/store URL.
 
 These steps do not authorize store publication, database cleanup, or changes to the live release policy. Those remain separate reviewed actions.
 
