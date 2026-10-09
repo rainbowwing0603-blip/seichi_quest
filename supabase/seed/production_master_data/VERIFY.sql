@@ -112,6 +112,9 @@ UNION ALL
 SELECT 'auth_users', count(*)::bigint FROM auth.users
 UNION ALL
 SELECT 'production_release_policy_rows', count(*)::bigint FROM public.app_release_policies;
+SELECT 'places_insert_timestamp_guard_missing', CASE
+  WHEN position('tg_op = ''update''' IN lower(pg_get_functiondef('public.set_places_updated_at()'::regprocedure))) > 0
+  THEN 0 ELSE 1 END::bigint;
 
 -- Migration-history repair is intentionally a local Supabase CLI operation.
 SELECT
