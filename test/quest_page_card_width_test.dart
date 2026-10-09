@@ -27,8 +27,6 @@ void main() {
               onEventTap: (_) {},
               onShowDestination: () {},
               onExploreEvents: () {},
-              events: const [],
-              onEventTap: (_) {},
             ),
           ),
         ),
