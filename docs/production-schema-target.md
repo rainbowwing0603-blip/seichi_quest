@@ -216,3 +216,16 @@ Read-only live production integrity checks were then run in small table groups:
 Deployed Edge Function source was compared byte-for-byte with the GitHub branch: production delete-account v2 and closed-test import-roadside-station-registry v12, enrich-roadside-station-gps v16, reconcile-roadside-station-gps v2, and verify-roadside-station-gsi v2 all matched their checked-in index.ts. Gateway JWT verification is enabled on all four closed-test maintenance functions and production delete-account.
 
 The production Supabase migration history is still empty. The guarded PowerShell repair script requires the production-linked local checkout, Supabase CLI, psql, and SUPABASE_DB_URL; do not substitute manual SQL inserts into migration history. That CLI dry-run/repair sequence remains a separate cutover gate.
+
+
+## Incremental post-load reconciliation (3 tables per batch, 2026-10-09)
+
+The live data was checked in small batches instead of one large multi-table request:
+
+1. `events`, `places`, `contents`: counts and normalized row hashes match the closed-test source, excluding the intentionally nulled closed-test cover URL and the derived geography representation. All 1,713 geography values are populated and 0 exceed a 1 m distance from their latitude/longitude coordinates.
+2. `event_contents`, `content_blocks`, `achievements`: counts match; all event/content/place references resolve. Event-content and achievement hashes match exactly. Content-block non-metadata fields match; all 336 `metadata` values are structurally equal after canonical JSON comparison.
+3. `event_achievements`, `geo_regions`, `geo_region_prefectures`: source counts and hashes match; no orphan event/achievement/region references.
+4. `collection_series`, `collection_series_places`, `collection_series_regions`: source counts and hashes match; no orphan series/place/region references.
+5. `roadside_station_registry`: all 1,234 rows match the source hash and all official names are nonblank. `announcements` and `app_release_policies` remain intentionally empty; user-specific tables are also empty.
+
+The import trigger on `places` had set all 1,713 `updated_at` values to the import timestamp. These timestamps were restored from the source master data without changing place content or coordinates. A fresh source/production timestamp hash now matches exactly. Do not rerun the one-time schema bootstrap or bulk seed importer.
