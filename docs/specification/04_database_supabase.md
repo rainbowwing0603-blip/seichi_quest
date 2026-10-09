@@ -48,3 +48,10 @@ DDLはmigrationとして管理し、適用後は本番migration履歴・RLS・RP
 `supabase/config.toml` で新規テーブルの自動公開を無効化し、存在しない `supabase/seed.sql` を参照していたseed処理を無効化した。道の駅レジストリ取込Functionの固定キーはソースから除去し、環境変数参照へ変更した。旧キーがGit履歴やデプロイ済みFunctionに残っている可能性があるため、旧キーの失効・ローテーションは別途必須。レジストリ取込は現在も削除後に再投入する非原子的処理が残るため、本番へデプロイしない。
 
 読み取り専用の `supabase/security/production_rls_audit.sql` と、静的ガード `scripts/check_supabase_security_source.py` を追加した。PRではSupabaseセキュリティソースチェックを実行する。
+
+
+### イベント参加状態の書き込み
+
+クライアントから `user_event_participations` へ直接INSERT/UPDATEせず、`ensure_event_participation(p_event_id)` RPCを使う。RPCは `auth.uid()` からユーザーを確定し、イベントの有効性を検証して、`joined_at` / `updated_at` をDB時刻で設定する。クライアントには当該テーブルの直接INSERT/UPDATE/DELETE権限を付与しない。
+
+この変更はGit上にmigrationとFlutter側の呼び出し変更を用意した段階であり、テストDBへmigrationを適用していない。配布ビルドに含める前にmigration適用とRPCの実機検証が必要。
