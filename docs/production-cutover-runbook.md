@@ -22,7 +22,7 @@ The scripts are intentionally guarded and default to dry-run. Neither script con
    ```powershell
    .\scripts\repair-production-migration-history.ps1
    ```
-   The preflight now uses `supabase db query --linked --project-ref npirfaoxcarfuqjlwgav`, so the dry run does not require `psql` or a `SUPABASE_DB_URL` environment variable. It verifies the live schema, RLS, expected master-data counts, RPC grants, empty user-specific tables, and that `supabase_migrations.schema_migrations` is still absent before printing the exact historical migration versions it proposes to mark as applied. This is read-only. If an earlier repair attempt was interrupted and the history table now exists, stop and inspect `supabase migration list` and the remote history manually; do not bypass the guard.
+   The preflight now uses `supabase db query --linked --project-ref npirfaoxcarfuqjlwgav`, so the dry run does not require `psql` or a `SUPABASE_DB_URL` environment variable. It verifies the live schema, RLS, expected master-data counts, RPC grants, empty user-specific tables, and that `supabase_migrations.schema_migrations` is still absent before printing the exact historical migration versions it proposes to mark as applied. The script also stops if any SQL migration filename is malformed or if version numbers are duplicated, rather than silently omitting a migration. This is read-only. If an earlier repair attempt was interrupted and the history table now exists, stop and inspect `supabase migration list` and the remote history manually; do not bypass the guard.
 4. Before any repair, link this worktree to the production project:
    ```powershell
    supabase link --project-ref npirfaoxcarfuqjlwgav
