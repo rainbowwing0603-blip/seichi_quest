@@ -1,6 +1,6 @@
 # Production schema cutover runbook
 
-> **Live status update (2026-10-10):** Production migration-history repair and the five reviewed post-baseline migrations have completed. `supabase migration list --linked` shows all 80 local and remote versions matching. The production database and source checks were re-verified after the push. **Do not rerun** the historical `repair-production-migration-history.ps1 -Apply` or `supabase db push` steps below unless a new migration is intentionally added and reviewed. The old one-time procedure below is retained as an audit trail, not as the next action.
+> **Live status update (2026-10-10):** Production migration-history repair and the five reviewed post-baseline migrations have completed; at that check, all 80 local and remote versions matched. A later source review found that the production baseline's global function-execute revoke omitted the intended authenticated grant for `story_preview_server_time()`. Corrective migration `20261010100000_grant_story_preview_server_time.sql` has now been added to the audit branch but **has not been applied to production**. Until it is reviewed and applied, local has one pending migration beyond the production history. Apply only this reviewed migration, then verify 81 local/remote versions match. **Do not rerun** the historical `repair-production-migration-history.ps1 -Apply` or perform an unreviewed `supabase db push`. The old one-time procedure below is retained as an audit trail, not as the next action.
 
 
 **Target project:** `npirfaoxcarfuqjlwgav` (`seichi-quest-production`)
@@ -88,3 +88,10 @@ The current `rls_enabled_no_policy` findings for `event_collection_resets`, `loc
 The `get_public_ranking(uuid, integer)` SECURITY DEFINER warning is also intentional for the public ranking feature: its return shape contains rank, display name, count, and the caller's `is_me` flag, but not the user ID. Its query filters to active profiles with non-empty display names and collected content. Keep the explicit grants reviewed in `20260925111207_harden_security_definer_execute_grants.sql`.
 
 The advisor's `auth_allow_anonymous_sign_ins` notices need to be read as policy-scope warnings, not proof of a data leak. Anonymous Auth users receive the `authenticated` database role. User-owned policies use `auth.uid()` and should return only the caller's own rows; active public catalog policies intentionally allow public reads. Do not globally revoke `authenticated` access from SECURITY DEFINER RPCs or public catalog reads. Revisit a finding only when its policy/function source demonstrates an actual overbroad result or write path.
+
+
+### Newly identified production grant correction
+
+The current-state baseline correctly revokes EXECUTE from all app-owned functions and re-grants the approved RPC surface. It did not include `GRANT EXECUTE ON FUNCTION public.story_preview_server_time() TO authenticated`, even though the historical migration defined that grant. Because that historical migration was reconciled as already applied during cutover, its grant statement was not replayed against the bootstrapped production schema.
+
+The new migration `20261010100000_grant_story_preview_server_time.sql` explicitly revokes PUBLIC/anon/authenticated and then grants EXECUTE only to `authenticated`. It is non-destructive, but it is still a live database change: review and apply it through the normal migration process, then verify the function call using a disposable authenticated test session before relying on rewarded story previews in production. Do not manually execute the SQL separately from migration history.
