@@ -1747,8 +1747,8 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA private TO service_role;
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA private TO service_role;
-GRANT USAGE ON SCHEMA gis TO anon, authenticated, service_role;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA gis TO anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA gis TO authenticated, service_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA gis TO authenticated, service_role;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA gis TO service_role;
 
 -- Read-only public/master data required by the current Flutter app.
