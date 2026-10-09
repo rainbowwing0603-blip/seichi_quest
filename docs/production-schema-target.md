@@ -171,3 +171,15 @@ The invalid-payload negative test for `replace_roadside_station_registry('[]'::j
 
 
 The profile-write RPC was also retested on the closed-test schema inside a rollback-only transaction after aligning the display-name limit to the table's 30-character constraint. A 31-character name was rejected with the intended validation error; a 30-character name with an allowed age-group/avatar pair was accepted inside the transaction. Authenticated still has no direct profile UPDATE privilege and can execute the RPC. No profile change persisted.
+
+
+## Master-data integrity check (closed-test source, read-only)
+
+A fresh read-only integrity query against the live source DB returned:
+
+- 51 events, 1,713 places, 2,742 contents, 2,721 event-content mappings, 336 content blocks, and 1,234 roadside-station registry rows.
+- 0 places missing geography; 0 latitude/longitude values outside valid ranges.
+- 0 duplicate non-null `contents.content_key` groups.
+- 0 orphan rows for event-content → event/content/place, content-block → content, event-achievement → event/achievement, collection-series-place → series/place, collection-series-region → series/region, geo-region-prefecture → region, or registry → place.
+
+The individual 47 seed SQL files were also executed in rollback-only transactions for SQL parse/execution checks. Because they use `ON CONFLICT DO NOTHING` and were checked against a DB that already contains the source records, this is **not** a clean-database full-import rehearsal. A complete all-rows import into an empty schema still needs one end-to-end transactional rehearsal before production approval.
