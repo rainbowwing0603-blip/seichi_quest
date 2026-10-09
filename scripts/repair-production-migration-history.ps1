@@ -83,7 +83,7 @@ $migrationDirectory = Join-Path $repoRoot 'supabase/migrations'
 $versions = @(
     Get-ChildItem -LiteralPath $migrationDirectory -Filter '*.sql' -File |
     ForEach-Object {
-        if ($_.BaseName -match '^(\d{14})_') {
+        if ($_.BaseName -match '^(\d{8,14})_') {
             $version = [long]$Matches[1]
             if ($version -lt $baselineVersion) { $version }
         }
