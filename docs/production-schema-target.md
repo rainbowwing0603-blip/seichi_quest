@@ -72,7 +72,7 @@ Do not finalize RPC names or signatures until the current Flutter repository cal
 
 ## Source hardening already staged on this branch
 
-- Registry import no longer contains a fixed shared secret in source. It reads `ROADSIDESTATION_IMPORT_KEY` from function secrets, rejects non-POST methods, and returns generic client errors.
+- Registry import no longer contains a fixed shared secret in the current source. It reads `ROADSIDESTATION_IMPORT_KEY` from function secrets, rejects non-POST methods, and returns generic client errors. Because the previous literal may exist in Git history and in the already-deployed closed-test function, rotate/revoke the old value in the deployed environment before any further use; deleting it from the latest source does not revoke it.
 - Account deletion accepts only POST (besides CORS preflight) and no longer returns underlying Auth/delete error details to clients.
 - `supabase/config.toml` disables automatic exposure of new tables and disables the currently broken seed configuration that pointed to a missing `supabase/seed.sql`.
 
