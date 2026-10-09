@@ -70,6 +70,8 @@ require("migration repair refuses when user-specific rows exist", "(SELECT count
 
 require("registry errors do not return stack to clients", "stack:(e as any)?.stack" not in importer and 'error: "registry import failed"' in importer)
 require("delete-account gateway JWT verification is enabled", re.search(r'\[functions\.delete-account\][\s\S]*?verify_jwt\s*=\s*true', config) is not None)
+require("migration repair verifies the live place timestamp trigger", "to_regprocedure('public.set_places_updated_at()') IS NOT NULL" in repair_script_content and "t.tgname = 'places_set_updated_at'" in repair_script_content)
+require("migration repair checks client DELETE grants on participation and preferences", all(f"has_table_privilege('{role}', 'public.{table}', 'DELETE')" in repair_script_content for role in ("anon", "authenticated") for table in ("user_event_participations", "user_event_preferences")))
 require("migration repair requires exactly 75 legacy versions", "if ($versions.Count -ne 75)" in repair_script_content)
 require("migration repair pins the five reviewed post-baseline versions", all(version in repair_script_content for version in ("20261009010000", "20261009020000", "20261009031000", "20261009032000", "20261009040000")) and "$postBaselineVersions.Count -ne $expectedPostBaselineVersions.Count" in repair_script_content)
 require("account deletion restricts method", 'req.method !== "POST"' in delete_account)
