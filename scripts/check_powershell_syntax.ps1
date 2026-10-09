@@ -12,7 +12,7 @@ $failed = $false
 foreach ($relativePath in $relativePaths) {
     $path = Join-Path $repoRoot $relativePath
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-        Write-Error "Required PowerShell script is missing: $relativePath"
+        Write-Host "FAIL: Required PowerShell script is missing: $relativePath"
         $failed = $true
         continue
     }
@@ -28,7 +28,7 @@ foreach ($relativePath in $relativePaths) {
     if ($parseErrors.Count -gt 0) {
         $failed = $true
         foreach ($parseError in $parseErrors) {
-            Write-Error ("{0}: line {1}, column {2}: {3}" -f
+            Write-Host ("FAIL: {0}: line {1}, column {2}: {3}" -f
                 $relativePath,
                 $parseError.Extent.StartLineNumber,
                 $parseError.Extent.StartColumnNumber,
