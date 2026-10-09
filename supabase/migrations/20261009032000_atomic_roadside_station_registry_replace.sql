@@ -140,8 +140,5 @@ $function$;
 REVOKE ALL ON FUNCTION public.replace_roadside_station_registry(jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.replace_roadside_station_registry(jsonb) TO service_role;
 
-REVOKE ALL ON FUNCTION public.replace_roadside_station_registry(jsonb) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.replace_roadside_station_registry(jsonb) TO service_role;
-
 COMMENT ON FUNCTION public.replace_roadside_station_registry(jsonb) IS
   'Validates and atomically replaces the official roadside-station registry; callable only by service_role.';
