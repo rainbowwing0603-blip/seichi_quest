@@ -140,3 +140,16 @@ Read-only Supabase security advisor run returned these notable findings. They ar
 - **Leaked-password protection** was flagged in the advisor output; assess it for any password-based sign-in flow. The current inspected client flow is anonymous sign-in.
 
 Performance advisor also marked 20 indexes as unused in the observed workload. Since this test database has modest usage and several indexes support foreign keys or future queries, do not delete them solely from this signal. Re-evaluate indexes after the new schema and representative workload tests.
+
+
+## Event participation write path hardening
+
+The Flutter client now calls `ensure_event_participation(p_event_id)` instead of directly inserting/updating `user_event_participations` with client-provided timestamps. The matching migration:
+
+- derives the user ID from `auth.uid()`;
+- rejects missing identity, missing event ID, and inactive/nonexistent events;
+- writes `joined_at` and `updated_at` from database time;
+- reactivates an existing row without resetting the original `joined_at`;
+- revokes direct client INSERT/UPDATE/DELETE and grants only the authenticated RPC execution.
+
+The function pins an empty `search_path` and schema-qualifies its relations. This migration is staged in GitHub and has not yet been applied to the closed-test or production database, so the matching app source must not be released until the migration is applied and verified in the target environment.
