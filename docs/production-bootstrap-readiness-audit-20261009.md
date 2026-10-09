@@ -123,8 +123,8 @@ Captured counts:
 - 76 indexes
 - 39 RLS policies
 - 4 non-internal triggers
-- 27 selected function definitions (client RPCs and security-definer functions)
+- 28 non-extension-owned function definitions (application functions, including security-definer functions)
 - 383 table privilege inventory entries
 - Installed extensions include PostGIS 3.3.7 in `public`, pgcrypto/uuid-ossp/http/pg_stat_statements in `extensions`, and Supabase Vault in `vault`.
 
-This makes a current live catalog snapshot available without waiting for the PC. It is deliberately marked **not a drop-in executable migration**: extension installation/order, function dependencies, function EXECUTE grants, sequence privileges, ownership, role grants, all unselected functions, Storage buckets/policies, Auth settings, and any views/materialized views still need a separate verified pass. In particular, the target production project must not receive this file blindly. The next step is to compare the snapshot against repository migrations, fill any omissions, then create a reviewed idempotent production baseline and validation script.
+The snapshot now includes all 28 non-extension-owned functions in the public/private schemas, rather than only a hand-selected RPC list. This makes a current live catalog snapshot available without waiting for the PC. It is deliberately marked **not a drop-in executable migration**: extension installation/order, function dependencies, function EXECUTE grants, sequence privileges, ownership, role grants, all unselected functions, Storage buckets/policies, Auth settings, and any views/materialized views still need a separate verified pass. In particular, the target production project must not receive this file blindly. The next step is to compare the snapshot against repository migrations, fill any omissions, then create a reviewed idempotent production baseline and validation script.
