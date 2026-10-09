@@ -172,12 +172,12 @@ A rollback-only authenticated-role test on the closed-test schema called `ensure
 The candidate SQL was run inside an explicit transaction against the empty production project and rolled back. It completed without SQL errors. The in-transaction validation query reported:
 
 - 25 app tables; 0 app tables without RLS.
-- 28 explicit client policies.
+- 26 explicit client policies.
 - Auth user trigger and the public-table RLS event trigger present.
 - 0 app-owned SECURITY DEFINER functions missing a pinned search path.
 - 0 anon-executable app functions other than the intended public-ranking RPC.
-- No direct authenticated INSERT/UPDATE on `user_event_participations`; both participation RPCs are executable by authenticated.
-- Column-level update permission for the profile display name is present.
+- No direct authenticated INSERT/UPDATE on `user_event_participations` or `user_event_preferences`; all three event-state RPCs are executable by authenticated.
+- Column-level update permission for the profile display name is present. A temporary table created after the RLS event trigger was installed had RLS enabled automatically.
 
 A subsequent table inventory confirmed the production project still has no app tables after rollback. This is a successful syntax/bootstrap rehearsal, not production deployment approval. Remaining work includes role-based tests for all policies/RPCs, exact app-call coverage, Storage migration, curated master-data import, and review of extension-owned PostGIS findings.
 
@@ -189,3 +189,6 @@ The rehearsal also created a temporary `public.__rls_probe` table after the `ens
 The Flutter event service now calls `set_current_event_preference(p_event_id)` rather than directly upserting `user_event_preferences`. The RPC derives the user from `auth.uid()`, rejects inactive/missing events, and sets `updated_at` with database time. Direct client INSERT/UPDATE/DELETE on that table is revoked; the client retains only own-row SELECT access.
 
 A rollback-only authenticated-role test passed: the RPC wrote the expected current-event preference, authenticated had no direct INSERT/UPDATE table privileges, and the RPC EXECUTE grant was present. The transaction was rolled back; no test data was persisted.
+
+
+A final rehearsal after the preference RPC change again passed on the empty production project inside a transaction: 25 app tables, 0 app tables without RLS, 26 policies, the auth-user trigger, automatic RLS enforcement for future public tables, 0 app-owned SECURITY DEFINER functions without a fixed search path, no unexpected anon-executable app functions, and no direct authenticated write privileges on participation or preference tables. The temporary probe table and all candidate DDL were rolled back; a follow-up inventory confirmed no app tables remain in production.
