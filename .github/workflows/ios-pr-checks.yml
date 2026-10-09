@@ -1,9 +1,19 @@
 name: iOS PR checks
 
 on:
+  push:
+    branches:
+      - "feature/**"
+    paths:
+      - "ios/**"
+      - "lib/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - ".github/workflows/ios-pr-checks.yml"
   pull_request:
     branches:
       - main
+      - feature/android-next-release
     paths:
       - "ios/**"
       - "lib/**"
