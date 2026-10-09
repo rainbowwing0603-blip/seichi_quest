@@ -92,7 +92,21 @@ if ($duplicateVersions.Count -gt 0) {
 }
 
 $versions = @($allVersions | Where-Object { $_ -lt $baselineVersion } | Sort-Object)
-if ($versions.Count -eq 0) { throw 'No pre-baseline migration versions found.' }
+$postBaselineVersions = @($allVersions | Where-Object { $_ -ge $baselineVersion } | Sort-Object)
+$expectedPostBaselineVersions = @(
+    [long]'20261009010000',
+    [long]'20261009020000',
+    [long]'20261009031000',
+    [long]'20261009032000',
+    [long]'20261009040000'
+)
+if ($versions.Count -ne 75) {
+    throw "Expected exactly 75 pre-baseline migrations to repair, found $($versions.Count). No repair performed."
+}
+if ($postBaselineVersions.Count -ne $expectedPostBaselineVersions.Count -or
+    (Compare-Object -ReferenceObject $expectedPostBaselineVersions -DifferenceObject $postBaselineVersions).Count -gt 0) {
+    throw "Post-baseline migration set differs from the reviewed five migrations. No repair performed."
+}
 
 Write-Host "Verified production project: $expectedProjectRef"
 Write-Host "Verified clean bootstrap: 25 tables, 24 policies, master data counts, RLS, no public.seichi"
