@@ -28,4 +28,4 @@ Not included: `announcements`, `app_release_policies`, Storage objects, Auth/use
 
 ## Validation status
 
-All 47 SQL files were individually executed against the closed-test schema inside explicit transactions and rolled back. This validated SQL syntax and row-to-column type conversion for every exported row. The PostGIS EWKT conversion for place rows was additionally tested against the empty production project with the candidate schema. The source catalog reports zero unvalidated constraints across the app schemas. No seed file was applied permanently to either project.
+All 47 SQL files were individually executed against the closed-test schema inside explicit transactions and rolled back before production import. This validated SQL syntax and row-to-column type conversion for every exported row. The PostGIS EWKT conversion for place rows was additionally tested against the production schema. The production import has since completed; live validation confirms all 13 expected row counts, zero orphan mappings, zero duplicate roadside registry keys, all geography SRID 4326, and no user-specific rows copied. The closed-test project remains unchanged.
