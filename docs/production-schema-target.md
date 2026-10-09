@@ -133,7 +133,7 @@ Read-only Supabase security advisor run returned these notable findings. They ar
 
 - **ERROR: RLS disabled in exposed schema** on extension-owned `public.spatial_ref_sys`. Treat this separately from app tables and PostGIS's supported schema layout; do not blindly alter extension internals.
 - **5 INFO findings: RLS enabled with no policies** on `private.admin_users`, `public.event_collection_resets`, `public.location_security_events`, `public.location_security_states`, and `public.roadside_station_registry`. The target should retain default-deny/no client grants for these tables; the advisor notice is not a reason to add permissive policies.
-- **PostGIS in public schema** is flagged. The production baseline should test whether PostGIS can be installed into a non-exposed schema with the required geography types/operators and all app SQL references adjusted. Do not relocate it without a clean-room extension test.
+- **PostGIS in the closed-test public schema** is flagged. The production candidate now installs PostGIS into a dedicated non-exposed `gis` schema, schema-qualifies geography types and spatial functions, grants no `gis` schema usage to `anon`, and grants only the authenticated/server roles needed for spatial RPC execution. This layout passed a rollback-only bootstrap rehearsal; run advisors again after actual deployment.
 - **4 anon-executable SECURITY DEFINER warnings** include the app's public-ranking function and three extension-owned PostGIS `st_estimatedextent` overloads. Review public-ranking's returned fields and keep extension-owned grants distinct from app-owned function grants.
 - **12 authenticated-executable SECURITY DEFINER warnings** include several app RPCs expected to be callable by the app. Review each body and explicitly grant only the needed signatures.
 - **Anonymous sign-in warnings** are expected to need a product-aware decision because the Flutter app currently uses Supabase anonymous sign-in. Do not disable anonymous sign-in without replacing that session flow.
@@ -225,3 +225,6 @@ Generated `supabase/seed/production_master_data/` from the closed-test DB withou
 The event and first 250 place rows were imported inside a rollback-only transaction against the production project; all 250 geography values converted correctly from EWKT. The full export has not been applied to any project.
 
 Every one of the 47 seed SQL files was also executed individually against the closed-test schema inside a transaction and rolled back; no syntax/type-conversion errors were returned. The source catalog reports zero unvalidated constraints. No master-data seed has been permanently applied to the test or production project.
+
+
+The updated production candidate was re-run after relocating PostGIS into `gis`: `gis.spatial_ref_sys` exists, `public.spatial_ref_sys` does not, `anon` has no `USAGE` on `gis`, `authenticated` has the needed `USAGE`, all 25 app tables have RLS, and all app-owned SECURITY DEFINER functions have a pinned search path. EWKT seed rows still imported successfully into `gis.geography` in a rollback-only rehearsal.
