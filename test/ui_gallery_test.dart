@@ -133,6 +133,8 @@ void main() {
         eventAchievements: const [],
         onShowDestination: noop,
         onExploreEvents: noop,
+        events: const [],
+        onEventTap: (_) {},
       ),
     );
     await capture(tester, 'quest_page');
