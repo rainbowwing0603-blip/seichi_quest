@@ -19,6 +19,7 @@ participation_migration = ROOT / "supabase/migrations/20261009010000_secure_even
 preference_migration = ROOT / "supabase/migrations/20261009020000_secure_event_preference_rpc.sql"
 profile_migration = ROOT / "supabase/migrations/20261009030000_secure_profile_write_rpc.sql"
 candidate_baseline = ROOT / "supabase/baselines/production_schema_candidate_20261009.sql"
+production_import = ROOT / "scripts/import-production-master-data.ps1"
 bootstrap_script = ROOT / "scripts/bootstrap-production-schema.ps1"
 repair_script = ROOT / "scripts/repair-production-migration-history.ps1"
 cutover_runbook = ROOT / "docs/production-cutover-runbook.md"
@@ -52,6 +53,11 @@ require("account deletion hides low-level auth details", "auth_message:" not in 
 require("production schema target exists", schema_target.is_file())
 require("read-only RLS audit SQL exists", audit_sql.is_file())
 require("production bootstrap candidate exists", candidate_baseline.is_file())
+require("production master-data import runner exists", production_import.is_file())
+require("production import defaults to dry run", "if (-not $Apply)" in production_import.read_text(encoding="utf-8"))
+require("production import checks exact project ref before writes", "dbUrl -notmatch [regex]::Escape($ExpectedProjectRef)" in production_import.read_text(encoding="utf-8"))
+require("production import makes each SQL file transactional", "--single-transaction" in production_import.read_text(encoding="utf-8"))
+require("production import verifies source row counts", "all 13 master-table counts match" in production_import.read_text(encoding="utf-8"))
 require("production bootstrap is guarded and dry-run by default", bootstrap_script.is_file() and "[switch]$Apply" in bootstrap_script.read_text(encoding="utf-8") and "Type APPLY" in bootstrap_script.read_text(encoding="utf-8"))
 require("migration history repair checks completed bootstrap first", repair_script.is_file() and "NOT_READY" in repair_script.read_text(encoding="utf-8") and "Type REPAIR" in repair_script.read_text(encoding="utf-8"))
 require("cutover runbook blocks legacy migration replay", cutover_runbook.is_file() and "Do **not** run `supabase db push`" in cutover_runbook.read_text(encoding="utf-8"))
