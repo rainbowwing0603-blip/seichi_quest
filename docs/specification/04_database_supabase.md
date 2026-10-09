@@ -25,3 +25,26 @@ Advisorは、policy無しRLSテーブル、public schemaのPostGIS extension、S
 
 ## 変更原則
 DDLはmigrationとして管理し、適用後は本番migration履歴・RLS・RPC・アプリ互換を確認する。productionへ手作業で先行変更した場合は必ずGitへ回収する。ユーザー向けデータと、location_source / confidence / security metadata等の内部運用データを表示層で混同しない。
+
+
+## 再構築方針 2026-10-09
+
+2026-09-27の行数・migration履歴は過去のスナップショットであり、現在値として扱わない。2026-10-09にクローズドテストDBのカタログ定義を取得し、別途 `docs/production-schema-target.md` に新しい本番モデルと権限設計を記録した。
+
+本番DBは旧テーブル構成を丸ごと複製せず、現行アプリ契約に必要な汎用 `events / places / contents / event_contents / content_blocks` モデルを中心に構築する。廃止済み `public.seichi`、一時的なCodeMagic bridge、ユーザー履歴・プロフィール等のテストDBデータは本番初期データに含めない。
+
+## RLS / GRANT / RPCの必須ルール
+
+- API公開スキーマ内のアプリテーブルはRLSを有効にし、テーブルGRANTと行ポリシーを別々に最小権限で設定する。
+- クライアントに不要な内部・管理・位置情報セキュリティテーブルには、`anon` / `authenticated` の直接アクセス権を与えない。
+- Supabase匿名認証ユーザーもPostgresの `authenticated` ロールを持つため、ロール判定だけで本人性を判断しない。所有行は `auth.uid()` によって制限する。
+- スタンプ獲得と訪問記録は検証済みRPC経由とし、履歴テーブルへの直接INSERT/UPDATE/DELETEで検証を迂回できないようにする。
+- SECURITY DEFINER関数は個別レビュー、固定search_path、明示的EXECUTE権限、匿名・他ユーザーによる拒否テストを必須とする。
+- 新規テーブルの自動公開を前提にせず、必要なGRANTを明示する。
+- Storageは承認済みアセットのみを移行し、バケット公開範囲とオブジェクトパス単位のポリシーを確認する。
+
+## ソース側の安全策
+
+`supabase/config.toml` で新規テーブルの自動公開を無効化し、存在しない `supabase/seed.sql` を参照していたseed処理を無効化した。道の駅レジストリ取込Functionの固定キーはソースから除去し、環境変数参照へ変更した。旧キーがGit履歴やデプロイ済みFunctionに残っている可能性があるため、旧キーの失効・ローテーションは別途必須。レジストリ取込は現在も削除後に再投入する非原子的処理が残るため、本番へデプロイしない。
+
+読み取り専用の `supabase/security/production_rls_audit.sql` と、静的ガード `scripts/check_supabase_security_source.py` を追加した。PRではSupabaseセキュリティソースチェックを実行する。
