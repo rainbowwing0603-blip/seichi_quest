@@ -58,3 +58,8 @@ The bootstrap schema and all 47 seed SQL files are assembled into a temporary lo
 ## Production release policy gate
 
 The baseline creates `app_release_policies` but deliberately leaves it empty. Before distributing a production build, insert a reviewed policy row for each platform with the intended current build, minimum supported build, version label, store URL, and update message. Do not copy the closed-test values automatically. The app fails open if no active policy row exists, but then it cannot enforce a minimum version.
+
+
+## Place timestamp preservation check
+
+The five post-baseline migrations include `20261009040000_preserve_place_import_timestamps.sql`. The read-only `supabase/seed/production_master_data/VERIFY.sql` now emits `places_insert_timestamp_guard_missing`; its value must be **0** after the migration is applied. The production data timestamps have already been restored, but the trigger fix itself remains pending the guarded CLI migration-history repair and `supabase db push`.
