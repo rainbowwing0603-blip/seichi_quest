@@ -26,7 +26,7 @@ Run only the **numbered master-data files** (`NNN_*.sql`) in lexicographic filen
 
 The source counts are documented in `docs/production-schema-target.md`. After import, compare per-table counts and run foreign-key checks, geospatial query checks, and the read-only RLS audit. This export is a data artifact, not a replacement for schema migrations or a production deployment approval.
 
-Before the first production release, follow `PRODUCTION_RELEASE_POLICY.md` to insert the correct production build/version row. Do not copy closed-test release-policy values.
+Before the first production release, follow `../PRODUCTION_RELEASE_POLICY.md` to insert the correct production build/version row. Do not copy closed-test release-policy values.
 
 
 ## Guarded import runner
