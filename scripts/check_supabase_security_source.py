@@ -19,6 +19,9 @@ participation_migration = ROOT / "supabase/migrations/20261009010000_secure_even
 preference_migration = ROOT / "supabase/migrations/20261009020000_secure_event_preference_rpc.sql"
 profile_migration = ROOT / "supabase/migrations/20261009030000_secure_profile_write_rpc.sql"
 candidate_baseline = ROOT / "supabase/baselines/production_schema_candidate_20261009.sql"
+bootstrap_script = ROOT / "scripts/bootstrap-production-schema.ps1"
+repair_script = ROOT / "scripts/repair-production-migration-history.ps1"
+cutover_runbook = ROOT / "docs/production-cutover-runbook.md"
 event_service = (ROOT / "lib/services/event_service.dart").read_text(encoding="utf-8")
 event_explore = (ROOT / "lib/widgets/event_explore_page.dart").read_text(encoding="utf-8")
 profile_page = (ROOT / "lib/widgets/profile_page.dart").read_text(encoding="utf-8")
@@ -39,6 +42,9 @@ require("account deletion hides low-level auth details", "auth_message:" not in 
 require("production schema target exists", schema_target.is_file())
 require("read-only RLS audit SQL exists", audit_sql.is_file())
 require("production bootstrap candidate exists", candidate_baseline.is_file())
+require("production bootstrap is guarded and dry-run by default", bootstrap_script.is_file() and "[switch]$Apply" in bootstrap_script.read_text(encoding="utf-8") and "Type APPLY" in bootstrap_script.read_text(encoding="utf-8"))
+require("migration history repair checks completed bootstrap first", repair_script.is_file() and "NOT_READY" in repair_script.read_text(encoding="utf-8") and "Type REPAIR" in repair_script.read_text(encoding="utf-8"))
+require("cutover runbook blocks legacy migration replay", cutover_runbook.is_file() and "Do **not** run `supabase db push`" in cutover_runbook.read_text(encoding="utf-8"))
 require("production candidate does not recreate retired seichi", "CREATE TABLE public.seichi " not in candidate)
 require("production candidate has no direct client-admin mutation policies", "content_blocks_admin_insert" not in candidate and "events_admin_update_theme" not in candidate)
 require("PostGIS is installed outside the exposed public schema", "CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA gis" in candidate and "public.spatial_ref_sys" not in candidate)
