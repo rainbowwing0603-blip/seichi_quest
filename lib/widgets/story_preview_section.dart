@@ -54,7 +54,7 @@ class _StoryPreviewSectionState extends State<StoryPreviewSection> {
   }
 
   Future<void> _refreshAccess() async {
-    if (widget.collected) {
+    if (widget.collected || widget.item.contentId.trim().isEmpty) {
       if (mounted) {
         setState(() {
           _checkingAccess = false;
@@ -181,7 +181,9 @@ class _StoryPreviewSectionState extends State<StoryPreviewSection> {
             ],
           ),
         ),
-        if (!widget.collected && !_unlocked) ...[
+        if (!widget.collected &&
+            widget.item.contentId.trim().isNotEmpty &&
+            !_unlocked) ...[
           const SizedBox(height: 10),
           QuestPrimaryButton(
             label: _watchingAd
