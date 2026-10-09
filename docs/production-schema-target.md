@@ -248,3 +248,10 @@ The first Flutter PR check after the event page API update failed because two te
 Added `scripts/bootstrap-production-schema.ps1` and `scripts/repair-production-migration-history.ps1`, plus `docs/production-cutover-runbook.md`. The bootstrap script defaults to dry-run, verifies the database URI identifies the production project, refuses a non-empty public schema, assembles the baseline plus all 47 seed files, and applies everything in one transaction with post-load count/RLS/grant assertions. It prompts for an exact production-specific confirmation before applying.
 
 The migration-history script is a separate, guarded step. It refuses to mark legacy migration versions as applied until the live DB confirms the 25-table/26-policy schema, all 13 curated data counts, automatic RLS, and absence of `public.seichi`. This is necessary because the repository's historical migration chain is not a clean bootstrap; running `supabase db push` against a blank production project before the baseline would replay legacy migrations. Neither script has been run against production, and production remains empty.
+
+
+## Full seed SQL syntax/FK rehearsal completed
+
+Every SQL file in `supabase/seed/production_master_data/` was executed against the closed-test schema inside its own `BEGIN ... ROLLBACK` transaction. All **47 data SQL files** completed without syntax errors, foreign-key violations, or permission errors. This verifies each file parses against the actual table definitions and its rows satisfy the currently enforced constraints in isolation; it is not yet a single end-to-end import of all 10,320 rows into production.
+
+No data was persisted by these rehearsals. Production remains empty. Next import gates remain: full ordered rehearsal against a clean candidate schema, post-import row-count/FK/spatial checks, Storage object migration and rights review, Auth anonymous sign-in verification, and remaining source/Edge Function security work.
