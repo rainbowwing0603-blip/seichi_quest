@@ -25,6 +25,8 @@ candidate_baseline = ROOT / "supabase/baselines/production_schema_candidate_2026
 production_import = ROOT / "scripts/import-production-master-data.ps1"
 bootstrap_script = ROOT / "scripts/bootstrap-production-schema.ps1"
 repair_script = ROOT / "scripts/repair-production-migration-history.ps1"
+powershell_syntax_script = ROOT / "scripts/check_powershell_syntax.ps1"
+security_workflow = ROOT / ".github/workflows/supabase-security-source-check.yml"
 cutover_runbook = ROOT / "docs/production-cutover-runbook.md"
 release_policy_runbook = ROOT / "supabase/seed/PRODUCTION_RELEASE_POLICY.md"
 event_service = (ROOT / "lib/services/event_service.dart").read_text(encoding="utf-8")
@@ -69,6 +71,8 @@ require("production import defaults to dry run", "if (-not $Apply)" in productio
 require("production import checks exact project ref before writes", "dbUrl -notmatch [regex]::Escape($ExpectedProjectRef)" in production_import.read_text(encoding="utf-8"))
 require("production import makes each SQL file transactional", "--single-transaction" in production_import.read_text(encoding="utf-8"))
 require("production import verifies source row counts", "all 13 master-table counts match" in production_import.read_text(encoding="utf-8"))
+require("PowerShell syntax check covers all production scripts", powershell_syntax_script.is_file() and all(x in powershell_syntax_script.read_text(encoding="utf-8") for x in ("bootstrap-production-schema.ps1", "import-production-master-data.ps1", "repair-production-migration-history.ps1")))
+require("PowerShell syntax check runs in security workflow and scripts trigger it", security_workflow.is_file() and '"scripts/*.ps1"' in security_workflow.read_text(encoding="utf-8") and "pwsh -NoLogo -NoProfile -File scripts/check_powershell_syntax.ps1" in security_workflow.read_text(encoding="utf-8"))
 require("production bootstrap is guarded and dry-run by default", bootstrap_script.is_file() and "[switch]$Apply" in bootstrap_script.read_text(encoding="utf-8") and "Type APPLY" in bootstrap_script.read_text(encoding="utf-8"))
 require("migration history repair checks completed bootstrap first", repair_script.is_file() and "NOT_READY" in repair_script.read_text(encoding="utf-8") and "Type REPAIR" in repair_script.read_text(encoding="utf-8"))
 require("migration history repair includes legacy 8-digit versions", r"\d{8,14}" in repair_script.read_text(encoding="utf-8"))
