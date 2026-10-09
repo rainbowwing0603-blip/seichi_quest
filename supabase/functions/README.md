@@ -10,7 +10,7 @@ Production maintenance functions are intentionally not deployed until their secr
 
 ## Maintenance safeguards
 
-- All maintenance endpoints accept POST only (OPTIONS is supported for CORS) and fail closed with HTTP 503 if their required secret is missing.
+- All maintenance endpoints reject methods other than POST and fail closed with HTTP 503 if their required secret is missing. The two GPS endpoints also support OPTIONS for CORS; the registry importer is intended for server-side maintenance calls.
 - Rotate the old hardcoded keys used by deployed closed-test versions. Removing literals from the repository does not rotate the deployed key or remove it from Git history.
 - GPS enrichment/reconciliation run in **dry-run mode by default**. The request body must explicitly include `{"apply":true}` to persist candidate-coordinate updates. Use a valid JWT plus the corresponding secret header when deploying with gateway JWT verification enabled.
 - GPS candidates are range-checked, ambiguous station matches are skipped, and reconciliation merges its audit metadata rather than overwriting existing metadata.
