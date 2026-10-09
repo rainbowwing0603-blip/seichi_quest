@@ -5,7 +5,7 @@
 - Basic spot information remains available without an ad.
 - A user who has not collected a spot may choose to watch a rewarded ad to unlock that spot's story for one hour.
 - Access is granted only after the Google Mobile Ads SDK calls the earned-reward callback. Dismissing or failing to load the ad does not unlock content.
-- Unlocks are per content ID and survive app restarts. A monotonic in-session timer hides preview-only content when the hour expires.
+- Unlocks are scoped to the current authenticated user and content ID, and survive app restarts on the same installation. They are not synchronized across devices. A monotonic in-session timer hides preview-only content when the hour expires.
 - Collecting the spot continues to provide permanent access according to the existing `after_collection` visibility mode.
 - Blocks marked `hidden` remain hidden. Rewarded preview does not override the explicit hidden mode.
 
