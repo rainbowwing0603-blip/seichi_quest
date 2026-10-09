@@ -1627,6 +1627,49 @@ BEGIN
 END;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.save_my_profile(
+  p_display_name text,
+  p_age_group text,
+  p_avatar_key text
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $function$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_display_name text := nullif(btrim(p_display_name), '');
+  v_age_group text := nullif(btrim(p_age_group), '');
+  v_avatar_key text := nullif(btrim(p_avatar_key), '');
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION '認証が必要です.' USING ERRCODE = '28000';
+  END IF;
+
+  IF v_display_name IS NOT NULL AND char_length(v_display_name) > 60 THEN
+    RAISE EXCEPTION '表示名が長すぎます.' USING ERRCODE = '22023';
+  END IF;
+
+  IF v_age_group IS NOT NULL AND char_length(v_age_group) > 32 THEN
+    RAISE EXCEPTION '年齢区分が不正です.' USING ERRCODE = '22023';
+  END IF;
+
+  IF v_avatar_key IS NOT NULL AND char_length(v_avatar_key) > 64 THEN
+    RAISE EXCEPTION 'アバター設定が不正です.' USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.profiles (id, display_name, age_group, avatar_key, updated_at)
+  VALUES (v_user_id, v_display_name, v_age_group, v_avatar_key, now())
+  ON CONFLICT (id)
+  DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    age_group = EXCLUDED.age_group,
+    avatar_key = EXCLUDED.avatar_key,
+    updated_at = now();
+END;
+$function$;
+
 ALTER FUNCTION public.handle_new_user() SET search_path = '';
 
 -- 4. RLS enablement
@@ -1703,10 +1746,6 @@ USING (EXISTS (SELECT 1 FROM public.geo_regions r WHERE r.id = region_id AND r.i
 CREATE POLICY geo_regions_read_active ON public.geo_regions FOR SELECT TO authenticated USING (is_active);
 CREATE POLICY places_select_active ON public.places FOR SELECT TO authenticated USING (is_active);
 CREATE POLICY profiles_select_own ON public.profiles FOR SELECT TO authenticated USING (id = (select auth.uid()));
-CREATE POLICY profiles_insert_own ON public.profiles FOR INSERT TO authenticated WITH CHECK (id = (select auth.uid()));
-CREATE POLICY profiles_update_own ON public.profiles FOR UPDATE TO authenticated
-USING (id = (select auth.uid()))
-WITH CHECK (id = (select auth.uid()));
 CREATE POLICY user_event_favorites_select_own ON public.user_event_favorites FOR SELECT TO authenticated USING ((select auth.uid()) = user_id);
 CREATE POLICY user_event_favorites_insert_own ON public.user_event_favorites FOR INSERT TO authenticated
 WITH CHECK (
@@ -1767,8 +1806,6 @@ TO authenticated;
 GRANT SELECT ON TABLE public.profiles, public.collection_history, public.announcement_reads,
   public.user_event_preferences, public.user_event_participations, public.user_event_favorites
 TO authenticated;
-GRANT INSERT (id, display_name, age_group, avatar_key, updated_at) ON TABLE public.profiles TO authenticated;
-GRANT UPDATE (display_name, age_group, avatar_key, updated_at) ON TABLE public.profiles TO authenticated;
 GRANT INSERT, UPDATE ON TABLE public.announcement_reads TO authenticated;
 GRANT INSERT, DELETE ON TABLE public.user_event_favorites TO authenticated;
 -- No direct client writes to collection_history, place_visits, participation, security, registry or reset tables.
@@ -1811,6 +1848,7 @@ REVOKE EXECUTE ON FUNCTION gis.st_estimatedextent(text, text) FROM PUBLIC, anon,
 REVOKE EXECUTE ON FUNCTION gis.st_estimatedextent(text, text, text) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION gis.st_estimatedextent(text, text, text, boolean) FROM PUBLIC, anon, authenticated;
 
+GRANT EXECUTE ON FUNCTION public.save_my_profile(text, text, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.set_current_event_preference(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.ensure_event_participation(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.leave_event_participation(uuid) TO authenticated;
