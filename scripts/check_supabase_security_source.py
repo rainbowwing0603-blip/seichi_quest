@@ -36,6 +36,11 @@ require("registry key comes from environment", 'Deno.env.get("ROADSIDESTATION_IM
 require("registry importer does not hardcode a key literal", not re.search(r'''const\s+IMPORT_KEY\s*=\s*["']''', importer))
 require("registry importer fails closed if secret is missing", "if (!IMPORT_KEY)" in importer and "status: 503" in importer)
 require("registry importer restricts method", 'req.method !== "POST"' in importer)
+require("registry importer uses atomic replacement RPC", 'replace_roadside_station_registry' in importer and '.from("roadside_station_registry").delete()' not in importer);
+require("atomic registry RPC pins search_path and uses SECURITY DEFINER", "SECURITY DEFINER\\nSET search_path = ''" in (ROOT / "supabase/migrations/20261009030000_atomic_roadside_station_registry_import.sql").read_text(encoding="utf-8"));
+require("atomic registry RPC is not executable by anon/authenticated", "REVOKE ALL ON FUNCTION public.replace_roadside_station_registry(jsonb) FROM PUBLIC, anon, authenticated" in (ROOT / "supabase/migrations/20261009030000_atomic_roadside_station_registry_import.sql").read_text(encoding="utf-8"));
+require("production baseline includes atomic registry RPC", "public.replace_roadside_station_registry" in candidate);
+
 require("registry errors do not return stack to clients", "stack:(e as any)?.stack" not in importer and 'error: "registry import failed"' in importer)
 require("account deletion restricts method", 'req.method !== "POST"' in delete_account)
 require("account deletion hides low-level auth details", "auth_message:" not in delete_account and "delete_message:" not in delete_account)
