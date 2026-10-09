@@ -19,24 +19,26 @@ class StoryPreviewUnlockService {
   String _keyFor(String contentId) =>
       'story_preview_expiry_${contentId.trim()}';
 
-  Future<DateTime?> activeUntil(String contentId) async {
+  Future<Duration?> remainingAccess(String contentId) async {
     final normalizedId = contentId.trim();
     if (normalizedId.isEmpty || _client.auth.currentUser == null) {
       return null;
     }
 
     final preferences = await _preferencesLoader();
-    final rawExpiry = preferences.getString(_keyFor(normalizedId));
+    final key = _keyFor(normalizedId);
+    final rawExpiry = preferences.getString(key);
     final expiry = rawExpiry == null ? null : DateTime.tryParse(rawExpiry);
+    final serverNow = await _serverNow();
     if (!StoryPreviewAccessPolicy.isActive(
       expiresAt: expiry,
-      serverNow: await _serverNow(),
+      serverNow: serverNow,
     )) {
-      await preferences.remove(_keyFor(normalizedId));
+      await preferences.remove(key);
       return null;
     }
 
-    return expiry?.toUtc();
+    return expiry!.toUtc().difference(serverNow);
   }
 
   Future<DateTime> grantOneHour(String contentId) async {
