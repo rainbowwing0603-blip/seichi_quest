@@ -471,66 +471,6 @@ end;
 $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.get_collection_series_progress(p_series_code text)
- RETURNS TABLE(region_code text, region_name text, region_level text, collected_count bigint, total_count bigint, completion_percent numeric)
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-with me as (select auth.uid() uid),
-series as (select id from public.collection_series where code=p_series_code and is_active),
-scopes as (
- select r.id,r.code,r.name,r.level,r.display_order
- from series s join public.collection_series_regions sr on sr.series_id=s.id and sr.is_active
- join public.geo_regions r on r.id=sr.region_id and r.is_active
-),
-eligible as (
- select sc.id region_id,sp.place_id
- from scopes sc
- join public.geo_region_prefectures gp on gp.region_id=sc.id
- join series s on true
- join public.collection_series_places sp on sp.series_id=s.id and sp.prefecture=gp.prefecture
-),
-visited as (
- select distinct ch.place_id from public.collection_history ch,me
- where ch.user_id=me.uid and ch.place_id is not null
- union
- select distinct pv.place_id from public.place_visits pv,me
- where pv.user_id=me.uid and pv.place_id is not null
-)
-select sc.code,sc.name,sc.level,
- count(distinct e.place_id) filter(where v.place_id is not null)::bigint,
- count(distinct e.place_id)::bigint,
- case when count(distinct e.place_id)=0 then 0::numeric
- else round(100.0*count(distinct e.place_id) filter(where v.place_id is not null)/count(distinct e.place_id),1) end
-from scopes sc left join eligible e on e.region_id=sc.id left join visited v on v.place_id=e.place_id
-group by sc.id,sc.code,sc.name,sc.level,sc.display_order
-order by case sc.level when 'prefecture' then 1 when 'regional' then 2 else 3 end,sc.display_order,sc.name;
-$function$
-;
-
-CREATE OR REPLACE FUNCTION public.get_event_collection_counts(p_event_id uuid)
- RETURNS TABLE(total_count bigint, collected_count bigint, uncollected_count bigint)
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-with items as (
- select ec.id,
-   exists(select 1 from public.collection_history ch
-          where ch.user_id=(select auth.uid()) and ch.event_content_id=ec.id) as collected
- from public.event_contents ec
- join public.contents c on c.id=ec.content_id and c.is_active
- join public.places p on p.id=ec.place_id and p.is_active
- where ec.event_id=p_event_id and ec.is_active
-)
-select count(*)::bigint,
-       count(*) filter(where collected)::bigint,
-       count(*) filter(where not collected)::bigint
-from items;
-$function$
-;
-
 CREATE OR REPLACE FUNCTION public.get_event_contents_by_ids(p_event_id uuid, p_event_content_ids uuid[])
  RETURNS TABLE(event_content_id uuid, content_id uuid, place_id uuid, content_key text, title text, description text, icon text, image_url text, latitude double precision, longitude double precision, stamp_radius_meters integer, prefecture text, city text, display_order integer, is_collected boolean)
  LANGUAGE sql
@@ -705,127 +645,6 @@ AS $function$
   join public.places p on p.id = ec.place_id and p.is_active
   where ec.event_id = p_event_id
     and ec.is_active;
-$function$
-;
-
-CREATE OR REPLACE FUNCTION public.get_event_recommendations(p_limit integer DEFAULT 5)
- RETURNS TABLE(event_id uuid, participant_count bigint, demographic_population bigint, participation_rate numeric, recommendation_basis text)
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO ''
-AS $function$
-with viewer as (
-  select
-    p.age_group,
-    p.gender
-  from public.profiles p
-  where p.id = (select auth.uid())
-  limit 1
-),
-profile_mode as (
-  select
-    v.age_group,
-    v.gender,
-    (
-      v.age_group is not null
-      or v.gender in ('男性', '女性')
-    ) as can_personalize
-  from viewer v
-),
-demographic_population as (
-  select count(*)::bigint as population
-  from public.profiles p
-  cross join profile_mode m
-  where m.can_personalize
-    and (
-      m.age_group is null
-      or p.age_group = m.age_group
-    )
-    and (
-      m.gender not in ('男性', '女性')
-      or p.gender = m.gender
-    )
-),
-event_participants as (
-  select
-    p.event_id,
-    count(*)::bigint as participant_count,
-    count(*) filter (
-      where m.can_personalize
-        and (
-          m.age_group is null
-          or pr.age_group = m.age_group
-        )
-        and (
-          m.gender not in ('男性', '女性')
-          or pr.gender = m.gender
-        )
-    )::bigint as demographic_participant_count
-  from public.user_event_participations p
-  join public.events e on e.id = p.event_id
-  left join public.profiles pr on pr.id = p.user_id
-  cross join profile_mode m
-  where e.is_active = true
-    and (e.end_at is null or e.end_at >= now())
-  group by p.event_id
-),
-personalized as (
-  select
-    ep.event_id,
-    ep.demographic_participant_count as participant_count,
-    dp.population as demographic_population,
-    round(
-      ep.demographic_participant_count::numeric
-      / nullif(dp.population, 0) * 100,
-      1
-    ) as participation_rate,
-    case
-      when m.age_group is not null and m.gender in ('男性', '女性')
-        then m.age_group || '・' || m.gender
-      when m.age_group is not null
-        then m.age_group
-      else m.gender
-    end as recommendation_basis
-  from event_participants ep
-  cross join demographic_population dp
-  cross join profile_mode m
-  where m.can_personalize
-    and dp.population >= 5
-    and ep.demographic_participant_count > 0
-),
-overall as (
-  select
-    ep.event_id,
-    ep.participant_count,
-    0::bigint as demographic_population,
-    null::numeric as participation_rate,
-    'みんなに人気'::text as recommendation_basis
-  from event_participants ep
-)
-select
-  r.event_id,
-  r.participant_count,
-  r.demographic_population,
-  r.participation_rate,
-  r.recommendation_basis
-from (
-  select * from personalized
-  union all
-  select *
-  from overall
-  where not exists (select 1 from personalized)
-) r
-where r.event_id not in (
-  select p.event_id
-  from public.user_event_participations p
-  where p.user_id = (select auth.uid())
-)
-order by
-  case when r.recommendation_basis = 'みんなに人気' then 1 else 0 end,
-  r.participation_rate desc nulls last,
-  r.participant_count desc,
-  r.event_id
-limit greatest(1, least(coalesce(p_limit, 5), 10));
 $function$
 ;
 
@@ -1479,14 +1298,6 @@ end;
 $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.story_preview_server_time()
- RETURNS timestamp with time zone
- LANGUAGE sql
- SET search_path TO ''
-AS $function$ select pg_catalog.clock_timestamp(); $function$
-;
-
-
 CREATE OR REPLACE FUNCTION public.ensure_event_participation(p_event_id uuid)
 RETURNS void
 LANGUAGE plpgsql
@@ -1695,6 +1506,7 @@ EXECUTE FUNCTION public.rls_auto_enable();
 
 -- Revoke inherited client grants, then explicitly grant only current app access.
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM anon, authenticated, PUBLIC;
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated, PUBLIC;
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA private FROM anon, authenticated, PUBLIC;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO service_role;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA private TO service_role;
@@ -1740,6 +1552,8 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE ALL PRIVILEGES ON SEQUENCES FROM anon, authenticated, PUBLIC;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   GRANT ALL PRIVILEGES ON TABLES TO service_role;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   GRANT ALL PRIVILEGES ON SEQUENCES TO service_role;
@@ -1765,8 +1579,6 @@ END $$;
 
 GRANT EXECUTE ON FUNCTION public.ensure_event_participation(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.leave_event_participation(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_collection_series_progress(text) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_event_collection_counts(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_event_contents_by_ids(uuid, uuid[]) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_event_contents_by_region(uuid, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_event_contents_in_bounds(uuid, double precision, double precision, double precision, double precision, integer) TO authenticated;
@@ -1774,7 +1586,6 @@ GRANT EXECUTE ON FUNCTION public.get_event_contents_nearby(uuid, double precisio
 GRANT EXECUTE ON FUNCTION public.get_event_contents_page(uuid, integer, integer, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_event_geo_scopes(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_event_progress_summary(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_event_recommendations(integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_event_regional_map_progress(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_event_social_stats(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_my_collection_history() TO authenticated;
@@ -1784,7 +1595,6 @@ GRANT EXECUTE ON FUNCTION public.get_public_ranking(uuid, integer) TO anon, auth
 GRANT EXECUTE ON FUNCTION public.record_place_visit_and_collect(uuid, uuid, timestamp with time zone, double precision, double precision, double precision, text, jsonb) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.report_location_integrity_violation(text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.reset_event_collection_history(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.story_preview_server_time() TO authenticated;
 
 -- Do not expose private admin membership or trigger-only functions to client roles.
 
