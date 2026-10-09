@@ -22,6 +22,35 @@ ContentBlock blockWithVisibility(String? visibility) {
 
 void main() {
   group('ContentRevealPolicy', () {
+    test('rewarded preview unlocks after-collection content temporarily', () {
+      final block = blockWithVisibility('after_collection');
+
+      expect(
+        ContentRevealPolicy.isVisible(
+          block,
+          collected: false,
+          previewUnlocked: false,
+        ),
+        isFalse,
+      );
+      expect(
+        ContentRevealPolicy.isVisible(
+          block,
+          collected: false,
+          previewUnlocked: true,
+        ),
+        isTrue,
+      );
+      expect(
+        ContentRevealPolicy.isVisible(
+          blockWithVisibility('hidden'),
+          collected: false,
+          previewUnlocked: true,
+        ),
+        isFalse,
+      );
+    });
+
     test('未設定は互換性のため常時表示', () {
       final block = blockWithVisibility(null);
 
