@@ -65,3 +65,10 @@ Still required before a production-configured app build:
 - `supabase/seed/production_master_data/MANIFEST.md` documents row counts and execution order.
 - Seed SQL files were individually syntax/constraint checked in rollback-only transactions against the closed-test schema. A production rehearsal validated the schema and first 250 place rows, including EWKT geography conversion. The live production counts and relationship checks above provide the post-load verification; do not rerun the import on production unless the guarded importer’s resume checks specifically indicate a partial import.
 - No Auth users, user history, announcements, release-policy values, or Storage objects were copied. No production app release or store track was changed.
+
+
+## Incremental reconciliation in three-table batches
+
+To avoid large tool requests stopping mid-run, the live production data was checked in batches of at most three tables. All 13 master/reference tables have the expected row counts; all relationship checks passed with zero orphan references. Row hashes match for every table except expected/representation-specific differences: the single test-project event cover URL is intentionally nulled; place geography is compared by coordinates/distance rather than raw serialization; and `content_blocks.metadata` is structurally equal JSONB even though a raw text hash differs. All non-metadata content-block fields match.
+
+All 1,713 `places.updated_at` values had been overwritten by the insert trigger during the initial import. They have now been restored from the closed-test master data; the source and production timestamp hashes match. No Auth users or user-specific records were imported. The production schema bootstrap was not rerun; an attempted rehearsal correctly stopped at the existing `achievements` table before changing anything.
