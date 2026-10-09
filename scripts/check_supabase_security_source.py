@@ -15,10 +15,12 @@ delete_account = (ROOT / "supabase/functions/delete-account/index.ts").read_text
 schema_target = ROOT / "docs/production-schema-target.md"
 audit_sql = ROOT / "supabase/security/production_rls_audit.sql"
 participation_migration = ROOT / "supabase/migrations/20261009010000_secure_event_participation_rpc.sql"
+preference_migration = ROOT / "supabase/migrations/20261009020000_secure_event_preference_rpc.sql"
 candidate_baseline = ROOT / "supabase/baselines/production_schema_candidate_20261009.sql"
 event_service = (ROOT / "lib/services/event_service.dart").read_text(encoding="utf-8")
 event_explore = (ROOT / "lib/widgets/event_explore_page.dart").read_text(encoding="utf-8")
 migration = participation_migration.read_text(encoding="utf-8")
+preference = preference_migration.read_text(encoding="utf-8")
 candidate = candidate_baseline.read_text(encoding="utf-8")
 
 require("new tables are not auto-exposed", "auto_expose_new_tables = false" in config)
@@ -39,7 +41,11 @@ require("event service uses participation RPC", "ensure_event_participation" in 
 require("event explore uses leave RPC", "leave_event_participation" in event_explore and ".from('user_event_participations')\n          .update" not in event_explore)
 require("participation RPC pins search_path", "SECURITY DEFINER\nSET search_path = ''" in migration)
 require("participation writes are revoked from client roles", "REVOKE INSERT, UPDATE, DELETE ON TABLE public.user_event_participations FROM anon, authenticated" in migration)
-require("both participation RPCs are in the production candidate", "public.ensure_event_participation" in candidate and "public.leave_event_participation" in candidate)
+require("preference RPC pins search_path", "SECURITY DEFINER\nSET search_path = ''" in preference)
+require("preference writes are revoked from client roles", "REVOKE INSERT, UPDATE, DELETE ON TABLE public.user_event_preferences FROM anon, authenticated" in preference)
+require("event service uses preference RPC", "set_current_event_preference" in event_service and ".from('user_event_preferences').upsert" not in event_service)
+require("both participation RPCs are in candidate", "public.ensure_event_participation" in candidate and "public.leave_event_participation" in candidate)
+require("preference RPC is in candidate", "public.set_current_event_preference" in candidate)
 require("future public tables default to least privilege", "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public" in candidate and "REVOKE ALL PRIVILEGES ON TABLES FROM anon, authenticated, PUBLIC" in candidate)
 
 failed = [label for label, ok in checks if not ok]
