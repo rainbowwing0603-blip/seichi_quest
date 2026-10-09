@@ -2,6 +2,7 @@
 """Lightweight static guardrails for Supabase source configuration."""
 from pathlib import Path
 import sys
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 checks = []
@@ -26,7 +27,7 @@ candidate = candidate_baseline.read_text(encoding="utf-8")
 require("new tables are not auto-exposed", "auto_expose_new_tables = false" in config)
 require("missing seed.sql is not configured", '[db.seed]\n# Disabled until a curated seed file is checked in; the current ./seed.sql is missing.\nenabled = false\nsql_paths = []' in config)
 require("registry key comes from environment", 'Deno.env.get("ROADSIDESTATION_IMPORT_KEY")' in importer)
-require("old fixed importer key absent from function source", "sq-roadside-20260925-fixed-source-import-v1" not in importer)
+require("registry importer does not hardcode a key literal", not re.search(r'''const\s+IMPORT_KEY\s*=\s*["']''', importer))
 require("registry importer fails closed if secret is missing", "if (!IMPORT_KEY)" in importer and "status: 503" in importer)
 require("registry importer restricts method", 'req.method !== "POST"' in importer)
 require("registry errors do not return stack to clients", "stack:(e as any)?.stack" not in importer and 'error: "registry import failed"' in importer)
