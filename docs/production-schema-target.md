@@ -25,7 +25,7 @@ Build the production schema from the current product contract, not by replaying 
 - `app_release_policies`: minimal client-readable release constraints; only server/admin may write.
 - `location_security_states`, `location_security_events`: internal anti-abuse data; no direct client table access.
 - `event_collection_resets`: internal reset bookkeeping only if the shipped reset feature still needs it.
-- `private.admin_users`: keep only if there is a reviewed need for DB-side admin membership. Prefer managed server-side authorization; never trust user-editable metadata.
+- DB-side `private.admin_users` and `private.is_admin()` are intentionally omitted from the production candidate because no current Flutter callsite requires them. Future admin features should use trusted server-side authorization rather than reintroducing client-side admin mutation policies by default.
 
 ## Explicitly excluded from the new app schema
 
@@ -230,3 +230,6 @@ Every one of the 47 seed SQL files was also executed individually against the cl
 The updated production candidate was re-run after relocating PostGIS into `gis`: `gis.spatial_ref_sys` exists, `public.spatial_ref_sys` does not, `anon` has no `USAGE` on `gis`, `authenticated` has the needed `USAGE`, all 25 app tables have RLS, and all app-owned SECURITY DEFINER functions have a pinned search path. EWKT seed rows still imported successfully into `gis.geography` in a rollback-only rehearsal.
 
 A final spatial smoke test under the `authenticated` role successfully executed `gis.st_distance` / `gis.st_makepoint` / `gis.st_setsrid`; the anonymous role has no `USAGE` on `gis`, the authenticated role does, and `public.spatial_ref_sys` does not exist in the target layout. All DDL was rolled back.
+
+
+The final clean candidate no longer creates the unused `private` schema or DB-side admin membership table/function. The repeated rollback-only bootstrap rehearsal still passed with 25 app tables, 26 policies, zero app tables missing RLS, isolated PostGIS in `gis`, and all three state RPC grants present.
