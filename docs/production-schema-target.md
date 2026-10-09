@@ -195,3 +195,6 @@ Production geospatial smoke tests passed against real master data: `get_event_co
 
 
 Geospatial verification also returned 1,713/1,713 places as non-empty `ST_Point` geography values with SRID 4326; 0 latitude/longitude versus geography mismatches; 0 invalid registry candidate coordinate pairs; and 1,231 registry-to-place links. This reduces risk in the EWKT seed conversion, but does not replace a full empty-schema import rehearsal.
+
+
+Asset-path reconciliation: the 88 distinct `assets/...` paths referenced by `contents.image_url` and `content_blocks.media_path` were compared with the Flutter repository tree on `feature/android-next-release`. **0 missing paths** were found. These are bundled app assets and do not need to be copied to Supabase Storage.
