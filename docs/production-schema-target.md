@@ -1,6 +1,6 @@
 # Production Supabase schema target
 
-Status: design and source-hardening work in progress. This is not an authorization to deploy to production.
+Status: clean schema and curated master data are present in production. Migration-history reconciliation, Auth/Storage setup, Edge Function secret rotation, and production release configuration remain open; do not release the production app until those gates are closed.
 
 ## Design objective
 
@@ -222,7 +222,7 @@ Generated `supabase/seed/production_master_data/` from the closed-test DB withou
 - Nulls the one `events.cover_image_url` that pointed at the closed-test Supabase project. Local `assets/...` references are preserved; Storage object bytes are not copied.
 - SQL files are ordered by dependency and use `ON CONFLICT DO NOTHING` so an interrupted import can resume. They must be applied only after the schema is deployed to a clean production database.
 
-The event and first 250 place rows were imported inside a rollback-only transaction against the production project; all 250 geography values converted correctly from EWKT. The full export has not been applied to any project.
+The event and first 250 place rows were imported inside a rollback-only transaction against the production project; all 250 geography values converted correctly from EWKT. At the time this section was first written, the full export had not been applied. The live production state is recorded in the final section below.
 
 Every one of the 47 seed SQL files was also executed individually against the closed-test schema inside a transaction and rolled back; no syntax/type-conversion errors were returned. The source catalog reports zero unvalidated constraints. No master-data seed has been permanently applied to the test or production project.
 
@@ -247,7 +247,7 @@ The first Flutter PR check after the event page API update failed because two te
 
 Added `scripts/bootstrap-production-schema.ps1` and `scripts/repair-production-migration-history.ps1`, plus `docs/production-cutover-runbook.md`. The bootstrap script defaults to dry-run, verifies the database URI identifies the production project, refuses a non-empty public schema, assembles the baseline plus all 47 seed files, and applies everything in one transaction with post-load count/RLS/grant assertions. It prompts for an exact production-specific confirmation before applying.
 
-The migration-history script is a separate, guarded step. It refuses to mark legacy migration versions as applied until the live DB confirms the 25-table/26-policy schema, all 13 curated data counts, automatic RLS, and absence of `public.seichi`. This is necessary because the repository's historical migration chain is not a clean bootstrap; running `supabase db push` against a blank production project before the baseline would replay legacy migrations. Neither script has been run against production, and production remains empty.
+The migration-history script is a separate, guarded step. It refuses to mark legacy migration versions as applied until the live DB confirms the 25-table/26-policy schema, all 13 curated data counts, automatic RLS, and absence of `public.seichi`. This is necessary because the repository's historical migration chain is not a clean bootstrap; running `supabase db push` against a blank production project before the baseline would replay legacy migrations. At the time this section was first written, neither script had been run and production was empty. Subsequent live production changes are recorded below; do not rerun the bootstrap script against the now-populated schema.
 
 
 ## Full seed SQL syntax/FK rehearsal completed
@@ -270,3 +270,33 @@ The registry importer no longer deletes and reinserts the live table in multiple
 Rollback-only integration tests passed against the closed-test database: a 1,234-row replacement preserved the row count (1,234), linked records (1,231), and GPS candidate records (1,231); invalid row counts and duplicate station keys were rejected; and function grants were limited to `service_role`. No data changes persisted. The production schema candidate includes the same RPC.
 
 The deployed Edge Function and its secret are not changed by this repository update. Rotate the previously hardcoded key, configure `ROADSIDESTATION_IMPORT_KEY`, then deploy the reviewed function through the supported Supabase deployment path.
+
+
+## Live production state, verified 2026-10-09
+
+**This section supersedes earlier preparation notes above that described production as empty.** The production project `npirfaoxcarfuqjlwgav` currently contains the clean schema and the curated master data, applied in the dependency order from the manifest.
+
+| Validation | Live result |
+|---|---:|
+| Application tables | 25 |
+| Public RLS policies | 24 |
+| Application tables missing RLS | 0 |
+| Events | 51 |
+| Places with geography | 1,713 |
+| Contents | 2,742 |
+| Event-content mappings | 2,721 |
+| Content blocks | 336 |
+| Achievements / event mappings | 18 / 18 |
+| Geo regions / prefecture mappings | 57 / 141 |
+| Collection series / place mappings / region mappings | 1 / 1,231 / 57 |
+| Roadside station registry | 1,234 |
+| Orphan event-content mappings | 0 |
+| Duplicate roadside registry keys | 0 |
+| Rows in profiles, visits, collection history, preferences, participation | 0 |
+| Announcement rows / release-policy rows | 0 / 0 |
+| Retired `public.seichi` table | Absent |
+| Closed-test project URLs in exported app master data | 0 |
+
+A live spatial query using the PostGIS geography index succeeded and returned nearby places; all 2,721 event-content rows joined to valid event/content/place records. The atomic registry RPC is present with a pinned empty search path and EXECUTE granted only to `service_role`. Production Auth settings and Storage contents were not changed.
+
+**Important remaining task:** the Supabase migration history is still empty. Do not rerun `scripts/bootstrap-production-schema.ps1`; it should refuse because the schema is no longer empty. The next database-maintenance step is to use the guarded `scripts/repair-production-migration-history.ps1` from a local checkout linked to the production project, then run `supabase db push` so the three post-baseline migrations are recorded idempotently. This requires the local Supabase CLI and a direct database URI, neither of which is available through the current connector. Auth anonymous sign-in, Storage policies/assets, the deployed importer key rotation, and production `app_release_policies` remain separate gates before the app can be pointed at production.
