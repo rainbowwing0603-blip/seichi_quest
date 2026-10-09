@@ -69,3 +69,9 @@ AAB作成とPlay Consoleへのアップロードは別事実として記録す�
 - アカウント削除：使い捨てテストアカウントで認証・削除カスケードを実機確認する。
 - `app_release_policies`：現在0件は初回本番リリース前の意図した状態。実際に公開するビルド番号/バージョンと公開ストアURLを確定してから登録し、クローズドテストの値を流用しない。
 - 本番アプリ：本番URLとpublishable keyでビルドし、実機スモークテスト後にPlay Consoleのトラックとアップロード済みAABを別途確認する。DB移行によって本番アプリを公開したわけではない。
+
+## 2026-10-10 production build readiness update
+
+- The production migration list currently contains 80 versions; all 80 are represented locally. The reviewed corrective migration `20261009164000_grant_story_preview_server_time.sql` is the only local migration not yet applied to production. Apply it only after review, then verify 81 local/remote versions match. Do not repeat the historical migration-history repair or the five already-applied post-baseline migrations.
+- `.github/workflows/production-android-build.yml` builds a signed production AAB for artifact review only. It requires the protected `production` GitHub Environment and a versionCode confirmed unused in Play Console. It does not upload/publish to Play or write `app_release_policies`. Setup and limitations are documented in `docs/production-android-build.md`.
+- The current Flutter source still reveals story content only after collecting the spot. A rewarded-ad flow that unlocks an individual spot's story for one hour is **not implemented**; the server-time grant does not implement the client UI/ad/persistence flow. Do not describe this feature as shipped until the client implementation and device tests are complete.
