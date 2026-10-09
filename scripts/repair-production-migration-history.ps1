@@ -19,6 +19,7 @@ SELECT CASE
           AND c.relname <> 'spatial_ref_sys' AND NOT c.relispartition) = 25
    AND (SELECT count(*) FROM pg_policies WHERE schemaname='public') = 24
    AND to_regclass('public.seichi') IS NULL
+   AND to_regclass('supabase_migrations.schema_migrations') IS NULL
    AND (SELECT count(*) FROM public.events) = 51
    AND (SELECT count(*) FROM public.places) = 1713
    AND (SELECT count(*) FROM public.contents) = 2742
