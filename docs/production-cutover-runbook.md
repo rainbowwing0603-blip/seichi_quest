@@ -64,3 +64,18 @@ The baseline creates `app_release_policies` but deliberately leaves it empty. Be
 ## Place timestamp preservation check
 
 The five post-baseline migrations include `20261009040000_preserve_place_import_timestamps.sql`. The read-only `supabase/seed/production_master_data/VERIFY.sql` now emits `places_insert_timestamp_guard_missing`; its value must be **0** after the migration is applied. The production data timestamps were restored before the cutover. The trigger fix was applied on 2026-10-10; post-push checks found all 1,713 places have non-null `updated_at`, coordinates, and `location`. The migration list confirms all five post-baseline migrations are recorded remotely.
+
+
+## Next release gates (2026-10-10)
+
+The separate `.github/workflows/production-android-build.yml` workflow is an artifact-only build. Setup and required protected GitHub Environment values are documented in [production-android-build.md](production-android-build.md). It intentionally does not upload to Play or modify release policy.
+
+Before a production store release, complete these gates in order:
+
+1. Verify the protected GitHub Environment `production` has the production Supabase URL/key, existing Play upload keystore credentials, and restricted production Maps key.
+2. Verify the next version code in Play Console, then run the production artifact workflow and retain the AAB checksum.
+3. Install the exact AAB on a controlled test device and verify startup, anonymous sign-in, event/catalog reads, a stamp collection, story/rewarded-ad flow, and account deletion using a disposable account.
+4. Re-check production RLS/security warnings and confirm the account deletion leaves no user-owned rows behind. Do not remove intended public read/ranking access just to clear advisor warnings.
+5. Only after the actual release and public Play URL are confirmed, populate the active Android `app_release_policies` row with the real version/build/store URL.
+
+These steps do not authorize store publication, database cleanup, or changes to the live release policy. Those remain separate reviewed actions.
