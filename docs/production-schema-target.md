@@ -255,3 +255,18 @@ The migration-history script is a separate, guarded step. It refuses to mark leg
 Every SQL file in `supabase/seed/production_master_data/` was executed against the closed-test schema inside its own `BEGIN ... ROLLBACK` transaction. All **47 data SQL files** completed without syntax errors, foreign-key violations, or permission errors. This verifies each file parses against the actual table definitions and its rows satisfy the currently enforced constraints in isolation; it is not yet a single end-to-end import of all 10,320 rows into production.
 
 No data was persisted by these rehearsals. Production remains empty. Next import gates remain: full ordered rehearsal against a clean candidate schema, post-import row-count/FK/spatial checks, Storage object migration and rights review, Auth anonymous sign-in verification, and remaining source/Edge Function security work.
+
+
+## Atomic roadside registry importer hardening
+
+The registry importer no longer deletes and reinserts the live table in multiple network requests. New migration `20261009030000_atomic_roadside_station_registry_import.sql` provides `public.replace_roadside_station_registry(jsonb)`:
+
+- Rejects payloads unless there are exactly 1,234 unique station records.
+- Stages and validates the entire payload before touching live rows.
+- Upserts by `(prefecture, official_name)` in one database transaction, preserving stable IDs, place links, GPS candidate fields, registration dates, and existing operational statuses/verification metadata.
+- Removes stale registry rows only after the stage and upsert succeed; any exception rolls back the whole replacement.
+- Revokes EXECUTE from PUBLIC, `anon`, and `authenticated`, granting it only to `service_role`.
+
+Rollback-only integration tests passed against the closed-test database: a 1,234-row replacement preserved the row count (1,234), linked records (1,231), and GPS candidate records (1,231); invalid row counts and duplicate station keys were rejected; and function grants were limited to `service_role`. No data changes persisted. The production schema candidate includes the same RPC.
+
+The deployed Edge Function and its secret are not changed by this repository update. Rotate the previously hardcoded key, configure `ROADSIDESTATION_IMPORT_KEY`, then deploy the reviewed function through the supported Supabase deployment path.
