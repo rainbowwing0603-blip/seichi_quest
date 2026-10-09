@@ -16,31 +16,29 @@ The scripts are intentionally guarded and default to dry-run. Neither script con
 
 ## One-time cutover (bootstrap steps already completed)
 
-1. Merge/review the production-bootstrap PR and update the local checkout to that commit. The schema/data bootstrap portion is already complete; use the remaining steps for migration-history reconciliation only.
-2. Confirm the target project ref in the Supabase Dashboard is `npirfaoxcarfuqjlwgav`. The schema and master data are now present; do not assume the project is empty.
-3. Link the CLI to production:
+1. Review the production-bootstrap PR and update the local checkout to the reviewed commit. The schema/data bootstrap portion is already complete; only reconcile migration history and apply the five post-baseline migrations.
+2. Confirm the target project ref in the Supabase Dashboard is `npirfaoxcarfuqjlwgav`. The schema and master data are already present; do not assume the project is empty.
+3. Run the guarded migration-history script **without** `-Apply` first:
+   ```powershell
+   .\scripts\repair-production-migration-history.ps1
+   ```
+   The preflight now uses `supabase db query --linked --project-ref npirfaoxcarfuqjlwgav`, so the dry run does not require `psql` or a `SUPABASE_DB_URL` environment variable. It verifies the live schema, RLS, expected master-data counts, RPC grants, empty user-specific tables, and prints the exact historical migration versions it proposes to mark as applied. This is read-only.
+4. Before any repair, link this worktree to the production project:
    ```powershell
    supabase link --project-ref npirfaoxcarfuqjlwgav
    ```
-4. Set `SUPABASE_DB_URL` in the current PowerShell session to the **direct database connection URI** for that production project. Do not commit it, put it in a script, or paste it into chat.
-5. **Historical step, already completed. Do not rerun.** The guarded bootstrap script was prepared for the original empty-project state and will refuse against the live populated schema.
+   Confirm that `supabase/.temp/project-ref` contains exactly `npirfaoxcarfuqjlwgav`. Do not paste any database password or connection URI into chat.
+5. Only after reviewing the dry-run version list and the PR changes, run:
    ```powershell
-   .\scripts\bootstrap-production-schema.ps1
-   .\scripts\bootstrap-production-schema.ps1 -Apply
-   ```
-   The script refuses to run if public/private/GIS application schemas or migration history are already populated, or if the connection URI does not identify the expected project. It imports 25 application tables, 24 reviewed public RLS policies, and 10,320 master/reference rows. It verifies table/policy counts, RLS, the automatic-RLS event trigger, the absence of `public.seichi`, event-state write grants, and each curated table's row count before committing.
-6. Only after the bootstrap transaction succeeds, mark all repository migrations older than `20261009010000` as already represented by the baseline:
-   ```powershell
-   .\scripts\repair-production-migration-history.ps1
    .\scripts\repair-production-migration-history.ps1 -Apply
    ```
-   The repair script verifies the linked project ref and queries the database to ensure the full bootstrap actually succeeded before it can mark any version as applied. Review its version list during the dry-run.
-7. Apply the five post-baseline migrations (participation RPC, preference RPC, profile-write RPC, atomic registry replacement, and place timestamp preservation) and verify history alignment:
+   The script repeats the read-only production preflight, verifies the linked project ref, and requires the exact confirmation phrase `REPAIR npirfaoxcarfuqjlwgav` before marking any legacy version as applied. It does not run `db push`.
+6. Apply the five post-baseline migrations (participation RPC, preference RPC, profile-write RPC, atomic registry replacement, and place timestamp preservation), then verify history alignment:
    ```powershell
    supabase db push
    supabase migration list
    ```
-   These migrations are idempotent and their current definitions are also represented in the clean baseline. The place trigger preserves supplied source timestamps on INSERT while still refreshing `updated_at` on content UPDATE. The push records the current source migration history without replaying the old bootstrap chain.
+   These migrations are represented in the reviewed baseline; the first four use idempotent `CREATE OR REPLACE FUNCTION` definitions and grants, while the timestamp migration changes the places trigger to preserve supplied source timestamps on INSERT and refresh `updated_at` on UPDATE. Do not run `db push` until the repair dry run and migration review are complete.
 
 ## Still separate from database cutover
 
