@@ -95,6 +95,12 @@ class _StoryPreviewSectionState extends State<StoryPreviewSection> {
       return;
     }
 
+    final unlockService = StoryPreviewUnlockService();
+    if (!unlockService.hasAuthenticatedUser) {
+      _showMessage('アカウントの準備ができていません。少し待ってから再度お試しください。');
+      return;
+    }
+
     setState(() => _watchingAd = true);
     try {
       final rewarded = await StoryRewardedAdService.instance.showForStoryUnlock();
@@ -105,7 +111,7 @@ class _StoryPreviewSectionState extends State<StoryPreviewSection> {
         return;
       }
 
-      await StoryPreviewUnlockService().grantOneHour(widget.item.contentId);
+      await unlockService.grantOneHour(widget.item.contentId);
       if (!mounted) return;
       setState(() => _unlocked = true);
       _scheduleExpiry(const Duration(hours: 1));
