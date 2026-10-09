@@ -4,7 +4,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 import { createClient } from "npm:@supabase/supabase-js@2";
 import * as cheerio from "npm:cheerio@1.1.2";
-const KEY = Deno.env.get("ROADSIDESTATION_GPS_ENRICH_KEY");
+const KEY = Deno.env.get("ROADSIDESTATION_GPS_ENRICH_KEY_V2");
 const URLS=Array.from({length:10},(_,i)=>`https://www.seaview.jp/rs/${101+i}-111.htm`);
 const norm=(v:string)=>v.replace(/^道の駅[\s　]*/,"").replace(/[\s　]+/g," ").trim();
 const coord=(h:string):[number,number]|null=>{const m=decodeURIComponent(h).match(/([+-]?\d{2}\.\d+)\s*[,，]\s*([+-]?\d{3}\.\d+)/);if(!m)return null;const lat=Number(m[1]),lon=Number(m[2]);return Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180?[lat,lon]:null;};
