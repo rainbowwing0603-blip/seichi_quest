@@ -161,3 +161,10 @@ Performance Advisor unused-index notices are expected at this point because the 
 ### SQL syntax/constraint rehearsal update (2026-10-09)
 
 The remaining master-data SQL files have now each been executed individually inside a rollback-only transaction against the closed-test schema. The following groups returned successfully with no SQL error: all 11 content batches, all 11 event-content batches, achievements/regions/series, content blocks and event mappings, all 5 collection-series/place batches, collection-series/region mappings, and all 5 roadside-station-registry batches. Earlier, all seven place batches and the event seed were also syntax-tested. These individual tests prove SQL parses and can execute in the existing schema, but **do not replace an empty-production full-order rehearsal** because the closed-test DB already contains the target rows and `ON CONFLICT DO NOTHING` can skip existing records.
+
+
+## Production read-only revalidation (2026-10-09, after seed SQL checks)
+
+A fresh read-only audit against production returned the expected counts for all 13 curated master-data tables (10,320 rows total), **34 foreign-key constraints with 0 orphan rows**, 25 application tables with RLS enabled, and 24 public policies. Across the exported master data there are 0 references to the closed-test Supabase project URL. App-owned `SECURITY DEFINER` functions have 0 missing fixed search paths; no unexpected anon-executable app definer functions were found. Auth users, profiles, place visits, collection history, event preferences and participation remain empty. The guarded migration-history repair script's exact read-only preflight returned `READY`; the migration history table itself is still absent, so the CLI repair step remains outstanding.
+
+The invalid-payload negative test for `replace_roadside_station_registry('[]'::jsonb)` correctly raised the expected validation exception before writes; the registry remained at 1,234 rows. All curated seed SQL files have also passed individual rollback-only syntax/constraint execution checks. These checks did not mutate production data.
