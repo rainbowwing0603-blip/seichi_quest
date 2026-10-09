@@ -86,6 +86,8 @@ require("preference RPC pins search_path", "SECURITY DEFINER\nSET search_path = 
 require("preference writes are revoked from client roles", "REVOKE INSERT, UPDATE, DELETE ON TABLE public.user_event_preferences FROM anon, authenticated" in preference)
 require("event service uses preference RPC", "set_current_event_preference" in event_service and ".from('user_event_preferences').upsert" not in event_service)
 require("profile RPC pins search_path", "SECURITY DEFINER\nSET search_path = ''" in profile)
+require("profile RPC allowlists age groups", all(x in profile for x in ("'10代以下'", "'20代'", "'回答しない'")))
+require("profile RPC allowlists avatar keys", all(x in profile for x in ("'adventurer'", "'mountain'", "'shrine'", "'camera'", "'train'", "'star'")))
 require("profile writes are revoked from client roles", "REVOKE INSERT, UPDATE, DELETE ON TABLE public.profiles FROM anon, authenticated" in profile)
 require("registry RPC has one least-privilege grant pair", registry.count("REVOKE ALL ON FUNCTION public.replace_roadside_station_registry(jsonb)") == 1 and registry.count("GRANT EXECUTE ON FUNCTION public.replace_roadside_station_registry(jsonb) TO service_role") == 1)
 require("profile RPC is in candidate with no direct write grant", "public.save_my_profile" in candidate and "GRANT INSERT (id, display_name" not in candidate and "GRANT UPDATE (display_name" not in candidate)
