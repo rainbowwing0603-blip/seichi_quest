@@ -30,7 +30,7 @@ jobs:
           deno-version: v2.x
       - name: Type-check maintenance Edge Functions
         run: >-
-          deno check
+          deno check --node-modules-dir=auto
           supabase/functions/import-roadside-station-registry/index.ts
           supabase/functions/enrich-roadside-station-gps/index.ts
           supabase/functions/reconcile-roadside-station-gps/index.ts
