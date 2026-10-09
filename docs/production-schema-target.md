@@ -152,7 +152,7 @@ The Flutter client now calls `ensure_event_participation(p_event_id)` instead of
 - reactivates an existing row without resetting the original `joined_at`;
 - revokes direct client INSERT/UPDATE/DELETE and grants only the authenticated RPC execution.
 
-The function pins an empty `search_path` and schema-qualifies its relations. This migration is staged in GitHub and has not yet been applied to the closed-test or production database, so the matching app source must not be released until the migration is applied and verified in the target environment.
+The function pins an empty `search_path` and schema-qualifies its relations. This migration is staged in GitHub; production currently has the matching RPC in the bootstrap schema. Before releasing matching app source, run the migration-history repair and `supabase db push`, then verify the remote migration list and live function grants.
 
 
 ### Participation RPC validation result
@@ -254,12 +254,12 @@ The migration-history script is a separate, guarded step. It refuses to mark leg
 
 Every SQL file in `supabase/seed/production_master_data/` was executed against the closed-test schema inside its own `BEGIN ... ROLLBACK` transaction. All **47 data SQL files** completed without syntax errors, foreign-key violations, or permission errors. This verifies each file parses against the actual table definitions and its rows satisfy the currently enforced constraints in isolation; it is not yet a single end-to-end import of all 10,320 rows into production.
 
-No data was persisted by these rehearsals. Production remains empty. Next import gates remain: full ordered rehearsal against a clean candidate schema, post-import row-count/FK/spatial checks, Storage object migration and rights review, Auth anonymous sign-in verification, and remaining source/Edge Function security work.
+No data was persisted by these rehearsals. Production now contains the reviewed schema and curated master data. Live post-load row-count, FK, spatial, RLS, and stale-URL checks are recorded in the section below. Remaining gates are migration-history repair, Auth anonymous sign-in verification, Storage review, deployed secret rotation, and release-policy initialization.
 
 
 ## Atomic roadside registry importer hardening
 
-The registry importer no longer deletes and reinserts the live table in multiple network requests. New migration `20261009030000_atomic_roadside_station_registry_import.sql` provides `public.replace_roadside_station_registry(jsonb)`:
+The registry importer no longer deletes and reinserts the live table in multiple network requests. Migration `20261009032000_atomic_roadside_station_registry_replace.sql` provides `public.replace_roadside_station_registry(jsonb)`:
 
 - Rejects payloads unless there are exactly 1,234 unique station records.
 - Stages and validates the entire payload before touching live rows.
@@ -299,7 +299,7 @@ The deployed Edge Function and its secret are not changed by this repository upd
 
 A live spatial query using the PostGIS geography index succeeded and returned nearby places; all 2,721 event-content rows joined to valid event/content/place records. The atomic registry RPC is present with a pinned empty search path and EXECUTE granted only to `service_role`. Production Auth settings and Storage contents were not changed.
 
-**Important remaining task:** the Supabase migration history is still empty. Do not rerun `scripts/bootstrap-production-schema.ps1`; it should refuse because the schema is no longer empty. The next database-maintenance step is to use the guarded `scripts/repair-production-migration-history.ps1` from a local checkout linked to the production project, then run `supabase db push` so the three post-baseline migrations are recorded idempotently. This requires the local Supabase CLI and a direct database URI, neither of which is available through the current connector. Auth anonymous sign-in, Storage policies/assets, the deployed importer key rotation, and production `app_release_policies` remain separate gates before the app can be pointed at production.
+**Important remaining task:** the Supabase migration history is still empty. Do not rerun `scripts/bootstrap-production-schema.ps1`; it should refuse because the schema is no longer empty. The next database-maintenance step is to use the guarded `scripts/repair-production-migration-history.ps1` from a local checkout linked to the production project, then run `supabase db push` so the post-baseline migrations are recorded idempotently. Migration filenames now have unique 14-digit versions. This requires the local Supabase CLI and a direct database URI, neither of which is available through the current connector. Auth anonymous sign-in, Storage policies/assets, the deployed importer key rotation, and production `app_release_policies` remain separate gates before the app can be pointed at production.
 
 
 The post-load integrity pass also returned zero orphan rows for event/content/place mappings, content blocks, event achievements, region-prefecture mappings, collection-series place/region mappings, and roadside-registry place links. All 1,713 place geography values have SRID 4326. The Supabase security advisor's five `rls_enabled_no_policy` findings are intentional for server-only tables (`event_collection_resets`, `location_security_events`, `location_security_states`, `place_visits`, `roadside_station_registry`): RLS is enabled and direct client table grants are absent. SECURITY DEFINER advisor warnings correspond to the reviewed RPC API surface; each app-owned definer function must retain its fixed empty search path and least-privilege EXECUTE grants.
@@ -307,13 +307,20 @@ The post-load integrity pass also returned zero orphan rows for event/content/pl
 
 ## Atomic roadside-station registry replacement
 
-Added migration `20261009030000_atomic_roadside_station_registry_replace.sql` for the `replace_roadside_station_registry(jsonb)` RPC already called by the maintenance Edge Function. It stages and validates the complete 1,234-row authoritative snapshot, upserts while preserving place links and locally verified status, removes stale registry entries, verifies the final count, and commits as one database transaction. EXECUTE is revoked from PUBLIC/anon/authenticated and granted only to `service_role`.
+Added migration `20261009032000_atomic_roadside_station_registry_replace.sql` for the `replace_roadside_station_registry(jsonb)` RPC already called by the maintenance Edge Function. It stages and validates the complete 1,234-row authoritative snapshot, upserts while preserving place links and locally verified status, removes stale registry entries, verifies the final count, and commits as one database transaction. EXECUTE is revoked from PUBLIC/anon/authenticated and granted only to `service_role`.
 
-A rollback-only rehearsal on the closed-test database created the RPC temporarily, submitted the existing 1,234-row registry as a normalized authoritative snapshot, confirmed the final count remained 1,234, and confirmed an empty/invalid payload was rejected. The transaction was rolled back. The production project remains unchanged. This closes the source/schema mismatch where the Edge Function called an RPC that previously existed only in the candidate baseline.
+A rollback-only rehearsal on the closed-test database created the RPC temporarily, submitted the existing 1,234-row registry as a normalized authoritative snapshot, confirmed the final count remained 1,234, and confirmed an empty/invalid payload was rejected. The transaction was rolled back. The production project has the RPC in its clean schema; this rehearsal validates behavior against the closed-test source schema. The migration file is retained for reproducibility and post-baseline migration history.
 
 
 ## Seed SQL validation and guarded import runner
 
-All 47 master-data SQL files were individually executed inside rollback-only transactions against the closed-test schema to validate SQL syntax and object/column compatibility. Because that database already contains the source rows and the inserts are idempotent, those runs do **not** prove the inserts themselves work against an empty target. A production transaction separately proved that the candidate schema accepts all 51 event rows and 250 real place rows including EWKT geography conversion; the full 10,320-row cross-table import has not yet been rehearsed as one transaction.
+All 47 master-data SQL files were individually executed inside rollback-only transactions against the closed-test schema to validate SQL syntax and object/column compatibility. Because that database already contains the source rows and the inserts are idempotent, those runs do **not** prove the inserts themselves work against an empty target. A production transaction separately proved that the candidate schema accepts all 51 event rows and 250 real place rows including EWKT geography conversion; the full 10,320-row cross-table import was applied through the guarded production bootstrap; live row counts and relationship checks now match the manifest. The individual-file rollback rehearsal alone was not treated as proof of a complete import.
 
 Added `scripts/import-production-master-data.ps1` with dry-run as the default, a production project-ref guard, typed confirmation, one transaction per file, stop-on-error behavior, resumable partial-import mode, and exact post-import row-count checks. GitHub static checks now guard these protections.
+
+
+## Current live-state correction, 2026-10-09
+
+The production database is no longer empty: it contains 25 application tables, 24 public RLS policies, and all 10,320 curated master/reference rows. The current live audit returned zero missing place geography values, zero orphan event-content mappings, zero duplicate roadside registry keys, zero closed-test project URLs in exported master data, and zero rows in the excluded user-specific tables. Do not rerun the one-time schema bootstrap or the seed import on a fully populated production project.
+
+The Supabase migration-history repair and subsequent `supabase db push` still require a local Supabase CLI session linked to the exact production project. A direct catalog query did not find `supabase_migrations.schema_migrations`; follow the runbook and verify the migration list rather than assuming history is initialized. Auth anonymous sign-in, Storage/assets and rights, deployed maintenance-key rotation, and a reviewed production `app_release_policies` row remain release gates.
