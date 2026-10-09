@@ -21,6 +21,7 @@ participation_migration = ROOT / "supabase/migrations/20261009010000_secure_even
 preference_migration = ROOT / "supabase/migrations/20261009020000_secure_event_preference_rpc.sql"
 profile_migration = ROOT / "supabase/migrations/20261009031000_secure_profile_write_rpc.sql"
 registry_migration = ROOT / "supabase/migrations/20261009032000_atomic_roadside_station_registry_replace.sql"
+places_timestamp_migration = ROOT / "supabase/migrations/20261009040000_preserve_place_import_timestamps.sql"
 candidate_baseline = ROOT / "supabase/baselines/production_schema_candidate_20261009.sql"
 production_import = ROOT / "scripts/import-production-master-data.ps1"
 bootstrap_script = ROOT / "scripts/bootstrap-production-schema.ps1"
@@ -37,6 +38,7 @@ migration = participation_migration.read_text(encoding="utf-8")
 preference = preference_migration.read_text(encoding="utf-8")
 profile = profile_migration.read_text(encoding="utf-8")
 registry = registry_migration.read_text(encoding="utf-8")
+places_timestamp = places_timestamp_migration.read_text(encoding="utf-8")
 candidate = candidate_baseline.read_text(encoding="utf-8")
 repair_script_content = repair_script.read_text(encoding="utf-8")
 
@@ -59,6 +61,9 @@ require("registry importer uses atomic replacement RPC", 'replace_roadside_stati
 require("atomic registry RPC pins search_path and uses SECURITY DEFINER", "SECURITY DEFINER\nSET search_path = ''" in (ROOT / "supabase/migrations/20261009032000_atomic_roadside_station_registry_replace.sql").read_text(encoding="utf-8"));
 require("atomic registry RPC is not executable by anon/authenticated", "REVOKE ALL ON FUNCTION public.replace_roadside_station_registry(jsonb) FROM PUBLIC, anon, authenticated" in (ROOT / "supabase/migrations/20261009032000_atomic_roadside_station_registry_replace.sql").read_text(encoding="utf-8"));
 require("production baseline includes atomic registry RPC", "public.replace_roadside_station_registry" in candidate);
+require("place timestamp migration exists", places_timestamp_migration.is_file())
+require("place timestamp migration preserves imported timestamps", "IF TG_OP = 'UPDATE' THEN" in places_timestamp and "NEW.updated_at = now()" in places_timestamp)
+require("baseline preserves source place timestamps on INSERT", "if tg_op = 'UPDATE' then" in candidate and "CREATE TRIGGER places_set_updated_at BEFORE INSERT OR UPDATE OF" in candidate)
 require("migration repair requires atomic registry RPC and service-role-only grant", "to_regprocedure('public.replace_roadside_station_registry(jsonb)') IS NOT NULL" in repair_script_content and "has_function_privilege('service_role', 'public.replace_roadside_station_registry(jsonb)', 'EXECUTE')" in repair_script_content);
 require("migration repair refuses when user-specific rows exist", "(SELECT count(*) FROM public.profiles) = 0" in repair_script_content and "(SELECT count(*) FROM public.collection_history) = 0" in repair_script_content and "(SELECT count(*) FROM public.location_security_events) = 0" in repair_script_content and "(SELECT count(*) FROM public.user_event_favorites) = 0" in repair_script_content);
 
