@@ -209,3 +209,5 @@ The candidate policies and grants were applied inside a transaction to the exist
 The transaction was rolled back. A follow-up query confirmed the closed-test project still has its original 39 public policies and none of the three new RPCs persisted. This is an integration rehearsal, not a permanent change to the closed-test project.
 
 All three event-state RPCs also take a transaction-scoped per-user advisory lock, serializing preference changes, participation activation, and leave operations so concurrent requests cannot race around the “current event cannot be left” rule.
+
+After adding transaction-scoped per-user advisory locks, the preference/participation migration happy-path and privilege tests passed again inside a rollback-only transaction. The full bootstrap candidate was also rehearsed again against the empty production project and returned the same 25-table / 26-policy / RLS / function-grant validation results; the temporary probe and all DDL were rolled back.
