@@ -1,6 +1,6 @@
 # Production schema cutover and security audit
 
-**Live status update: 2026-10-10.** The migration-history repair and five post-baseline migrations are now complete; all 80 local and remote migration versions match. The section below titled “Migration history and rollout gates” reflects the current state. The production app is not yet cleared for release.
+**Live status update: 2026-10-10.** The migration-history repair and five post-baseline migrations completed, and at that point all 80 local and remote migration versions matched. A follow-up review found that the applied baseline omitted the authenticated EXECUTE grant for `story_preview_server_time()`. Corrective migration `20261009164000_grant_story_preview_server_time.sql` is now in this branch but has not been applied; local has one pending migration while production remains at 80. After review and application, verify the grant and confirm all 81 local/remote versions match. The production app is not yet cleared for release.
 
 Date: 2026-10-09
 Branch: `audit/production-bootstrap-readiness-20261009`
