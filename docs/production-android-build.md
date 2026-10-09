@@ -22,7 +22,7 @@ Do not add a service-account publishing credential to this workflow. It intentio
 
 1. Confirm the production Environment's required variables/secrets exist without displaying their values.
 2. In Play Console, check the highest version code already used by any uploaded bundle. Enter a **higher, unused** positive integer as `build_number`. The workflow deliberately does not guess or reserve a Play version code.
-3. Dispatch this workflow from the reviewed branch/commit. The workflow ref is the code that gets built.
+3. Dispatch this workflow only from the reviewed `feature/android-next-release` branch. The workflow enforces this branch guard; the workflow ref is the code that gets built.
 4. Wait for analyze, tests, and the signed AAB build to finish.
 5. Download the artifact and verify `app-release.aab.sha256` before transferring it.
 6. Install/test the artifact in a controlled environment before any store upload.
