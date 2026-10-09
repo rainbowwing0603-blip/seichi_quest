@@ -3,7 +3,8 @@
 -- Review docs/production-schema-target.md, then rehearse inside a rollback transaction on an empty database.
 -- User data, Auth users, old public.seichi, DB-side admin membership, and client-admin mutation policies are intentionally excluded.
 BEGIN;
-CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
+CREATE SCHEMA IF NOT EXISTS gis;
+CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA gis;
 CREATE SCHEMA IF NOT EXISTS private;
 
 -- 1. Table columns
@@ -220,7 +221,7 @@ CREATE TABLE public.places (
   latitude double precision NOT NULL,
   longitude double precision NOT NULL,
   radius_meters integer DEFAULT 200 NOT NULL,
-  location geography(Point,4326),
+  location gis.geography(Point,4326),
   address text,
   prefecture text,
   city text,
@@ -539,18 +540,18 @@ CREATE OR REPLACE FUNCTION public.get_event_contents_nearby(p_event_id uuid, p_l
 AS $function$
 select ec.id,c.id,p.id,c.content_key,c.title,c.description,p.icon,coalesce(c.image_url,p.image_url),
 p.latitude,p.longitude,p.radius_meters,p.prefecture,p.city,ec.display_order,
-st_distance(st_setsrid(st_makepoint(p.longitude,p.latitude),4326)::geography,
-            st_setsrid(st_makepoint(p_longitude,p_latitude),4326)::geography) as distance_meters,
+gis.st_distance(gis.st_setsrid(gis.st_makepoint(p.longitude,p.latitude),4326)::gis.geography,
+            gis.st_setsrid(gis.st_makepoint(p_longitude,p_latitude),4326)::gis.geography) as distance_meters,
 exists(select 1 from public.collection_history ch where ch.user_id=(select auth.uid()) and ch.event_content_id=ec.id)
 from public.event_contents ec
 join public.contents c on c.id=ec.content_id and c.is_active
 join public.places p on p.id=ec.place_id and p.is_active
 where ec.event_id=p_event_id and ec.is_active
-and st_dwithin(st_setsrid(st_makepoint(p.longitude,p.latitude),4326)::geography,
-               st_setsrid(st_makepoint(p_longitude,p_latitude),4326)::geography,
+and gis.st_dwithin(gis.st_setsrid(gis.st_makepoint(p.longitude,p.latitude),4326)::gis.geography,
+               gis.st_setsrid(gis.st_makepoint(p_longitude,p_latitude),4326)::gis.geography,
                greatest(1000,least(coalesce(p_radius_meters,50000),200000)))
-order by st_distance(st_setsrid(st_makepoint(p.longitude,p.latitude),4326)::geography,
-            st_setsrid(st_makepoint(p_longitude,p_latitude),4326)::geography)
+order by gis.st_distance(gis.st_setsrid(gis.st_makepoint(p.longitude,p.latitude),4326)::gis.geography,
+            gis.st_setsrid(gis.st_makepoint(p_longitude,p_latitude),4326)::gis.geography)
 limit greatest(1,least(coalesce(p_limit,250),1000))
 $function$
 ;
@@ -945,12 +946,12 @@ begin
     -- 新規visit:
     -- この時点だけGPS距離判定を行う。
     -- --------------------------------------------------------
-    if not public.st_dwithin(
+    if not gis.gis.st_dwithin(
       v_place.location,
-      public.st_setsrid(
-        public.st_makepoint(p_longitude, p_latitude),
+      gis.gis.st_setsrid(
+        gis.gis.st_makepoint(p_longitude, p_latitude),
         4326
-      )::public.geography,
+      )::gis.geography,
       v_place.radius_meters
     ) then
       raise exception
@@ -1272,10 +1273,10 @@ AS $function$
 begin
   new.updated_at = now();
   new.location =
-    st_setsrid(
-      st_makepoint(new.longitude, new.latitude),
+    gis.st_setsrid(
+      gis.st_makepoint(new.longitude, new.latitude),
       4326
-    )::geography;
+    )::gis.geography;
   return new;
 end;
 $function$
@@ -1746,9 +1747,9 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA private TO service_role;
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA private TO service_role;
-
--- PostGIS reference metadata is public/read-only; the extension-owned table is not an app table.
-GRANT SELECT ON TABLE public.spatial_ref_sys TO anon, authenticated;
+GRANT USAGE ON SCHEMA gis TO anon, authenticated, service_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA gis TO anon, authenticated, service_role;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA gis TO service_role;
 
 -- Read-only public/master data required by the current Flutter app.
 GRANT SELECT ON TABLE public.events, public.app_release_policies TO anon, authenticated;
@@ -1811,9 +1812,9 @@ BEGIN
 END $$;
 
 -- These extension-owned SECURITY DEFINER helpers are not part of the client API.
-REVOKE EXECUTE ON FUNCTION public.st_estimatedextent(text, text) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.st_estimatedextent(text, text, text) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.st_estimatedextent(text, text, text, boolean) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION gis.st_estimatedextent(text, text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION gis.st_estimatedextent(text, text, text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION gis.st_estimatedextent(text, text, text, boolean) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.set_current_event_preference(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.ensure_event_participation(uuid) TO authenticated;
