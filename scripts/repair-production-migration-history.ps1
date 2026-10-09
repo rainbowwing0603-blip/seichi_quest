@@ -63,6 +63,7 @@ SELECT CASE
   ELSE 'NOT_READY'
 END;
 '@
+
 $preflight = & $supabaseCommand.Source db query --linked --project-ref $expectedProjectRef $preflightSql
 $preflightExitCode = $LASTEXITCODE
 $preflightText = $preflight | Out-String
@@ -77,38 +78,19 @@ $unrecognizedFiles = @($migrationFiles | Where-Object { $_.BaseName -notmatch '^
 if ($unrecognizedFiles.Count -gt 0) {
     throw ("Unrecognized migration filename(s); no repair performed: " + ($unrecognizedFiles.Name -join ', '))
 }
-$allVersions = @($migrationFiles | ForEach-Object { [long]($_.BaseName -replace '^(\d{8,14})_.+
-Write-Host "Verified production project: $expectedProjectRef"
-Write-Host "Verified clean bootstrap: 25 tables, 24 policies, master data counts, RLS, no public.seichi"
-Write-Host "Migration versions to mark applied: $($versions.Count)"
-Write-Host ($versions -join ', ')
-if (-not $Apply) {
-    Write-Host 'DRY RUN ONLY. Preflight used Supabase CLI; no migration history changed. Re-run with -Apply only after reviewing the version list and linking this worktree to production.'
-    return
-}
 
-$linkedProjectPath = Join-Path $repoRoot 'supabase/.temp/project-ref'
-if (-not (Test-Path -LiteralPath $linkedProjectPath)) {
-    throw "Dry run passed, but applying requires this worktree to be linked first. Run: supabase link --project-ref $expectedProjectRef"
-}
-$linkedProject = [System.IO.File]::ReadAllText($linkedProjectPath, [System.Text.Encoding]::UTF8).Trim()
-if ($linkedProject -cne $expectedProjectRef) {
-    throw "Linked project '$linkedProject' is not the expected production project '$expectedProjectRef'. No repair was run."
-}
-
-$confirmation = Read-Host "Type REPAIR $expectedProjectRef to mark the listed legacy migrations applied"
-if ($confirmation -cne "REPAIR $expectedProjectRef") { throw 'Confirmation did not match. No migration history changed.' }
-
-& supabase migration repair @versions --status applied
-if ($LASTEXITCODE -ne 0) {
-    throw "Supabase migration repair failed with exit code $LASTEXITCODE. Review 'supabase migration list' before retrying."
-}
-Write-Host 'Legacy migration history marked applied. Next run supabase db push to apply only the new post-baseline migrations, then verify supabase migration list.'
-, '$1') })
-$duplicateVersions = @($allVersions | Group-Object | Where-Object Count -gt 1)
+$allVersions = @(
+    foreach ($file in $migrationFiles) {
+        if ($file.BaseName -match '^(\d{8,14})_.+$') {
+            [long]$Matches[1]
+        }
+    }
+)
+$duplicateVersions = @($allVersions | Group-Object | Where-Object { $_.Count -gt 1 })
 if ($duplicateVersions.Count -gt 0) {
-    throw ("Duplicate migration version(s); no repair performed: " + (($duplicateVersions | ForEach-Object Name) -join ', '))
+    throw ("Duplicate migration version(s); no repair performed: " + (($duplicateVersions | ForEach-Object { $_.Name }) -join ', '))
 }
+
 $versions = @($allVersions | Where-Object { $_ -lt $baselineVersion } | Sort-Object)
 if ($versions.Count -eq 0) { throw 'No pre-baseline migration versions found.' }
 
@@ -116,12 +98,12 @@ Write-Host "Verified production project: $expectedProjectRef"
 Write-Host "Verified clean bootstrap: 25 tables, 24 policies, master data counts, RLS, no public.seichi"
 Write-Host "Migration versions to mark applied: $($versions.Count)"
 Write-Host ($versions -join ', ')
+
 if (-not $Apply) {
     Write-Host 'DRY RUN ONLY. Preflight used Supabase CLI; no migration history changed. Re-run with -Apply only after reviewing the version list and linking this worktree to production.'
     return
 }
 
-$linkedProjectPath = Join-Path $repoRoot 'supabase/.temp/project-ref'
 if (-not (Test-Path -LiteralPath $linkedProjectPath)) {
     throw "Dry run passed, but applying requires this worktree to be linked first. Run: supabase link --project-ref $expectedProjectRef"
 }
@@ -131,7 +113,9 @@ if ($linkedProject -cne $expectedProjectRef) {
 }
 
 $confirmation = Read-Host "Type REPAIR $expectedProjectRef to mark the listed legacy migrations applied"
-if ($confirmation -cne "REPAIR $expectedProjectRef") { throw 'Confirmation did not match. No migration history changed.' }
+if ($confirmation -cne "REPAIR $expectedProjectRef") {
+    throw 'Confirmation did not match. No migration history changed.'
+}
 
 & supabase migration repair @versions --status applied
 if ($LASTEXITCODE -ne 0) {
