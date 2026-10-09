@@ -35,6 +35,16 @@ SELECT CASE
    AND (SELECT count(*) FROM public.roadside_station_registry) = 1234
    AND EXISTS (SELECT 1 FROM pg_event_trigger WHERE evtname = 'ensure_rls')
    AND to_regprocedure('public.replace_roadside_station_registry(jsonb)') IS NOT NULL
+   AND to_regprocedure('public.set_places_updated_at()') IS NOT NULL
+   AND EXISTS (
+     SELECT 1 FROM pg_trigger t
+     JOIN pg_class c ON c.oid = t.tgrelid
+     JOIN pg_namespace n ON n.oid = c.relnamespace
+     WHERE n.nspname = 'public'
+       AND c.relname = 'places'
+       AND t.tgname = 'places_set_updated_at'
+       AND NOT t.tgisinternal
+   )
    AND NOT has_function_privilege('anon', 'public.replace_roadside_station_registry(jsonb)', 'EXECUTE')
    AND NOT has_function_privilege('authenticated', 'public.replace_roadside_station_registry(jsonb)', 'EXECUTE')
    AND has_function_privilege('service_role', 'public.replace_roadside_station_registry(jsonb)', 'EXECUTE')
@@ -50,10 +60,18 @@ SELECT CASE
    AND (SELECT count(*) FROM public.event_collection_resets) = 0
    AND (SELECT count(*) FROM public.announcements) = 0
    AND (SELECT count(*) FROM public.app_release_policies) = 0
+   AND NOT has_table_privilege('anon', 'public.user_event_participations', 'INSERT')
+   AND NOT has_table_privilege('anon', 'public.user_event_participations', 'UPDATE')
+   AND NOT has_table_privilege('anon', 'public.user_event_participations', 'DELETE')
    AND NOT has_table_privilege('authenticated', 'public.user_event_participations', 'INSERT')
    AND NOT has_table_privilege('authenticated', 'public.user_event_participations', 'UPDATE')
+   AND NOT has_table_privilege('authenticated', 'public.user_event_participations', 'DELETE')
+   AND NOT has_table_privilege('anon', 'public.user_event_preferences', 'INSERT')
+   AND NOT has_table_privilege('anon', 'public.user_event_preferences', 'UPDATE')
+   AND NOT has_table_privilege('anon', 'public.user_event_preferences', 'DELETE')
    AND NOT has_table_privilege('authenticated', 'public.user_event_preferences', 'INSERT')
    AND NOT has_table_privilege('authenticated', 'public.user_event_preferences', 'UPDATE')
+   AND NOT has_table_privilege('authenticated', 'public.user_event_preferences', 'DELETE')
    AND NOT EXISTS (
      SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
      WHERE n.nspname='public' AND c.relkind IN ('r','p')
