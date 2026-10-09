@@ -165,3 +165,18 @@ A second rollback-only privilege check also passed: `authenticated` can execute 
 ### Leave-participation RPC validation
 
 A rollback-only authenticated-role test on the closed-test schema called `ensure_event_participation`, then `leave_event_participation` for a non-current active event. It observed one row marked inactive with a non-null server-generated `left_at`, then rolled back the transaction. This test did not persist the function or data changes.
+
+
+## Clean-room bootstrap rehearsal (production project, transaction rolled back)
+
+The candidate SQL was run inside an explicit transaction against the empty production project and rolled back. It completed without SQL errors. The in-transaction validation query reported:
+
+- 25 app tables; 0 app tables without RLS.
+- 28 explicit client policies.
+- Auth user trigger and the public-table RLS event trigger present.
+- 0 app-owned SECURITY DEFINER functions missing a pinned search path.
+- 0 anon-executable app functions other than the intended public-ranking RPC.
+- No direct authenticated INSERT/UPDATE on `user_event_participations`; both participation RPCs are executable by authenticated.
+- Column-level update permission for the profile display name is present.
+
+A subsequent table inventory confirmed the production project still has no app tables after rollback. This is a successful syntax/bootstrap rehearsal, not production deployment approval. Remaining work includes role-based tests for all policies/RPCs, exact app-call coverage, Storage migration, curated master-data import, and review of extension-owned PostGIS findings.
