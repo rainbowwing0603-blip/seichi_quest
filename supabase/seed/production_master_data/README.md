@@ -27,3 +27,23 @@ Run the SQL files in lexicographic filename order **only after** the reviewed pr
 The source counts are documented in `docs/production-schema-target.md`. After import, compare per-table counts and run foreign-key checks, geospatial query checks, and the read-only RLS audit. This export is a data artifact, not a replacement for schema migrations or a production deployment approval.
 
 Before the first production release, follow `PRODUCTION_RELEASE_POLICY.md` to insert the correct production build/version row. Do not copy closed-test release-policy values.
+
+
+## Guarded import runner
+
+Use `scripts/import-production-master-data.ps1` rather than manually pasting these files. It defaults to dry-run, requires `SUPABASE_DB_URL` to contain the expected production project ref, requires an explicit typed confirmation before writes, runs each SQL file in its own transaction, stops on the first error, and checks all 13 table counts against the manifest. A partial rerun requires the explicit `-ResumePartialImport` switch.
+
+Dry run:
+
+```powershell
+$env:SUPABASE_DB_URL = "postgresql://...production connection string..."
+.\scripts\import-production-master-data.ps1
+```
+
+Only after reviewing the target and manifest, the explicit apply form is:
+
+```powershell
+.\scripts\import-production-master-data.ps1 -Apply
+```
+
+Keep the connection string in an environment variable; do not commit it or paste it into chat. This runner does not apply schema DDL, Storage objects, Auth settings, release policy, or Edge Functions.
