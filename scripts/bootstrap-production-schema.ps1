@@ -128,8 +128,20 @@ BEGIN
   IF has_table_privilege('authenticated', 'public.user_event_participations', 'INSERT')
      OR has_table_privilege('authenticated', 'public.user_event_participations', 'UPDATE')
      OR has_table_privilege('authenticated', 'public.user_event_preferences', 'INSERT')
-     OR has_table_privilege('authenticated', 'public.user_event_preferences', 'UPDATE') THEN
-    RAISE EXCEPTION 'Direct authenticated event-state writes are still granted.';
+     OR has_table_privilege('authenticated', 'public.user_event_preferences', 'UPDATE')
+     OR has_table_privilege('authenticated', 'public.profiles', 'INSERT')
+     OR has_table_privilege('authenticated', 'public.profiles', 'UPDATE') THEN
+    RAISE EXCEPTION 'Direct authenticated profile or event-state writes are still granted.';
+  END IF;
+
+  IF NOT has_function_privilege('authenticated', 'public.save_my_profile(text,text,text)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.save_my_profile(text,text,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Profile save RPC grants do not match the reviewed client-role policy.';
+  END IF;
+
+  IF position('10代以下' IN pg_get_functiondef('public.save_my_profile(text,text,text)'::regprocedure)) = 0
+     OR position('adventurer' IN pg_get_functiondef('public.save_my_profile(text,text,text)'::regprocedure)) = 0 THEN
+    RAISE EXCEPTION 'Profile save RPC is missing server-side age/avatar allowlists.';
   END IF;
 END
 $validate$;
