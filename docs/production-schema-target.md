@@ -223,3 +223,5 @@ Generated `supabase/seed/production_master_data/` from the closed-test DB withou
 - SQL files are ordered by dependency and use `ON CONFLICT DO NOTHING` so an interrupted import can resume. They must be applied only after the schema is deployed to a clean production database.
 
 The event and first 250 place rows were imported inside a rollback-only transaction against the production project; all 250 geography values converted correctly from EWKT. The full export has not been applied to any project.
+
+Every one of the 47 seed SQL files was also executed individually against the closed-test schema inside a transaction and rolled back; no syntax/type-conversion errors were returned. The source catalog reports zero unvalidated constraints. No master-data seed has been permanently applied to the test or production project.
