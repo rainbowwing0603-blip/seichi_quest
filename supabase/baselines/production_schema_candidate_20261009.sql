@@ -1510,7 +1510,6 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA private TO service_role;
 
 -- PostGIS reference metadata is public/read-only; the extension-owned table is not an app table.
-ALTER TABLE public.spatial_ref_sys DISABLE ROW LEVEL SECURITY;
 GRANT SELECT ON TABLE public.spatial_ref_sys TO anon, authenticated;
 
 -- Read-only public/master data required by the current Flutter app.
