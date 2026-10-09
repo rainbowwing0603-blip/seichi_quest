@@ -97,3 +97,17 @@ These are planning estimates, not promises:
 - If the snapshot/export route is blocked, function sources cannot be recovered, or schema drift is substantial: allow **a further half-day or more**.
 
 The largest uncertainty is not writing SQL; it is proving that the baseline exactly matches the current test schema and that production data/assets/functions are safe to deploy. Keep production untouched until those checks pass.
+
+
+## Additional RLS baseline notes
+
+A read-only policy inventory on the closed-test project confirms RLS is enabled on the application tables. The baseline must preserve policies rather than just recreating tables:
+
+- User-owned policies exist for profiles, collection history, place visits, event preferences/participations/favorites, and announcement reads.
+- Published/active read policies exist for events, contents, event contents, content blocks, achievements, geo regions/prefectures, and collection-series reference tables.
+- `app_release_policies` has an active-policy read for `anon` and `authenticated`; events also has an explicit anon active-read policy.
+- `private.admin_users`, `event_collection_resets`, `location_security_events`, `location_security_states`, and `roadside_station_registry` have RLS enabled but no ordinary table policies. Do not add broad client policies to clear advisor messages; verify their intended service-role/function-only access and grants.
+- `spatial_ref_sys` is extension-owned and RLS-disabled. Do not blindly alter it to silence the advisor; confirm the PostGIS deployment pattern and function/table grants after the extension is installed.
+- Several admin update/insert/delete policies use the authenticated role but must be checked alongside their `is_admin()` predicates and function grants. The existence of a policy alone is not proof of least privilege.
+
+The production project's current empty-schema advisor result is not comparable to these test findings. Re-run advisors only after the approved schema and policies are installed.
