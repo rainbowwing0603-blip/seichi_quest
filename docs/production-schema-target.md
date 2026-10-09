@@ -92,3 +92,19 @@ This local CLI operation cannot be completed by the current database connector. 
 
 
 The production Supabase security advisor reports five `rls_enabled_no_policy` INFO findings for server-only tables with no direct client grants, one anonymous SECURITY DEFINER warning for `get_public_ranking` (intentionally public ranking), and authenticated SECURITY DEFINER warnings for the reviewed RPC API. The live privilege matrix confirms that anon cannot read profiles/history/places or call the registry replacement RPC, authenticated cannot directly write profile/history/participation/preference tables, and only `service_role` can call `replace_roadside_station_registry`. Keep the fixed `search_path` and explicit grants as release gates.
+
+
+## Live production revalidation (2026-10-09, after CI fixes)
+
+Re-queried the live production project read-only after the source-check repair. Results:
+
+- 25 public application tables, all with RLS; 24 public policies.
+- 13/13 curated master-data table counts match the manifest (10,320 total rows).
+- All 1,713 places have geography; 0 duplicate \`(prefecture, official_name)\` registry keys.
+- 0 cross-table orphan rows in the verifier checks and 0 closed-test project URLs in event/content image fields.
+- All user-specific tables remain empty, including profiles, visits, collection history, event preferences/participation/favorites, announcement reads, location-security state/events, and reset ledger. \`announcements\` and \`app_release_policies\` also remain empty by design.
+- 0 app-owned SECURITY DEFINER functions without a fixed search path; 0 unexpected anon-executable app functions; no direct client INSERT/UPDATE grants on participation, preferences, or profiles. The four user-facing state/profile RPCs are executable by authenticated.
+- PostGIS is installed in the non-exposed \`gis\` schema; \`public.seichi\` is absent.
+- Supabase migration history is still uninitialized: \`supabase_migrations.schema_migrations\` does not exist and the Supabase migration listing is empty. Do not run \`supabase db push\` until the guarded history-repair step is completed from the reviewed repository checkout.
+
+The security-source CI failure was traced to two concrete type-check setup issues, not application behavior: Deno was not auto-installing the importer's npm dependencies, and standalone type-checking lacked the Supabase runtime's \`EdgeRuntime.waitUntil\` declaration. The workflow now uses \`deno check --node-modules-dir=auto\`; the two maintenance functions declare the provided runtime type. The latest Supabase Security Source Check completed successfully.
