@@ -303,3 +303,10 @@ A live spatial query using the PostGIS geography index succeeded and returned ne
 
 
 The post-load integrity pass also returned zero orphan rows for event/content/place mappings, content blocks, event achievements, region-prefecture mappings, collection-series place/region mappings, and roadside-registry place links. All 1,713 place geography values have SRID 4326. The Supabase security advisor's five `rls_enabled_no_policy` findings are intentional for server-only tables (`event_collection_resets`, `location_security_events`, `location_security_states`, `place_visits`, `roadside_station_registry`): RLS is enabled and direct client table grants are absent. SECURITY DEFINER advisor warnings correspond to the reviewed RPC API surface; each app-owned definer function must retain its fixed empty search path and least-privilege EXECUTE grants.
+
+
+## Atomic roadside-station registry replacement
+
+Added migration `20261009030000_atomic_roadside_station_registry_replace.sql` for the `replace_roadside_station_registry(jsonb)` RPC already called by the maintenance Edge Function. It stages and validates the complete 1,234-row authoritative snapshot, upserts while preserving place links and locally verified status, removes stale registry entries, verifies the final count, and commits as one database transaction. EXECUTE is revoked from PUBLIC/anon/authenticated and granted only to `service_role`.
+
+A rollback-only rehearsal on the closed-test database created the RPC temporarily, submitted the existing 1,234-row registry as a normalized authoritative snapshot, confirmed the final count remained 1,234, and confirmed an empty/invalid payload was rejected. The transaction was rolled back. The production project remains unchanged. This closes the source/schema mismatch where the Edge Function called an RPC that previously existed only in the candidate baseline.
