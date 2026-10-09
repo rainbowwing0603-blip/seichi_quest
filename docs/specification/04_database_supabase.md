@@ -47,14 +47,14 @@ DDLはmigrationとして管理し、適用後は本番migration履歴・RLS・RP
 
 `supabase/config.toml` で新規テーブルの自動公開を無効化し、存在しない `supabase/seed.sql` を参照していたseed処理を無効化した。道の駅レジストリ取込Functionの固定キーはソースから除去し、環境変数参照へ変更した。旧キーがGit履歴やデプロイ済みFunctionに残っている可能性があるため、旧キーの失効・ローテーションは別途必須。レジストリ取込は現在も削除後に再投入する非原子的処理が残るため、本番へデプロイしない。
 
-読み取り専用の `supabase/security/production_rls_audit.sql` と、静的ガード `scripts/check_supabase_security_source.py` を追加した。PRではSupabaseセキュリティソースチェックを実行する。
+読み取り専用の `supabase/security/production_rls_audit.sql` と、静的ガード `scripts/check_supabase_security_source.py` を追加した。道の駅レジストリ取込ソースは固定キーを除去し、`ROADSIDESTATION_IMPORT_KEY` とサービスロール限定の `replace_roadside_station_registry(jsonb)` RPCを使用する。RPCは1,234件の完全な入力を一時ステージで検証してから単一トランザクションでupsert・不要行削除を行う。クローズドテスト側のデプロイ済みFunctionには旧コード/旧キーが残る可能性があるため、キー失効・ローテーション前に本番へデプロイしない。PRではSupabaseセキュリティソースチェックを実行する。
 
 
 ### イベント参加状態の書き込み
 
 クライアントから `user_event_participations` へ直接INSERT/UPDATEせず、`ensure_event_participation(p_event_id)` / `leave_event_participation(p_event_id)` RPCを使う。RPCは `auth.uid()` からユーザーを確定し、イベントの有効性を検証して、`joined_at` / `updated_at` をDB時刻で設定する。クライアントには当該テーブルの直接INSERT/UPDATE/DELETE権限を付与しない。
 
-この変更はGit上にmigrationとFlutter側の呼び出し変更を用意した段階であり、テストDBへmigrationを適用していない。配布ビルドに含める前にmigration適用とRPCの実機検証が必要。
+参加・イベント選択・プロフィール保存・レジストリ置換の4 RPCは本番クリーンスキーマに含まれ、動作と権限はロールバック専用トランザクションで検証済み。Gitには再現用migrationを保持している。現在の本番migration履歴は未記録のため、ローカルSupabase CLIで履歴を修復してから `supabase db push` で4 migrationを記録・再適用する必要がある。配布前には匿名Auth、Storage、release policyを別途検証する。
 
 
 参加状態のテストでは、テストDB上で両RPCを認証済みロールから呼び出し、参加状態の有効化・解除とサーバー時刻設定を確認した後、トランザクションをロールバックした。DBへの永続適用はしていない。
