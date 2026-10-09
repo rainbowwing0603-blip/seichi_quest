@@ -1,0 +1,49 @@
+name: Supabase Edge Functions checks
+
+on:
+  pull_request:
+    paths:
+      - "supabase/functions/**"
+      - ".github/workflows/supabase-edge-functions-check.yml"
+  push:
+    branches:
+      - main
+      - feature/android-next-release
+      - audit/production-bootstrap-readiness-20261009
+    paths:
+      - "supabase/functions/**"
+      - ".github/workflows/supabase-edge-functions-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-edge-functions-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deno-check:
+    name: Type-check maintenance and account functions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Type-check registry importer
+        run: deno check --no-lock supabase/functions/import-roadside-station-registry/index.ts
+
+      - name: Type-check GPS enrichment
+        run: deno check --no-lock supabase/functions/enrich-roadside-station-gps/index.ts
+
+      - name: Type-check GPS reconciliation
+        run: deno check --no-lock supabase/functions/reconcile-roadside-station-gps/index.ts
+
+      - name: Type-check account deletion
+        run: deno check --no-lock --config supabase/functions/delete-account/deno.json supabase/functions/delete-account/index.ts
