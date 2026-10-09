@@ -48,7 +48,7 @@ The five `rls_enabled_no_policy` findings are intentional server-only tables: `e
 
 The SECURITY DEFINER advisor findings represent callable RPCs, not automatically vulnerabilities. Each function must keep a fixed search path and validate user identity/arguments. `get_public_ranking` is intentionally callable anonymously to support public rankings; the remaining user-facing RPCs are restricted to `authenticated`, while the atomic registry replacement is restricted to `service_role`. Re-run the advisor after any RPC or grant change.
 
-The performance advisor currently reports 31 unused indexes. This is a newly initialized production database, so the advisor has little workload history. Do not drop indexes solely from this initial unused-index report; compare each index against foreign keys, uniqueness constraints, query plans, and real workload before any removal.
+The performance advisor currently reports 16 unused indexes. This is a newly initialized production database, so the advisor has little workload history. Do not drop indexes solely from this initial unused-index report; compare each index against foreign keys, uniqueness constraints, query plans, and real workload before any removal.
 
 ## Curated data export
 
@@ -117,7 +117,7 @@ The production Supabase advisors were reviewed after the live cutover:
 - **RLS enabled with no policy (5 tables): intentional default-deny.** \`event_collection_resets\`, \`location_security_events\`, \`location_security_states\`, \`place_visits\`, and \`roadside_station_registry\` have no direct \`anon\`/\`authenticated\` table privileges for SELECT or mutation. Access is through narrowly scoped RPCs or service-role maintenance only.
 - **SECURITY DEFINER callable by anon:** only \`get_public_ranking\`, intentionally public. It returns chosen display name/avatar key and event ranking counts, not account IDs or location data. It has a pinned empty search path and caps results at 100.
 - **SECURITY DEFINER callable by authenticated (12 advisor findings):** reviewed as intended RPC endpoints. All have a fixed empty search path and derive user-specific access from \`auth.uid()\`; the registry replacement RPC is service-role-only. The only anon-executable app function is the public-ranking endpoint.
-- **Unused-index advisor (30 findings):** the production project has only just been bootstrapped and has no meaningful production query history yet. Indexes are retained until workload statistics exist; do not drop them based on zero usage immediately after cutover.
+- **Unused-index advisor (16 findings):** the production project has only just been bootstrapped and has no meaningful production query history yet. Indexes are retained until workload statistics exist; do not drop them based on zero usage immediately after cutover.
 
 A catalog-driven check examined all **34 foreign-key constraints** from public application tables to public/Auth tables and found **0 violations**. The migration-history repair script was also corrected to include both historical 8-digit migration filenames as well as the newer 14-digit versions; otherwise those two legacy versions could have been omitted from the repair list and replayed by \`supabase db push\`.
 
@@ -229,3 +229,6 @@ The live data was checked in small batches instead of one large multi-table requ
 5. `roadside_station_registry`: all 1,234 rows match the source hash and all official names are nonblank. `announcements` and `app_release_policies` remain intentionally empty; user-specific tables are also empty.
 
 The import trigger on `places` had set all 1,713 `updated_at` values to the import timestamp. These timestamps were restored from the source master data without changing place content or coordinates. A fresh source/production timestamp hash now matches exactly. Do not rerun the one-time schema bootstrap or bulk seed importer.
+
+
+A fresh advisor query on 2026-10-09 returned 16 `unused_index` findings (the count can vary as advisor snapshots and workload statistics change). This replaces older notes in this document that reported 30/31; indexes remain in place until there is representative production traffic and query-plan evidence.
