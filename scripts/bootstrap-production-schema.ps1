@@ -56,7 +56,8 @@ BEGIN
   END IF;
 END
 $guard$;
-'@)
+'@
+[void]$builder.AppendLine($guardSql)
 [void]$builder.AppendLine($baseline)
 foreach ($file in $seedFiles) {
     [void]$builder.AppendLine("-- Seed file: $($file.Name)")
@@ -135,7 +136,8 @@ $validate$;
 
 SELECT 'production bootstrap validation passed' AS result;
 COMMIT;
-'@)
+'@
+[void]$builder.AppendLine($validateSql)
 
 $tempSql = Join-Path ([System.IO.Path]::GetTempPath()) ("seichi_quest_production_bootstrap_{0}.sql" -f [guid]::NewGuid().ToString('N'))
 try {
