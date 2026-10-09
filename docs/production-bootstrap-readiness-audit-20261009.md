@@ -128,3 +128,59 @@ Captured counts:
 - Installed extensions include PostGIS 3.3.7 in `public`, pgcrypto/uuid-ossp/http/pg_stat_statements in `extensions`, and Supabase Vault in `vault`.
 
 The snapshot now includes all 28 non-extension-owned functions in the public/private schemas, rather than only a hand-selected RPC list. This makes a current live catalog snapshot available without waiting for the PC. It is deliberately marked **not a drop-in executable migration**: extension installation/order, function dependencies, function EXECUTE grants, sequence privileges, ownership, role grants, Storage buckets/policies, Auth settings, and extension-owned PostGIS views still need a separate verified pass. All 28 non-extension-owned public/private functions are present in the snapshot; PostGIS-owned functions and views are intentionally excluded. In particular, the target production project must not receive this file blindly. The next step is to compare the snapshot against repository migrations, fill any omissions, then create a reviewed idempotent production baseline and validation script.
+
+
+## User decision: rebuild cleanly, do not blindly inherit legacy tables or RLS
+
+The requested target is a clean modern schema, not a byte-for-byte clone of historical structure. The catalog snapshot is a source of evidence, not an authority to replay every object. In particular, do not recreate retired `public.seichi`, legacy-only columns/FKs, temporary CodeMagic bridge objects, or policies simply because they exist in historical migrations.
+
+### Target data model principles
+
+- Use the generic event/content model: `events`, `places`, `contents`, `event_contents`, `content_blocks`; retain collection-series/region reference tables only where current app features need them.
+- Keep location visit/collection writes behind carefully validated server-side RPCs. The client must not be able to forge user IDs, timestamps, cooldown results, or integrity outcomes.
+- Keep user-owned data keyed by `auth.uid()`; clients may only read/write their own rows. For UPDATE policies, pair `USING` and `WITH CHECK` and prevent changing ownership columns.
+- Keep admin-only mutations out of ordinary client grants wherever possible. Prefer a trusted server/Edge Function path with managed secrets; if a DB admin predicate remains necessary, keep it in a non-exposed schema, validate its trusted claim source, pin `search_path`, and restrict function EXECUTE grants.
+- Enable RLS on every client-reachable table. Use explicit table grants and explicit policies together; RLS does not substitute for GRANT. Default-deny tables with no client use should have no anon/authenticated grants and no client policies.
+- Use explicit anonymous/public read access only for fields and operations needed before sign-in. For private/user tables, never equate the Postgres role `authenticated` with a non-anonymous person because this app uses Supabase anonymous sign-in.
+- Keep service-only/internal tables (registry staging, security event/state, reset bookkeeping, admin membership) inaccessible to anon/authenticated. Use server-side operations and narrow functions instead.
+- Views exposed to the Data API must use `security_invoker = true` on PostgreSQL 15+ unless there is a documented, reviewed reason otherwise. Security-definer functions must be minimal, pinned to a safe search path, explicitly granted only to intended roles, and tested with anonymous and cross-user requests.
+- Storage: make only intended public read buckets public. Upload/update/delete must use narrow object-path policies and never rely on a broad authenticated-role grant. Keep secrets out of SQL, Git, client builds, and logs.
+
+### Initial access-policy matrix to implement and test
+
+| Data group | Anonymous / signed-out | Signed-in app session (including anonymous auth) | Server/admin |
+|---|---|---|---|
+| Published events and active content | Read only if the app genuinely needs pre-login browsing; otherwise require app session | Read active/published rows only | Managed updates |
+| Places and event-content mapping | Read active rows only | Read active rows only | Managed updates |
+| Public achievements/region/series reference data | Read only required active/public rows | Same | Managed updates |
+| Profiles | No direct read of other users; own row only after auth | Own row only; immutable identity key | Account lifecycle server path |
+| Collection history/place visits | No access until a valid user session exists | Own rows read-only; insert through validated RPC; no direct update/delete unless product requirements justify it | Validated RPC/service path |
+| Preferences/favorites/participations | No access before user session | Own rows only, with owner immutable | Narrow admin/server exceptions only |
+| Announcement reads | No access before user session | Own rows only | Managed operations |
+| Release policy | Read only minimum fields required by client | Same | Server/admin updates |
+| Roadside station import registry, GPS security state/events, reset ledger, admin table | No access | No direct table access | Service role / narrowly granted function |
+| Storage | Public read only for approved public assets | Upload only if a feature needs it, under user-owned paths | Managed migration and maintenance |
+
+This is a starting policy design, not yet executable SQL. The final policy set must be reconciled with actual Flutter query paths, anonymous sign-in behavior, server RPC grants, and cross-user negative tests before deployment.
+
+### RLS issues explicitly not to inherit
+
+- Do not copy the existing policy set wholesale. Some public reference tables currently have `authenticated`-only reads, while the event table has a separate `anon` read. Decide intended pre-login behavior per table and make it consistent.
+- Existing admin policies call `private.is_admin()`; review its identity source and EXECUTE grants before retaining. A policy that invokes a helper is not safe merely because the helper lives in `private`.
+- Do not grant broad table CRUD to `authenticated` and expect RLS alone to make it safe. Separate GRANTs and RLS predicates are both required.
+- Do not grant direct INSERT on collection history/visits if the RPC is meant to enforce cooldown and location integrity.
+- Do not use user-editable `user_metadata` as an admin claim source. If JWT claims are used, authorization claims must be trusted server-managed app metadata and the stale-token behavior must be considered.
+- Do not make extension-owned `spatial_ref_sys` RLS changes as a blanket advisor cleanup. Review the PostGIS extension's supported installation model and actual access surface.
+- Supabase's new-project Data API exposure defaults are changing: newly created public tables may not be API-accessible without explicit grants, with enforcement on existing projects scheduled for 2026-10-30. Encode the required grants explicitly rather than relying on project defaults.
+
+### Required security tests before production approval
+
+1. Anonymous requests cannot read user tables, internal registry/security tables, unpublished content, or admin membership.
+2. Anonymous-auth users cannot read another user's profiles, visits, preferences, participation, favorites, or history.
+3. Direct REST inserts/updates cannot bypass the collection RPC, cooldown, owner identity, or trusted timestamp rules.
+4. User A cannot mutate User B's row by changing `user_id` or `id`.
+5. Non-admin authenticated users cannot mutate master content or invoke admin maintenance functions.
+6. Intended app queries still work under the exact role/grants that production will use.
+7. Every security-definer function has a reviewed body, fixed search path, explicit EXECUTE grants, and a tested negative-access case.
+8. Storage object policies reject cross-user writes and path traversal, while approved public assets remain readable.
+9. Run Supabase security advisors after the new schema is applied; resolve real issues, document justified extension-owned findings, and verify with SQL-level privilege/policy tests.
