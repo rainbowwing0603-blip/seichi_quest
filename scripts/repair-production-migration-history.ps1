@@ -54,6 +54,13 @@ SELECT CASE
    AND (SELECT count(*) FROM public.collection_history) = 0
    AND (SELECT count(*) FROM public.user_event_preferences) = 0
    AND (SELECT count(*) FROM public.user_event_participations) = 0
+   AND (SELECT count(*) FROM public.user_event_favorites) = 0
+   AND (SELECT count(*) FROM public.announcement_reads) = 0
+   AND (SELECT count(*) FROM public.location_security_states) = 0
+   AND (SELECT count(*) FROM public.location_security_events) = 0
+   AND (SELECT count(*) FROM public.event_collection_resets) = 0
+   AND (SELECT count(*) FROM public.announcements) = 0
+   AND (SELECT count(*) FROM public.app_release_policies) = 0
    AND NOT has_table_privilege('authenticated', 'public.user_event_participations', 'INSERT')
    AND NOT has_table_privilege('authenticated', 'public.user_event_participations', 'UPDATE')
    AND NOT has_table_privilege('authenticated', 'public.user_event_preferences', 'INSERT')
