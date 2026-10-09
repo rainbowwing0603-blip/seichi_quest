@@ -17,7 +17,7 @@ schema_target = ROOT / "docs/production-schema-target.md"
 audit_sql = ROOT / "supabase/security/production_rls_audit.sql"
 participation_migration = ROOT / "supabase/migrations/20261009010000_secure_event_participation_rpc.sql"
 preference_migration = ROOT / "supabase/migrations/20261009020000_secure_event_preference_rpc.sql"
-profile_migration = ROOT / "supabase/migrations/20261009030000_secure_profile_write_rpc.sql"
+profile_migration = ROOT / "supabase/migrations/20261009031000_secure_profile_write_rpc.sql"
 candidate_baseline = ROOT / "supabase/baselines/production_schema_candidate_20261009.sql"
 production_import = ROOT / "scripts/import-production-master-data.ps1"
 bootstrap_script = ROOT / "scripts/bootstrap-production-schema.ps1"
@@ -40,8 +40,8 @@ require("registry importer fails closed if secret is missing", "if (!IMPORT_KEY)
 require("registry importer restricts method", 'req.method !== "POST"' in importer)
 require("registry importer delegates replacement to atomic RPC", 'sb.rpc(\n    "replace_roadside_station_registry"' in importer and "DELETE FROM public.roadside_station_registry" not in importer)
 require("registry importer uses atomic replacement RPC", 'replace_roadside_station_registry' in importer and '.from("roadside_station_registry").delete()' not in importer);
-require("atomic registry RPC pins search_path and uses SECURITY DEFINER", "SECURITY DEFINER\nSET search_path = ''" in (ROOT / "supabase/migrations/20261009030000_atomic_roadside_station_registry_import.sql").read_text(encoding="utf-8"));
-require("atomic registry RPC is not executable by anon/authenticated", "REVOKE ALL ON FUNCTION public.replace_roadside_station_registry(jsonb) FROM PUBLIC, anon, authenticated" in (ROOT / "supabase/migrations/20261009030000_atomic_roadside_station_registry_import.sql").read_text(encoding="utf-8"));
+require("atomic registry RPC pins search_path and uses SECURITY DEFINER", "SECURITY DEFINER\nSET search_path = ''" in (ROOT / "supabase/migrations/20261009032000_atomic_roadside_station_registry_replace.sql").read_text(encoding="utf-8"));
+require("atomic registry RPC is not executable by anon/authenticated", "REVOKE ALL ON FUNCTION public.replace_roadside_station_registry(jsonb) FROM PUBLIC, anon, authenticated" in (ROOT / "supabase/migrations/20261009032000_atomic_roadside_station_registry_replace.sql").read_text(encoding="utf-8"));
 require("production baseline includes atomic registry RPC", "public.replace_roadside_station_registry" in candidate);
 require("migration repair requires atomic registry RPC and service-role-only grant", "to_regprocedure('public.replace_roadside_station_registry(jsonb)') IS NOT NULL" in repair_script_content and "has_function_privilege('service_role', 'public.replace_roadside_station_registry(jsonb)', 'EXECUTE')" in repair_script_content);
 require("migration repair refuses when user-specific rows exist", "(SELECT count(*) FROM public.profiles) = 0" in repair_script_content and "(SELECT count(*) FROM public.collection_history) = 0" in repair_script_content and "(SELECT count(*) FROM public.location_security_events) = 0" in repair_script_content and "(SELECT count(*) FROM public.user_event_favorites) = 0" in repair_script_content);
