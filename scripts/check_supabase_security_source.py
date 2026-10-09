@@ -45,6 +45,8 @@ require("GPS enrichment key comes from environment", 'Deno.env.get("ROADSIDESTAT
 require("GPS reconciliation key comes from environment", 'Deno.env.get("ROADSIDESTATION_GPS_RECONCILE_KEY")' in gps_reconcile and "sq-roadside-gps-reconcile-20260925-v1" not in gps_reconcile)
 require("GPS maintenance functions require POST and fail closed without secrets", all('req.method!=="POST"' in source and "maintenance function is not configured" in source and 'req.headers.get("x-import-key")!==KEY' in source for source in (gps_enrich,gps_reconcile)))
 require("GPS maintenance functions validate coordinate bounds", all("Math.abs(lat)<=90" in source and "Math.abs(lon)<=180" in source for source in (gps_enrich,gps_reconcile)))
+require("GPS maintenance defaults to dry-run", all("payload?.apply!==true" in source and "dry_run:dryRun" in source for source in (gps_enrich,gps_reconcile)))
+require("GPS reconciliation preserves existing metadata", "...(t.metadata??{})" in gps_reconcile)
 require("registry importer uses atomic replacement RPC", 'replace_roadside_station_registry' in importer and '.from("roadside_station_registry").delete()' not in importer);
 require("atomic registry RPC pins search_path and uses SECURITY DEFINER", "SECURITY DEFINER\nSET search_path = ''" in (ROOT / "supabase/migrations/20261009032000_atomic_roadside_station_registry_replace.sql").read_text(encoding="utf-8"));
 require("atomic registry RPC is not executable by anon/authenticated", "REVOKE ALL ON FUNCTION public.replace_roadside_station_registry(jsonb) FROM PUBLIC, anon, authenticated" in (ROOT / "supabase/migrations/20261009032000_atomic_roadside_station_registry_replace.sql").read_text(encoding="utf-8"));
