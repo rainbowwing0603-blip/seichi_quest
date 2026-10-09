@@ -26,7 +26,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ios-pr-${{ github.event.pull_request.number || github.ref }}
+  group: ios-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
