@@ -25,7 +25,7 @@ $baseline = [System.IO.File]::ReadAllText($baselinePath, [System.Text.Encoding]:
 $baseline = [regex]::Replace($baseline, '^\s*BEGIN;\s*', '', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 $baseline = [regex]::Replace($baseline, '\s*COMMIT;\s*$', '', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 
-$seedFiles = @(Get-ChildItem -LiteralPath $seedDirectory -Filter '*.sql' -File | Sort-Object -Property Name)
+$seedFiles = @(Get-ChildItem -LiteralPath $seedDirectory -Filter '*.sql' -File | Where-Object { $_.Name -match '^\d{3}_' } | Sort-Object -Property Name)
 if ($seedFiles.Count -ne 47) {
     throw "Expected 47 curated seed SQL files, found $($seedFiles.Count). Review the manifest before proceeding."
 }
