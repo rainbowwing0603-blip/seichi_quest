@@ -143,3 +143,16 @@ The production `delete-account` Edge Function is active at version 2 with gatewa
 ## Atomic registry replacement regression check (2026-10-09)
 
 Executed the production registry replacement RPC as `service_role` inside an explicit rollback-only transaction using the current 1,234-row registry as the payload. The RPC completed successfully; post-call checks confirmed 1,234 total rows, 1,231 place links, 1,231 verified coordinate candidates, 33 operationally-open rows, and 3 opening-pending rows. The transaction was rolled back, so the live registry was not changed. This validates the RPC's payload contract and its preservation of place/GPS/status fields without requiring a destructive import.
+
+
+## Supabase Advisor findings reviewed (2026-10-09)
+
+The production Security Advisor reports five `rls_enabled_no_policy` informational findings. These are intentional deny-by-default tables, not missing client access rules:
+
+- `place_visits`, `location_security_states`, and `location_security_events` are server-managed through narrowly scoped RPCs; client roles have no direct table grants.
+- `event_collection_resets` is an internal reset ledger and has no direct client grants.
+- `roadside_station_registry` is maintenance data; its full replacement path is the service-role-only `replace_roadside_station_registry(jsonb)` RPC.
+
+The Advisor also reports the public `get_public_ranking(uuid, integer)` SECURITY DEFINER function. This is the sole app-owned function executable by `anon`; it is intentional for public rankings, has a fixed empty `search_path`, limits results to at most 100, and returns only display name, avatar key, ranking/counts, and the caller-relative `is_me` flag. The other client-callable SECURITY DEFINER functions are authenticated-only RPCs used for user-scoped reads or validated writes. Live inventory confirms every app-owned SECURITY DEFINER function has a fixed `search_path`, and no unexpected anonymous EXECUTE grants exist.
+
+Performance Advisor unused-index notices are expected at this point because the new production project has only just been seeded and has no meaningful production query history. Do not remove indexes on that basis; reassess after representative traffic and query-plan evidence exist.
