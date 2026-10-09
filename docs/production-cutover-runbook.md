@@ -35,18 +35,18 @@ The scripts are intentionally guarded and default to dry-run. Neither script con
    .\scripts\repair-production-migration-history.ps1 -Apply
    ```
    The repair script verifies the linked project ref and queries the database to ensure the full bootstrap actually succeeded before it can mark any version as applied. Review its version list during the dry-run.
-7. Apply the two post-baseline RPC migrations and verify history alignment:
+7. Apply the four post-baseline migrations (participation RPC, preference RPC, profile-write RPC, and atomic registry replacement) and verify history alignment:
    ```powershell
    supabase db push
    supabase migration list
    ```
-   Those RPC migrations are idempotent and are also included in the baseline. The push records the current source migration history without replaying the old bootstrap chain.
+   These migrations are idempotent and their current definitions are also represented in the clean baseline. The push records the current source migration history without replaying the old bootstrap chain.
 
 ## Still separate from database cutover
 
 - **Auth:** confirm anonymous sign-in is enabled for production, because the Flutter client uses anonymous sign-in when there is no session. This must be checked in Supabase Auth settings.
 - **Storage:** no bucket or object bytes are copied by the database seed. Review bucket visibility and policies independently. The one closed-test project URL for the Jomo Karuta cover is deliberately nulled in the seed. Official artwork permission is not yet confirmed, so do not copy those objects until rights and hashes are reviewed.
-- **Edge Functions:** do not deploy the old roadside-station importer as-is. The old deployed function may still contain its previous maintenance key even though the repository source now reads `ROADSIDESTATION_IMPORT_KEY`. The repository now replaces the non-atomic delete/reinsert with `replace_roadside_station_registry(jsonb)`: it validates and stages all 1,234 rows, preserves matched place links/GPS enrichment and operational statuses, then upserts and removes stale rows atomically. The RPC is executable only by `service_role`. Rotate the old deployed key and configure `ROADSIDESTATION_IMPORT_KEY` in Supabase Secrets before deploying this source. The available connection does not expose secret-management/deploy actions.
+- **Edge Functions:** do not deploy the old roadside-station importer as-is. The old deployed function may still contain its previous maintenance key even though the repository source now reads `ROADSIDESTATION_IMPORT_KEY`. The repository now replaces the non-atomic delete/reinsert with `replace_roadside_station_registry(jsonb)`: it validates and stages all 1,234 rows, preserves matched place links/GPS enrichment and operational statuses, then upserts and removes stale rows atomically. The RPC is executable only by `service_role`. Rotate the old closed-test key and configure `ROADSIDESTATION_IMPORT_KEY` in Supabase Secrets before deploying the importer. The connector can deploy Edge Functions but cannot create/rotate secrets. The production `delete-account` function is deployed as version 1 with gateway JWT verification enabled; verify its authenticated delete/cascade path with a disposable test user before release. Do not deploy `enrich-roadside-station-gps` or `reconcile-roadside-station-gps` until their missing source is recovered and reviewed.
 - **iOS/Android production release:** the production app build must use the production URL and publishable key. This database cutover does not release an app or alter Google Play tracks.
 - **User data:** Auth users, profiles, visits, collection history, event preferences/participation, favorites, announcement reads, location-security records, reset history, and admin membership are intentionally not copied.
 
