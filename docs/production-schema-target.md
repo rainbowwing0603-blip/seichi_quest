@@ -180,3 +180,5 @@ The candidate SQL was run inside an explicit transaction against the empty produ
 - Column-level update permission for the profile display name is present.
 
 A subsequent table inventory confirmed the production project still has no app tables after rollback. This is a successful syntax/bootstrap rehearsal, not production deployment approval. Remaining work includes role-based tests for all policies/RPCs, exact app-call coverage, Storage migration, curated master-data import, and review of extension-owned PostGIS findings.
+
+The rehearsal also created a temporary `public.__rls_probe` table after the `ensure_rls` event trigger was installed. The trigger enabled RLS on that new table, and the enclosing transaction was rolled back.
