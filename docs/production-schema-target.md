@@ -182,3 +182,10 @@ The candidate SQL was run inside an explicit transaction against the empty produ
 A subsequent table inventory confirmed the production project still has no app tables after rollback. This is a successful syntax/bootstrap rehearsal, not production deployment approval. Remaining work includes role-based tests for all policies/RPCs, exact app-call coverage, Storage migration, curated master-data import, and review of extension-owned PostGIS findings.
 
 The rehearsal also created a temporary `public.__rls_probe` table after the `ensure_rls` event trigger was installed. The trigger enabled RLS on that new table, and the enclosing transaction was rolled back.
+
+
+## Current-event preference write hardening
+
+The Flutter event service now calls `set_current_event_preference(p_event_id)` rather than directly upserting `user_event_preferences`. The RPC derives the user from `auth.uid()`, rejects inactive/missing events, and sets `updated_at` with database time. Direct client INSERT/UPDATE/DELETE on that table is revoked; the client retains only own-row SELECT access.
+
+A rollback-only authenticated-role test passed: the RPC wrote the expected current-event preference, authenticated had no direct INSERT/UPDATE table privileges, and the RPC EXECUTE grant was present. The transaction was rolled back; no test data was persisted.
