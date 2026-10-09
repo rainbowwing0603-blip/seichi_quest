@@ -63,3 +63,20 @@ WHERE c.relkind IN ('r','p')
   AND NOT c.relispartition
   AND NOT c.relrowsecurity
 ORDER BY 1,2;
+
+
+-- 7) Rewarded story preview depends on server time being callable by authenticated users only.
+SELECT p.proname AS function_name,
+       has_function_privilege('anon', p.oid, 'EXECUTE') AS anon_can_execute,
+       has_function_privilege('authenticated', p.oid, 'EXECUTE') AS authenticated_can_execute,
+       CASE
+         WHEN NOT has_function_privilege('anon', p.oid, 'EXECUTE')
+          AND has_function_privilege('authenticated', p.oid, 'EXECUTE')
+         THEN 'PASS'
+         ELSE 'FAIL: expected authenticated-only EXECUTE'
+       END AS grant_status
+FROM pg_proc p
+JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname = 'story_preview_server_time'
+  AND pg_get_function_identity_arguments(p.oid) = '';
