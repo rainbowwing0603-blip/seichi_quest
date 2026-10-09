@@ -192,3 +192,18 @@ A rollback-only authenticated-role test passed: the RPC wrote the expected curre
 
 
 A final rehearsal after the preference RPC change again passed on the empty production project inside a transaction: 25 app tables, 0 app tables without RLS, 26 policies, the auth-user trigger, automatic RLS enforcement for future public tables, 0 app-owned SECURITY DEFINER functions without a fixed search path, no unexpected anon-executable app functions, and no direct authenticated write privileges on participation or preference tables. The temporary probe table and all candidate DDL were rolled back; a follow-up inventory confirmed no app tables remain in production.
+
+
+## Rollback-only RLS integration rehearsal against closed-test data
+
+The candidate policies and grants were applied inside a transaction to the existing closed-test schema after dropping/replacing only the policy set inside that transaction. Under an authenticated test-user context, the checks returned:
+
+- 0 other-user profiles visible.
+- 0 other-user event preferences visible.
+- 0 other-user collection-history rows visible.
+- 0 unpublished announcements visible.
+- No direct authenticated INSERT/UPDATE privileges on participation or preference tables.
+- No anon SELECT privilege on profiles.
+- The three validated event-state RPCs were executable by authenticated.
+
+The transaction was rolled back. A follow-up query confirmed the closed-test project still has its original 39 public policies and none of the three new RPCs persisted. This is an integration rehearsal, not a permanent change to the closed-test project.
