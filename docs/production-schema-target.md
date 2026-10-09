@@ -1,326 +1,91 @@
-# Production Supabase schema target
+# Production schema target and live verification
 
-Status: clean schema and curated master data are present in production. Migration-history reconciliation, Auth/Storage setup, Edge Function secret rotation, and production release configuration remain open; do not release the production app until those gates are closed.
+Checked: 2026-10-09
+Production project: `npirfaoxcarfuqjlwgav`
+Closed-test source: `wxlvhpmolrtcwryaazfb`
 
-## Design objective
+## Design decisions
 
-Build the production schema from the current product contract, not by replaying the entire closed-test database history. The live closed-test catalog snapshot is evidence for current column names, constraints and relationships. It is not a production migration.
+The production database is built from a clean, explicit baseline rather than replaying the historical migration directory against an empty database. The retired `public.seichi` table and its old coupling are not recreated. Current collection uses the generic event/content/place model.
 
-## Canonical domain model
+Security defaults:
+- RLS is enabled on every application table, and a database event trigger enables RLS on future public tables.
+- Public API grants are explicit and least-privilege; new tables/functions are not auto-exposed by the local Supabase config.
+- User-owned rows are filtered by `auth.uid()`; client writes to `user_event_participations`, `user_event_preferences`, and `profiles` are routed through server-validated RPCs.
+- RPCs derive the actor from the authenticated session, validate active event/state transitions, use database timestamps, pin SECURITY DEFINER search paths, and revoke direct table mutation grants where appropriate.
+- Participation activation, participation leave, and current-event preference changes serialize per-user state changes with a transaction-scoped advisory lock.
+- The roadside-station registry importer stages and validates the full 1,234-row snapshot, performs an atomic replacement, preserves matching place links and local enrichment, and grants RPC execution only to `service_role`.
+- No test Auth users, profiles, collection history, visits, preferences, participation, favorites, announcement reads, location-security state, reset ledgers, admin membership, announcements, or test release-policy values are copied.
 
-- `events`: independently published quest/event container, with slug, active window, labels and theme.
-- `places`: normalized physical place records and geospatial point.
-- `contents`: reusable narrative, quiz, stamp and other app content.
-- `event_contents`: the event-to-content-to-place relationship, display ordering and publication window.
-- `content_blocks`: ordered story/media blocks attached to content.
-- `achievements` + `event_achievements`: achievement definitions and event associations.
-- `collection_series`, `collection_series_places`, `collection_series_regions`: only where active product flows use curated collections.
-- `geo_regions`, `geo_region_prefectures`: normalized region/reference metadata.
-- `roadside_station_registry`: source registry for official roadside-station identity and reconciliation with app places. Import through a staged, validated, atomic server-side process.
-- `profiles`: minimal user-owned profile attributes; never expose email/auth internals.
-- `collection_history`, `place_visits`: user-owned outcomes and visit evidence, written only through trusted RPC operations.
-- `user_event_preferences`, `user_event_favorites`, `user_event_participations`: user-owned event settings/relationships.
-- `announcement_reads`: per-user read state.
-- `announcements`: editorial content with publication windows; direct writes are server/admin only.
-- `app_release_policies`: minimal client-readable release constraints; only server/admin may write.
-- `location_security_states`, `location_security_events`: internal anti-abuse data; no direct client table access.
-- `event_collection_resets`: internal reset bookkeeping only if the shipped reset feature still needs it.
-- DB-side `private.admin_users` and `private.is_admin()` are intentionally omitted from the production candidate because no current Flutter callsite requires them. Future admin features should use trusted server-side authorization rather than reintroducing client-side admin mutation policies by default.
+## Live production schema and data
 
-## Explicitly excluded from the new app schema
-
-- Retired `public.seichi` and all old table-specific coupling.
-- Temporary CodeMagic bridge objects that are no longer present in the live catalog.
-- Test-only rows, user histories, user profiles, Auth users, location-security history and reset records.
-- Historical Storage URLs that point at the closed-test project.
-- Extension-owned PostGIS catalog objects such as `spatial_ref_sys`; install/manage the extension through the supported extension mechanism instead of copying its internal catalog.
-
-A table above is not automatically required just because it exists. Before finalizing the baseline, verify each table against current Flutter queries/RPCs and either include it with an owner or explicitly omit it.
-
-## Authorization model
-
-1. Exposed-schema tables use RLS. A table that the client does not need is not granted to `anon` or `authenticated` at all.
-2. Keep grants and RLS separate and explicit. No implicit auto-exposure of future tables in local configuration.
-3. App sessions include Supabase anonymous-auth users. Therefore, the Postgres role `authenticated` alone does not mean a human-verified account.
-4. Published reference content is read-only to clients and filtered by active/publication predicates.
-5. Profile and preference rows are limited to `auth.uid()`. Owner columns are immutable to the client.
-6. Collection and place-visit writes go through narrow RPCs that derive user identity from `auth.uid()`, validate event/content/place relationships, validate location/cooldown rules, and set server timestamps. Clients do not receive direct INSERT/UPDATE/DELETE grants on outcome tables.
-7. Internal registry, anti-abuse, reset and admin data is not directly accessible through the Data API.
-8. Admin operations use trusted server-managed credentials/claims. Never authorize from user-editable `user_metadata`.
-9. SECURITY DEFINER functions are exceptions, not a default. Each requires a fixed safe `search_path`, a minimal body, explicit EXECUTE grants, and anonymous/cross-user negative tests.
-10. Any exposed view uses `security_invoker = true` on supported PostgreSQL versions, unless a documented security review approves an alternative.
-
-## Required RPC contracts
-
-- `collect_stamp` (or the app's final equivalent): derives user ID from `auth.uid()`; validates active event/content/place relationship, proximity evidence and server-side cooldown; performs outcome writes atomically; is idempotent under retry; returns a stable result code without exposing internal security details.
-- `record_place_visit` only if a separate visit lifecycle is still needed: same identity/relationship validation and replay protection.
-- Admin content/registry functions: no caller-controlled user ID or shared fixed key; service-only or narrowly authorized.
-- Account deletion remains an authenticated Edge Function and must delete only the caller's Auth identity plus explicitly owned rows according to a documented retention policy.
-
-Do not finalize RPC names or signatures until the current Flutter repository call sites have been exhaustively matched.
-
-## Deployment stages
-
-1. Inventory every Flutter table/RPC/storage call and every Edge Function.
-2. Produce an ordered, repeatable schema baseline (extensions/types, tables, constraints, indexes, functions, grants/RLS, triggers).
-3. Generate curated master-data export separately from user data. Verify foreign keys and counts before import.
-4. Move only approved Storage assets after rights, hashes, MIME types and bucket visibility are confirmed.
-5. Run the schema on an isolated disposable database; rerun from empty to prove repeatability.
-6. Run `supabase/security/production_rls_audit.sql`, Supabase security advisors, and role-based positive/negative tests.
-7. Deploy production schema and master data; verify counts, geospatial queries, anonymous sign-in, RPCs and release policy.
-8. Only after gates pass, switch a production build to the production URL/key. Keep the closed-test project unchanged.
-
-## Source hardening already staged on this branch
-
-- Registry import no longer contains a fixed shared secret in the current source. It reads `ROADSIDESTATION_IMPORT_KEY` from function secrets, rejects non-POST methods, and returns generic client errors. Because the previous literal may exist in Git history and in the already-deployed closed-test function, rotate/revoke the old value in the deployed environment before any further use; deleting it from the latest source does not revoke it.
-- Account deletion accepts only POST (besides CORS preflight) and no longer returns underlying Auth/delete error details to clients.
-- `supabase/config.toml` disables automatic exposure of new tables and disables the currently broken seed configuration that pointed to a missing `supabase/seed.sql`.
-
-Important: registry import is still not production-ready. Its current delete-and-reinsert sequence is not atomic, and it still needs staging/transactional replacement, secret provisioning, request-rate controls, idempotency and an authorization test before deployment. Do not deploy this function as-is.
-
-
-## Additional live-catalog findings to address before the baseline is approved
-
-- `public.handle_new_user()` is SECURITY DEFINER and currently has `search_path = public`, unlike most app-owned SECURITY DEFINER functions whose path is pinned to an empty value and whose relations are schema-qualified. Its body schema-qualifies `public.profiles`, so the target should set its search path to empty as well and verify the auth trigger still works.
-- Several app-owned SECURITY DEFINER functions are intentionally executable by `authenticated`, and `get_public_ranking` is executable by `anon`. Keep only after reviewing each body and confirming the intended public fields/aggregate exposure. The target baseline must explicitly set EXECUTE grants after function creation because PostgreSQL defaults can otherwise expose new functions to PUBLIC.
-- Extension-owned PostGIS overloads also appear as SECURITY DEFINER and publicly executable. Do not blanket-revoke extension grants without testing PostGIS operations; distinguish extension-owned functions from app-owned functions in the privilege audit.
-- The prior registry import key has been removed from the current source, but the old value may remain in Git history and in the deployed closed-test function. Rotate/revoke it in the deployed environment before reuse. Tool access available for this task does not expose Edge Function secret management, so that rotation is a deployment gate rather than a completed action.
-
-
-## Flutter call-site reconciliation (reviewed from current `feature/android-next-release`)
-
-The initial policy matrix must accommodate these live client access patterns; do not issue broad table-level CRUD grants to make them work:
-
-| Table / function | Observed app access | Target access |
-|---|---|---|
-| `events` | SELECT active events | SELECT only; active predicate; anon access only if pre-session startup truly requires it |
-| `user_event_preferences` | SELECT own current event; UPSERT current event | SELECT/INSERT/UPDATE own row; owner immutable; client cannot set admin/system columns |
-| `user_event_participations` | SELECT, INSERT and UPDATE active participation | Own row only; move timestamps to DB defaults/trigger or RPC; never permit ownership reassignment |
-| `profiles` | SELECT own display name/avatar key | SELECT own only; client does not need direct INSERT based on current inspected service |
-| `announcements` | SELECT published announcements | SELECT only; server-controlled publication window |
-| `announcement_reads` | SELECT own reads; UPSERT read timestamps | SELECT/INSERT/UPDATE own; constrain read timestamp server-side where practical |
-| `app_release_policies` | SELECT release policy | Minimal read-only fields for anon/authenticated; server-only writes |
-| `content_blocks` | SELECT active blocks | SELECT active only; no client mutation grant |
-| `collection_history` | SELECT own event history; also calls RPCs | SELECT own only; no direct writes |
-| `get_my_collection_history()` | RPC for display history | Authenticated EXECUTE; function must derive user from `auth.uid()` |
-| `reset_event_collection_history(p_event_id)` | RPC to reset own event history | Authenticated EXECUTE only; verify caller owns the target operation inside function |
-| `record_place_visit_and_collect(...)` | RPC for visit and stamp acquisition | Authenticated EXECUTE only; derive user from `auth.uid()`; no direct INSERT/UPDATE/DELETE on visit/history tables |
-| `event_contents` and five event-content RPCs | SELECT active mappings and call paged/region/bounds/nearby/by-ID RPCs | SELECT only for public active content; explicit EXECUTE grants per RPC after body review |
-
-This call-site pass is partial, not a claim that every Dart file and Edge Function has been reconciled. Before finalizing grants, inspect remaining map/progress/ranking/series/achievement services and all server-function call sites, then verify the exact select column lists and RPC signatures. Current client code supplies timestamps to some preference/participation/read operations; the target should prefer database-generated timestamps and narrowly grant only columns the app genuinely needs.
-
-
-### Additional RPCs found in current Flutter services
-
-- `get_event_contents_by_region`
-- `get_event_contents_by_ids`
-- `get_event_contents_page`
-- `get_event_contents_in_bounds`
-- `get_event_contents_nearby`
-- `get_event_progress_summary`
-- `get_my_event_rank`
-- `get_event_regional_map_progress`
-- `get_my_location_security_state`
-- `report_location_integrity_violation`
-- Direct SELECT from `event_achievements`
-
-These are part of the client contract and must be included in the function/grant review. The per-user functions must derive the user from `auth.uid()`; public map/content functions should return only published content and bounded results. Do not blanket grant EXECUTE on all functions in `public`.
-
-
-## Live Supabase advisor baseline (closed-test project, 2026-10-09)
-
-Read-only Supabase security advisor run returned these notable findings. They are recorded as design inputs, not a mandate to copy the old setup:
-
-- **ERROR: RLS disabled in exposed schema** on extension-owned `public.spatial_ref_sys`. Treat this separately from app tables and PostGIS's supported schema layout; do not blindly alter extension internals.
-- **5 INFO findings: RLS enabled with no policies** on `private.admin_users`, `public.event_collection_resets`, `public.location_security_events`, `public.location_security_states`, and `public.roadside_station_registry`. The target should retain default-deny/no client grants for these tables; the advisor notice is not a reason to add permissive policies.
-- **PostGIS in the closed-test public schema** is flagged. The production candidate now installs PostGIS into a dedicated non-exposed `gis` schema, schema-qualifies geography types and spatial functions, grants no `gis` schema usage to `anon`, and grants only the authenticated/server roles needed for spatial RPC execution. This layout passed a rollback-only bootstrap rehearsal; run advisors again after actual deployment.
-- **4 anon-executable SECURITY DEFINER warnings** include the app's public-ranking function and three extension-owned PostGIS `st_estimatedextent` overloads. Review public-ranking's returned fields and keep extension-owned grants distinct from app-owned function grants.
-- **12 authenticated-executable SECURITY DEFINER warnings** include several app RPCs expected to be callable by the app. Review each body and explicitly grant only the needed signatures.
-- **Anonymous sign-in warnings** are expected to need a product-aware decision because the Flutter app currently uses Supabase anonymous sign-in. Do not disable anonymous sign-in without replacing that session flow.
-- **Leaked-password protection** was flagged in the advisor output; assess it for any password-based sign-in flow. The current inspected client flow is anonymous sign-in.
-
-Performance advisor also marked 20 indexes as unused in the observed workload. Since this test database has modest usage and several indexes support foreign keys or future queries, do not delete them solely from this signal. Re-evaluate indexes after the new schema and representative workload tests.
-
-
-## Event participation write path hardening
-
-The Flutter client now calls `ensure_event_participation(p_event_id)` instead of directly inserting/updating `user_event_participations` with client-provided timestamps. The matching migration:
-
-- derives the user ID from `auth.uid()`;
-- rejects missing identity, missing event ID, and inactive/nonexistent events;
-- writes `joined_at` and `updated_at` from database time;
-- reactivates an existing row without resetting the original `joined_at`;
-- revokes direct client INSERT/UPDATE/DELETE and grants only the authenticated RPC execution.
-
-The function pins an empty `search_path` and schema-qualifies its relations. This migration is staged in GitHub; production currently has the matching RPC in the bootstrap schema. Before releasing matching app source, run the migration-history repair and `supabase db push`, then verify the remote migration list and live function grants.
-
-
-### Participation RPC validation result
-
-The migration was executed inside an explicit transaction against the closed-test schema with a temporary authenticated-role context, then rolled back. The RPC returned successfully and the role could read its own participation row; a follow-up catalog check confirmed the function was absent after rollback. This validates SQL syntax and the happy path without persisting schema/data changes. Negative tests (unauthenticated, inactive/missing event, cross-user access, direct writes after migration) remain required before applying the migration.
-
-A second rollback-only privilege check also passed: `authenticated` can execute the RPC, `anon` cannot, and `authenticated` has no direct INSERT/UPDATE/DELETE privileges on `user_event_participations`. No schema or row changes were persisted.
-
-
-### Leave-participation RPC validation
-
-A rollback-only authenticated-role test on the closed-test schema called `ensure_event_participation`, then `leave_event_participation` for a non-current active event. It observed one row marked inactive with a non-null server-generated `left_at`, then rolled back the transaction. This test did not persist the function or data changes.
-
-
-## Clean-room bootstrap rehearsal (production project, transaction rolled back)
-
-The candidate SQL was run inside an explicit transaction against the empty production project and rolled back. It completed without SQL errors. The in-transaction validation query reported:
-
-- 25 app tables; 0 app tables without RLS.
-- 24 explicit client policies.
-- Auth user trigger and the public-table RLS event trigger present.
-- 0 app-owned SECURITY DEFINER functions missing a pinned search path.
-- 0 anon-executable app functions other than the intended public-ranking RPC.
-- No direct authenticated INSERT/UPDATE on `user_event_participations` or `user_event_preferences`; all three event-state RPCs are executable by authenticated.
-- Column-level update permission for the profile display name is present. A temporary table created after the RLS event trigger was installed had RLS enabled automatically.
-
-A subsequent table inventory confirmed the production project still has no app tables after rollback. This is a successful syntax/bootstrap rehearsal, not production deployment approval. Remaining work includes role-based tests for all policies/RPCs, exact app-call coverage, Storage migration, curated master-data import, and review of extension-owned PostGIS findings.
-
-The rehearsal also created a temporary `public.__rls_probe` table after the `ensure_rls` event trigger was installed. The trigger enabled RLS on that new table, and the enclosing transaction was rolled back.
-
-
-## Current-event preference write hardening
-
-The Flutter event service now calls `set_current_event_preference(p_event_id)` rather than directly upserting `user_event_preferences`. The RPC derives the user from `auth.uid()`, rejects inactive/missing events, and sets `updated_at` with database time. Direct client INSERT/UPDATE/DELETE on that table is revoked; the client retains only own-row SELECT access.
-
-A rollback-only authenticated-role test passed: the RPC wrote the expected current-event preference, authenticated had no direct INSERT/UPDATE table privileges, and the RPC EXECUTE grant was present. The transaction was rolled back; no test data was persisted.
-
-
-A final rehearsal after the preference RPC change again passed on the empty production project inside a transaction: 25 app tables, 0 app tables without RLS, 24 policies, the auth-user trigger, automatic RLS enforcement for future public tables, 0 app-owned SECURITY DEFINER functions without a fixed search path, no unexpected anon-executable app functions, and no direct authenticated write privileges on participation or preference tables. The temporary probe table and all candidate DDL were rolled back; a follow-up inventory confirmed no app tables remain in production.
-
-
-## Rollback-only RLS integration rehearsal against closed-test data
-
-The candidate policies and grants were applied inside a transaction to the existing closed-test schema after dropping/replacing only the policy set inside that transaction. Under an authenticated test-user context, the checks returned:
-
-- 0 other-user profiles visible.
-- 0 other-user event preferences visible.
-- 0 other-user collection-history rows visible.
-- 0 unpublished announcements visible.
-- No direct authenticated INSERT/UPDATE privileges on participation or preference tables.
-- No anon SELECT privilege on profiles.
-- The three validated event-state RPCs were executable by authenticated.
-
-The transaction was rolled back. A follow-up query confirmed the closed-test project still has its original 39 public policies and none of the three new RPCs persisted. This is an integration rehearsal, not a permanent change to the closed-test project.
-
-All three event-state RPCs also take a transaction-scoped per-user advisory lock, serializing preference changes, participation activation, and leave operations so concurrent requests cannot race around the “current event cannot be left” rule.
-
-After adding transaction-scoped per-user advisory locks, the preference/participation migration happy-path and privilege tests passed again inside a rollback-only transaction. The full bootstrap candidate was also rehearsed again against the empty production project and returned the same 25-table / 24-policy / RLS / function-grant validation results; the temporary probe and all DDL were rolled back.
-
-
-## Curated master-data export staged in GitHub
-
-Generated `supabase/seed/production_master_data/` from the closed-test DB without copying user-specific data. The export contains **10,320 rows across 13 master/reference tables in 47 SQL files**. See `supabase/seed/production_master_data/MANIFEST.md` for exact table counts and execution order.
-
-- Includes events, places, contents, event-content mappings, story/content blocks, achievements, geo-region mappings, collection-series mappings, and roadside-station registry.
-- Excludes user/Auth data, histories/visits, preferences/favorites/participation, announcement reads, location-security records, reset ledgers, announcements, and release-policy rows.
-- Nulls the one `events.cover_image_url` that pointed at the closed-test Supabase project. Local `assets/...` references are preserved; Storage object bytes are not copied.
-- SQL files are ordered by dependency and use `ON CONFLICT DO NOTHING` so an interrupted import can resume. They must be applied only after the schema is deployed to a clean production database.
-
-The event and first 250 place rows were imported inside a rollback-only transaction against the production project; all 250 geography values converted correctly from EWKT. At the time this section was first written, the full export had not been applied. The live production state is recorded in the final section below.
-
-Every one of the 47 seed SQL files was also executed individually against the closed-test schema inside a transaction and rolled back; no syntax/type-conversion errors were returned. The source catalog reports zero unvalidated constraints. No master-data seed has been permanently applied to the test or production project.
-
-
-The updated production candidate was re-run after relocating PostGIS into `gis`: `gis.spatial_ref_sys` exists, `public.spatial_ref_sys` does not, `anon` has no `USAGE` on `gis`, `authenticated` has the needed `USAGE`, all 25 app tables have RLS, and all app-owned SECURITY DEFINER functions have a pinned search path. EWKT seed rows still imported successfully into `gis.geography` in a rollback-only rehearsal.
-
-A final spatial smoke test under the `authenticated` role successfully executed `gis.st_distance` / `gis.st_makepoint` / `gis.st_setsrid`; the anonymous role has no `USAGE` on `gis`, the authenticated role does, and `public.spatial_ref_sys` does not exist in the target layout. All DDL was rolled back.
-
-
-The final clean candidate no longer creates the unused `private` schema or DB-side admin membership table/function. The repeated rollback-only bootstrap rehearsal still passed with 25 app tables, 24 policies, zero app tables missing RLS, isolated PostGIS in `gis`, and all four profile/event-state RPC grants present.
-
-
-The final profile-write RPC migration was tested under an authenticated role in a rollback-only transaction: profile save succeeded for the caller's own row, direct profile INSERT/UPDATE privileges were absent, and the RPC EXECUTE grant was present. The final bootstrap rehearsal now reports 24 policies (profile insert/update policies were removed when direct profile writes were replaced with `save_my_profile`).
-
-
-## Source CI regression caught and corrected
-
-The first Flutter PR check after the event page API update failed because two test fixtures still constructed `QuestPage` without the new required `events` and `onEventTap` parameters. Updated `test/quest_page_card_width_test.dart` and `test/ui_gallery_test.dart` to provide explicit empty event lists and no-op tap callbacks. A fresh CI run was triggered; its result is pending at the time of this note.
-
-
-## Safe production cutover tooling
-
-Added `scripts/bootstrap-production-schema.ps1` and `scripts/repair-production-migration-history.ps1`, plus `docs/production-cutover-runbook.md`. The bootstrap script defaults to dry-run, verifies the database URI identifies the production project, refuses a non-empty public schema, assembles the baseline plus all 47 seed files, and applies everything in one transaction with post-load count/RLS/grant assertions. It prompts for an exact production-specific confirmation before applying.
-
-The migration-history script is a separate, guarded step. It refuses to mark legacy migration versions as applied until the live DB confirms the 25-table/26-policy schema, all 13 curated data counts, automatic RLS, and absence of `public.seichi`. This is necessary because the repository's historical migration chain is not a clean bootstrap; running `supabase db push` against a blank production project before the baseline would replay legacy migrations. At the time this section was first written, neither script had been run and production was empty. Subsequent live production changes are recorded below; do not rerun the bootstrap script against the now-populated schema.
-
-
-## Full seed SQL syntax/FK rehearsal completed
-
-Every SQL file in `supabase/seed/production_master_data/` was executed against the closed-test schema inside its own `BEGIN ... ROLLBACK` transaction. All **47 data SQL files** completed without syntax errors, foreign-key violations, or permission errors. This verifies each file parses against the actual table definitions and its rows satisfy the currently enforced constraints in isolation; it is not yet a single end-to-end import of all 10,320 rows into production.
-
-No data was persisted by these rehearsals. Production now contains the reviewed schema and curated master data. Live post-load row-count, FK, spatial, RLS, and stale-URL checks are recorded in the section below. Remaining gates are migration-history repair, Auth anonymous sign-in verification, Storage review, deployed secret rotation, and release-policy initialization.
-
-
-## Atomic roadside registry importer hardening
-
-The registry importer no longer deletes and reinserts the live table in multiple network requests. Migration `20261009032000_atomic_roadside_station_registry_replace.sql` provides `public.replace_roadside_station_registry(jsonb)`:
-
-- Rejects payloads unless there are exactly 1,234 unique station records.
-- Stages and validates the entire payload before touching live rows.
-- Upserts by `(prefecture, official_name)` in one database transaction, preserving stable IDs, place links, GPS candidate fields, registration dates, and existing operational statuses/verification metadata.
-- Removes stale registry rows only after the stage and upsert succeed; any exception rolls back the whole replacement.
-- Revokes EXECUTE from PUBLIC, `anon`, and `authenticated`, granting it only to `service_role`.
-
-Rollback-only integration tests passed against the closed-test database: a 1,234-row replacement preserved the row count (1,234), linked records (1,231), and GPS candidate records (1,231); invalid row counts and duplicate station keys were rejected; and function grants were limited to `service_role`. No data changes persisted. The production schema candidate includes the same RPC.
-
-The deployed Edge Function and its secret are not changed by this repository update. Rotate the previously hardcoded key, configure `ROADSIDESTATION_IMPORT_KEY`, then deploy the reviewed function through the supported Supabase deployment path.
-
-
-## Live production state, verified 2026-10-09
-
-**This section supersedes earlier preparation notes above that described production as empty.** The production project `npirfaoxcarfuqjlwgav` currently contains the clean schema and the curated master data, applied in the dependency order from the manifest.
+The bootstrap and curated master-data import have been applied to production. **Do not rerun** `scripts/bootstrap-production-schema.ps1 -Apply` or re-import the seed on the populated project.
 
 | Validation | Live result |
 |---|---:|
-| Application tables | 25 |
-| Public RLS policies | 24 |
-| Application tables missing RLS | 0 |
+| Application tables / public RLS policies | 25 / 24 |
+| Application tables without RLS | 0 |
+| Retired `public.seichi` | absent |
 | Events | 51 |
-| Places with geography | 1,713 |
-| Contents | 2,742 |
-| Event-content mappings | 2,721 |
+| Places / places without geography | 1,713 / 0 |
+| Contents / event-content mappings | 2,742 / 2,721 |
 | Content blocks | 336 |
-| Achievements / event mappings | 18 / 18 |
+| Achievements / event-achievement mappings | 18 / 18 |
 | Geo regions / prefecture mappings | 57 / 141 |
 | Collection series / place mappings / region mappings | 1 / 1,231 / 57 |
-| Roadside station registry | 1,234 |
+| Roadside-station registry | 1,234 |
 | Orphan event-content mappings | 0 |
-| Duplicate roadside registry keys | 0 |
-| Rows in profiles, visits, collection history, preferences, participation | 0 |
-| Announcement rows / release-policy rows | 0 / 0 |
-| Retired `public.seichi` table | Absent |
+| Duplicate registry keys | 0 |
 | Closed-test project URLs in exported app master data | 0 |
+| User-specific rows copied | 0 |
+| Announcements / production release-policy rows | 0 / 0 |
 
-A live spatial query using the PostGIS geography index succeeded and returned nearby places; all 2,721 event-content rows joined to valid event/content/place records. The atomic registry RPC is present with a pinned empty search path and EXECUTE granted only to `service_role`. Production Auth settings and Storage contents were not changed.
+The PostGIS nearby-place query succeeded. All 2,721 event-content mappings join to valid events, contents, and places. The read-only function audit confirms app-owned SECURITY DEFINER functions have fixed search paths and expected EXECUTE grants.
 
-**Important remaining task:** the Supabase migration history is still empty. Do not rerun `scripts/bootstrap-production-schema.ps1`; it should refuse because the schema is no longer empty. The next database-maintenance step is to use the guarded `scripts/repair-production-migration-history.ps1` from a local checkout linked to the production project, then run `supabase db push` so the post-baseline migrations are recorded idempotently. Migration filenames now have unique 14-digit versions. This requires the local Supabase CLI and a direct database URI, neither of which is available through the current connector. Auth anonymous sign-in, Storage policies/assets, the deployed importer key rotation, and production `app_release_policies` remain separate gates before the app can be pointed at production.
+## RLS advisor findings
 
+The five `rls_enabled_no_policy` findings are intentional server-only tables: `event_collection_resets`, `location_security_events`, `location_security_states`, `place_visits`, and `roadside_station_registry`. RLS is enabled and direct client table grants are absent.
 
-The post-load integrity pass also returned zero orphan rows for event/content/place mappings, content blocks, event achievements, region-prefecture mappings, collection-series place/region mappings, and roadside-registry place links. All 1,713 place geography values have SRID 4326. The Supabase security advisor's five `rls_enabled_no_policy` findings are intentional for server-only tables (`event_collection_resets`, `location_security_events`, `location_security_states`, `place_visits`, `roadside_station_registry`): RLS is enabled and direct client table grants are absent. SECURITY DEFINER advisor warnings correspond to the reviewed RPC API surface; each app-owned definer function must retain its fixed empty search path and least-privilege EXECUTE grants.
+The SECURITY DEFINER advisor findings represent callable RPCs, not automatically vulnerabilities. Each function must keep a fixed search path and validate user identity/arguments. `get_public_ranking` is intentionally callable anonymously to support public rankings; the remaining user-facing RPCs are restricted to `authenticated`, while the atomic registry replacement is restricted to `service_role`. Re-run the advisor after any RPC or grant change.
 
+The performance advisor currently reports 31 unused indexes. This is a newly initialized production database, so the advisor has little workload history. Do not drop indexes solely from this initial unused-index report; compare each index against foreign keys, uniqueness constraints, query plans, and real workload before any removal.
 
-## Atomic roadside-station registry replacement
+## Curated data export
 
-Added migration `20261009032000_atomic_roadside_station_registry_replace.sql` for the `replace_roadside_station_registry(jsonb)` RPC already called by the maintenance Edge Function. It stages and validates the complete 1,234-row authoritative snapshot, upserts while preserving place links and locally verified status, removes stale registry entries, verifies the final count, and commits as one database transaction. EXECUTE is revoked from PUBLIC/anon/authenticated and granted only to `service_role`.
+`supabase/seed/production_master_data/MANIFEST.md` lists all 10,320 master/reference rows across 13 tables and the numbered SQL files. `VERIFY.sql` is a read-only verification query, not a seed file. Both bootstrap and import scripts now select only numbered `NNN_*.sql` data files and exclude `VERIFY.sql`.
 
-A rollback-only rehearsal on the closed-test database created the RPC temporarily, submitted the existing 1,234-row registry as a normalized authoritative snapshot, confirmed the final count remained 1,234, and confirmed an empty/invalid payload was rejected. The transaction was rolled back. The production project has the RPC in its clean schema; this rehearsal validates behavior against the closed-test source schema. The migration file is retained for reproducibility and post-baseline migration history.
+The event seed nulls the one cover URL that pointed at the closed-test Supabase project. Local Flutter `assets/...` paths remain local references; no Storage bytes were copied. The Jomo Karuta official artwork permission is still unconfirmed, so do not copy or redistribute Storage objects until object hashes, MIME types, bucket policies, and rights are reviewed.
 
+## Migration history: remaining maintenance step
 
-## Seed SQL validation and guarded import runner
+The live schema and data exist, but `supabase migration list` currently returns an empty production migration history. A direct catalog query also found no `supabase_migrations.schema_migrations` relation. Do not assume the CLI history is initialized.
 
-All 47 master-data SQL files were individually executed inside rollback-only transactions against the closed-test schema to validate SQL syntax and object/column compatibility. Because that database already contains the source rows and the inserts are idempotent, those runs do **not** prove the inserts themselves work against an empty target. A production transaction separately proved that the candidate schema accepts all 51 event rows and 250 real place rows including EWKT geography conversion; the full 10,320-row cross-table import was applied through the guarded production bootstrap; live row counts and relationship checks now match the manifest. The individual-file rollback rehearsal alone was not treated as proof of a complete import.
+From a local checkout with the Supabase CLI installed:
+1. Link to the exact production ref `npirfaoxcarfuqjlwgav`.
+2. Set `SUPABASE_DB_URL` only in the current PowerShell session to the direct production database URI.
+3. Run `scripts/repair-production-migration-history.ps1` in dry-run mode and review the legacy versions it proposes to mark applied.
+4. If and only if its live preflight says `READY`, run the script with `-Apply` and the required typed confirmation. It marks repository migrations older than `20261009010000` as represented by the clean baseline.
+5. Run `supabase db push` to apply/record the four post-baseline migrations: participation RPC, preference RPC, profile-write RPC, and atomic registry replacement.
+6. Verify `supabase migration list`, re-run the read-only RLS audit, and run the data-count/FK/spatial checks. Never rerun the one-time schema bootstrap.
 
-Added `scripts/import-production-master-data.ps1` with dry-run as the default, a production project-ref guard, typed confirmation, one transaction per file, stop-on-error behavior, resumable partial-import mode, and exact post-import row-count checks. GitHub static checks now guard these protections.
+This local CLI operation cannot be completed by the current database connector. Do not manually create or edit migration-history rows through ad hoc SQL.
 
+## Remaining production release gates
 
-## Current live-state correction, 2026-10-09
+- Confirm production Auth anonymous sign-in in the dashboard. The Flutter app creates an anonymous session when no session exists; local `supabase/config.toml` does not prove the hosted setting.
+- Review Storage bucket policies and assets. No Storage objects were copied.
+- Rotate the previously deployed closed-test roadside-import secret and set `ROADSIDESTATION_IMPORT_KEY` as a Supabase secret before deploying the reviewed importer. Source changes do not rotate a deployed secret or erase old Git history.
+- Recover/review `enrich-roadside-station-gps` and `reconcile-roadside-station-gps` function source before deploying either.
+- Confirm the production `delete-account` function is compatible with the reviewed source and verify the authenticated deletion path/cascade behavior before release.
+- Insert a deliberate production `app_release_policies` row only after the production build code/version, minimum supported build, store URL, and update message are decided. The table is intentionally empty now.
+- Wait for Flutter and iOS CI checks, perform production-configured smoke tests, and only then prepare a production build. No Google Play track or app release was changed by this cutover.
 
-The production database is no longer empty: it contains 25 application tables, 24 public RLS policies, and all 10,320 curated master/reference rows. The current live audit returned zero missing place geography values, zero orphan event-content mappings, zero duplicate roadside registry keys, zero closed-test project URLs in exported master data, and zero rows in the excluded user-specific tables. Do not rerun the one-time schema bootstrap or the seed import on a fully populated production project.
+## Reproducible artifacts
 
-The Supabase migration-history repair and subsequent `supabase db push` still require a local Supabase CLI session linked to the exact production project. A direct catalog query did not find `supabase_migrations.schema_migrations`; follow the runbook and verify the migration list rather than assuming history is initialized. Auth anonymous sign-in, Storage/assets and rights, deployed maintenance-key rotation, and a reviewed production `app_release_policies` row remain release gates.
+- `supabase/baselines/closed_test_catalog_snapshot_20261009.sql`: evidence-only live test catalog snapshot, not a replayable baseline.
+- `supabase/baselines/production_schema_candidate_20261009.sql`: clean production schema candidate.
+- `supabase/seed/production_master_data/`: curated data export and manifest.
+- `supabase/security/production_rls_audit.sql`: read-only live function/grant audit.
+- `scripts/bootstrap-production-schema.ps1`: guarded one-time bootstrap, dry-run by default.
+- `scripts/import-production-master-data.ps1`: guarded seed importer, dry-run by default.
+- `scripts/repair-production-migration-history.ps1`: guarded local CLI migration-history reconciliation.
