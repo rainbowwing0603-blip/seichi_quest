@@ -76,7 +76,7 @@ This local CLI operation cannot be completed by the current database connector. 
 - Review Storage bucket policies and assets. No Storage objects were copied.
 - Rotate the previously deployed closed-test roadside-import secret and set `ROADSIDESTATION_IMPORT_KEY` as a Supabase secret before deploying the reviewed importer. Source changes do not rotate a deployed secret or erase old Git history.
 - Recover/review `enrich-roadside-station-gps` and `reconcile-roadside-station-gps` function source before deploying either.
-- Production `delete-account` Edge Function v1 is now deployed with gateway JWT verification enabled and the reviewed source from `supabase/functions/delete-account/`. Before release, verify the authenticated deletion path and database/Auth cascade behavior with a disposable test user; no production user exists to test against.
+- Production `delete-account` Edge Function v2 is deployed with gateway JWT verification enabled, POST/OPTIONS CORS methods, and the reviewed source from `supabase/functions/delete-account/`. Before release, verify the authenticated deletion path and database/Auth cascade behavior with a disposable test user; no production user exists to test against.
 - Insert a deliberate production `app_release_policies` row only after the production build code/version, minimum supported build, store URL, and update message are decided. The table is intentionally empty now.
 - Wait for Flutter and iOS CI checks, perform production-configured smoke tests, and only then prepare a production build. No Google Play track or app release was changed by this cutover.
 
