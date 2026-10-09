@@ -18,8 +18,8 @@ Production maintenance functions are intentionally not deployed until their secr
 - `verify-roadside-station-gsi` in the closed-test project is currently only a minimal health response, not a full validation workflow. Do not treat it as evidence that station coordinates have been verified.
 - Production currently has only `delete-account` deployed (version 2, gateway JWT verification enabled). The three maintenance functions above are not deployed to production.
 
-Before any maintenance deployment:
-1. Set/rotate all three secrets in Supabase Dashboard → Edge Functions → Secrets.
-2. Pass the repository's Supabase Security Source Check, including Deno type checks.
-3. Test missing-secret, invalid-key, non-POST, dry-run, and explicit-apply behavior against a non-production project.
+Before enabling or using maintenance operations:
+1. Set independently generated V2 values for all three secrets in Supabase Dashboard → Edge Functions → Secrets. Deployment does not create or rotate secrets.
+2. Keep the repository's Supabase Security Source Check and Deno type checks passing.
+3. Exercise missing-secret, invalid-key, non-POST, dry-run, and explicit-apply behavior against a non-production project. The deployment connector cannot invoke endpoints or manage secrets, so this runtime check remains outstanding.
 4. Confirm the live registry count and expected updated-row count before any apply run.
