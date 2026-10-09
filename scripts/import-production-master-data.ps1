@@ -20,7 +20,7 @@ if (-not $psqlCommand) {
     throw "psql was not found. Install PostgreSQL command-line tools before importing."
 }
 
-$files = @(Get-ChildItem -LiteralPath $seedRoot -Filter "*.sql" -File | Sort-Object Name)
+$files = @(Get-ChildItem -LiteralPath $seedRoot -Filter "*.sql" -File | Where-Object { $_.Name -match "^\d{3}_" } | Sort-Object Name)
 if ($files.Count -ne 47) {
     throw "Expected 47 ordered seed SQL files, found $($files.Count). Review the manifest before proceeding."
 }
