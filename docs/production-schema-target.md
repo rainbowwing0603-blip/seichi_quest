@@ -120,3 +120,12 @@ The production Supabase advisors were reviewed after the live cutover:
 - **Unused-index advisor (30 findings):** the production project has only just been bootstrapped and has no meaningful production query history yet. Indexes are retained until workload statistics exist; do not drop them based on zero usage immediately after cutover.
 
 A catalog-driven check examined all **34 foreign-key constraints** from public application tables to public/Auth tables and found **0 violations**. The migration-history repair script was also corrected to include both historical 8-digit migration filenames as well as the newer 14-digit versions; otherwise those two legacy versions could have been omitted from the repair list and replayed by \`supabase db push\`.
+
+
+## Additional live production checks (2026-10-09)
+
+A rollback-only smoke test inserted two synthetic anonymous Auth users inside a transaction, then exercised `save_my_profile`, `set_current_event_preference`, and `ensure_event_participation` as the authenticated role. The user could read their own profile/preference, could not read the other synthetic user's profile, and could not directly UPDATE `profiles`, `user_event_preferences`, or `user_event_participations`. Attempting to leave the currently selected event was rejected with the expected validation error. The entire transaction was rolled back; a separate post-check confirmed **0 Auth users, 0 profiles, 0 participation rows, and 0 preference rows** remain.
+
+The refreshed read-only `supabase/seed/production_master_data/VERIFY.sql` completed without SQL errors. Live inventory reports 0 app tables without RLS, 0 app-owned SECURITY DEFINER functions without a fixed search path, and 0 direct client write grants on the three RPC-protected tables. Production Storage currently has **0 buckets and 0 objects**, and both Android/iOS release-policy row counts are 0. These are intentional pre-release gates, not evidence that Storage-backed artwork or store-update enforcement is ready.
+
+The remaining hosted setting that cannot be verified through the available project/database API is **Auth anonymous sign-in**. Confirm it in the Supabase Dashboard before releasing the Flutter build, because the app creates an anonymous session when no session exists.
