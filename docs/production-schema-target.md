@@ -232,3 +232,6 @@ The import trigger on `places` had set all 1,713 `updated_at` values to the impo
 
 
 A fresh advisor query on 2026-10-09 returned 16 `unused_index` findings (the count can vary as advisor snapshots and workload statistics change). This replaces older notes in this document that reported 30/31; indexes remain in place until there is representative production traffic and query-plan evidence.
+
+
+Migration-history repair inventory on the current branch: **79 SQL migration files total**, comprising **75 legacy/pre-baseline versions** to mark applied and **4 post-baseline migrations** to apply with `supabase db push`. The four post-baseline files are `20261009010000_secure_event_participation_rpc.sql`, `20261009020000_secure_event_preference_rpc.sql`, `20261009031000_secure_profile_write_rpc.sql`, and `20261009032000_atomic_roadside_station_registry_replace.sql`. The live production schema already contains the corresponding reviewed objects, so the local CLI sequence must start with the script's dry-run and exact preflight; never manually insert migration history rows or run an unguarded push.
