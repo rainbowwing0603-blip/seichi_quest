@@ -53,8 +53,46 @@ BEGIN
 END;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.leave_event_participation(p_event_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $function$
+DECLARE
+  v_user_id uuid := auth.uid();
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION '認証が必要です.' USING ERRCODE = '28000';
+  END IF;
+
+  IF p_event_id IS NULL THEN
+    RAISE EXCEPTION 'event_idは必須です.' USING ERRCODE = '22023';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.user_event_preferences pref
+    WHERE pref.user_id = v_user_id
+      AND pref.current_event_id = p_event_id
+  ) THEN
+    RAISE EXCEPTION '現在選択中のイベントは参加解除できません.' USING ERRCODE = '22023';
+  END IF;
+
+  UPDATE public.user_event_participations p
+  SET is_active = false,
+      left_at = now(),
+      updated_at = now()
+  WHERE p.user_id = v_user_id
+    AND p.event_id = p_event_id
+    AND p.is_active = true;
+END;
+$function$;
+
 REVOKE ALL ON FUNCTION public.ensure_event_participation(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.ensure_event_participation(uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.leave_event_participation(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.leave_event_participation(uuid) TO authenticated;
 
 -- The app now uses the validated RPC rather than client-supplied timestamps.
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.user_event_participations FROM anon, authenticated;
