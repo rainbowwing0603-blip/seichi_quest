@@ -186,3 +186,6 @@ The individual 47 seed SQL files were also executed in rollback-only transaction
 
 
 A further rollback-only negative test confirmed `leave_event_participation` rejects attempts to leave the currently selected event with the intended validation error, preserves the current preference, and does so while direct authenticated UPDATE privileges on both event participation and preference tables remain revoked.
+
+
+Profile RPC negative tests also rejected an unsupported age group and an unsupported avatar key with the expected validation errors. Both tests were rollback-only; the closed-test profile data was not changed.
