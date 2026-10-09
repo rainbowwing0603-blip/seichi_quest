@@ -85,3 +85,26 @@ Important: registry import is still not production-ready. Its current delete-and
 - Several app-owned SECURITY DEFINER functions are intentionally executable by `authenticated`, and `get_public_ranking` is executable by `anon`. Keep only after reviewing each body and confirming the intended public fields/aggregate exposure. The target baseline must explicitly set EXECUTE grants after function creation because PostgreSQL defaults can otherwise expose new functions to PUBLIC.
 - Extension-owned PostGIS overloads also appear as SECURITY DEFINER and publicly executable. Do not blanket-revoke extension grants without testing PostGIS operations; distinguish extension-owned functions from app-owned functions in the privilege audit.
 - The prior registry import key has been removed from the current source, but the old value may remain in Git history and in the deployed closed-test function. Rotate/revoke it in the deployed environment before reuse. Tool access available for this task does not expose Edge Function secret management, so that rotation is a deployment gate rather than a completed action.
+
+
+## Flutter call-site reconciliation (reviewed from current `feature/android-next-release`)
+
+The initial policy matrix must accommodate these live client access patterns; do not issue broad table-level CRUD grants to make them work:
+
+| Table / function | Observed app access | Target access |
+|---|---|---|
+| `events` | SELECT active events | SELECT only; active predicate; anon access only if pre-session startup truly requires it |
+| `user_event_preferences` | SELECT own current event; UPSERT current event | SELECT/INSERT/UPDATE own row; owner immutable; client cannot set admin/system columns |
+| `user_event_participations` | SELECT, INSERT and UPDATE active participation | Own row only; move timestamps to DB defaults/trigger or RPC; never permit ownership reassignment |
+| `profiles` | SELECT own display name/avatar key | SELECT own only; client does not need direct INSERT based on current inspected service |
+| `announcements` | SELECT published announcements | SELECT only; server-controlled publication window |
+| `announcement_reads` | SELECT own reads; UPSERT read timestamps | SELECT/INSERT/UPDATE own; constrain read timestamp server-side where practical |
+| `app_release_policies` | SELECT release policy | Minimal read-only fields for anon/authenticated; server-only writes |
+| `content_blocks` | SELECT active blocks | SELECT active only; no client mutation grant |
+| `collection_history` | SELECT own event history; also calls RPCs | SELECT own only; no direct writes |
+| `get_my_collection_history()` | RPC for display history | Authenticated EXECUTE; function must derive user from `auth.uid()` |
+| `reset_event_collection_history(p_event_id)` | RPC to reset own event history | Authenticated EXECUTE only; verify caller owns the target operation inside function |
+| `record_place_visit_and_collect(...)` | RPC for visit and stamp acquisition | Authenticated EXECUTE only; derive user from `auth.uid()`; no direct INSERT/UPDATE/DELETE on visit/history tables |
+| `event_contents` and five event-content RPCs | SELECT active mappings and call paged/region/bounds/nearby/by-ID RPCs | SELECT only for public active content; explicit EXECUTE grants per RPC after body review |
+
+This call-site pass is partial, not a claim that every Dart file and Edge Function has been reconciled. Before finalizing grants, inspect remaining map/progress/ranking/series/achievement services and all server-function call sites, then verify the exact select column lists and RPC signatures. Current client code supplies timestamps to some preference/participation/read operations; the target should prefer database-generated timestamps and narrowly grant only columns the app genuinely needs.
