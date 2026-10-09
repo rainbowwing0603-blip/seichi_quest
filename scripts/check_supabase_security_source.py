@@ -12,6 +12,8 @@ def require(label: str, condition: bool) -> None:
 
 config = (ROOT / "supabase/config.toml").read_text(encoding="utf-8")
 importer = (ROOT / "supabase/functions/import-roadside-station-registry/index.ts").read_text(encoding="utf-8")
+gps_enrich = (ROOT / "supabase/functions/enrich-roadside-station-gps/index.ts").read_text(encoding="utf-8")
+gps_reconcile = (ROOT / "supabase/functions/reconcile-roadside-station-gps/index.ts").read_text(encoding="utf-8")
 delete_account = (ROOT / "supabase/functions/delete-account/index.ts").read_text(encoding="utf-8")
 schema_target = ROOT / "docs/production-schema-target.md"
 audit_sql = ROOT / "supabase/security/production_rls_audit.sql"
@@ -39,6 +41,10 @@ require("registry importer does not hardcode a key literal", not re.search(r'''c
 require("registry importer fails closed if secret is missing", "if (!IMPORT_KEY)" in importer and "status: 503" in importer)
 require("registry importer restricts method", 'req.method !== "POST"' in importer)
 require("registry importer delegates replacement to atomic RPC", 'sb.rpc(\n    "replace_roadside_station_registry"' in importer and "DELETE FROM public.roadside_station_registry" not in importer)
+require("GPS enrichment key comes from environment", 'Deno.env.get("ROADSIDESTATION_GPS_ENRICH_KEY")' in gps_enrich and "sq-roadside-gps-enrich-20260925-v1" not in gps_enrich)
+require("GPS reconciliation key comes from environment", 'Deno.env.get("ROADSIDESTATION_GPS_RECONCILE_KEY")' in gps_reconcile and "sq-roadside-gps-reconcile-20260925-v1" not in gps_reconcile)
+require("GPS maintenance functions require POST and fail closed without secrets", all('req.method!=="POST"' in source and "maintenance function is not configured" in source and 'req.headers.get("x-import-key")!==KEY' in source for source in (gps_enrich,gps_reconcile)))
+require("GPS maintenance functions validate coordinate bounds", all("Math.abs(lat)<=90" in source and "Math.abs(lon)<=180" in source for source in (gps_enrich,gps_reconcile)))
 require("registry importer uses atomic replacement RPC", 'replace_roadside_station_registry' in importer and '.from("roadside_station_registry").delete()' not in importer);
 require("atomic registry RPC pins search_path and uses SECURITY DEFINER", "SECURITY DEFINER\nSET search_path = ''" in (ROOT / "supabase/migrations/20261009032000_atomic_roadside_station_registry_replace.sql").read_text(encoding="utf-8"));
 require("atomic registry RPC is not executable by anon/authenticated", "REVOKE ALL ON FUNCTION public.replace_roadside_station_registry(jsonb) FROM PUBLIC, anon, authenticated" in (ROOT / "supabase/migrations/20261009032000_atomic_roadside_station_registry_replace.sql").read_text(encoding="utf-8"));
