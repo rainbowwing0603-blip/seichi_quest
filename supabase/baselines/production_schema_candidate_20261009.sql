@@ -402,7 +402,6 @@ CREATE INDEX collection_history_event_content_idx ON public.collection_history U
 CREATE INDEX collection_history_place_idx ON public.collection_history USING btree (place_id);
 CREATE INDEX collection_history_place_visit_idx ON public.collection_history USING btree (place_visit_id);
 CREATE INDEX collection_history_user_collected_at_idx ON public.collection_history USING btree (user_id, collected_at DESC);
-CREATE UNIQUE INDEX collection_history_user_event_content_unique ON public.collection_history USING btree (user_id, event_content_id);
 CREATE INDEX collection_history_user_event_idx ON public.collection_history USING btree (user_id, event_id);
 CREATE INDEX collection_history_user_id_idx ON public.collection_history USING btree (user_id);
 CREATE INDEX collection_series_places_place_idx ON public.collection_series_places USING btree (place_id);
@@ -410,7 +409,6 @@ CREATE INDEX collection_series_places_series_pref_idx ON public.collection_serie
 CREATE INDEX collection_series_regions_region_idx ON public.collection_series_regions USING btree (region_id);
 CREATE INDEX content_blocks_content_order_idx ON public.content_blocks USING btree (content_id, display_order, id) WHERE (is_active = true);
 CREATE INDEX contents_is_active_idx ON public.contents USING btree (is_active);
-CREATE UNIQUE INDEX contents_type_content_key_unique ON public.contents USING btree (type, content_key);
 CREATE INDEX event_achievements_achievement_idx ON public.event_achievements USING btree (achievement_id);
 CREATE INDEX event_achievements_event_sort_idx ON public.event_achievements USING btree (event_id, sort_order);
 CREATE INDEX event_collection_resets_event_idx ON public.event_collection_resets USING btree (event_id);
@@ -418,11 +416,9 @@ CREATE INDEX event_contents_active_idx ON public.event_contents USING btree (is_
 CREATE INDEX event_contents_content_idx ON public.event_contents USING btree (content_id);
 CREATE INDEX event_contents_event_idx ON public.event_contents USING btree (event_id);
 CREATE INDEX event_contents_place_idx ON public.event_contents USING btree (place_id);
-CREATE UNIQUE INDEX event_contents_unique ON public.event_contents USING btree (event_id, content_id, place_id);
 CREATE INDEX geo_region_prefectures_prefecture_idx ON public.geo_region_prefectures USING btree (prefecture);
 CREATE INDEX location_security_events_user_occurred_idx ON public.location_security_events USING btree (user_id, occurred_at DESC);
 CREATE INDEX place_visits_place_idx ON public.place_visits USING btree (place_id);
-CREATE UNIQUE INDEX place_visits_user_client_unique ON public.place_visits USING btree (user_id, client_visit_id);
 CREATE INDEX place_visits_user_idx ON public.place_visits USING btree (user_id);
 CREATE INDEX place_visits_visited_at_idx ON public.place_visits USING btree (visited_at);
 CREATE INDEX places_category_prefecture_idx ON public.places USING btree (category, prefecture);
