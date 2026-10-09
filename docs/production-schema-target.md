@@ -201,3 +201,18 @@ Asset-path reconciliation: the 88 distinct `assets/...` paths referenced by `con
 
 
 Production release gate inventory is currently empty by design: 0 Storage buckets, 0 Storage objects, 0 Auth users, and 0 rows in `app_release_policies` (no active Android/iOS release policy). This is appropriate for the isolated schema/data bootstrap, but the app must not be treated as release-ready until the actual media-storage requirement, artwork rights, anonymous sign-in setting, and release-policy values are explicitly resolved.
+
+
+## 2026-10-09 incremental validation update
+
+To avoid oversized requests, seed SQL execution checks were run one file at a time inside explicit rollback-only transactions. The event, place, content, achievement, region, collection-series, event-content, content-block, event-achievement, prefecture mapping, collection-series-place/region, and roadside-registry seed files returned successful SQL execution; no rows were persisted by these checks. This is syntax/constraint coverage against an already-populated schema, not a clean empty-database import rehearsal.
+
+Read-only live production integrity checks were then run in small table groups:
+- Events 51, places 1,713, contents 2,742; 0 closed-test project URLs in these three tables and 0 places missing geography.
+- Event-content mappings 2,721, content blocks 336, achievements 18, event-achievement mappings 18; 0 orphan event/content/place/block/achievement relationships.
+- Geo regions 57, prefecture mappings 141, collection series 1; 0 orphan region mappings, duplicate region codes, or duplicate region/prefecture pairs.
+- Collection-series place mappings 1,231, region mappings 57, roadside-station registry 1,234; 0 orphan series/place/region/registry-place relationships, duplicate (prefecture, official_name) keys, or invalid registry status values.
+
+Deployed Edge Function source was compared byte-for-byte with the GitHub branch: production delete-account v2 and closed-test import-roadside-station-registry v12, enrich-roadside-station-gps v16, reconcile-roadside-station-gps v2, and verify-roadside-station-gsi v2 all matched their checked-in index.ts. Gateway JWT verification is enabled on all four closed-test maintenance functions and production delete-account.
+
+The production Supabase migration history is still empty. The guarded PowerShell repair script requires the production-linked local checkout, Supabase CLI, psql, and SUPABASE_DB_URL; do not substitute manual SQL inserts into migration history. That CLI dry-run/repair sequence remains a separate cutover gate.
