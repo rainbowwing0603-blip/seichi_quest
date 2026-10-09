@@ -29,7 +29,7 @@ SELECT CASE
   WHEN (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
         WHERE n.nspname='public' AND c.relkind IN ('r','p')
           AND c.relname <> 'spatial_ref_sys' AND NOT c.relispartition) = 25
-   AND (SELECT count(*) FROM pg_policies WHERE schemaname='public') = 26
+   AND (SELECT count(*) FROM pg_policies WHERE schemaname='public') = 24
    AND to_regclass('public.seichi') IS NULL
    AND (SELECT count(*) FROM public.events) = 51
    AND (SELECT count(*) FROM public.places) = 1713
@@ -77,7 +77,7 @@ $versions = @(
 if ($versions.Count -eq 0) { throw 'No pre-baseline migration versions found.' }
 
 Write-Host "Verified production project: $expectedProjectRef"
-Write-Host "Verified clean bootstrap: 25 tables, 26 policies, master data counts, RLS, no public.seichi"
+Write-Host "Verified clean bootstrap: 25 tables, 24 policies, master data counts, RLS, no public.seichi"
 Write-Host "Migration versions to mark applied: $($versions.Count)"
 Write-Host ($versions -join ', ')
 if (-not $Apply) {
