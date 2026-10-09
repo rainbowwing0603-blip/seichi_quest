@@ -47,3 +47,8 @@ The scripts are intentionally guarded and default to dry-run. Neither script con
 ## Recovery
 
 The bootstrap schema and all 47 seed SQL files are assembled into a temporary local SQL file and executed as one explicit transaction. Any SQL error should leave the transaction rolled back. Before retrying, check that public/private/GIS application schemas remain empty and that the production migration history has no entries. If the transaction succeeded, do not rerun it: the migration-history repair script is the next step. If migration repair is interrupted, inspect `supabase migration list` and the remote migration history before retrying.
+
+
+## Production release policy gate
+
+The baseline creates `app_release_policies` but deliberately leaves it empty. Before distributing a production build, insert a reviewed policy row for each platform with the intended current build, minimum supported build, version label, store URL, and update message. Do not copy the closed-test values automatically. The app fails open if no active policy row exists, but then it cannot enforce a minimum version.
