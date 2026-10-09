@@ -64,7 +64,7 @@ export default {
       );
     }
 
-    console.log(`[DELETE_ACCOUNT] authenticated user: ${userId}`);
+    console.log("[DELETE_ACCOUNT] authenticated request accepted");
 
     try {
       const { error } =
@@ -86,7 +86,7 @@ export default {
         );
       }
 
-      console.log(`[DELETE_ACCOUNT] deleted user: ${userId}`);
+      console.log("[DELETE_ACCOUNT] account deletion completed");
 
       return jsonResponse({ ok: true });
     } catch (error) {
