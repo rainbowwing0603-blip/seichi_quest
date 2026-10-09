@@ -15,7 +15,6 @@ Create or verify the GitHub Environment named `production`. Store credentials th
 - Secret `ANDROID_KEY_ALIAS`.
 - Secret `ANDROID_KEY_PASSWORD`.
 - Secret `GOOGLE_MAPS_API_KEY`: production Android Maps key, restricted to the production package and signing certificate where applicable.
-- Variable `ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID`: the production AdMob rewarded-ad unit used to unlock a spot's story for one hour. Do not use Google's test ad unit.
 
 Do not add a service-account publishing credential to this workflow. It intentionally has no Play publishing step.
 
@@ -24,7 +23,7 @@ Do not add a service-account publishing credential to this workflow. It intentio
 1. Confirm the production Environment's required variables/secrets exist without displaying their values.
 2. In Play Console, check the highest version code already used by any uploaded bundle. Enter a **higher, unused** positive integer as `build_number`. The workflow deliberately does not guess or reserve a Play version code.
 3. Dispatch this workflow only from the reviewed `feature/android-next-release` branch. The workflow enforces this branch guard; the workflow ref is the code that gets built.
-4. Confirm reviewed migration `20261009164000_grant_story_preview_server_time.sql` has been applied to production and its authenticated RPC access has been verified. The rewarded story preview feature depends on this grant.
+4. Confirm reviewed migration `20261009164000_grant_story_preview_server_time.sql` has been applied to production and its authenticated RPC access has been verified.
 5. Wait for analyze, tests, and the signed AAB build to finish.
 6. Download the artifact and verify `app-release.aab.sha256` before transferring it.
 7. Install/test the artifact in a controlled environment before any store upload.
@@ -33,6 +32,7 @@ Do not add a service-account publishing credential to this workflow. It intentio
 
 - A successful CI build proves the artifact can be produced; it does not prove production anonymous sign-in, GPS collection, ads, account deletion, or data isolation works on a device.
 - The workflow guards against the known closed-test URL/key, but the publishable key must still be verified in the protected GitHub Environment.
+- **Rewarded-ad story preview is not yet implemented in the app source on this branch.** This workflow does not configure or enable that feature; the current story gate remains collection-based. Implement and test the rewarded preview separately before promising one-hour story unlocks.
 - The AAB artifact is retained for seven days. No store publication is performed.
 - Do not populate `app_release_policies` until the actual release build number and public store URL are confirmed.
 - Do not test account deletion with a real user's account. Use a disposable production test account only after confirming that its records can safely be deleted.
