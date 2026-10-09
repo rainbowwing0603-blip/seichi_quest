@@ -28,6 +28,18 @@ BEGIN
     RAISE EXCEPTION '年齢区分が不正です.' USING ERRCODE = '22023';
   END IF;
 
+  IF v_age_group IS NOT NULL AND v_age_group NOT IN (
+    '10代以下', '20代', '30代', '40代', '50代', '60代', '70代以上', '回答しない'
+  ) THEN
+    RAISE EXCEPTION '年齢区分が不正です.' USING ERRCODE = '22023';
+  END IF;
+
+  IF v_avatar_key IS NOT NULL AND v_avatar_key NOT IN (
+    'adventurer', 'mountain', 'shrine', 'camera', 'train', 'star'
+  ) THEN
+    RAISE EXCEPTION 'アバター設定が不正です.' USING ERRCODE = '22023';
+  END IF;
+
   IF v_avatar_key IS NOT NULL AND char_length(v_avatar_key) > 64 THEN
     RAISE EXCEPTION 'アバター設定が不正です.' USING ERRCODE = '22023';
   END IF;
