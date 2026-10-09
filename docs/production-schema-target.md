@@ -76,7 +76,7 @@ This local CLI operation cannot be completed by the current database connector. 
 - Review Storage bucket policies and assets. No Storage objects were copied.
 - Rotate the previously deployed closed-test roadside-import secret and set `ROADSIDESTATION_IMPORT_KEY` as a Supabase secret before deploying the reviewed importer. Source changes do not rotate a deployed secret or erase old Git history.
 - Recover/review `enrich-roadside-station-gps` and `reconcile-roadside-station-gps` function source before deploying either.
-- Confirm the production `delete-account` function is compatible with the reviewed source and verify the authenticated deletion path/cascade behavior before release.
+- Production `delete-account` Edge Function v1 is now deployed with gateway JWT verification enabled and the reviewed source from `supabase/functions/delete-account/`. Before release, verify the authenticated deletion path and database/Auth cascade behavior with a disposable test user; no production user exists to test against.
 - Insert a deliberate production `app_release_policies` row only after the production build code/version, minimum supported build, store URL, and update message are decided. The table is intentionally empty now.
 - Wait for Flutter and iOS CI checks, perform production-configured smoke tests, and only then prepare a production build. No Google Play track or app release was changed by this cutover.
 
@@ -89,3 +89,6 @@ This local CLI operation cannot be completed by the current database connector. 
 - `scripts/bootstrap-production-schema.ps1`: guarded one-time bootstrap, dry-run by default.
 - `scripts/import-production-master-data.ps1`: guarded seed importer, dry-run by default.
 - `scripts/repair-production-migration-history.ps1`: guarded local CLI migration-history reconciliation.
+
+
+The production Supabase security advisor reports five `rls_enabled_no_policy` INFO findings for server-only tables with no direct client grants, one anonymous SECURITY DEFINER warning for `get_public_ranking` (intentionally public ranking), and authenticated SECURITY DEFINER warnings for the reviewed RPC API. The live privilege matrix confirms that anon cannot read profiles/history/places or call the registry replacement RPC, authenticated cannot directly write profile/history/participation/preference tables, and only `service_role` can call `replace_roadside_station_registry`. Keep the fixed `search_path` and explicit grants as release gates.
