@@ -19,6 +19,12 @@ export default {
     if (req.method === "OPTIONS") {
       return new Response("ok", { headers: corsHeaders });
     }
+    if (req.method !== "POST") {
+      return new Response("method not allowed", {
+        status: 405,
+        headers: { ...corsHeaders, "Allow": "POST, OPTIONS" },
+      });
+    }
 
     const { data: ctx, error: authError } =
       await createSupabaseContext(req, {
@@ -36,8 +42,6 @@ export default {
         {
           ok: false,
           error: "ユーザー認証に失敗しました。",
-          auth_message: authError.message,
-          auth_code: authError.code,
         },
         authError.status ?? 401,
       );
@@ -76,7 +80,6 @@ export default {
           {
             ok: false,
             error: "アカウントの削除に失敗しました。",
-            delete_message: error.message,
           },
           500,
         );
