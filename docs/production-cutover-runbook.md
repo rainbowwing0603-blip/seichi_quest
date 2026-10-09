@@ -22,7 +22,7 @@ The scripts are intentionally guarded and default to dry-run. Neither script con
    .\scripts\bootstrap-production-schema.ps1
    .\scripts\bootstrap-production-schema.ps1 -Apply
    ```
-   The script refuses to run if public/private/GIS application schemas or migration history are already populated, or if the connection URI does not identify the expected project. It imports 25 application tables, 26 reviewed public RLS policies, and 10,320 master/reference rows. It verifies table/policy counts, RLS, the automatic-RLS event trigger, the absence of `public.seichi`, event-state write grants, and each curated table's row count before committing.
+   The script refuses to run if public/private/GIS application schemas or migration history are already populated, or if the connection URI does not identify the expected project. It imports 25 application tables, 24 reviewed public RLS policies, and 10,320 master/reference rows. It verifies table/policy counts, RLS, the automatic-RLS event trigger, the absence of `public.seichi`, event-state write grants, and each curated table's row count before committing.
 6. Only after the bootstrap transaction succeeds, mark all repository migrations older than `20261009010000` as already represented by the baseline:
    ```powershell
    .\scripts\repair-production-migration-history.ps1
