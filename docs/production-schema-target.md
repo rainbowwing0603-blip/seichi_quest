@@ -183,3 +183,6 @@ A fresh read-only integrity query against the live source DB returned:
 - 0 orphan rows for event-content → event/content/place, content-block → content, event-achievement → event/achievement, collection-series-place → series/place, collection-series-region → series/region, geo-region-prefecture → region, or registry → place.
 
 The individual 47 seed SQL files were also executed in rollback-only transactions for SQL parse/execution checks. Because they use `ON CONFLICT DO NOTHING` and were checked against a DB that already contains the source records, this is **not** a clean-database full-import rehearsal. A complete all-rows import into an empty schema still needs one end-to-end transactional rehearsal before production approval.
+
+
+A further rollback-only negative test confirmed `leave_event_participation` rejects attempts to leave the currently selected event with the intended validation error, preserves the current preference, and does so while direct authenticated UPDATE privileges on both event participation and preference tables remain revoked.
