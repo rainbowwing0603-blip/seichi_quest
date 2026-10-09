@@ -192,3 +192,6 @@ Profile RPC negative tests also rejected an unsupported age group and an unsuppo
 
 
 Production geospatial smoke tests passed against real master data: `get_event_contents_nearby` returned the expected colocated record at 0 m distance, and `get_event_contents_in_bounds` returned the record inside the requested coordinate box. All 1,713 places have non-null coordinates; PostGIS 3.3.7 is installed in the `gis` schema.
+
+
+Geospatial verification also returned 1,713/1,713 places as non-empty `ST_Point` geography values with SRID 4326; 0 latitude/longitude versus geography mismatches; 0 invalid registry candidate coordinate pairs; and 1,231 registry-to-place links. This reduces risk in the EWKT seed conversion, but does not replace a full empty-schema import rehearsal.
