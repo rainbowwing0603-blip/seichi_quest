@@ -20,7 +20,7 @@ BEGIN
     RAISE EXCEPTION '認証が必要です.' USING ERRCODE = '28000';
   END IF;
 
-  IF v_display_name IS NOT NULL AND char_length(v_display_name) > 60 THEN
+  IF v_display_name IS NOT NULL AND char_length(v_display_name) > 30 THEN
     RAISE EXCEPTION '表示名が長すぎます.' USING ERRCODE = '22023';
   END IF;
 
