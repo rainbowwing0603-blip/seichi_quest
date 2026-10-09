@@ -5,7 +5,6 @@
 BEGIN;
 CREATE SCHEMA IF NOT EXISTS gis;
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA gis;
-CREATE SCHEMA IF NOT EXISTS private;
 
 -- 1. Table columns
 CREATE TABLE public.achievements (
@@ -1739,14 +1738,10 @@ EXECUTE FUNCTION public.rls_auto_enable();
 -- Revoke inherited client grants, then explicitly grant only current app access.
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM anon, authenticated, PUBLIC;
 REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated, PUBLIC;
-REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA private FROM anon, authenticated, PUBLIC;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO service_role;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA private TO service_role;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO service_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA private TO service_role;
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
-GRANT USAGE ON SCHEMA private TO service_role;
 GRANT USAGE ON SCHEMA gis TO authenticated, service_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA gis TO authenticated, service_role;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA gis TO service_role;
@@ -1800,7 +1795,7 @@ BEGIN
     SELECT p.oid::regprocedure AS signature
     FROM pg_proc p
     JOIN pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname IN ('public', 'private')
+    WHERE n.nspname = 'public'
       AND p.prokind = 'f'
       AND NOT EXISTS (
         SELECT 1 FROM pg_depend d
