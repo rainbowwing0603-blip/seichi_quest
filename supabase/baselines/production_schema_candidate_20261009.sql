@@ -1,7 +1,7 @@
 -- PRODUCTION SCHEMA CANDIDATE generated from the 2026-10-09 closed-test catalog.
 -- NOT YET APPROVED FOR PRODUCTION. This is a clean bootstrap candidate, not a row-data export.
 -- Review docs/production-schema-target.md, then rehearse inside a rollback transaction on an empty database.
--- User data, Auth users, old public.seichi, and the old client-admin mutation policies are intentionally excluded.
+-- User data, Auth users, old public.seichi, DB-side admin membership, and client-admin mutation policies are intentionally excluded.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
 CREATE SCHEMA IF NOT EXISTS private;
@@ -442,22 +442,6 @@ CREATE INDEX user_event_preferences_current_event_idx ON public.user_event_prefe
 
 
 -- 7. All non-extension-owned public/private function definitions
-CREATE OR REPLACE FUNCTION private.is_admin()
- RETURNS boolean
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO ''
-AS $function$
-  select
-    (select auth.uid()) is not null
-    and exists (
-      select 1
-      from private.admin_users au
-      where au.user_id = (select auth.uid())
-    );
-$function$
-;
-
 CREATE OR REPLACE FUNCTION public.enforce_location_collection_cooldown()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -904,16 +888,6 @@ AS $function$
       where favorite.event_id = p_event_id
         and favorite.user_id = auth.uid()
     ) as is_favorited;
-$function$
-;
-
-CREATE OR REPLACE FUNCTION public.get_my_admin_status()
- RETURNS boolean
- LANGUAGE sql
- STABLE
- SET search_path TO ''
-AS $function$
-  select private.is_admin();
 $function$
 ;
 
@@ -1444,21 +1418,21 @@ DECLARE
 BEGIN
   FOR cmd IN
     SELECT *
-    FROM pg_event_trigger_ddl_commands()
-    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
-      AND object_type IN ('table','partitioned table')
+    FROM pg_event_trigger_ddl_commands() c
+    WHERE c.command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+      AND c.object_type IN ('table', 'partitioned table')
+      AND c.schema_name = 'public'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM pg_class rel
+        JOIN pg_depend dep
+          ON dep.classid = 'pg_class'::regclass
+         AND dep.objid = rel.oid
+         AND dep.deptype = 'e'
+        WHERE rel.oid = c.objid
+      )
   LOOP
-     IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') AND cmd.schema_name NOT IN ('pg_catalog','information_schema') AND cmd.schema_name NOT LIKE 'pg_toast%' AND cmd.schema_name NOT LIKE 'pg_temp%' THEN
-      BEGIN
-        EXECUTE format('alter table if exists %s enable row level security', cmd.object_identity);
-        RAISE LOG 'rls_auto_enable: enabled RLS on %', cmd.object_identity;
-      EXCEPTION
-        WHEN OTHERS THEN
-          RAISE LOG 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity;
-      END;
-     ELSE
-        RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;
-     END IF;
+    EXECUTE format('ALTER TABLE %s ENABLE ROW LEVEL SECURITY', cmd.objid::regclass);
   END LOOP;
 END;
 $function$
@@ -1673,6 +1647,11 @@ CREATE TRIGGER on_auth_user_created
 AFTER INSERT ON auth.users
 FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+DROP EVENT TRIGGER IF EXISTS ensure_rls;
+CREATE EVENT TRIGGER ensure_rls
+ON ddl_command_end
+EXECUTE FUNCTION public.rls_auto_enable();
+
 
 -- Revoke inherited client grants, then explicitly grant only current app access.
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM anon, authenticated, PUBLIC;
@@ -1684,6 +1663,7 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA private TO service_role;
 
 -- PostGIS reference metadata is public/read-only; the extension-owned table is not an app table.
+ALTER TABLE public.spatial_ref_sys DISABLE ROW LEVEL SECURITY;
 GRANT SELECT ON TABLE public.spatial_ref_sys TO anon, authenticated;
 
 -- Read-only public/master data required by the current Flutter app.
@@ -1761,7 +1741,6 @@ GRANT EXECUTE ON FUNCTION public.get_public_ranking(uuid, integer) TO anon, auth
 GRANT EXECUTE ON FUNCTION public.record_place_visit_and_collect(uuid, uuid, timestamp with time zone, double precision, double precision, double precision, text, jsonb) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.report_location_integrity_violation(text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.reset_event_collection_history(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_event_regional_map_progress(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.story_preview_server_time() TO authenticated;
 
 -- Do not expose private admin membership or trigger-only functions to client roles.
