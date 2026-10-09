@@ -138,3 +138,8 @@ The main stamp-collection write path was also exercised in a rollback-only produ
 
 
 The production `delete-account` Edge Function is active at version 2 with gateway JWT verification enabled. Its deployed `index.ts` was compared byte-for-byte (after trimming surrounding whitespace) with the reviewed GitHub source and matched exactly. The Deno CI workflow now type-checks the registry importer, GPS enrichment, GPS reconciliation, and account deletion functions; run 7 passed all four checks.
+
+
+## Atomic registry replacement regression check (2026-10-09)
+
+Executed the production registry replacement RPC as `service_role` inside an explicit rollback-only transaction using the current 1,234-row registry as the payload. The RPC completed successfully; post-call checks confirmed 1,234 total rows, 1,231 place links, 1,231 verified coordinate candidates, 33 operationally-open rows, and 3 opening-pending rows. The transaction was rolled back, so the live registry was not changed. This validates the RPC's payload contract and its preservation of place/GPS/status fields without requiring a destructive import.
