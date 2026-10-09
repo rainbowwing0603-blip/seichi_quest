@@ -22,7 +22,7 @@ The scripts are intentionally guarded and default to dry-run. Neither script con
    .\scripts\bootstrap-production-schema.ps1
    .\scripts\bootstrap-production-schema.ps1 -Apply
    ```
-   The script refuses to run if the public schema is not empty or if the connection URI does not identify the expected project. It imports 25 application tables, 26 reviewed public RLS policies, and 10,320 master/reference rows. It verifies table/policy counts, RLS, the automatic-RLS event trigger, the absence of `public.seichi`, event-state write grants, and each curated table's row count before committing.
+   The script refuses to run if public/private/GIS application schemas or migration history are already populated, or if the connection URI does not identify the expected project. It imports 25 application tables, 26 reviewed public RLS policies, and 10,320 master/reference rows. It verifies table/policy counts, RLS, the automatic-RLS event trigger, the absence of `public.seichi`, event-state write grants, and each curated table's row count before committing.
 6. Only after the bootstrap transaction succeeds, mark all repository migrations older than `20261009010000` as already represented by the baseline:
    ```powershell
    .\scripts\repair-production-migration-history.ps1
@@ -46,4 +46,4 @@ The scripts are intentionally guarded and default to dry-run. Neither script con
 
 ## Recovery
 
-The bootstrap schema and all 47 seed SQL files are assembled into a temporary local SQL file and executed as one explicit transaction. Any SQL error should leave the transaction rolled back. Before retrying, check that the public application table count remains zero. If the transaction succeeded, do not rerun it: the migration-history repair script is the next step. If migration repair is interrupted, inspect `supabase migration list` and the remote migration history before retrying.
+The bootstrap schema and all 47 seed SQL files are assembled into a temporary local SQL file and executed as one explicit transaction. Any SQL error should leave the transaction rolled back. Before retrying, check that public/private/GIS application schemas remain empty and that the production migration history has no entries. If the transaction succeeded, do not rerun it: the migration-history repair script is the next step. If migration repair is interrupted, inspect `supabase migration list` and the remote migration history before retrying.
