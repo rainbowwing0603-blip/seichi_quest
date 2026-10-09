@@ -28,7 +28,16 @@ class StoryPreviewUnlockService {
     final preferences = await _preferencesLoader();
     final key = _keyFor(normalizedId);
     final rawExpiry = preferences.getString(key);
-    final expiry = rawExpiry == null ? null : DateTime.tryParse(rawExpiry);
+    if (rawExpiry == null) {
+      return null;
+    }
+
+    final expiry = DateTime.tryParse(rawExpiry);
+    if (expiry == null) {
+      await preferences.remove(key);
+      return null;
+    }
+
     final serverNow = await _serverNow();
     if (!StoryPreviewAccessPolicy.isActive(
       expiresAt: expiry,
@@ -38,7 +47,7 @@ class StoryPreviewUnlockService {
       return null;
     }
 
-    return expiry!.toUtc().difference(serverNow);
+    return expiry.toUtc().difference(serverNow);
   }
 
   Future<DateTime> grantOneHour(String contentId) async {
