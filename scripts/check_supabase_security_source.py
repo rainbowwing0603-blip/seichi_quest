@@ -67,6 +67,7 @@ require("production import makes each SQL file transactional", "--single-transac
 require("production import verifies source row counts", "all 13 master-table counts match" in production_import.read_text(encoding="utf-8"))
 require("production bootstrap is guarded and dry-run by default", bootstrap_script.is_file() and "[switch]$Apply" in bootstrap_script.read_text(encoding="utf-8") and "Type APPLY" in bootstrap_script.read_text(encoding="utf-8"))
 require("migration history repair checks completed bootstrap first", repair_script.is_file() and "NOT_READY" in repair_script.read_text(encoding="utf-8") and "Type REPAIR" in repair_script.read_text(encoding="utf-8"))
+require("migration history repair includes legacy 8-digit versions", r"\d{8,14}" in repair_script.read_text(encoding="utf-8"))
 require("cutover runbook blocks legacy migration replay", cutover_runbook.is_file() and "Do **not** run `supabase db push`" in cutover_runbook.read_text(encoding="utf-8"))
 require("production candidate does not recreate retired seichi", "CREATE TABLE public.seichi " not in candidate)
 require("production candidate has no direct client-admin mutation policies", "content_blocks_admin_insert" not in candidate and "events_admin_update_theme" not in candidate)
