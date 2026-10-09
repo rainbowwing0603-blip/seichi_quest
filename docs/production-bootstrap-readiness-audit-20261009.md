@@ -194,3 +194,12 @@ This is a starting policy design, not yet executable SQL. The final policy set m
 - Added `docs/production-schema-target.md` and `supabase/security/production_rls_audit.sql` to describe the clean model and provide read-only privilege/RLS review queries.
 
 These are source changes staged for review, not deployed runtime changes. The registry importer is still explicitly blocked from production: its delete-and-reinsert sequence is not atomic, and it needs a staging/transactional replacement, secret provisioning, and negative authorization tests. Do not deploy it as-is. The account-deletion function also still needs end-to-end verification against the app's actual call path and cascade/retention behavior.
+
+
+## Live-state addendum, 2026-10-09
+
+This addendum supersedes the original read-only/empty-production snapshot above. Since that snapshot, the clean production schema and curated master data have been applied. The live project now has 25 app tables, 24 public RLS policies, 0 app tables without RLS, 10,320 master/reference rows across 13 tables, 0 orphan event-content mappings, no duplicate roadside registry keys, and no `public.seichi` table. User-specific tables remain empty, and the exported app master data contains no closed-test project URLs.
+
+The registry importer source was also hardened: the old multi-request delete/reinsert was replaced with `replace_roadside_station_registry(jsonb)`, which stages and validates the 1,234-row source, upserts atomically, preserves matching place links/GPS candidate metadata and operational statuses, removes stale rows only after staging succeeds, and is executable only by `service_role`. Rollback-only tests verified successful replacement, invalid-count and duplicate rejection, preserved link/GPS counts, and grants. The function is included in the production baseline and a versioned migration.
+
+The production migration history is still empty. Do not rerun the bootstrap script. Next is the guarded local Supabase CLI migration-history repair followed by `supabase db push`; the current connector cannot run the CLI repair operation. Production Auth anonymous sign-in, Storage bucket/object review, deployed maintenance-key rotation, and production `app_release_policies` remain open before releasing an app build. Latest source guard, specification gate, Flutter, and iOS workflows passed on commit `d794540`; subsequent documentation-only updates may trigger new documentation checks.
