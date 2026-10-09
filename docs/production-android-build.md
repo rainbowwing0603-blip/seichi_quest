@@ -4,6 +4,8 @@ This workflow builds a signed production AAB for review only. It does **not** up
 
 Workflow: `.github/workflows/production-android-build.yml`
 
+**Dispatch prerequisite:** GitHub only accepts `workflow_dispatch` for workflows present on the repository's default branch. This PR currently targets `feature/android-next-release`, so the workflow will not be manually runnable until the same reviewed workflow file is also present on the default branch. Once that prerequisite is met, select `feature/android-next-release` as the run ref; the workflow rejects other refs. Do not merge to the default branch or publish a release without the normal review/approval.
+
 ## Required GitHub Environment configuration
 
 Create or verify the GitHub Environment named `production`. Store credentials there, never in repository files or workflow inputs.
@@ -22,7 +24,7 @@ Do not add a service-account publishing credential to this workflow. It intentio
 
 1. Confirm the production Environment's required variables/secrets exist without displaying their values.
 2. In Play Console, check the highest version code already used by any uploaded bundle. Enter a **higher, unused** positive integer as `build_number`. The workflow deliberately does not guess or reserve a Play version code.
-3. Dispatch this workflow only from the reviewed `feature/android-next-release` branch. The workflow enforces this branch guard; the workflow ref is the code that gets built.
+3. First confirm the workflow file exists on the repository's default branch (see dispatch prerequisite above). Then dispatch it from the reviewed `feature/android-next-release` branch. The workflow enforces this branch guard; the selected ref is the code that gets built.
 4. Confirm reviewed migration `20261009164000_grant_story_preview_server_time.sql` has been applied to production and its authenticated RPC access has been verified.
 5. Wait for analyze, tests, and the signed AAB build to finish.
 6. Download the artifact and verify `app-release.aab.sha256` before transferring it.
