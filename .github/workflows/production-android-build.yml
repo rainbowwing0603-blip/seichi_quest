@@ -36,7 +36,9 @@ jobs:
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
         run: |
           set -euo pipefail
+          [[ "$GITHUB_REF" == "refs/heads/feature/android-next-release" ]] || { echo "::error::Run this production workflow only from the reviewed feature/android-next-release branch."; exit 1; }
           [[ "$BUILD_NUMBER" =~ ^[1-9][0-9]*$ ]] || { echo "::error::build_number must be a positive integer."; exit 1; }
+          (( BUILD_NUMBER <= 2100000000 )) || { echo "::error::build_number exceeds Android/Google Play's supported maximum."; exit 1; }
           [[ "$SUPABASE_URL" == "https://npirfaoxcarfuqjlwgav.supabase.co" ]] || { echo "::error::SUPABASE_URL does not match the approved production project."; exit 1; }
           test -n "$SUPABASE_PUBLISHABLE_KEY" || { echo "::error::SUPABASE_PUBLISHABLE_KEY is missing."; exit 1; }
           [[ "$SUPABASE_PUBLISHABLE_KEY" != "sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w" ]] || { echo "::error::Closed-test Supabase key cannot be used for production."; exit 1; }
