@@ -108,3 +108,20 @@ The initial policy matrix must accommodate these live client access patterns; do
 | `event_contents` and five event-content RPCs | SELECT active mappings and call paged/region/bounds/nearby/by-ID RPCs | SELECT only for public active content; explicit EXECUTE grants per RPC after body review |
 
 This call-site pass is partial, not a claim that every Dart file and Edge Function has been reconciled. Before finalizing grants, inspect remaining map/progress/ranking/series/achievement services and all server-function call sites, then verify the exact select column lists and RPC signatures. Current client code supplies timestamps to some preference/participation/read operations; the target should prefer database-generated timestamps and narrowly grant only columns the app genuinely needs.
+
+
+### Additional RPCs found in current Flutter services
+
+- `get_event_contents_by_region`
+- `get_event_contents_by_ids`
+- `get_event_contents_page`
+- `get_event_contents_in_bounds`
+- `get_event_contents_nearby`
+- `get_event_progress_summary`
+- `get_my_event_rank`
+- `get_event_regional_map_progress`
+- `get_my_location_security_state`
+- `report_location_integrity_violation`
+- Direct SELECT from `event_achievements`
+
+These are part of the client contract and must be included in the function/grant review. The per-user functions must derive the user from `auth.uid()`; public map/content functions should return only published content and bounded results. Do not blanket grant EXECUTE on all functions in `public`.
