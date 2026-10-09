@@ -47,6 +47,11 @@ require("event service uses preference RPC", "set_current_event_preference" in e
 require("both participation RPCs are in candidate", "public.ensure_event_participation" in candidate and "public.leave_event_participation" in candidate)
 require("preference RPC is in candidate", "public.set_current_event_preference" in candidate)
 require("future public tables default to least privilege", "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public" in candidate and "REVOKE ALL PRIVILEGES ON TABLES FROM anon, authenticated, PUBLIC" in candidate)
+seed_dir = ROOT / "supabase/seed/production_master_data"
+require("master-data manifest exists", (seed_dir / "MANIFEST.md").is_file())
+require("post-import verifier exists", (seed_dir / "VERIFY.sql").is_file())
+seed_sql = "\n".join(p.read_text(encoding="utf-8") for p in seed_dir.glob("*.sql") if p.name != "VERIFY.sql")
+require("master-data export excludes user histories and profiles", all(f"INSERT INTO public.{table}" not in seed_sql for table in ("profiles", "collection_history", "place_visits", "announcement_reads", "user_event_preferences", "user_event_participations", "user_event_favorites", "location_security_events", "location_security_states")))
 
 failed = [label for label, ok in checks if not ok]
 for label, ok in checks:
