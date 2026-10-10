@@ -196,8 +196,15 @@ class ContentBlockRenderer extends StatelessWidget {
   }
 
   double _aspectRatioFor(ContentBlock block) {
-    final configured = block.metadata['aspect_ratio'];
+    // Karuta picture and reading cards should share the same portrait frame.
+    // Do not let per-image metadata make one card appear larger than the other.
+    switch (block.role) {
+      case 'picture_card':
+      case 'reading_card':
+        return 730 / 909;
+    }
 
+    final configured = block.metadata['aspect_ratio'];
     if (configured is num && configured > 0) {
       return configured.toDouble();
     }
@@ -205,9 +212,6 @@ class ContentBlockRenderer extends StatelessWidget {
     switch (block.role) {
       case 'hero':
         return 16 / 9;
-      case 'picture_card':
-      case 'reading_card':
-        return 4 / 3;
       case 'product':
         return 1;
       default:
