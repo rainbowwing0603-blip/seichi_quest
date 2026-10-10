@@ -92,3 +92,11 @@
 |---|---|---|
 | 特権RPCの分離 | `supabase/migrations/20261010233406_move_security_definer_rpcs_to_private_wrappers.sql` | 14個の実装を非公開の `private` スキーマへ移し、`public` は `SECURITY INVOKER` ラッパーに限定。アプリ向け引数・戻り値・authenticated実行権限を維持し、`anon` と `PUBLIC` の実行を拒否 |
 | 内部セキュリティテーブル | `event_collection_resets`, `location_security_events`, `location_security_states`, `roadside_station_registry` | RLS有効、APIロールへの直接テーブル権限なし。RLSポリシーなしは意図的なdeny-by-defaultとして扱い、警告を消すための公開ポリシー追加は行わない |
+
+
+## 2026-10-11 production internal-table deny policies
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 内部テーブルの直接アクセス防止 | `supabase/migrations/20261010233558_add_explicit_deny_policies_to_internal_tables.sql` | 運用テーブル4件と `private.admin_users` に `anon` / `authenticated` 向けの明示的な拒否ポリシーを設定。既存の特権RPCの処理権限と直接テーブル権限の不存在を確認 |
+| 匿名サインインに関するAdvisor通知 | `authenticated` ロールを使う匿名サインイン方式と公開コンテンツの読み取りポリシー | 自分の履歴のみ読める制約と公開コンテンツの読み取りを維持。通知を消す目的で匿名サインインや必要な読み取りを無効化しない |
