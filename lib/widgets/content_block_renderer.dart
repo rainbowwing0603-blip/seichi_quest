@@ -188,6 +188,10 @@ class ContentBlockRenderer extends StatelessWidget {
     switch (block.role) {
       case 'picture_card':
       case 'reading_card':
+        // Both karuta cards occupy the exact same portrait frame. Fill that
+        // frame so source images with slightly different intrinsic ratios do
+        // not make one visible card look smaller than the other.
+        return BoxFit.fill;
       case 'product':
         return BoxFit.contain;
       default:
