@@ -108,11 +108,10 @@ class EventService {
     }
 
     try {
-      await _client.from('user_event_preferences').upsert({
-        'user_id': user.id,
-        'current_event_id': eventId,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }, onConflict: 'user_id');
+      await _client.rpc(
+        'set_current_event_preference',
+        params: {'p_event_id': eventId},
+      );
 
       appDebugPrint('[EVENT] preference saved: eventId=$eventId');
     } catch (error) {
@@ -129,44 +128,11 @@ class EventService {
     }
 
     try {
-      final existing = await _client
-          .from('user_event_participations')
-          .select('is_active')
-          .eq('user_id', user.id)
-          .eq('event_id', eventId)
-          .maybeSingle();
-
-      if (existing == null) {
-        final now = DateTime.now().toUtc().toIso8601String();
-
-        await _client.from('user_event_participations').insert({
-          'user_id': user.id,
-          'event_id': eventId,
-          'joined_at': now,
-          'is_active': true,
-          'left_at': null,
-          'updated_at': now,
-        });
-
-        appDebugPrint('[EVENT] participation created: eventId=$eventId');
-        return;
-      }
-
-      if (existing['is_active'] == true) {
-        return;
-      }
-
-      await _client
-          .from('user_event_participations')
-          .update({
-            'is_active': true,
-            'left_at': null,
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
-          })
-          .eq('user_id', user.id)
-          .eq('event_id', eventId);
-
-      appDebugPrint('[EVENT] participation reactivated: eventId=$eventId');
+      await _client.rpc(
+        'ensure_event_participation',
+        params: {'p_event_id': eventId},
+      );
+      appDebugPrint('[EVENT] participation ensured: eventId=$eventId');
     } catch (error) {
       appDebugPrint('[EVENT] participation ensure failed: $error');
       rethrow;

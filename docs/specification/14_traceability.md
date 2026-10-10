@@ -31,3 +31,13 @@
 ファイル移動・責務分割時はこの表も更新する。テーブルやRPCを削除する前に、対応するFlutter参照が残っていないか確認する。ユーザー向け表示と内部セキュリティ/GPS検証メタデータの境界もレビュー対象とする。
 
 | Supabase環境分離 | `lib/main.dart`、リリースWorkflow | `APP_ENV` / `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY`。本番は別Supabaseプロジェクトを使用 |
+
+
+## 2026-10-09 production schema rebuild
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 参加状態 | `lib/services/event_service.dart` → `ensure_event_participation` RPC; `supabase/migrations/20261009010000_secure_event_participation_rpc.sql` | サーバー時刻、`auth.uid()`、非アクティブイベント拒否、直接書込権限の剥奪 |
+| 本番DB設計 | `docs/production-schema-target.md`; `supabase/baselines/closed_test_catalog_snapshot_20261009.sql` | 現行カタログは参照用。新規DBでの空からの再構築とマスターデータ整合性テストが必要 |
+| RLS/GRANT監査 | `supabase/security/production_rls_audit.sql` | 全公開テーブルのRLS、明示GRANT、関数EXECUTE、ビューのsecurity_invoker、他ユーザーアクセス拒否 |
+| Supabaseソースガード | `scripts/check_supabase_security_source.py`; `.github/workflows/supabase-security-source-check.yml` | 固定キーの再混入、auto-exposure、欠落seed、参加RPCの権限要件を静的検査 |

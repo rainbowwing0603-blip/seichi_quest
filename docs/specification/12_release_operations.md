@@ -54,3 +54,24 @@ AAB作成とPlay Consoleへのアップロードは別事実として記録す�
 - クローズドテスト用Play Workflowは必ず `APP_ENV=closed_test` を指定する。本番用Workflowは、本番Supabase URLとpublishable keyをGitHub Environmentの保護された変数/Secretsから渡し、テスト用既定値へのフォールバックを許さない。
 - 本番プロジェクトはスキーマ・RLS・RPC・Edge Functions・Storage・Auth設定を検証し、イベント/スポット等のマスターデータを反映してから接続先を有効化する。ユーザー履歴は、別途移行方針が承認されない限り移行しない。
 - 本番プロジェクト作成時は東京リージョン `ap-northeast-1` を優先候補とし、作成前に費用を確認する。
+
+
+## 本番切替の現況（2026-10-09）
+
+本番Supabaseプロジェクト `npirfaoxcarfuqjlwgav`（東京リージョン）は作成済み。クリーンスキーマ25テーブル、RLS 24ポリシー、マスターデータ13テーブル10,320件を反映し、旧 `public.seichi` は存在しない。場所の地理座標、イベント/コンテンツの関連整合性、重複レジストリ、テストプロジェクトURL残存、ユーザー個人データ混入を確認し、いずれも問題なし。production `delete-account` Edge Function v2はJWT検証とPOST/OPTIONSのCORS preflightを有効にしてデプロイ済み。
+
+2026-10-10時点の実行結果：ガード付きスクリプトで旧75件のmigration履歴を登録し、続けてレビュー済みの新規5件を本番へ適用済み。 `supabase migration list --linked` で80件すべてのLocal/Remote一致を確認した。主要マスターデータ件数とスポットの必須位置情報も再確認済み。
+
+残る本番リリース前ゲートは次のとおり。
+- Auth匿名サインイン：Supabase Dashboardで実設定を確認する。ローカルの `config.toml` だけでは本番設定の証明にならない。
+- Storage：本番バケット・オブジェクトは現在0件。必要なバケット/ポリシーと素材の権利を別途確認する。上毛かるた公式画像の許諾は未確認。
+- メンテナンス用Edge Functions：本番にあるのは `delete-account` v2（`verify_jwt=true`）のみ。道の駅/GPS用関数はV2 secret設定とテストを完了し、別途承認されるまで本番へデプロイしない。
+- アカウント削除：使い捨てテストアカウントで認証・削除カスケードを実機確認する。
+- `app_release_policies`：現在0件は初回本番リリース前の意図した状態。実際に公開するビルド番号/バージョンと公開ストアURLを確定してから登録し、クローズドテストの値を流用しない。
+- 本番アプリ：本番URLとpublishable keyでビルドし、実機スモークテスト後にPlay Consoleのトラックとアップロード済みAABを別途確認する。DB移行によって本番アプリを公開したわけではない。
+
+## 2026-10-10 production build readiness update
+
+- The production migration list currently contains 80 versions; all 80 are represented locally. The reviewed corrective migration `20261009164000_grant_story_preview_server_time.sql` is the only local migration not yet applied to production. Apply it only after review, then verify 81 local/remote versions match. Do not repeat the historical migration-history repair or the five already-applied post-baseline migrations.
+- `.github/workflows/production-android-build.yml` builds a signed production AAB for artifact review only. It requires the protected `production` GitHub Environment and a versionCode confirmed unused in Play Console. It does not upload/publish to Play or write `app_release_policies`. Setup and limitations are documented in `docs/production-android-build.md`.
+- The current Flutter source still reveals story content only after collecting the spot. A rewarded-ad flow that unlocks an individual spot's story for one hour is **not implemented**; the server-time grant does not implement the client UI/ad/persistence flow. Do not describe this feature as shipped until the client implementation and device tests are complete.

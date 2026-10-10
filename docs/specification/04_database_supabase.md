@@ -25,3 +25,39 @@ Advisorは、policy無しRLSテーブル、public schemaのPostGIS extension、S
 
 ## 変更原則
 DDLはmigrationとして管理し、適用後は本番migration履歴・RLS・RPC・アプリ互換を確認する。productionへ手作業で先行変更した場合は必ずGitへ回収する。ユーザー向けデータと、location_source / confidence / security metadata等の内部運用データを表示層で混同しない。
+
+
+## 再構築方針 2026-10-09
+
+2026-09-27の行数・migration履歴は過去のスナップショットであり、現在値として扱わない。2026-10-09にクローズドテストDBのカタログ定義を取得し、別途 `docs/production-schema-target.md` に新しい本番モデルと権限設計を記録した。
+
+本番DBは旧テーブル構成を丸ごと複製せず、現行アプリ契約に必要な汎用 `events / places / contents / event_contents / content_blocks` モデルを中心に構築する。廃止済み `public.seichi`、一時的なCodeMagic bridge、ユーザー履歴・プロフィール等のテストDBデータは本番初期データに含めない。
+
+## RLS / GRANT / RPCの必須ルール
+
+- API公開スキーマ内のアプリテーブルはRLSを有効にし、テーブルGRANTと行ポリシーを別々に最小権限で設定する。
+- クライアントに不要な内部・管理・位置情報セキュリティテーブルには、`anon` / `authenticated` の直接アクセス権を与えない。
+- Supabase匿名認証ユーザーもPostgresの `authenticated` ロールを持つため、ロール判定だけで本人性を判断しない。所有行は `auth.uid()` によって制限する。
+- スタンプ獲得と訪問記録は検証済みRPC経由とし、履歴テーブルへの直接INSERT/UPDATE/DELETEで検証を迂回できないようにする。
+- SECURITY DEFINER関数は個別レビュー、固定search_path、明示的EXECUTE権限、匿名・他ユーザーによる拒否テストを必須とする。
+- 新規テーブルの自動公開を前提にせず、必要なGRANTを明示する。
+- Storageは承認済みアセットのみを移行し、バケット公開範囲とオブジェクトパス単位のポリシーを確認する。
+
+## ソース側の安全策
+
+`supabase/config.toml` で新規テーブルの自動公開を無効化し、存在しない `supabase/seed.sql` を参照していたseed処理を無効化した。道の駅レジストリ取込Functionの固定キーはソースから除去し、環境変数参照へ変更した。旧キーがGit履歴やデプロイ済みFunctionに残っている可能性があるため、旧キーの失効・ローテーションは別途必須。レジストリ取込は現在も削除後に再投入する非原子的処理が残るため、本番へデプロイしない。
+
+読み取り専用の `supabase/security/production_rls_audit.sql` と、静的ガード `scripts/check_supabase_security_source.py` を追加した。道の駅レジストリ取込ソースは固定キーを除去し、`ROADSIDESTATION_IMPORT_KEY` とサービスロール限定の `replace_roadside_station_registry(jsonb)` RPCを使用する。RPCは1,234件の完全な入力を一時ステージで検証してから単一トランザクションでupsert・不要行削除を行う。クローズドテスト側のデプロイ済みFunctionには旧コード/旧キーが残る可能性があるため、キー失効・ローテーション前に本番へデプロイしない。PRではSupabaseセキュリティソースチェックを実行する。
+
+
+### イベント参加状態の書き込み
+
+クライアントから `user_event_participations` へ直接INSERT/UPDATEせず、`ensure_event_participation(p_event_id)` / `leave_event_participation(p_event_id)` RPCを使う。RPCは `auth.uid()` からユーザーを確定し、イベントの有効性を検証して、`joined_at` / `updated_at` をDB時刻で設定する。クライアントには当該テーブルの直接INSERT/UPDATE/DELETE権限を付与しない。
+
+参加・イベント選択・プロフィール保存・レジストリ置換の4 RPCは本番クリーンスキーマに含まれ、動作と権限はロールバック専用トランザクションで検証済み。Gitには再現用migrationを保持している。現在の本番migration履歴は未記録のため、ローカルSupabase CLIで履歴を修復してから `supabase db push` で4 migrationを記録・再適用する必要がある。配布前には匿名Auth、Storage、release policyを別途検証する。
+
+
+参加状態のテストでは、テストDB上で両RPCを認証済みロールから呼び出し、参加状態の有効化・解除とサーバー時刻設定を確認した後、トランザクションをロールバックした。DBへの永続適用はしていない。
+
+
+イベント選択の保存も `set_current_event_preference(p_event_id)` RPCへ移行する。クライアントから `user_event_preferences` を直接書き換えず、RPC内で `auth.uid()` と有効イベントを検証し、更新時刻はDB側で設定する。テストDBで認証済みロールによるロールバックテストを行い、RPCの成功と直接書込権限の剥奪を確認した。
