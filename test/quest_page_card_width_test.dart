@@ -25,6 +25,8 @@ void main() {
               eventAchievements: const [],
               onShowDestination: () {},
               onExploreEvents: () {},
+              events: const [],
+              onEventTap: (_) {},
             ),
           ),
         ),
