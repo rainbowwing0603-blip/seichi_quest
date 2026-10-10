@@ -106,7 +106,11 @@ class _StoryPreviewSectionState extends State<StoryPreviewSection> {
     final contentId = widget.item.contentId.trim();
     setState(() => _watchingAd = true);
     try {
-      final rewarded = await StoryRewardedAdService.instance.showForStoryUnlock();
+      final rewarded = await StoryRewardedAdService.instance.showForStoryUnlock(
+        canPresent: () => mounted &&
+            widget.item.contentId.trim() == contentId &&
+            !widget.collected,
+      );
       if (!mounted) return;
 
       if (!rewarded) {
