@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/quest_item.dart';
 import '../policies/quest_event_theme_policy.dart';
-import 'quest_item_content_section.dart';
+import 'story_preview_section.dart';
 import 'quest_ui.dart';
 
 class QuestSpotDetailSheet extends StatelessWidget {
@@ -98,11 +98,10 @@ class QuestSpotDetailSheet extends StatelessWidget {
               const SizedBox(height: 6),
               _buildHeader(),
               const SizedBox(height: 14),
-              _buildStoryNotice(),
-              const SizedBox(height: 12),
-              QuestItemContentSection(
+              StoryPreviewSection(
                 item: item,
                 collected: collected,
+                eventTheme: eventTheme,
               ),
               if (collected && eventNames.isNotEmpty) ...[
                 const SizedBox(height: 14),
@@ -211,50 +210,6 @@ class QuestSpotDetailSheet extends StatelessWidget {
                 accentColor: eventTheme.accent,
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStoryNotice() {
-    return QuestGlassCard(
-      padding: const EdgeInsets.all(16),
-      borderRadius: 20,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            collected ? Icons.auto_stories_rounded : Icons.lock_outline_rounded,
-            color: collected ? eventTheme.primary : QuestUiTokens.mutedInk,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  collected ? 'スポットの物語' : '獲得すると物語が解放',
-                  style: const TextStyle(
-                    color: QuestUiTokens.ink,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  collected
-                      ? '由来・歴史・関連画像・現地で見るポイント'
-                      : '基本情報を確認できます。現地でスタンプを獲得すると、由来・歴史・関連情報が解放されます。',
-                  style: const TextStyle(
-                    color: QuestUiTokens.mutedInk,
-                    fontSize: 12.5,
-                    height: 1.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
