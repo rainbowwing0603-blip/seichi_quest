@@ -157,7 +157,7 @@ demographic_population as (
   cross join profile_mode m
   where m.can_personalize
     and (m.age_group is null or m.age_group = '回答しない' or p.age_group = m.age_group)
-    and (m.gender not in ('男性', '女性') or p.gender = m.gender)
+    and (m.gender is null or m.gender not in ('男性', '女性') or p.gender = m.gender)
 ),
 event_participants as (
   select
@@ -166,7 +166,7 @@ event_participants as (
     count(*) filter (
       where m.can_personalize
         and (m.age_group is null or m.age_group = '回答しない' or pr.age_group = m.age_group)
-        and (m.gender not in ('男性', '女性') or pr.gender = m.gender)
+        and (m.gender is null or m.gender not in ('男性', '女性') or pr.gender = m.gender)
     )::bigint as demographic_participant_count
   from public.user_event_participations p
   join public.events e on e.id = p.event_id
