@@ -2,9 +2,6 @@
 -- Generated from the production schema plus source-controlled admin/storage policies.
 -- User-owned data is deliberately not copied or deleted by this migration.
 
--- ---------------------------------------------------------------------------
--- Admin helper required by the existing event-theme, content-block, and storage policies.
--- ---------------------------------------------------------------------------
 CREATE SCHEMA IF NOT EXISTS private;
 CREATE TABLE IF NOT EXISTS private.admin_users (
   user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -32,10 +29,6 @@ $function$;
 REVOKE ALL ON FUNCTION private.is_admin() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION private.is_admin() TO authenticated;
 
--- ---------------------------------------------------------------------------
--- Restore storage bucket configuration from the source migrations.
--- Object files themselves are not copied by this migration.
--- ---------------------------------------------------------------------------
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('event-card-images', 'event-card-images', true)
 ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
@@ -48,9 +41,6 @@ SET public = EXCLUDED.public,
     file_size_limit = EXCLUDED.file_size_limit,
     allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- ---------------------------------------------------------------------------
--- Keep trigger helpers hardened and PostGIS calls aligned to the installed schema.
--- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_new_user()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -770,13 +760,10 @@ $function$;$ddl$;
 END;
 $postgis$;
 
--- The test-only wrapper is not referenced by the app or migrations.
 DROP FUNCTION IF EXISTS public.get_my_admin_status();
 
--- ---------------------------------------------------------------------------
--- Function execution grants: production ACLs, with authenticated access retained
--- where source migrations explicitly require it.
--- ---------------------------------------------------------------------------
+-- Apply production function ACLs, preserving authenticated grants explicitly
+-- required by source migrations for event counts, recommendations, and server time.
 REVOKE ALL ON FUNCTION public."enforce_location_collection_cooldown"() FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public."ensure_event_participation"(uuid) FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public."get_collection_series_progress"(text) FROM PUBLIC, anon, authenticated, service_role;
@@ -812,10 +799,7 @@ REVOKE ALL ON FUNCTION public."set_updated_at"() FROM PUBLIC, anon, authenticate
 REVOKE ALL ON FUNCTION public."story_preview_server_time"() FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public."story_preview_server_time"() TO "authenticated";
 
--- ---------------------------------------------------------------------------
--- Remove direct client writes from RPC-managed user tables.
--- Column-level grants are revoked as well as table-level grants.
--- ---------------------------------------------------------------------------
+-- RPC-managed tables: remove both table-level and column-level direct writes.
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.profiles FROM anon, authenticated;
 REVOKE INSERT (id, display_name, avatar_url, age_group, gender, is_active, created_at, updated_at, avatar_key) ON TABLE public.profiles FROM anon, authenticated;
 REVOKE UPDATE (id, display_name, avatar_url, age_group, gender, is_active, created_at, updated_at, avatar_key) ON TABLE public.profiles FROM anon, authenticated;
@@ -835,8 +819,7 @@ DROP POLICY IF EXISTS user_event_preferences_delete_own ON public.user_event_pre
 DROP POLICY IF EXISTS profiles_insert_own ON public.profiles;
 DROP POLICY IF EXISTS profiles_update_own ON public.profiles;
 
--- Admin-only direct editing is intentionally retained for content blocks,
--- event theme fields, and place coordinates/details.
+-- Admin-only direct editing is intentionally retained and gated by private.is_admin().
 REVOKE ALL ON TABLE public.content_blocks FROM anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.content_blocks TO authenticated;
 
@@ -855,10 +838,8 @@ GRANT UPDATE (latitude, longitude, name, radius_meters)
 REVOKE ALL ON TABLE public.place_visits FROM anon, authenticated;
 GRANT SELECT ON TABLE public.place_visits TO authenticated;
 
--- ---------------------------------------------------------------------------
--- Rebuild policies from the production-secure definitions plus source-controlled
+-- Rebuild policies from production-secure definitions plus source-controlled
 -- admin/own-row policies and Storage policies.
--- ---------------------------------------------------------------------------
 DROP POLICY IF EXISTS "achievements_select_authenticated" ON "public"."achievements";
 DROP POLICY IF EXISTS "announcement_reads_insert_own" ON "public"."announcement_reads";
 DROP POLICY IF EXISTS "announcement_reads_select_own" ON "public"."announcement_reads";
@@ -999,32 +980,23 @@ CREATE POLICY "places_admin_update" ON "public"."places" AS PERMISSIVE FOR UPDAT
 USING (( SELECT private.is_admin() AS is_admin))
 WITH CHECK (( SELECT private.is_admin() AS is_admin));
 
--- Storage policies from the source migrations
+-- Storage policies from source migrations
 CREATE POLICY "event_card_images_public_read" ON storage.objects AS PERMISSIVE FOR SELECT TO PUBLIC USING (bucket_id = 'event-card-images');
 CREATE POLICY "content_media_admin_insert" ON storage.objects AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (bucket_id = 'content-media' AND (SELECT private.is_admin()));
 CREATE POLICY "content_media_admin_update" ON storage.objects AS PERMISSIVE FOR UPDATE TO authenticated USING (bucket_id = 'content-media' AND (SELECT private.is_admin())) WITH CHECK (bucket_id = 'content-media' AND (SELECT private.is_admin()));
 CREATE POLICY "content_media_admin_delete" ON storage.objects AS PERMISSIVE FOR DELETE TO authenticated USING (bucket_id = 'content-media' AND (SELECT private.is_admin()));
 CREATE POLICY "content_media_admin_select" ON storage.objects AS PERMISSIVE FOR SELECT TO authenticated USING (bucket_id = 'content-media' AND (SELECT private.is_admin()));
 
--- ---------------------------------------------------------------------------
--- RLS should be enabled for every non-extension table in public.
--- PostGIS extension-owned metadata objects are excluded and have client access
--- revoked below when installed in public.
--- ---------------------------------------------------------------------------
 DO $rls$
 DECLARE r record;
 BEGIN
  FOR r IN
    SELECT n.nspname, c.relname
-   FROM pg_class c
-   JOIN pg_namespace n ON n.oid=c.relnamespace
-   WHERE n.nspname='public'
-     AND c.relkind IN ('r','p')
+   FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+   WHERE n.nspname='public' AND c.relkind IN ('r','p')
      AND NOT EXISTS (
        SELECT 1 FROM pg_depend d
-       WHERE d.classid='pg_class'::regclass
-         AND d.objid=c.oid
-         AND d.deptype='e'
+       WHERE d.classid='pg_class'::regclass AND d.objid=c.oid AND d.deptype='e'
      )
  LOOP
    EXECUTE format('ALTER TABLE %I.%I ENABLE ROW LEVEL SECURITY', r.nspname, r.relname);
@@ -1035,13 +1007,13 @@ $rls$;
 DO $postgis_acl$
 BEGIN
  IF to_regclass('public.spatial_ref_sys') IS NOT NULL THEN
-   REVOKE ALL ON TABLE public.spatial_ref_sys FROM anon, authenticated;
+   EXECUTE 'REVOKE ALL ON TABLE public.spatial_ref_sys FROM anon, authenticated';
  END IF;
  IF to_regclass('public.geometry_columns') IS NOT NULL THEN
-   REVOKE ALL ON TABLE public.geometry_columns FROM anon, authenticated;
+   EXECUTE 'REVOKE ALL ON TABLE public.geometry_columns FROM anon, authenticated';
  END IF;
  IF to_regclass('public.geography_columns') IS NOT NULL THEN
-   REVOKE ALL ON TABLE public.geography_columns FROM anon, authenticated;
+   EXECUTE 'REVOKE ALL ON TABLE public.geography_columns FROM anon, authenticated';
  END IF;
 END;
 $postgis_acl$;
