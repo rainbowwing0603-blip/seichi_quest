@@ -17,7 +17,7 @@
 | 実績 | `progression_service.dart`, `widgets/quest_page.dart` | `achievements`, `event_achievements` |
 | ランキング | `widgets/ranking_page.dart` | ranking RPC群 |
 | お知らせ | `announcement_service.dart`, announcements widgets | `announcements`, `announcement_reads` |
-| 広告 | `ad_placement_policy.dart`, banner/interstitial services | Android AdMob settings |
+| 広告 | `ad_placement_policy.dart`, banner/interstitial/rewarded services | GitHub Actions `production` Environment の3種類のAndroid AdMob unit variables、`--dart-define`、本番ビルドの形式/テストIDガード |
 | 設定 | `app_settings_service.dart`, `app_settings_page.dart` | SharedPreferences |
 | アプリ更新 | `app_version_service.dart` | `app_release_policies` |
 | アカウント | `account_page.dart`, `session_service.dart` | Auth, `delete-account` |
