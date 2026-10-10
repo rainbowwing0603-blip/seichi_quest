@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'ad_sdk_service.dart';
+import 'interstitial_ad_service.dart';
 
 /// Shows a user-initiated rewarded ad. A true result means the SDK delivered
 /// the reward callback, not merely that the ad was dismissed.
@@ -35,61 +36,77 @@ class StoryRewardedAdService {
 
   bool get hasProductionAdUnitId => _adUnitId != null;
 
-  Future<bool> showForStoryUnlock() async {
+  Future<bool> showForStoryUnlock({
+    required bool Function() canPresent,
+  }) async {
     final adUnitId = _adUnitId;
-    if (adUnitId == null) {
-      return false;
-    }
+    if (adUnitId == null) return false;
 
     final adsReady = await AdSdkService.instance.ready;
-    if (!adsReady) {
-      return false;
-    }
+    if (!adsReady) return false;
 
-    final completion = Completer<bool>();
-    var rewardEarned = false;
+    RewardedAd? ad;
+    var acquiredInterstitialLock = false;
+    var shown = false;
 
-    RewardedAd.load(
-      adUnitId: adUnitId,
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
-          ad.fullScreenContentCallback = FullScreenContentCallback<RewardedAd>(
-            onAdDismissedFullScreenContent: (dismissedAd) {
-              dismissedAd.dispose();
-              if (!completion.isCompleted) {
-                completion.complete(rewardEarned);
-              }
-            },
-            onAdFailedToShowFullScreenContent: (failedAd, _) {
-              failedAd.dispose();
-              if (!completion.isCompleted) {
-                completion.complete(false);
-              }
-            },
-          );
-
-          try {
-            ad.show(
-              onUserEarnedReward: (_, _) {
-                rewardEarned = true;
-              },
-            );
-          } catch (_) {
-            ad.dispose();
-            if (!completion.isCompleted) {
-              completion.complete(false);
+    try {
+      final loaded = Completer<RewardedAd>();
+      RewardedAd.load(
+        adUnitId: adUnitId,
+        request: const AdRequest(),
+        rewardedAdLoadCallback: RewardedAdLoadCallback(
+          onAdLoaded: (value) {
+            if (loaded.isCompleted) {
+              value.dispose();
+            } else {
+              loaded.complete(value);
             }
-          }
-        },
-        onAdFailedToLoad: (_) {
-          if (!completion.isCompleted) {
-            completion.complete(false);
-          }
-        },
-      ),
-    );
+          },
+          onAdFailedToLoad: (error) {
+            if (!loaded.isCompleted) loaded.completeError(error);
+          },
+        ),
+      );
 
-    return completion.future;
+      try {
+        ad = await loaded.future.timeout(const Duration(seconds: 20));
+      } on TimeoutException {
+        // Dispose a late load instead of presenting it after the user has moved on.
+        unawaited(loaded.future.then((value) => value.dispose(), onError: (Object _) {}));
+        return false;
+      }
+
+      if (!canPresent()) return false;
+      acquiredInterstitialLock =
+          InterstitialAdService.instance.tryBeginRewardedAd();
+      if (!acquiredInterstitialLock) return false;
+
+      final completion = Completer<bool>();
+      var rewardEarned = false;
+      ad.fullScreenContentCallback = FullScreenContentCallback<RewardedAd>(
+        onAdShowedFullScreenContent: (_) => shown = true,
+        onAdDismissedFullScreenContent: (_) {
+          if (!completion.isCompleted) completion.complete(rewardEarned);
+        },
+        onAdFailedToShowFullScreenContent: (_, _) {
+          if (!completion.isCompleted) completion.complete(false);
+        },
+      );
+
+      try {
+        ad.show(onUserEarnedReward: (_, _) => rewardEarned = true);
+      } catch (_) {
+        if (!completion.isCompleted) completion.complete(false);
+      }
+      return await completion.future;
+    } catch (_) {
+      return false;
+    } finally {
+      ad?.dispose();
+      if (acquiredInterstitialLock) {
+        InterstitialAdService.instance.finishRewardedAd(shown: shown);
+      }
+    }
   }
+
 }
