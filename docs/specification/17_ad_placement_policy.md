@@ -43,6 +43,8 @@ Release初期値:
 ## 広告種別間の扱い
 Banner/Inline/Interstitialは役割が異なるため、BannerやInlineが表示されたことだけを理由にInterstitialの15分間隔をリセットしない。Interstitial同士の頻度はInterstitialのPolicyで制御する。
 
+Rewarded広告とInterstitialは同時表示しない。Rewarded広告のロード後に表示条件を再確認し、Interstitialとの共有ロックを取得してから表示する。実際にRewarded広告が表示された場合はInterstitialの最短間隔を再計測し、表示失敗やキャンセルだけでは間隔をリセットしない。
+
 ## 一元管理
 広告可否判断をAdPlacementPolicyへ集約する。各画面が独自に頻度や禁止条件を持たない。placement IDを定義し、将来の計測・A/BテストでもUIコードを分岐だらけにしない。
 
