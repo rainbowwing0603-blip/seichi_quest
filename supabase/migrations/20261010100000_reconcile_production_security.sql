@@ -2,6 +2,10 @@
 -- Generated from the production schema plus source-controlled admin/storage policies.
 -- User-owned data is deliberately not copied or deleted by this migration.
 
+-- Remove the test-only HTTP extension left behind by the retired Codemagic bridge.
+-- Dependency checks confirmed no current database objects use it.
+DROP EXTENSION IF EXISTS http;
+
 CREATE SCHEMA IF NOT EXISTS private;
 CREATE TABLE IF NOT EXISTS private.admin_users (
   user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
