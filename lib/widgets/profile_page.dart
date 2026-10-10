@@ -769,7 +769,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               }
 
                               setState(() {
-                                _ageGroup = selected;
+                                _ageGroup = selected == '未設定' ? null : selected;
                               });
                             },
                             borderRadius: BorderRadius.circular(
