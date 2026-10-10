@@ -39,6 +39,7 @@ jobs:
           set -euo pipefail
           [[ "$GITHUB_REF" == "refs/heads/feature/android-next-release" ]] || { echo "::error::Run this production workflow only from the reviewed feature/android-next-release branch."; exit 1; }
           [[ "$BUILD_NUMBER" =~ ^[1-9][0-9]*$ ]] || { echo "::error::build_number must be a positive integer."; exit 1; }
+          (( BUILD_NUMBER > 20 )) || { echo "::error::build_number 20 or lower is already used by the closed-test release; choose a higher unused version code."; exit 1; }
           (( BUILD_NUMBER <= 2100000000 )) || { echo "::error::build_number exceeds Android/Google Play's supported maximum."; exit 1; }
           [[ "$SUPABASE_URL" == "https://npirfaoxcarfuqjlwgav.supabase.co" ]] || { echo "::error::SUPABASE_URL does not match the approved production project."; exit 1; }
           test -n "$SUPABASE_PUBLISHABLE_KEY" || { echo "::error::SUPABASE_PUBLISHABLE_KEY is missing."; exit 1; }
