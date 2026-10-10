@@ -24,6 +24,36 @@ ContentBlock block({
 void main() {
   const policy = ContentBlockPresentationPolicy();
 
+  test('rewarded preview reveals after-collection blocks without overriding hidden', () {
+    ContentBlock visibilityBlock(String id, String visibility) {
+      return ContentBlock(
+        id: id,
+        contentId: 'content-1',
+        type: ContentBlockType.text,
+        role: 'description',
+        title: null,
+        body: 'story body',
+        mediaPath: null,
+        altText: null,
+        linkUrl: null,
+        displayOrder: 0,
+        metadata: {'visibility': visibility},
+      );
+    }
+
+    final afterCollection = visibilityBlock('story', 'after_collection');
+    final hidden = visibilityBlock('hidden', 'hidden');
+
+    final preview = policy.resolveForCollectionState(
+      [afterCollection, hidden],
+      collected: false,
+      previewUnlocked: true,
+    );
+
+    expect(preview.blocks.map((item) => item.id), ['story']);
+    expect(preview.showFallbackDescription, isFalse);
+  });
+
   test('no blocks keeps generic image and description fallback visible', () {
     final result = policy.resolve(const <ContentBlock>[]);
 
