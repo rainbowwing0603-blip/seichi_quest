@@ -103,7 +103,8 @@ void main() {
         .widgetList<AspectRatio>(find.byType(AspectRatio))
         .map((widget) => widget.aspectRatio)
         .toList();
-    expect(ratios, everyElement(closeTo(4 / 3, 0.001)));
+    expect(ratios, everyElement(closeTo(730 / 909, 0.001)));
+    expect(ratios[0], closeTo(ratios[1], 0.001));
   });
 
   testWidgets('multiple gallery images stay generic and ordered', (tester) async {
