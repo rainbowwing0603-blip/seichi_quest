@@ -34,6 +34,7 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID: ${{ secrets.ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID }}
         run: |
           set -euo pipefail
           [[ "$GITHUB_REF" == "refs/heads/feature/android-next-release" ]] || { echo "::error::Run this production workflow only from the reviewed feature/android-next-release branch."; exit 1; }
@@ -47,6 +48,7 @@ jobs:
           test -n "$ANDROID_KEY_ALIAS"
           test -n "$ANDROID_KEY_PASSWORD"
           test -n "$GOOGLE_MAPS_API_KEY"
+          test -n "$ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID"
           echo "Production target validated; secret values will not be printed."
 
       - name: Set up Java
@@ -104,6 +106,7 @@ jobs:
           BUILD_NUMBER: ${{ inputs.build_number }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID: ${{ secrets.ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID }}
         run: |
           set -euo pipefail
           version_name="$(python3 -c 'import re; s=open("pubspec.yaml", encoding="utf-8").read(); m=re.search(r"^version:\s+([0-9]+\.[0-9]+\.[0-9]+)(?:\+[0-9]+)?\s*$", s, re.M); assert m, "pubspec.yaml must contain version: MAJOR.MINOR.PATCH"; print(m.group(1))')"
@@ -112,7 +115,8 @@ jobs:
             --build-number="$BUILD_NUMBER" \
             --dart-define="APP_ENV=production" \
             --dart-define="SUPABASE_URL=$SUPABASE_URL" \
-            --dart-define="SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PUBLISHABLE_KEY"
+            --dart-define="SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PUBLISHABLE_KEY" \
+            --dart-define="ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID=$ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID"
           test -s build/app/outputs/bundle/release/app-release.aab
           sha256sum build/app/outputs/bundle/release/app-release.aab | tee build/app/outputs/bundle/release/app-release.aab.sha256
           echo "Built versionName=$version_name versionCode=$BUILD_NUMBER (artifact only)."
