@@ -1056,16 +1056,6 @@ BEGIN
 END;
 $rls$;
 
-DO $postgis_acl$
-BEGIN
- IF to_regclass('public.spatial_ref_sys') IS NOT NULL THEN
-   EXECUTE 'REVOKE ALL ON TABLE public.spatial_ref_sys FROM anon, authenticated';
- END IF;
- IF to_regclass('public.geometry_columns') IS NOT NULL THEN
-   EXECUTE 'REVOKE ALL ON TABLE public.geometry_columns FROM anon, authenticated';
- END IF;
- IF to_regclass('public.geography_columns') IS NOT NULL THEN
-   EXECUTE 'REVOKE ALL ON TABLE public.geography_columns FROM anon, authenticated';
- END IF;
-END;
-$postgis_acl$;
+-- The PostGIS extension is installed in different schemas in these projects
+-- (gis in production, public in test). Its extension-owned objects are not
+-- relocated here; moving the extension safely requires a separate operation.
