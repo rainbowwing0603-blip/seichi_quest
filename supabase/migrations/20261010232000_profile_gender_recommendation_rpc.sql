@@ -40,6 +40,10 @@ begin
     raise exception '認証が必要です.' using errcode = '28000';
   end if;
 
+  if v_age_group = '10代以下' then
+    v_age_group := '10代';
+  end if;
+
   if v_display_name is not null and char_length(v_display_name) > 30 then
     raise exception '表示名が長すぎます.' using errcode = '22023';
   end if;
@@ -75,6 +79,42 @@ begin
     updated_at = now();
 end;
 $function$;
+
+-- Keep the legacy RPC callable by older installed app versions without erasing gender.
+create or replace function public.save_my_profile(
+  p_display_name text,
+  p_age_group text,
+  p_avatar_key text
+)
+returns void
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_user_id uuid := auth.uid();
+  v_gender text;
+begin
+  if v_user_id is null then
+    raise exception '認証が必要です.' using errcode = '28000';
+  end if;
+
+  select p.gender
+  into v_gender
+  from public.profiles p
+  where p.id = v_user_id;
+
+  perform public.save_my_profile(
+    p_display_name,
+    p_age_group,
+    p_avatar_key,
+    v_gender
+  );
+end;
+$function$;
+
+revoke all on function public.save_my_profile(text, text, text) from public, anon;
+grant execute on function public.save_my_profile(text, text, text) to authenticated;
 
 revoke all on function public.save_my_profile(text, text, text, text) from public, anon;
 grant execute on function public.save_my_profile(text, text, text, text) to authenticated;
