@@ -63,3 +63,17 @@
 | プロフィール属性 | `lib/widgets/profile_page.dart` → 4引数 `save_my_profile` RPC。既存3引数RPCは後方互換のため維持 | 性別は任意、許可値のみ保存、プロフィールを他ユーザーが変更できない |
 | 推薦のプライバシー | `supabase/migrations/20261010181454_profile_gender_recommendation_rpc.sql` | 年代「回答しない」を属性集団にしない、性別未設定の利用者も利用可能 |
 | プライバシーポリシー | `privacy/index.html` | 公開ページの内容とアプリ内の削除手順が一致すること。Web削除ページは本番SupabaseのURLとpublishable keyを使用し、テスト環境を参照しないこと |
+
+
+## 2026-10-11 production profile RPC reconciliation
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 本番プロフィールRPC追随 | `supabase/migrations/20261010231050_reconcile_profile_gender_recommendation_rpc.sql` | 本番DBで4引数 `save_my_profile` とNULL性別対応の `get_event_recommendations` を確認。3引数RPCの後方互換とauthenticated-only EXECUTEを維持 |
+
+
+## 2026-10-11 PostGIS API hardening follow-up
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| PostGIS extent RPC | `supabase/migrations/20261010231230_restrict_public_postgis_extent_rpc.sql` | 管理対象の拡張関数は所有者権限によりACL変更が拒否される場合があるため、`has_function_privilege` と Security Advisor の再確認を必須とする。失敗時に権限変更済みとみなさない |
