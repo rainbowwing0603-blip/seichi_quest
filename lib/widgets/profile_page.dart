@@ -20,7 +20,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final _displayNameController = TextEditingController();
 
   static const _ageGroups = <String>[
-    '10代以下',
+    '10代',
     '20代',
     '30代',
     '40代',
@@ -84,6 +84,9 @@ class _ProfilePageState extends State<ProfilePage> {
       _displayNameController.text = data?['display_name']?.toString() ?? '';
 
       final loadedAgeGroup = data?['age_group']?.toString();
+      final normalizedAgeGroup = loadedAgeGroup == '10代以下'
+          ? '10代'
+          : loadedAgeGroup;
 
       final loadedAvatarKey = data?['avatar_key']?.toString();
 
@@ -98,7 +101,7 @@ class _ProfilePageState extends State<ProfilePage> {
       }
 
       setState(() {
-        _ageGroup = _ageGroups.contains(loadedAgeGroup) ? loadedAgeGroup : null;
+        _ageGroup = _ageGroups.contains(normalizedAgeGroup) ? normalizedAgeGroup : null;
 
         _avatarKey = profileAvatarOptionForKey(loadedAvatarKey).key;
 

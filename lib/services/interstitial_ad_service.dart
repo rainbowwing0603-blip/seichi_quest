@@ -123,6 +123,19 @@ class InterstitialAdService {
     );
   }
 
+  /// Prevents an interstitial from appearing while a rewarded ad is active.
+  bool tryBeginRewardedAd() {
+    if (_isShowing) return false;
+    _isShowing = true;
+    return true;
+  }
+
+  /// Releases the shared full-screen ad lock after a rewarded ad finishes.
+  void finishRewardedAd({required bool shown}) {
+    if (shown) _lastShownAt = DateTime.now();
+    _isShowing = false;
+  }
+
   void markStampCollected() {
     _lastStampCollectedAt = DateTime.now();
   }

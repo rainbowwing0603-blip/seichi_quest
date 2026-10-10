@@ -133,6 +133,7 @@ void main() {
         eventAchievements: const [],
         onShowDestination: noop,
         onExploreEvents: noop,
+        onRecommendedEventTap: (_) {},
         events: const [],
         onEventTap: (_) {},
       ),

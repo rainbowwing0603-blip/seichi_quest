@@ -1,0 +1,121 @@
+-- Fix age-only recommendations when gender is NULL and ignore age opt-out.
+-- The earlier predicate evaluated to SQL NULL for users without a gender, preventing
+-- age-group matching. Treat '回答しない' as no age preference, not as a demographic.
+-- Keep the existing authenticated-only EXECUTE grant unchanged.
+
+create or replace function public.get_event_recommendations(p_limit integer default 5)
+returns table(
+  event_id uuid,
+  participant_count bigint,
+  demographic_population bigint,
+  participation_rate numeric,
+  recommendation_basis text
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+with viewer as (
+  select
+    case when p.age_group = '回答しない' then null else p.age_group end as age_group,
+    p.gender
+  from public.profiles p
+  where p.id = (select auth.uid())
+  limit 1
+),
+profile_mode as (
+  select
+    v.age_group,
+    v.gender,
+    (
+      v.age_group is not null
+      or v.gender in ('男性', '女性')
+    ) as can_personalize
+  from viewer v
+),
+demographic_population as (
+  select count(*)::bigint as population
+  from public.profiles p
+  cross join profile_mode m
+  where m.can_personalize
+    and (m.age_group is null or p.age_group = m.age_group)
+    and (m.gender is null or m.gender not in ('男性', '女性') or p.gender = m.gender)
+),
+event_participants as (
+  select
+    p.event_id,
+    count(*)::bigint as participant_count,
+    count(*) filter (
+      where m.can_personalize
+        and (m.age_group is null or pr.age_group = m.age_group)
+        and (m.gender is null or m.gender not in ('男性', '女性') or pr.gender = m.gender)
+    )::bigint as demographic_participant_count
+  from public.user_event_participations p
+  join public.events e on e.id = p.event_id
+  left join public.profiles pr on pr.id = p.user_id
+  cross join profile_mode m
+  where e.is_active = true
+    and (e.end_at is null or e.end_at >= now())
+  group by p.event_id
+),
+personalized as (
+  select
+    ep.event_id,
+    ep.demographic_participant_count as participant_count,
+    dp.population as demographic_population,
+    round(
+      ep.demographic_participant_count::numeric
+      / nullif(dp.population, 0) * 100,
+      1
+    ) as participation_rate,
+    case
+      when m.age_group is not null and m.gender in ('男性', '女性')
+        then m.age_group || '・' || m.gender
+      when m.age_group is not null then m.age_group
+      else m.gender
+    end as recommendation_basis
+  from event_participants ep
+  cross join demographic_population dp
+  cross join profile_mode m
+  where m.can_personalize
+    and dp.population >= 5
+    and ep.demographic_participant_count > 0
+),
+overall as (
+  select
+    ep.event_id,
+    ep.participant_count,
+    0::bigint as demographic_population,
+    null::numeric as participation_rate,
+    'みんなに人気'::text as recommendation_basis
+  from event_participants ep
+)
+select
+  r.event_id,
+  r.participant_count,
+  r.demographic_population,
+  r.participation_rate,
+  r.recommendation_basis
+from (
+  select * from personalized
+  union all
+  select *
+  from overall
+  where not exists (select 1 from personalized)
+) r
+where r.event_id not in (
+  select p.event_id
+  from public.user_event_participations p
+  where p.user_id = (select auth.uid())
+)
+order by
+  case when r.recommendation_basis = 'みんなに人気' then 1 else 0 end,
+  r.participation_rate desc nulls last,
+  r.participant_count desc,
+  r.event_id
+limit greatest(1, least(coalesce(p_limit, 5), 10));
+$function$;
+
+revoke all on function public.get_event_recommendations(integer) from public, anon, authenticated;
+grant execute on function public.get_event_recommendations(integer) to authenticated;
