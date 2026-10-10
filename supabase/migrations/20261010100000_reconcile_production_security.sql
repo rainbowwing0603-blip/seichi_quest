@@ -875,7 +875,7 @@ DROP POLICY IF EXISTS user_event_preferences_delete_own ON public.user_event_pre
 DROP POLICY IF EXISTS profiles_insert_own ON public.profiles;
 DROP POLICY IF EXISTS profiles_update_own ON public.profiles;
 
--- Admin-only direct editing is intentionally retained and gated by private.is_admin().
+-- Admin-only direct editing is intentionally retained for content blocks and event theme fields.
 REVOKE ALL ON TABLE public.content_blocks FROM anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.content_blocks TO authenticated;
 
@@ -888,8 +888,6 @@ GRANT UPDATE (theme_primary_hex, theme_primary_deep_hex, theme_accent_hex)
 REVOKE UPDATE ON TABLE public.places FROM anon, authenticated;
 REVOKE UPDATE (latitude, longitude, name, radius_meters)
   ON TABLE public.places FROM anon, authenticated;
-GRANT UPDATE (latitude, longitude, name, radius_meters)
-  ON TABLE public.places TO authenticated;
 
 REVOKE ALL ON TABLE public.place_visits FROM anon, authenticated;
 GRANT SELECT ON TABLE public.place_visits TO authenticated;
@@ -1032,9 +1030,7 @@ USING (( SELECT private.is_admin() AS is_admin))
 WITH CHECK (( SELECT private.is_admin() AS is_admin));
 CREATE POLICY "place_visits_select_own" ON "public"."place_visits" AS PERMISSIVE FOR SELECT TO "authenticated"
 USING ((( SELECT auth.uid() AS uid) = user_id));
-CREATE POLICY "places_admin_update" ON "public"."places" AS PERMISSIVE FOR UPDATE TO "authenticated"
-USING (( SELECT private.is_admin() AS is_admin))
-WITH CHECK (( SELECT private.is_admin() AS is_admin));
+
 
 -- Storage policies from source migrations
 CREATE POLICY "event_card_images_public_read" ON storage.objects AS PERMISSIVE FOR SELECT TO PUBLIC USING (bucket_id = 'event-card-images');
