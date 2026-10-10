@@ -58,7 +58,7 @@ require("GPS maintenance functions validate coordinate bounds", all("Math.abs(la
 require("GPS maintenance defaults to dry-run", all("payload?.apply!==true" in source and "dry_run:dryRun" in source for source in (gps_enrich,gps_reconcile)))
 require("GPS reconciliation preserves existing metadata", "...(t.metadata??{})" in gps_reconcile)
 require("registry importer uses atomic replacement RPC", 'replace_roadside_station_registry' in importer and '.from("roadside_station_registry").delete()' not in importer);
-require("atomic registry RPC pins search_path and uses SECURITY DEFINER", "SECURITY DEFINER\nSET search_path = ''" in (ROOT / "supabase/migrations/20261009032000_atomic_roadside_station_registry_replace.sql").read_text(encoding="utf-8"));
+require("atomic registry RPC pins search_path and uses SECURITY DEFINER", re.search(r"SECURITY DEFINER\s+SET search_path\s+(?:=|TO)\s*''", (ROOT / "supabase/migrations/20261009032000_atomic_roadside_station_registry_replace.sql").read_text(encoding="utf-8"), re.IGNORECASE) is not None);
 require("atomic registry RPC is not executable by anon/authenticated", "REVOKE ALL ON FUNCTION public.replace_roadside_station_registry(jsonb) FROM PUBLIC, anon, authenticated" in (ROOT / "supabase/migrations/20261009032000_atomic_roadside_station_registry_replace.sql").read_text(encoding="utf-8"));
 require("production baseline includes atomic registry RPC", "public.replace_roadside_station_registry" in candidate);
 require("place timestamp migration exists", places_timestamp_migration.is_file())
@@ -98,12 +98,12 @@ require("anon cannot use the PostGIS schema", "GRANT USAGE ON SCHEMA gis TO auth
 require("event service uses participation RPC", "ensure_event_participation" in event_service and ".from('user_event_participations').insert" not in event_service)
 require("event explore uses leave RPC", "leave_event_participation" in event_explore and ".from('user_event_participations')\n          .update" not in event_explore)
 require("profile page uses profile RPC", "save_my_profile" in profile_page and ".from('profiles').upsert" not in profile_page)
-require("participation RPC pins search_path", "SECURITY DEFINER\nSET search_path = ''" in migration)
+require("participation RPC pins search_path", re.search(r"SECURITY DEFINER\s+SET search_path\s+(?:=|TO)\s*''", migration, re.IGNORECASE) is not None)
 require("participation writes are revoked from client roles", "REVOKE INSERT, UPDATE, DELETE ON TABLE public.user_event_participations FROM anon, authenticated" in migration)
-require("preference RPC pins search_path", "SECURITY DEFINER\nSET search_path = ''" in preference)
+require("preference RPC pins search_path", re.search(r"SECURITY DEFINER\s+SET search_path\s+(?:=|TO)\s*''", preference, re.IGNORECASE) is not None)
 require("preference writes are revoked from client roles", "REVOKE INSERT, UPDATE, DELETE ON TABLE public.user_event_preferences FROM anon, authenticated" in preference)
 require("event service uses preference RPC", "set_current_event_preference" in event_service and ".from('user_event_preferences').upsert" not in event_service)
-require("profile RPC pins search_path", "SECURITY DEFINER\nSET search_path = ''" in profile)
+require("profile RPC pins search_path", re.search(r"SECURITY DEFINER\s+SET search_path\s+(?:=|TO)\s*''", profile, re.IGNORECASE) is not None)
 require("profile RPC display-name limit matches the 30-character table constraint", "char_length(v_display_name) > 30" in profile and "char_length(v_display_name) > 30" in candidate and "char_length(v_display_name) > 60" not in profile and "char_length(v_display_name) > 60" not in candidate)
 require("profile RPC allowlists age groups", all(x in profile for x in ("'10代以下'", "'20代'", "'回答しない'")))
 require("profile RPC age-group allowlist matches the Flutter choices", all(f"'{x}'" in profile for x in ("10代以下", "20代", "30代", "40代", "50代", "60代", "70代以上", "回答しない")) and all(f"'{x}'" in profile_page for x in ("10代以下", "20代", "30代", "40代", "50代", "60代", "70代以上", "回答しない")))
