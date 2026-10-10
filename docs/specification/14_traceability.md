@@ -70,3 +70,10 @@
 | 領域 | 主な実装・仕様 | 必須検証 |
 |---|---|---|
 | 本番プロフィールRPC追随 | `supabase/migrations/20261010231050_reconcile_profile_gender_recommendation_rpc.sql` | 本番DBで4引数 `save_my_profile` とNULL性別対応の `get_event_recommendations` を確認。3引数RPCの後方互換とauthenticated-only EXECUTEを維持 |
+
+
+## 2026-10-11 PostGIS API hardening follow-up
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| PostGIS extent RPC | `supabase/migrations/20261010231230_restrict_public_postgis_extent_rpc.sql` | 管理対象の拡張関数は所有者権限によりACL変更が拒否される場合があるため、`has_function_privilege` と Security Advisor の再確認を必須とする。失敗時に権限変更済みとみなさない |
