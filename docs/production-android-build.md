@@ -26,7 +26,7 @@ Do not add a service-account publishing credential to this workflow. It intentio
 1. Confirm the production Environment's required variables/secrets exist without displaying their values.
 2. In Play Console, check the highest version code already used by any uploaded bundle. Enter a **higher, unused** positive integer as `build_number`. The workflow deliberately does not guess or reserve a Play version code.
 3. First confirm the workflow file exists on the repository's default branch (see dispatch prerequisite above). Then dispatch it from the reviewed `feature/android-next-release` branch. The workflow enforces this branch guard; the selected ref is the code that gets built.
-4. Confirm reviewed migration `20261009164000_grant_story_preview_server_time.sql` has been applied to production and its authenticated RPC access has been verified.
+4. Production already records the grant as migration version `20261010080644` and the authenticated RPC privilege has been verified. The follow-up migration `20261010100001_grant_story_preview_server_time_after_reconcile.sql` is intentionally ordered after security reconciliation and must be applied through the normal migration workflow before release.
 5. Wait for analyze, tests, and the signed AAB build to finish.
 6. Download the artifact and verify `app-release.aab.sha256` before transferring it.
 7. Install/test the artifact in a controlled environment before any store upload.
@@ -35,7 +35,7 @@ Do not add a service-account publishing credential to this workflow. It intentio
 
 - A successful CI build proves the artifact can be produced; it does not prove production anonymous sign-in, GPS collection, ads, account deletion, or data isolation works on a device.
 - The workflow guards against the known closed-test URL/key, but the publishable key must still be verified in the protected GitHub Environment.
-- The rewarded-ad story preview feature is being developed separately. This workflow now passes its Android production ad-unit ID when building the release AAB; the GitHub Environment secret must be configured before the build can run successfully.
+- The rewarded-ad story preview feature is being developed separately. This workflow now passes its Android production ad-unit ID when building the release AAB; the GitHub Environment variable must be configured before the build can run successfully.
 - The AAB artifact is retained for seven days. No store publication is performed.
 - Do not populate `app_release_policies` until the actual release build number and public store URL are confirmed.
 - Do not test account deletion with a real user's account. Use a disposable production test account only after confirming that its records can safely be deleted.
