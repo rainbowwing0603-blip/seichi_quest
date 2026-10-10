@@ -105,6 +105,9 @@ void main() {
         .toList();
     expect(ratios, everyElement(closeTo(730 / 909, 0.001)));
     expect(ratios[0], closeTo(ratios[1], 0.001));
+    final images = tester.widgetList<Image>(find.byType(Image)).toList();
+    expect(images[0].fit, BoxFit.fill);
+    expect(images[1].fit, BoxFit.fill);
   });
 
   testWidgets('multiple gallery images stay generic and ordered', (tester) async {

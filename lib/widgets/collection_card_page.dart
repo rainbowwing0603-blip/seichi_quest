@@ -308,10 +308,8 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
     final descriptionText = _longText
         ? 'この旅で出会った景色と物語を、いつまでも大切にしたい。季節を越えてもう一度訪れたくなる、心に残る場所の記念です。'
         : widget.item.description.trim();
-    final hasReading =
-        widget.debugPreview ||
-        _readingArtwork != null ||
-        readingText?.trim().isNotEmpty == true;
+    // Keep the same two-card composition in the sample preview and in
+    // real collection cards. Missing reading artwork falls back to text.
     return SizedBox(
       width: 360,
       height: 600,
@@ -399,79 +397,38 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  if (hasReading)
-                    Expanded(
-                      child: Center(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 145,
-                              height: 181,
-                              child: _buildKarutaPanel(
-                                image: hasArtwork ? _artwork : null,
-                                fallbackText: widget.item.title,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            SizedBox(
-                              width: 145,
-                              height: 181,
-                              child: _buildKarutaPanel(
-                                image: _hideArtwork ? null : _readingArtwork,
-                                fallbackText:
-                                    readingText?.trim().isNotEmpty == true
-                                    ? readingText!
-                                    : (widget.item.description.trim().isNotEmpty
-                                        ? widget.item.description.trim()
-                                        : widget.item.title),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else if (hasArtwork)
-                    Expanded(
-                      child: Center(
-                        child: SizedBox(
-                          width: 250,
-                          child: AspectRatio(
-                            aspectRatio: 730 / 909,
+                  Expanded(
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 145,
+                            height: 181,
                             child: _buildKarutaPanel(
-                              image: _artwork,
+                              image: hasArtwork ? _artwork : null,
                               fallbackText: widget.item.title,
                             ),
                           ),
-                        ),
-                      ),
-                    )
-                  else
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: const Color(0xAA061B30),
-                          border: Border.all(
-                            color: const Color(0x8875E4E5),
+                          const SizedBox(width: 10),
+                          SizedBox(
+                            width: 145,
+                            height: 181,
+                            child: _buildKarutaPanel(
+                              image: _hideArtwork ? null : _readingArtwork,
+                              fallbackText:
+                                  readingText?.trim().isNotEmpty == true
+                                  ? readingText!
+                                  : (widget.item.description.trim().isNotEmpty
+                                      ? widget.item.description.trim()
+                                      : widget.item.title),
+                            ),
                           ),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          widget.item.title,
-                          textAlign: TextAlign.center,
-                          maxLines: 4,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            height: 1.22,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
+                        ],
                       ),
                     ),
+                  ),
                   const SizedBox(height: 21),
                   Container(
                     width: 40,
@@ -502,20 +459,6 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
                       style: const TextStyle(
                         color: Color(0xFFE0ECF0),
                         fontSize: 11.5,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                  if (!hasReading &&
-                      readingText?.trim().isNotEmpty == true) ...[
-                    const SizedBox(height: 7),
-                    Text(
-                      readingText!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFFE0ECF0),
-                        fontSize: 12,
                         height: 1.35,
                       ),
                     ),
