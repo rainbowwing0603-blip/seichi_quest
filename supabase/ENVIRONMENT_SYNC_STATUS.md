@@ -29,7 +29,7 @@ Last checked: 2026-10-10
 - Test has PostGIS 3.3.7 in schema `public`.
 - PostGIS is not relocatable in its current state. The migration selects schema-appropriate function definitions so both environments remain functional, but extension-owned metadata objects and their grants are not identical.
 - **Do not run `DROP EXTENSION postgis CASCADE` manually.** Supabase's documented route for moving a non-relocatable PostGIS extension is to contact Supabase Support and have them perform the supported relocation procedure. The desired test target is schema `gis`, matching production.
-- After Support completes the relocation, run `supabase db push` again so the schema-aware reconciliation migration installs the `gis)-qualified function bodies.
+- After Support completes the relocation, run `supabase db push` again so the schema-aware reconciliation migration installs the `gis`-qualified function bodies.
 
 ### Data and Storage objects
 
