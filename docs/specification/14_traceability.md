@@ -53,7 +53,7 @@
 |---|---|---|
 | イベントおすすめ | lib/services/event_recommendation_service.dart, lib/widgets/recommended_events_card.dart, lib/widgets/event_recommendation_section.dart | 未参加イベントのみ、属性集団5人以上、個人情報を返さない |
 | 年代プロフィール | lib/widgets/profile_page.dart | 旧値 10代以下 の互換読込と新値 10代 の保存 |
-| 推薦RPC | supabase/migrations/20261007211445_event_demographic_recommendations.sql, supabase/migrations/20261010120000_fix_event_recommendation_null_gender.sql | 年代のみ・性別NULLでも集計できること、「回答しない」を年代属性として扱わないこと、認証済みEXECUTEのみ |
+| 推薦RPC | supabase/migrations/20261007211445_event_demographic_recommendations.sql, supabase/migrations/20261010181426_fix_event_recommendation_null_gender.sql | 年代のみ・性別NULLでも集計できること、「回答しない」を年代属性として扱わないこと、認証済みEXECUTEのみ |
 
 
 ## 2026-10-10 profile demographic fields
@@ -61,5 +61,5 @@
 | 領域 | 主な実装・仕様 | 必須検証 |
 |---|---|---|
 | プロフィール属性 | `lib/widgets/profile_page.dart` → 4引数 `save_my_profile` RPC。既存3引数RPCは後方互換のため維持 | 性別は任意、許可値のみ保存、プロフィールを他ユーザーが変更できない |
-| 推薦のプライバシー | `supabase/migrations/20261010232000_profile_gender_recommendation_rpc.sql` | 年代「回答しない」を属性集団にしない、性別未設定の利用者も利用可能 |
+| 推薦のプライバシー | `supabase/migrations/20261010181454_profile_gender_recommendation_rpc.sql` | 年代「回答しない」を属性集団にしない、性別未設定の利用者も利用可能 |
 | プライバシーポリシー | `privacy/index.html` | 公開ページの内容とアプリ内の削除手順が一致すること。Web削除ページは本番SupabaseのURLとpublishable keyを使用し、テスト環境を参照しないこと |
