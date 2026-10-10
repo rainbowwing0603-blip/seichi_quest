@@ -22,7 +22,7 @@ Do not add a service-account publishing credential to this workflow. It intentio
 ## Before running
 
 1. Confirm the production Environment's required variables/secrets exist without displaying their values.
-2. In Play Console, check the highest version code already used by any uploaded bundle. Enter a **higher, unused** positive integer as `build_number`. The workflow deliberately does not guess or reserve a Play version code.
+2. The closed-test release has already used versionCode `20`. The workflow rejects `build_number` values of `20` or lower. Still check Play Console for the highest version code used by any uploaded bundle and enter a **higher, unused** positive integer. The workflow does not guess or reserve a Play version code.
 3. Dispatch this workflow only from the reviewed `feature/android-next-release` branch. The workflow enforces this branch guard; the workflow ref is the code that gets built.
 4. Before shipping rewarded story previews, review and apply `20261010080644_grant_story_preview_server_time.sql` and the follow-up `20261010100001_grant_story_preview_server_time_after_reconcile.sql` from PR #25 through the normal migration workflow. The follow-up is not yet recorded in production. Verify authenticated RPC access after the security-reconciliation migration has run.
 5. Wait for analyze, tests, and the signed AAB build to finish.
