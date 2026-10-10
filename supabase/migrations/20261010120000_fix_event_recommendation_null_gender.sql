@@ -16,7 +16,9 @@ security definer
 set search_path = ''
 as $function$
 with viewer as (
-  select p.age_group, p.gender
+  select
+    case when p.age_group = '回答しない' then null else p.age_group end as age_group,
+    p.gender
   from public.profiles p
   where p.id = (select auth.uid())
   limit 1
