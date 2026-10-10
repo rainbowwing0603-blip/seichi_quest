@@ -1,0 +1,133 @@
+name: Production Android Build (Artifact Only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: "Google Playで未使用のversionCodeを指定（公開・アップロードはしません）"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-android-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: production
+    steps:
+      - name: Checkout workflow ref
+        uses: actions/checkout@v5
+
+      - name: Guard production configuration
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID: ${{ vars.ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == "refs/heads/feature/android-next-release" ]] || { echo "::error::Run this production workflow only from the reviewed feature/android-next-release branch."; exit 1; }
+          [[ "$BUILD_NUMBER" =~ ^[1-9][0-9]*$ ]] || { echo "::error::build_number must be a positive integer."; exit 1; }
+          (( BUILD_NUMBER <= 2100000000 )) || { echo "::error::build_number exceeds Android/Google Play's supported maximum."; exit 1; }
+          [[ "$SUPABASE_URL" == "https://npirfaoxcarfuqjlwgav.supabase.co" ]] || { echo "::error::SUPABASE_URL does not match the approved production project."; exit 1; }
+          test -n "$SUPABASE_PUBLISHABLE_KEY" || { echo "::error::SUPABASE_PUBLISHABLE_KEY is missing."; exit 1; }
+          [[ "$SUPABASE_PUBLISHABLE_KEY" != "sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w" ]] || { echo "::error::Closed-test Supabase key cannot be used for production."; exit 1; }
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          test -n "$ANDROID_KEY_PASSWORD"
+          test -n "$GOOGLE_MAPS_API_KEY"
+          [[ "$ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID" =~ ^ca-app-pub-[0-9]+/[0-9]+$ ]] || { echo "::error::ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID has an invalid format."; exit 1; }
+          [[ "$ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID" != "ca-app-pub-3940256099942544/5224354917" ]] || { echo "::error::Google test ad unit cannot be used in production."; exit 1; }
+          echo "Production target validated; secret values will not be printed."
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.1"
+          channel: stable
+          cache: true
+
+      - name: Restore production signing configuration
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          test -s android/app/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=upload-keystore.jks
+          googleMapsApiKey=$GOOGLE_MAPS_API_KEY
+          EOF
+          chmod 600 android/key.properties android/app/upload-keystore.jks
+
+      - name: Validate production Dart defines
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          [[ "$SUPABASE_URL" == "https://npirfaoxcarfuqjlwgav.supabase.co" ]]
+          [[ "$SUPABASE_PUBLISHABLE_KEY" != "sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w" ]]
+          [[ "$SUPABASE_PUBLISHABLE_KEY" == sb_publishable_* ]]
+
+      - name: Analyze and test
+        run: |
+          set -euo pipefail
+          flutter pub get
+          flutter analyze
+          flutter test
+
+      - name: Build production AAB (no upload or publication)
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID: ${{ vars.ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID }}
+        run: |
+          set -euo pipefail
+          version_name="$(python3 -c 'import re; s=open("pubspec.yaml", encoding="utf-8").read(); m=re.search(r"^version:\s+([0-9]+\.[0-9]+\.[0-9]+)(?:\+[0-9]+)?\s*$", s, re.M); assert m, "pubspec.yaml must contain version: MAJOR.MINOR.PATCH"; print(m.group(1))')"
+          flutter build appbundle --release --no-pub \
+            --build-name="$version_name" \
+            --build-number="$BUILD_NUMBER" \
+            --dart-define="APP_ENV=production" \
+            --dart-define="SUPABASE_URL=$SUPABASE_URL" \
+            --dart-define="SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PUBLISHABLE_KEY" \
+            --dart-define="ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID=$ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID"
+          test -s build/app/outputs/bundle/release/app-release.aab
+          sha256sum build/app/outputs/bundle/release/app-release.aab | tee build/app/outputs/bundle/release/app-release.aab.sha256
+          echo "Built versionName=$version_name versionCode=$BUILD_NUMBER (artifact only)."
+
+      - name: Preserve production AAB for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-android-aab-${{ github.run_id }}
+          path: |
+            build/app/outputs/bundle/release/app-release.aab
+            build/app/outputs/bundle/release/app-release.aab.sha256
+          if-no-files-found: error
+          retention-days: 7

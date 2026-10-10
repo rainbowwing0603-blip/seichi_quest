@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import * as cheerio from "npm:cheerio@1.1.2";
 import * as XLSX from "npm:xlsx@0.18.5";
 
-const IMPORT_KEY = "sq-roadside-20260925-fixed-source-import-v1";
+const IMPORT_KEY = Deno.env.get("ROADSIDESTATION_IMPORT_KEY_V2");
 const MLIT_XLS = "https://www.mlit.go.jp/road/Michi-no-Eki/file/list.xls";
 const MLIT_PAGE = "https://www.mlit.go.jp/road/Michi-no-Eki/list.html";
 const REGION_URLS = Array.from({length:10},(_,i)=>`https://www.seaview.jp/rs/${101+i}-111.htm`);
@@ -21,7 +21,16 @@ function coord(href:string):[number,number]|null {
 }
 
 Deno.serve(async(req:Request)=>{ try {
-  if(req.headers.get("x-import-key")!==IMPORT_KEY) return new Response("forbidden",{status:403});
+  if (req.method !== "POST") {
+    return new Response("method not allowed", { status: 405, headers: { "Allow": "POST" } });
+  }
+  if (!IMPORT_KEY) {
+    console.error("[registry-import] required secret ROADSIDESTATION_IMPORT_KEY is not configured");
+    return Response.json({ ok: false, error: "maintenance function is not configured" }, { status: 503 });
+  }
+  if (req.headers.get("x-import-key") !== IMPORT_KEY) {
+    return new Response("forbidden", { status: 403 });
+  }
   const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   // 1) Authoritative registry from MLIT XLS.
@@ -68,30 +77,25 @@ Deno.serve(async(req:Request)=>{ try {
       {prefecture:"兵庫県",official_name:"こんだ温泉ぬくもりの郷",municipality:"丹波篠山市"},
       {prefecture:"熊本県",official_name:"くらたけ天草戦国ミュージアム",municipality:"天草市"},
     ]){
-      const k=x.prefecture+"\\0"+x.official_name;
+      const k=x.prefecture+"\0"+x.official_name;
       if(!om.has(k)) om.set(k,{...x,registration_round:65,official_source_url:"https://www.mlit.go.jp/report/press/road01_hh_002138.html",source_checked_at:new Date().toISOString(),status:"opening_pending",metadata:{source:"MLIT 65th registration press release",registration_date_text:"2026-09-04"}});
     }
     master=[...om.values()];
   }
   if(master.length!==1234) return Response.json({ok:false,stage:"mlit_parse",parsed:master.length,sheets:wb.SheetNames},{status:409});
 
-  // GPS enrichment is intentionally a separate pass after the official registry import.
-  // 3) Replace only the registry staging table after all validation passed.
-  const {error:de}=await sb.from("roadside_station_registry").delete().not("id","is",null); if(de)throw de;
-  for(let i=0;i<master.length;i+=250){
-    const {error}=await sb.from("roadside_station_registry").insert(master.slice(i,i+250)); if(error)throw error;
+  // The database RPC stages, validates, upserts and removes stale rows in one transaction.
+  // Existing place links and GPS-enrichment fields are preserved for matching stations.
+  const {data:replacementResult,error:replacementError}=await sb.rpc(
+    "replace_roadside_station_registry",
+    {p_rows:master},
+  );
+  if(replacementError)throw replacementError;
+  if(!replacementResult?.ok || replacementResult.total!==1234){
+    throw new Error("Atomic registry replacement returned an unexpected result");
   }
 
-  // 4) Preserve known opening-pending status for the 3 latest registrations.
-  for(const x of [
-    ["神奈川県","やどりきテラス 清流の里"],
-    ["兵庫県","こんだ温泉ぬくもりの郷"],
-    ["熊本県","くらたけ天草戦国ミュージアム"],
-  ]){
-    await sb.from("roadside_station_registry").update({status:"opening_pending"}).eq("prefecture",x[0]).eq("official_name",x[1]);
-  }
-
-  // 5) Re-link already verified Gunma places.
+  // Re-link already verified Gunma places.
   const {data:gp,error:gpe}=await sb.from("places").select("id,name,prefecture,city,location_verified_at").eq("category","roadside_station").eq("prefecture","群馬県"); if(gpe)throw gpe;
   let linked=0;
   for(const p of gp??[]){
@@ -103,4 +107,8 @@ Deno.serve(async(req:Request)=>{ try {
   }
   const {count}=await sb.from("roadside_station_registry").select("*",{count:"exact",head:true});
   return Response.json({ok:true,official:master.length,total:count,gunma_linked:linked});
-} catch(e){ return Response.json({ok:false,error:String(e),detail:e,stack:(e as any)?.stack},{status:500}); }});
+} catch (e) {
+  // Keep stack traces and source details in server logs only.
+  console.error("[registry-import] failed", e);
+  return Response.json({ ok: false, error: "registry import failed" }, { status: 500 });
+}});
