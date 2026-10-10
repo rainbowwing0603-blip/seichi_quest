@@ -77,3 +77,10 @@
 | 領域 | 主な実装・仕様 | 必須検証 |
 |---|---|---|
 | PostGIS extent RPC | `supabase/migrations/20261010231230_restrict_public_postgis_extent_rpc.sql` | 管理対象の拡張関数は所有者権限によりACL変更が拒否される場合があるため、`has_function_privilege` と Security Advisor の再確認を必須とする。失敗時に権限変更済みとみなさない |
+
+
+## 2026-10-11 production ranking RPC grants
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 公開ランキングRPC | `supabase/migrations/20261011090000_restrict_public_ranking_to_authenticated.sql` | `PUBLIC` と `anon` のEXECUTEを剥奪し、`authenticated` と `service_role` を維持。未認証の直接RPC呼出しは拒否し、匿名サインイン済みアプリセッションではランキング表示を維持する |
