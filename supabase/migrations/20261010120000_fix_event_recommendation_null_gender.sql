@@ -1,6 +1,7 @@
--- Fix age-only recommendations when the optional gender value is NULL.
+-- Fix age-only recommendations when gender is NULL and ignore age opt-out.
 -- The earlier predicate evaluated to SQL NULL for users without a gender, preventing
--- age-group matching. Keep the existing authenticated-only EXECUTE grant unchanged.
+-- age-group matching. Treat '回答しない' as no age preference, not as a demographic.
+-- Keep the existing authenticated-only EXECUTE grant unchanged.
 
 create or replace function public.get_event_recommendations(p_limit integer default 5)
 returns table(
