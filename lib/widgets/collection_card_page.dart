@@ -463,20 +463,6 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
                       ),
                     ),
                   ],
-                  if (!hasReading &&
-                      readingText?.trim().isNotEmpty == true) ...[
-                    const SizedBox(height: 7),
-                    Text(
-                      readingText!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFFE0ECF0),
-                        fontSize: 12,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
                   const SizedBox(height: 15),
                   Container(
                     padding: const EdgeInsets.symmetric(
