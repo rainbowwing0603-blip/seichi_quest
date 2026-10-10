@@ -27,7 +27,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       'ca-app-pub-3940256099942544/2934735716';
 
   static const String _androidProductionBannerAdUnitId =
-      'ca-app-pub-1391846841313915/2597290432';
+      String.fromEnvironment('ADMOB_ANDROID_BANNER_AD_UNIT_ID');
   static const String _iosProductionBannerAdUnitId =
       String.fromEnvironment('ADMOB_IOS_BANNER_AD_UNIT_ID');
 
@@ -38,7 +38,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       final id = isIOS
           ? _iosProductionBannerAdUnitId
           : _androidProductionBannerAdUnitId;
-      return id.isEmpty ? null : id;
+      return id.trim().isEmpty ? null : id.trim();
     }
 
     return isIOS ? _iosTestBannerAdUnitId : _androidTestBannerAdUnitId;
@@ -92,7 +92,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
     final adUnitId = _bannerAdUnitId;
     if (adUnitId == null) {
-      appDebugPrint('[ADS] banner disabled: iOS production ad unit is not configured');
+      appDebugPrint('[ADS] banner disabled: production ad unit is not configured');
       return;
     }
 

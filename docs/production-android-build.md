@@ -17,7 +17,11 @@ Create or verify the GitHub Environment named `production`. Store credentials th
 - Secret `ANDROID_KEY_ALIAS`.
 - Secret `ANDROID_KEY_PASSWORD`.
 - Secret `GOOGLE_MAPS_API_KEY`: production Android Maps key, restricted to the production package and signing certificate where applicable.
-- Variable `ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID`: the production Android rewarded-ad unit ID for the one-hour story preview. Do not use Google's test ad unit in release builds.
+- Variable `ADMOB_ANDROID_BANNER_AD_UNIT_ID`: production Android banner ad unit ID.
+- Variable `ADMOB_ANDROID_INTERSTITIAL_AD_UNIT_ID`: production Android interstitial ad unit ID.
+- Variable `ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID`: production Android rewarded-ad unit ID for the one-hour story preview.
+
+All three Android ad unit variables are validated before the build and passed to Flutter through `--dart-define`. The workflow rejects malformed IDs and Google's official test unit IDs.
 
 Do not add a service-account publishing credential to this workflow. It intentionally has no Play publishing step.
 
@@ -35,7 +39,7 @@ Do not add a service-account publishing credential to this workflow. It intentio
 
 - A successful CI build proves the artifact can be produced; it does not prove production anonymous sign-in, GPS collection, ads, account deletion, or data isolation works on a device.
 - The workflow guards against the known closed-test URL/key, but the publishable key must still be verified in the protected GitHub Environment.
-- The one-hour rewarded story preview is included on the release branch. The GitHub Environment variable `ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID` must be configured with the production rewarded-ad unit before the build can run successfully.
+- The one-hour rewarded story preview is included on the release branch. All three Android ad unit variables listed above must be configured with production ad units before the build can run successfully.
 - The AAB artifact is retained for seven days. No store publication is performed.
 - Do not populate `app_release_policies` until the actual release build number and public store URL are confirmed.
 - Do not test account deletion with a real user's account. Use a disposable production test account only after confirming that its records can safely be deleted.

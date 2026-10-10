@@ -40,7 +40,7 @@ class InterstitialAdService {
       'ca-app-pub-3940256099942544/4411468910';
 
   static const String _androidProductionInterstitialAdUnitId =
-      'ca-app-pub-1391846841313915/4859337718';
+      String.fromEnvironment('ADMOB_ANDROID_INTERSTITIAL_AD_UNIT_ID');
   static const String _iosProductionInterstitialAdUnitId =
       String.fromEnvironment('ADMOB_IOS_INTERSTITIAL_AD_UNIT_ID');
 
@@ -54,10 +54,14 @@ class InterstitialAdService {
   bool _isShowing = false;
 
   bool get hasProductionAdUnitId {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
+    if (!kReleaseMode) {
       return true;
     }
-    return _iosProductionInterstitialAdUnitId.isNotEmpty;
+    final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+    final id = isIOS
+        ? _iosProductionInterstitialAdUnitId
+        : _androidProductionInterstitialAdUnitId;
+    return id.trim().isNotEmpty;
   }
 
   String? get _adUnitId {
@@ -67,7 +71,7 @@ class InterstitialAdService {
       final id = isIOS
           ? _iosProductionInterstitialAdUnitId
           : _androidProductionInterstitialAdUnitId;
-      return id.isEmpty ? null : id;
+      return id.trim().isEmpty ? null : id.trim();
     }
 
     return isIOS

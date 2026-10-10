@@ -34,6 +34,8 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          ADMOB_ANDROID_BANNER_AD_UNIT_ID: ${{ vars.ADMOB_ANDROID_BANNER_AD_UNIT_ID }}
+          ADMOB_ANDROID_INTERSTITIAL_AD_UNIT_ID: ${{ vars.ADMOB_ANDROID_INTERSTITIAL_AD_UNIT_ID }}
           ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID: ${{ vars.ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID }}
         run: |
           set -euo pipefail
@@ -49,8 +51,12 @@ jobs:
           test -n "$ANDROID_KEY_ALIAS"
           test -n "$ANDROID_KEY_PASSWORD"
           test -n "$GOOGLE_MAPS_API_KEY"
+          [[ "$ADMOB_ANDROID_BANNER_AD_UNIT_ID" =~ ^ca-app-pub-[0-9]+/[0-9]+$ ]] || { echo "::error::ADMOB_ANDROID_BANNER_AD_UNIT_ID has an invalid format."; exit 1; }
+          [[ "$ADMOB_ANDROID_BANNER_AD_UNIT_ID" != "ca-app-pub-3940256099942544/9214589741" ]] || { echo "::error::Google test banner unit cannot be used in production."; exit 1; }
+          [[ "$ADMOB_ANDROID_INTERSTITIAL_AD_UNIT_ID" =~ ^ca-app-pub-[0-9]+/[0-9]+$ ]] || { echo "::error::ADMOB_ANDROID_INTERSTITIAL_AD_UNIT_ID has an invalid format."; exit 1; }
+          [[ "$ADMOB_ANDROID_INTERSTITIAL_AD_UNIT_ID" != "ca-app-pub-3940256099942544/1033173712" ]] || { echo "::error::Google test interstitial unit cannot be used in production."; exit 1; }
           [[ "$ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID" =~ ^ca-app-pub-[0-9]+/[0-9]+$ ]] || { echo "::error::ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID has an invalid format."; exit 1; }
-          [[ "$ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID" != "ca-app-pub-3940256099942544/5224354917" ]] || { echo "::error::Google test ad unit cannot be used in production."; exit 1; }
+          [[ "$ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID" != "ca-app-pub-3940256099942544/5224354917" ]] || { echo "::error::Google test rewarded unit cannot be used in production."; exit 1; }
           echo "Production target validated; secret values will not be printed."
 
       - name: Set up Java
@@ -108,6 +114,8 @@ jobs:
           BUILD_NUMBER: ${{ inputs.build_number }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          ADMOB_ANDROID_BANNER_AD_UNIT_ID: ${{ vars.ADMOB_ANDROID_BANNER_AD_UNIT_ID }}
+          ADMOB_ANDROID_INTERSTITIAL_AD_UNIT_ID: ${{ vars.ADMOB_ANDROID_INTERSTITIAL_AD_UNIT_ID }}
           ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID: ${{ vars.ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID }}
         run: |
           set -euo pipefail
