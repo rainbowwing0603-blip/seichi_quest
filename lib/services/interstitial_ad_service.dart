@@ -134,7 +134,6 @@ class InterstitialAdService {
   void finishRewardedAd({required bool shown}) {
     if (shown) _lastShownAt = DateTime.now();
     _isShowing = false;
-    preload();
   }
 
   void markStampCollected() {
