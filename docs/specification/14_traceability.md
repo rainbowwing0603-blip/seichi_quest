@@ -49,4 +49,4 @@
 |---|---|---|
 | イベントおすすめ | lib/services/event_recommendation_service.dart, lib/widgets/recommended_events_card.dart, lib/widgets/event_recommendation_section.dart | 未参加イベントのみ、属性集団5人以上、個人情報を返さない |
 | 年代プロフィール | lib/widgets/profile_page.dart | 旧値 10代以下 の互換読込と新値 10代 の保存 |
-| 推薦RPC | supabase/migrations/20261007211445_event_demographic_recommendations.sql, supabase/migrations/20261010120000_fix_event_recommendation_null_gender.sql | 年代のみ・性別NULLでも集計できること、認証済みEXECUTEのみ |
+| 推薦RPC | supabase/migrations/20261007211445_event_demographic_recommendations.sql, supabase/migrations/20261010120000_fix_event_recommendation_null_gender.sql | 年代のみ・性別NULLでも集計できること、「回答しない」を年代属性として扱わないこと、認証済みEXECUTEのみ |
