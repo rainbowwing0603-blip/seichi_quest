@@ -1,0 +1,174 @@
+name: Android production AAB
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: android-production-aab
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build production Android App Bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+
+    steps:
+      - name: Validate production configuration
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          [[ "$SUPABASE_URL" == "https://npirfaoxcarfuqjlwgav.supabase.co" ]] || {
+            echo "::error::Production Supabase URL is missing or does not match the approved project."
+            exit 1
+          }
+
+          [[ -n "$SUPABASE_PUBLISHABLE_KEY" ]] || {
+            echo "::error::SUPABASE_PUBLISHABLE_KEY is missing."
+            exit 1
+          }
+          [[ "$SUPABASE_PUBLISHABLE_KEY" == sb_publishable_* ]] || {
+            echo "::error::The configured Supabase key is not a Publishable key."
+            exit 1
+          }
+          [[ "$SUPABASE_PUBLISHABLE_KEY" != "sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w" ]] || {
+            echo "::error::The known closed-test Publishable key cannot be used for production."
+            exit 1
+          }
+
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD GOOGLE_MAPS_API_KEY; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Required production secret $name is missing."
+              exit 1
+            fi
+          done
+
+          echo "Checking that the production Publishable key belongs to the configured Supabase project."
+          curl --fail --silent --show-error             -H "apikey: $SUPABASE_PUBLISHABLE_KEY"             "$SUPABASE_URL/rest/v1/"             -o /dev/null
+
+          echo "Production configuration checks passed."
+
+      - name: Checkout release source
+        uses: actions/checkout@v5
+        with:
+          ref: feature/android-next-release
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+
+      - name: Restore Android upload keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          test -s android/app/upload-keystore.jks
+
+          printf '%s\n'             "storePassword=$ANDROID_KEYSTORE_PASSWORD"             "keyPassword=$ANDROID_KEY_PASSWORD"             "keyAlias=$ANDROID_KEY_ALIAS"             "storeFile=upload-keystore.jks"             "googleMapsApiKey=$GOOGLE_MAPS_API_KEY"             > android/key.properties
+          chmod 600 android/key.properties
+
+          keytool -list             -keystore android/app/upload-keystore.jks             -storepass "$ANDROID_KEYSTORE_PASSWORD"             -alias "$ANDROID_KEY_ALIAS" >/dev/null
+          echo "Existing upload keystore and alias verified."
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: jomokaruta
+          workload_identity_provider: projects/152400953721/locations/global/workloadIdentityPools/seichi-quest-github/providers/seichi-quest-github
+          service_account: seichi-quest-play-api@jomokaruta.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+          create_credentials_file: false
+
+      - name: Resolve Play versionCode and build
+        id: version
+        shell: bash
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          STORY_REWARDED_AD_UNIT_ID: ${{ vars.ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID || secrets.ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID || 'ca-app-pub-1391846841313915/2032059471' }}
+        run: |
+          set -euo pipefail
+          package="jp.seichiquest.app"
+          api="https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$package"
+          auth=(-H "Authorization: Bearer $ACCESS_TOKEN")
+
+          version_name="$(python3 -c 'import re; s=open("pubspec.yaml", encoding="utf-8").read(); m=re.search(r"^version:\s+([0-9]+\.[0-9]+\.[0-9]+)(?:\+[0-9]+)?\s*$", s, re.M); assert m, "pubspec.yaml must contain version: MAJOR.MINOR.PATCH"; print(m.group(1))')"
+          echo "Release versionName: $version_name"
+
+          edit="$(curl -sS --fail-with-body -X POST "${auth[@]}" -H "Content-Type: application/json" "$api/edits" -d '{}')"
+          edit_id="$(printf '%s' "$edit" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+          echo "edit_id=$edit_id" >> "$GITHUB_OUTPUT"
+
+          bundles="$(curl -sS --fail-with-body "${auth[@]}" "$api/edits/$edit_id/bundles")"
+          max_existing="$(printf '%s' "$bundles" | python3 -c 'import json,sys; d=json.load(sys.stdin); xs=[int(x["versionCode"]) for x in d.get("bundles",[])]; print(max(xs) if xs else 0)')"
+          next_version_code=$((max_existing + 1))
+          echo "Highest existing Play versionCode: $max_existing"
+          echo "Automatically assigned next versionCode: $next_version_code"
+
+          flutter pub get
+          flutter analyze
+          flutter test
+          flutter build appbundle --release \
+            --build-name="$version_name" \
+            --build-number="$next_version_code" \
+            --dart-define="APP_ENV=production" \
+            --dart-define="SUPABASE_URL=$SUPABASE_URL" \
+            --dart-define="SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PUBLISHABLE_KEY" \
+            --dart-define="ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID=$STORY_REWARDED_AD_UNIT_ID"
+
+          test -s build/app/outputs/bundle/release/app-release.aab
+          echo "version_name=$version_name" >> "$GITHUB_OUTPUT"
+          echo "version_code=$next_version_code" >> "$GITHUB_OUTPUT"
+          echo "Production AAB built: versionName=$version_name, versionCode=$next_version_code"
+
+      - name: Upload production AAB artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-production-aab-${{ github.run_id }}
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Discard temporary Google Play edit
+        if: always() && steps.version.outputs.edit_id != ''
+        shell: bash
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          EDIT_ID: ${{ steps.version.outputs.edit_id }}
+        run: |
+          set -euo pipefail
+          package="jp.seichiquest.app"
+          curl -sS -X DELETE             -H "Authorization: Bearer $ACCESS_TOKEN"             "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$package/edits/$EDIT_ID"             >/dev/null || true
