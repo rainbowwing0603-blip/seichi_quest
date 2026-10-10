@@ -15,6 +15,7 @@ class QuestItemContentSection extends StatefulWidget {
     this.showFallbackText = true,
     this.fallbackDescriptionOverride,
     this.collected = false,
+    this.previewUnlocked = false,
     this._contentBlockService,
   });
 
@@ -23,6 +24,7 @@ class QuestItemContentSection extends StatefulWidget {
   final bool showFallbackText;
   final String? fallbackDescriptionOverride;
   final bool collected;
+  final bool previewUnlocked;
   final ContentBlockService? _contentBlockService;
 
   @override
@@ -86,6 +88,7 @@ class _QuestItemContentSectionState extends State<QuestItemContentSection> {
         final presentation = _presentationPolicy.resolveForCollectionState(
           snapshot.data ?? const <ContentBlock>[],
           collected: widget.collected,
+          previewUnlocked: widget.previewUnlocked,
         );
 
         return Column(
