@@ -38,15 +38,19 @@ $function$;$ddl$;
  LANGUAGE plpgsql
  SET search_path TO 'public'
 AS $function$
-begin
-  new.updated_at = now();
-  new.location =
-    st_setsrid(
-      st_makepoint(new.longitude, new.latitude),
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    NEW.updated_at = now();
+  END IF;
+
+  NEW.location =
+    public.st_setsrid(
+      public.st_makepoint(NEW.longitude, NEW.latitude),
       4326
-    )::geography;
-  return new;
-end;
+    )::public.geography;
+
+  RETURN NEW;
+END;
 $function$;$ddl$;
   ELSE
     RAISE EXCEPTION 'Unsupported PostGIS schema: %', v_postgis_schema;
