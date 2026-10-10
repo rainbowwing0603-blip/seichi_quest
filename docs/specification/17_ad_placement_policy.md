@@ -58,3 +58,14 @@ Banner/Inline/Interstitialは役割が異なるため、BannerやInlineが表示
 現行実装の初期値10分/30分/5分/15秒は固定仕様ではなく、クローズドテストでUXと収益を見ながら検証する基準値とする。広告収益だけでなく、1セッション当たり表示回数、セッション継続、スタンプ獲得完了、広告直後離脱、画面滞在を確認する。
 
 長時間利用者には条件を満たすたび3回目以降も表示可能とする。一方で短時間利用者へ無理にInterstitialを表示しない。収益増でもプレイ離脱が増える配置は採用しない。
+
+
+## 本番広告ユニットIDの管理
+
+Android本番ビルドの広告ユニットIDはソースコードへ直接記述せず、GitHub Actionsの保護された `production` Environment Variablesで管理する。
+
+- `ADMOB_ANDROID_BANNER_AD_UNIT_ID`
+- `ADMOB_ANDROID_INTERSTITIAL_AD_UNIT_ID`
+- `ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID`
+
+本番ビルドWorkflowは3値の形式を事前検証し、Google公式のテスト広告ユニットIDが指定されている場合はビルドを停止する。値はFlutterの `--dart-define` で渡し、Releaseビルドで使用する。Debug/ProfileではGoogle公式テスト広告IDを維持し、広告表示頻度やリワード付与時間などのユーザー体験仕様とは分離して管理する。
