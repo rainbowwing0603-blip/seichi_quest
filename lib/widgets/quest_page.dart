@@ -5,6 +5,7 @@ import '../models/quest_item.dart';
 import '../models/event.dart';
 import '../services/achievement_service.dart';
 import 'quest_ui.dart';
+import 'recommended_events_card.dart';
 
 class QuestPage extends StatelessWidget {
   const QuestPage({
@@ -15,6 +16,7 @@ class QuestPage extends StatelessWidget {
     required this.total,
     required this.onShowDestination,
     required this.onExploreEvents,
+    required this.onRecommendedEventTap,
     required this.events,
     required this.onEventTap,
     required this.eventAchievements,
@@ -27,6 +29,7 @@ class QuestPage extends StatelessWidget {
   final int total;
   final VoidCallback onShowDestination;
   final VoidCallback onExploreEvents;
+  final ValueChanged<Event> onRecommendedEventTap;
   final List<Event> events;
   final ValueChanged<Event> onEventTap;
   final List<Achievement> eventAchievements;
@@ -116,6 +119,8 @@ class QuestPage extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            RecommendedEventsCard(onEventTap: onRecommendedEventTap),
             const SizedBox(height: 12),
             _buildRecommendedQuestSection(),
             const SizedBox(height: 18),
