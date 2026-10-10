@@ -27,6 +27,10 @@
 | リリース・採番 | `.github/workflows/google-play-test-release.yml`, `pubspec.yaml` | Google Play Android Publisher API（既存Bundle最大versionCode + 1） |
 | 仕様更新ゲート | `.github/workflows/specification-update-gate.yml` | PRの変更ファイルを検査し、実装・DB・CI/CD変更時の仕様書更新を要求 |
 
+## 表示仕様: かるた札画像
+
+絵札 (`picture_card`) と読み札 (`reading_card`) は同じ縦長比率 `730:909` で表示する。個別画像の `metadata.aspect_ratio` によって一方の札だけ大きく見えることを防ぎ、`BoxFit.contain` で札の端を切り落とさない。
+
 ## 更新
 ファイル移動・責務分割時はこの表も更新する。テーブルやRPCを削除する前に、対応するFlutter参照が残っていないか確認する。ユーザー向け表示と内部セキュリティ/GPS検証メタデータの境界もレビュー対象とする。
 
