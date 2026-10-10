@@ -84,3 +84,11 @@
 | 領域 | 主な実装・仕様 | 必須検証 |
 |---|---|---|
 | 公開ランキングRPC | `supabase/migrations/20261011090000_restrict_public_ranking_to_authenticated.sql` | `PUBLIC` と `anon` のEXECUTEを剥奪し、`authenticated` と `service_role` を維持。未認証の直接RPC呼出しは拒否し、匿名サインイン済みアプリセッションではランキング表示を維持する |
+
+
+## 2026-10-11 production SECURITY DEFINER RPC isolation
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 特権RPCの分離 | `supabase/migrations/20261010233406_move_security_definer_rpcs_to_private_wrappers.sql` | 14個の実装を非公開の `private` スキーマへ移し、`public` は `SECURITY INVOKER` ラッパーに限定。アプリ向け引数・戻り値・authenticated実行権限を維持し、`anon` と `PUBLIC` の実行を拒否 |
+| 内部セキュリティテーブル | `event_collection_resets`, `location_security_events`, `location_security_states`, `roadside_station_registry` | RLS有効、APIロールへの直接テーブル権限なし。RLSポリシーなしは意図的なdeny-by-defaultとして扱い、警告を消すための公開ポリシー追加は行わない |
