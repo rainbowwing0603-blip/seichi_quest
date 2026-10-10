@@ -36,7 +36,6 @@
 
 | Supabase環境分離 | `lib/main.dart`、リリースWorkflow | `APP_ENV` / `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY`。本番は別Supabaseプロジェクトを使用 |
 
-
 ## 2026-10-09 production schema rebuild
 
 | 領域 | 主な実装・仕様 | 必須検証 |
@@ -46,7 +45,6 @@
 | RLS/GRANT監査 | `supabase/security/production_rls_audit.sql` | 全公開テーブルのRLS、明示GRANT、関数EXECUTE、ビューのsecurity_invoker、他ユーザーアクセス拒否 |
 | Supabaseソースガード | `scripts/check_supabase_security_source.py`; `.github/workflows/supabase-security-source-check.yml` | 固定キーの再混入、auto-exposure、欠落seed、参加RPCの権限要件を静的検査 |
 
-
 ## 2026-10-10 年代ベースのイベントおすすめ統合
 
 | 領域 | 主な実装・仕様 | 必須検証 |
@@ -54,7 +52,6 @@
 | イベントおすすめ | lib/services/event_recommendation_service.dart, lib/widgets/recommended_events_card.dart, lib/widgets/event_recommendation_section.dart | 未参加イベントのみ、属性集団5人以上、個人情報を返さない |
 | 年代プロフィール | lib/widgets/profile_page.dart | 旧値 10代以下 の互換読込と新値 10代 の保存 |
 | 推薦RPC | supabase/migrations/20261007211445_event_demographic_recommendations.sql, supabase/migrations/20261010181426_fix_event_recommendation_null_gender.sql | 年代のみ・性別NULLでも集計できること、「回答しない」を年代属性として扱わないこと、認証済みEXECUTEのみ |
-
 
 ## 2026-10-10 profile demographic fields
 
@@ -64,13 +61,11 @@
 | 推薦のプライバシー | `supabase/migrations/20261010181454_profile_gender_recommendation_rpc.sql` | 年代「回答しない」を属性集団にしない、性別未設定の利用者も利用可能 |
 | プライバシーポリシー | `privacy/index.html` | 公開ページの内容とアプリ内の削除手順が一致すること。Web削除ページは本番SupabaseのURLとpublishable keyを使用し、テスト環境を参照しないこと |
 
-
 ## 2026-10-11 production profile RPC reconciliation
 
 | 領域 | 主な実装・仕様 | 必須検証 |
 |---|---|---|
 | 本番プロフィールRPC追随 | `supabase/migrations/20261010231050_reconcile_profile_gender_recommendation_rpc.sql` | 本番DBで4引数 `save_my_profile` とNULL性別対応の `get_event_recommendations` を確認。3引数RPCの後方互換とauthenticated-only EXECUTEを維持 |
-
 
 ## 2026-10-11 PostGIS API hardening follow-up
 
@@ -78,13 +73,11 @@
 |---|---|---|
 | PostGIS extent RPC | `supabase/migrations/20261010231230_restrict_public_postgis_extent_rpc.sql` | 管理対象の拡張関数は所有者権限によりACL変更が拒否される場合があるため、`has_function_privilege` と Security Advisor の再確認を必須とする。失敗時に権限変更済みとみなさない |
 
-
 ## 2026-10-11 production ranking RPC grants
 
 | 領域 | 主な実装・仕様 | 必須検証 |
 |---|---|---|
 | 公開ランキングRPC | `supabase/migrations/20261011090000_restrict_public_ranking_to_authenticated.sql` | `PUBLIC` と `anon` のEXECUTEを剥奪し、`authenticated` と `service_role` を維持。未認証の直接RPC呼出しは拒否し、匿名サインイン済みアプリセッションではランキング表示を維持する |
-
 
 ## 2026-10-11 production SECURITY DEFINER RPC isolation
 
@@ -93,10 +86,16 @@
 | 特権RPCの分離 | `supabase/migrations/20261010233406_move_security_definer_rpcs_to_private_wrappers.sql` | 14個の実装を非公開の `private` スキーマへ移し、`public` は `SECURITY INVOKER` ラッパーに限定。アプリ向け引数・戻り値・authenticated実行権限を維持し、`anon` と `PUBLIC` の実行を拒否 |
 | 内部セキュリティテーブル | `event_collection_resets`, `location_security_events`, `location_security_states`, `roadside_station_registry` | RLS有効、APIロールへの直接テーブル権限なし。RLSポリシーなしは意図的なdeny-by-defaultとして扱い、警告を消すための公開ポリシー追加は行わない |
 
-
 ## 2026-10-11 production internal-table deny policies
 
 | 領域 | 主な実装・仕様 | 必須検証 |
 |---|---|---|
 | 内部テーブルの直接アクセス防止 | `supabase/migrations/20261010233558_add_explicit_deny_policies_to_internal_tables.sql` | 運用テーブル4件と `private.admin_users` に `anon` / `authenticated` 向けの明示的な拒否ポリシーを設定。既存の特権RPCの処理権限と直接テーブル権限の不存在を確認 |
 | 匿名サインインに関するAdvisor通知 | `authenticated` ロールを使う匿名サインイン方式と公開コンテンツの読み取りポリシー | 自分の履歴のみ読める制約と公開コンテンツの読み取りを維持。通知を消す目的で匿名サインインや必要な読み取りを無効化しない |
+
+## 2026-10-11 production anonymous-auth policy hardening
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 管理操作の匿名ユーザー拒否 | `supabase/migrations/20261011093000_harden_admin_policies_against_anonymous_auth.sql` | `content_blocks` の管理用 INSERT/UPDATE/DELETE、`events` の管理用 UPDATE、`content-media` Storage の管理用操作は `auth.jwt()->>'is_anonymous' = false` かつ `private.is_admin()` を要求。一般の匿名ユーザーが管理操作を実行できず、正式な管理者の操作は維持されること |
+| Advisor通知の扱い | Supabase Security Advisor lint `0012_auth_allow_anonymous_sign_ins` | 本アプリは匿名サインインを利用してユーザーID単位で収集履歴・訪問履歴・設定を保存する。本人所有行だけのRLSと公開/有効コンテンツの読み取りは仕様上必要なため、通知を消すために匿名サインインやこれらのポリシーを一括無効化しない。公開データと本人所有データの意図したアクセスを確認し、管理系の変更操作は非匿名ユーザーに限定する |
