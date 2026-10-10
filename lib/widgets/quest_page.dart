@@ -232,7 +232,7 @@ class QuestPage extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             itemCount: recommended.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
               final event = recommended[index];
               return SizedBox(
@@ -256,7 +256,7 @@ class QuestPage extends StatelessWidget {
                               ? Image.network(
                                   event.coverImageUrl!,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => _buildEventIcon(event),
+                                  errorBuilder: (_, _, _) => _buildEventIcon(event),
                                 )
                               : _buildEventIcon(event),
                         ),
