@@ -101,6 +101,9 @@ class _StoryPreviewSectionState extends State<StoryPreviewSection> {
       return;
     }
 
+    // Bind the reward to the spot that initiated the ad. The detail sheet
+    // can rebuild with another item while the full-screen ad is open.
+    final contentId = widget.item.contentId.trim();
     setState(() => _watchingAd = true);
     try {
       final rewarded = await StoryRewardedAdService.instance.showForStoryUnlock();
@@ -111,8 +114,11 @@ class _StoryPreviewSectionState extends State<StoryPreviewSection> {
         return;
       }
 
-      await unlockService.grantOneHour(widget.item.contentId);
+      await unlockService.grantOneHour(contentId);
       if (!mounted) return;
+      if (widget.item.contentId.trim() != contentId) {
+        return;
+      }
       setState(() => _unlocked = true);
       _scheduleExpiry(const Duration(hours: 1));
       _showMessage('物語を1時間解放しました。');
