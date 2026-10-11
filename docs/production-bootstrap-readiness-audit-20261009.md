@@ -17,7 +17,7 @@ The earlier preparation notes that described production as empty are superseded 
 
 | Check | Result |
 |---|---:|
-| Application tables / public RLS policies | 25 / 24 |
+| Application tables / public RLS policies | 25 / 33 |
 | Application tables without RLS | 0 |
 | Retired `public.seichi` table | absent |
 | Events / places / contents | 51 / 1,713 / 2,742 |
