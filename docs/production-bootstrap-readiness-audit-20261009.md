@@ -1,6 +1,6 @@
 # Production schema cutover and security audit
 
-**Live status update: 2026-10-10.** The migration-history repair and five post-baseline migrations completed, and at that point all 80 local and remote migration versions matched. A follow-up review found that the applied baseline omitted the authenticated EXECUTE grant for `story_preview_server_time()`. Corrective migration `20261009164000_grant_story_preview_server_time.sql` is now in this branch but has not been applied; local has one pending migration while production remains at 80. After review and application, verify the grant and confirm all 81 local/remote versions match. The production app is not yet cleared for release.
+**Live status update: 2026-10-11.** Production schema/security reconciliation is complete, and a fresh comparison confirms that the 94 migration files in the release branch match the 94 versions recorded in production. The authenticated EXECUTE grant for `story_preview_server_time()` was verified live. Follow-up migration-history repairs recorded already-reflected changes without replaying historical SQL or altering application data. The production app is still not cleared for release until the remaining production configuration and real-device end-to-end checks are completed.
 
 Date: 2026-10-09
 Branch: `audit/production-bootstrap-readiness-20261009`
@@ -54,7 +54,7 @@ Five advisor `rls_enabled_no_policy` findings are intentional for server-only ta
 
 - The guarded repair marked the 75 historical migration versions as applied after the production preflight and exact confirmation. It did not replay the historical SQL files.
 - The five reviewed post-baseline migrations were then applied successfully: participation RPC, preference RPC, profile-write RPC, atomic roadside-station registry replacement, and place timestamp preservation.
-- As of 2026-10-11, production migration history and the source branch both contain 93 versions/files. Seven missing history entries were reconciled only after confirming their resulting schema/security state was already present; no historical migration SQL was replayed.
+- As of 2026-10-11, production migration history and the release source branch both contain 94 versions/files. Six source migration versions whose effects were already present were recorded as applied after checking live schema/security state; two production-only historical version IDs are represented by no-op compatibility marker files. No historical migration SQL was replayed.
 - Read-only checks after the push confirmed 25 public application tables, 24 public RLS policies, zero public application tables without RLS, and no direct client INSERT/UPDATE/DELETE/TRUNCATE grants on the restricted user/activity tables reviewed.
 - Master-data counts remain consistent: 51 events, 1,713 places, 2,742 contents, and 2,721 event-content mappings. All 1,713 places have non-null `updated_at`, latitude/longitude, and geography `location`.
 - The source CI workflows for Flutter, iOS, Edge Functions, specification gate, and Supabase security source checks passed for the reviewed audit commit before this documentation refresh.

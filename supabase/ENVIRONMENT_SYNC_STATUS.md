@@ -9,7 +9,7 @@ Last checked: 2026-10-11
 - All 25 non-extension tables in `public` have RLS enabled; none are missing RLS.
 - There are 34 policies across `public` and `storage`.
 - The five migrations reconstructed from the deployed production database on 2026-10-09 are recorded in production migration history.
-- `20261010100000_reconcile_production_security` and the subsequent security/profile changes are reflected in production. On 2026-10-11, seven missing migration-history entries were reconciled only after checking the live schema, RPC definitions, and grants. Three historical compatibility versions were restored as no-op compatibility marker files in source. Production migration history and this branch now both contain 94 versions/files.
+- `20261010100000_reconcile_production_security` and the subsequent security/profile changes are reflected in production. On 2026-10-11, six source migration versions whose effects were already present were recorded as applied only after checking the live schema, RPC definitions, and grants. The two production-only historical version IDs are represented by no-op compatibility marker files in source. A fresh version-set comparison confirms 94 source files and 94 production history versions, with no source-only or production-only versions.
 - Key RPCs exist and the production nearby-content RPC returned 10 rows in a live read-only smoke test.
 - The active app release policy is `latest_build=13`, `minimum_build=11`, `latest_version=1.0.0`; this matches the production release policy currently intended for the app.
 - The `delete-account` Edge Function is active with JWT verification enabled. Its handler requires an authenticated user and deletes only that user's account.
@@ -58,7 +58,7 @@ Last checked: 2026-10-11
 
 ## Remaining work
 
-- **Production database schema/security baseline and migration history are reconciled (94 source files / 93 production versions as of 2026-10-11).**
+- **Production database schema/security baseline and migration history are reconciled (94 source files / 94 production versions, verified by a fresh source-to-production version-set comparison on 2026-10-11).**
 - If the test project must exactly match production, contact Supabase Support to move test PostGIS from `public` to `gis`; then repair/apply test migration history and rerun the environment comparison.
 - After a production user account exists, register the intended production admin UUID if the app's admin content-management features are to be used.
 - Upload production-approved event-card and content-media assets when they are ready.
