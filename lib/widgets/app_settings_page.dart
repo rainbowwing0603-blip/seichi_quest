@@ -260,6 +260,51 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
                     title: 'アプリバージョン',
                     value: '1.0.0',
                   ),
+                  const SizedBox(height: 14),
+                  QuestGlassCard(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '上毛かるたの利用許諾',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: QuestUiTokens.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '本アプリは、群馬県から「上毛かるた」の全絵札・全読み札について利用許諾を受けています。',
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.5,
+                            color: QuestUiTokens.mutedInk,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '許諾番号：08-01054\\n利用期間：2026年10月1日～2027年3月31日',
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.6,
+                            fontWeight: FontWeight.w800,
+                            color: QuestUiTokens.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          '利用条件：絵札・読み札を改変しないこと。絵札全体と読み札の文字が見えるようにし、縮小・拡大時も縦横比を維持すること。',
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.5,
+                            color: QuestUiTokens.mutedInk,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
