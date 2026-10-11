@@ -405,13 +405,10 @@ class _EventExplorePageState extends State<EventExplorePage> {
     }
 
     try {
-      final now = DateTime.now().toUtc().toIso8601String();
-
-      await _client
-          .from('user_event_participations')
-          .update({'is_active': false, 'left_at': now, 'updated_at': now})
-          .eq('user_id', user.id)
-          .eq('event_id', event.id);
+      await _client.rpc(
+        'leave_event_participation',
+        params: {'p_event_id': event.id},
+      );
 
       if (!mounted) {
         return;
