@@ -41,4 +41,4 @@
 
 | 領域 | 主な実装・仕様 | 必須検証 |
 |---|---|---|
-| Supabase環境の選択・Webアカウント削除 | `lib/main.dart`; `.github/workflows/production-android-build.yml`; `.github/workflows/google-play-test-release.yml`; `account-deletion/index.html`; `docs/account-deletion/index.html` | 本番AABは `APP_ENV=production` と本番 `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` をビルド時に注入し、承認済み本番URL以外なら起動を拒否する。Google Playのテスト配信は `APP_ENV=closed_test` を明示する。Webアカウント削除ページも本番Supabase URLとPublishable Keyを使い、テスト環境へ誤接続しない。CIのソースガードでコード・workflow・Webページの整合性を確認する |
+| Supabase環境の選択・Webアカウント削除 | `lib/main.dart`; `.github/workflows/production-android-build.yml`; `.github/workflows/google-play-test-release.yml`; `account-deletion/index.html`; `docs/account-deletion/index.html` | 本番AABは `APP_ENV=production` と本番 `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` をビルド時に注入し、承認済み本番URL以外なら起動を拒否する。Google Playのテスト配信は `APP_ENV=closed_test` を明示する。Webアカウント削除ページは通常版 / クローズドテスト版を明示選択し、選択した環境のURLとPublishable Keyだけを認証・削除要求に使う。CIのソースガードでコード・workflow・Webページの整合性を確認する |
