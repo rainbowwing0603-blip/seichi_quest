@@ -232,8 +232,11 @@ class QuestPage extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 112,
+          // Keep card shadows from clipping into a dark horizontal band.
+          height: 136,
           child: ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            clipBehavior: Clip.none,
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             itemCount: recommended.length,
