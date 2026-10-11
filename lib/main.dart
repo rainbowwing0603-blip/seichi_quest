@@ -3689,6 +3689,50 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                   height: 1.6,
                 ),
               ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: QuestUiTokens.primary.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: QuestUiTokens.primary.withValues(alpha: 0.18),
+                  ),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '上毛かるた画像の利用について',
+                      style: TextStyle(
+                        color: QuestUiTokens.ink,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      '上毛かるたの画像は、群馬県の利用許諾を得て使用しています。',
+                      style: TextStyle(
+                        color: QuestUiTokens.ink,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        height: 1.55,
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      '© 群馬県',
+                      style: TextStyle(
+                        color: QuestUiTokens.mutedInk,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
           actionLabel: '閉じる',
