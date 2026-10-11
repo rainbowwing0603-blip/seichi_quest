@@ -3286,7 +3286,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       },
       events: _events,
       onEventTap: (event) async {
-        await _selectEvent(event);
+        await _openAnnouncementEvent(event.id);
       },
       eventAchievements: _eventAchievements,
       itemLabel: _currentEventItemLabel,
