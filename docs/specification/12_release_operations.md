@@ -11,7 +11,7 @@ applicationId `jp.seichiquest.app`。Releaseはupload keystoreで署名する。
 - Play側の既存versionCodeを取得できない場合は、推測値で続行せず失敗させる。既存Bundleの最大値を基準にし、番号を再利用しない。
 - `pubspec.yaml` に `+NN` を書かない。ローカルビルドでは必要に応じて明示的な `--build-number` を指定するが、Play配布用番号はWorkflowに任せる。
 
-## 2026-09-27 現行状態
+## 2026-09-27時点の履歴スナップショット（現行状態ではない）
 - 開発ブランチ: `fix/destination-range-and-float`
 - HEAD: `3e4b1a89b52f52f09376b8c3d9a5b9e9726a2540`
 - pubspec: `1.0.0+12`
@@ -73,8 +73,9 @@ AAB作成とPlay Consoleへのアップロードは別事実として記録す�
 - `app_release_policies`：現在0件は初回本番リリース前の意図した状態。実際に公開するビルド番号/バージョンと公開ストアURLを確定してから登録し、クローズドテストの値を流用しない。
 - 本番アプリ：本番URLとpublishable keyでビルドし、実機スモークテスト後にPlay Consoleのトラックとアップロード済みAABを別途確認する。DB移行によって本番アプリを公開したわけではない。
 
-## 2026-10-10 production build readiness update
+## 2026-10-11 現在の本番準備状況
 
-- The production migration list currently contains 80 versions; all 80 are represented locally. The reviewed corrective migration `20261009164000_grant_story_preview_server_time.sql` is the only local migration not yet applied to production. Apply it only after review, then verify 81 local/remote versions match. Do not repeat the historical migration-history repair or the five already-applied post-baseline migrations.
-- `.github/workflows/production-android-build.yml` builds a signed production AAB for artifact review only. It requires the protected `production` GitHub Environment and a versionCode confirmed unused in Play Console. It does not upload/publish to Play or write `app_release_policies`. Setup and limitations are documented in `docs/production-android-build.md`.
-- The current Flutter source still reveals story content only after collecting the spot. A rewarded-ad flow that unlocks an individual spot's story for one hour is **not implemented**; the server-time grant does not implement the client UI/ad/persistence flow. Do not describe this feature as shipped until the client implementation and device tests are complete.
+- Production Supabase migration履歴は94件、`feature/android-next-release` のSQL migrationファイルも94件。2026-10-11のversion-set比較では、source-only / production-only version IDは0件。今後の本番migration push前にも `supabase migration list --linked` を実行し、件数だけでなくversion IDの差分がゼロであることを確認する。
+- `.github/workflows/production-android-build.yml` は署名付き本番AABを成果物として作るだけで、Playへのアップロード・公開や `app_release_policies` の更新は行わない。
+- 1時間の物語プレビュー解放はクライアント実装が存在する（`story_rewarded_ad_service.dart`, `story_preview_unlock_service.dart`, `story_preview_section.dart`）。解放期限の判定にはSupabaseサーバー時刻を使う。コード/単体テストの存在は、実機での広告視聴・失敗時の挙動・再起動後の解放状態まで含むE2E合格を意味しない。
+- リリース前に残る実地確認は、本番のGitHub Environment設定と署名鍵、Maps/AdMobの本番値、Play Consoleの未使用versionCode、本番Auth匿名サインイン、Storageの権利確認済み素材、アカウント削除、スタンプ獲得・物語広告解放の実機E2E。これらはGitHubソースだけから成功と断定しない。
