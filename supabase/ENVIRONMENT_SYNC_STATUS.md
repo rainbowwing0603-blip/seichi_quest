@@ -7,9 +7,9 @@ Last checked: 2026-10-11
 - Production project `npirfaoxcarfuqjlwgav` is `ACTIVE_HEALTHY` in `ap-northeast-1`.
 - PostGIS 3.3.7 is installed in the `gis` schema.
 - All 25 non-extension tables in `public` have RLS enabled; none are missing RLS.
-- There are 34 policies across `public` and `storage`.
+- There are 38 policies across `public` (33) and `storage` (5), verified by a read-only query on 2026-10-11.
 - The five migrations reconstructed from the deployed production database on 2026-10-09 are recorded in production migration history.
-- `20261010100000_reconcile_production_security` and the subsequent security/profile changes are reflected in production. On 2026-10-11, six source migration versions whose effects were already present were recorded as applied only after checking the live schema, RPC definitions, and grants. The two production-only historical version IDs are represented by no-op compatibility marker files in source. A fresh version-set comparison confirms 94 source files and 94 production history versions, with no source-only or production-only versions.
+- `20261010100000_reconcile_production_security` and the subsequent security/profile changes are reflected in production. On 2026-10-11, six source migration versions whose effects were already present were recorded as applied only after checking the live schema, RPC definitions, and grants. The two historical version IDs originally recorded directly in production are now represented by no-op compatibility marker files in source. A fresh version-set comparison confirms 94 source files and 94 production history versions, with no source-only or production-only versions.
 - Key RPCs exist and the production nearby-content RPC returned 10 rows in a live read-only smoke test.
 - The active app release policy is `latest_build=13`, `minimum_build=11`, `latest_version=1.0.0`; this matches the production release policy currently intended for the app.
 - The `delete-account` Edge Function is active with JWT verification enabled. Its handler requires an authenticated user and deletes only that user's account.
@@ -17,12 +17,19 @@ Last checked: 2026-10-11
 - No production Auth users exist yet, so `private.admin_users` is empty. Do not copy a test-project Auth UUID into production. Once the intended admin signs in or registers in production, add that production user's UUID explicitly if admin content management is needed.
 - The `event-card-images` bucket currently has no stored objects. The bucket and public-read policy are configured, but image assets must be uploaded separately if/when approved for production use.
 
+## Remaining Advisor findings (2026-10-11)
+
+- **Security Advisor: 20 `auth_allow_anonymous_sign_ins` warnings.** These are the app's intended anonymous-auth ownership policies and public read policies for active/published content. Anonymous sign-in is part of the product's no-email onboarding. Keep the row-ownership predicates; do not disable anonymous sign-in or broadly remove public content reads merely to silence this lint. Admin mutation policies separately require a permanent, non-anonymous admin.
+- **Performance Advisor: 4 `auth_rls_initplan` warnings** on the three `content_blocks` admin policies and `events_admin_update_theme`. Policies already wrap `auth.jwt()` and `private.is_admin()` in scalar subqueries. The remaining warning appears to inspect auth calls inside the helper; retain the tested authorization boundary rather than inline access to the private admin table without a secure design.
+- **Performance Advisor: 14 `unused_index` INFO notices.** Production is newly established and workload is limited. No indexes were dropped based solely on zero observed usage; review query plans and representative production workload before removing indexes.
+- A read-only production query on 2026-10-11 confirmed 25 public application tables, all 25 with RLS, 33 policies in `public`, 5 in `storage`, 94 migration-history versions, and zero `public` SECURITY DEFINER functions executable by `anon`.
+
 ## Migration history reconciliation (2026-10-11)
 
 - Verified the live profile gender column/index, four-argument profile RPC, recommendation implementation in `private`, story-preview server-time RPC grant, and current ranking/admin policy state before reconciling history. The older `20261005231529_story_preview_server_time` version was also recorded as applied after confirming its resulting function and grants are already present.
 - Recorded six already-reflected migration versions as applied in `supabase_migrations.schema_migrations`; no historical SQL was replayed against production.
-- Added no-op compatibility marker files for production-only historical versions `20261010232928` and `20261010234108`. The canonical, effective migrations for clean installs remain `20261011090000` and `20261011093000` respectively.
-- Verified via the Supabase migration listing that production has 93 versions, matching the 93 migration files in this branch. Recheck this parity before any future production migration push.
+- The versions originally recorded directly in production now have no-op compatibility marker files in source `20261010232928` and `20261010234108`. The canonical, effective migrations for clean installs remain `20261011090000` and `20261011093000` respectively.
+- Verified by a fresh source-to-production version-set comparison on 2026-10-11: production has 94 history versions and this branch has 94 SQL migration files; missing and extra version IDs are both zero. Re-run `supabase migration list --linked` and verify the full version set before every production migration push.
 
 ## Changes applied
 
