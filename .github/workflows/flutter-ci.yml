@@ -3,9 +3,11 @@ name: Flutter CI
 on:
   push:
     branches:
+      - main
       - feature/android-next-release
   pull_request:
     branches:
+      - main
       - feature/android-next-release
   workflow_dispatch:
 

@@ -3,6 +3,7 @@ name: Supabase Security Source Check
 on:
   pull_request:
     branches:
+      - main
       - feature/android-next-release
     paths:
       - "supabase/**"
