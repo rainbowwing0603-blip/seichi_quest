@@ -7,7 +7,7 @@ Last checked: 2026-10-11
 - Production project `npirfaoxcarfuqjlwgav` is `ACTIVE_HEALTHY` in `ap-northeast-1`.
 - PostGIS 3.3.7 is installed in the `gis` schema.
 - All 25 non-extension tables in `public` have RLS enabled; none are missing RLS.
-- There are 34 policies across `public` and `storage`.
+- There are 38 policies across `public` (33) and `storage` (5), verified by a read-only query on 2026-10-11.
 - The five migrations reconstructed from the deployed production database on 2026-10-09 are recorded in production migration history.
 - `20261010100000_reconcile_production_security` and the subsequent security/profile changes are reflected in production. On 2026-10-11, six source migration versions whose effects were already present were recorded as applied only after checking the live schema, RPC definitions, and grants. The two historical version IDs originally recorded directly in production are now represented by no-op compatibility marker files in source. A fresh version-set comparison confirms 94 source files and 94 production history versions, with no source-only or production-only versions.
 - Key RPCs exist and the production nearby-content RPC returned 10 rows in a live read-only smoke test.
