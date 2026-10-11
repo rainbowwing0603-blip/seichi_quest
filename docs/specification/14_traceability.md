@@ -36,3 +36,9 @@
 | migration parity | `supabase/ENVIRONMENT_SYNC_STATUS.md`、`supabase/migrations/*.sql` | mainのデプロイ用ソースと本番履歴を94件で一致させる。既存関数定義と権限を照合した履歴補正のみを行い、適用済みSQLを再実行しない |
 | 本番DBセキュリティ | `supabase/migrations/20261010233406_move_security_definer_rpcs_to_private_wrappers.sql`, `20261010233558_add_explicit_deny_policies_to_internal_tables.sql`, `20261011093000_harden_admin_policies_against_anonymous_auth.sql` | 特権RPCはprivate実装＋public invoker wrapper、内部テーブルはdeny-by-default、管理操作は非匿名管理者のみ。Security Source Checkを必須とする |
 | 環境同期 | `supabase/config.toml`, `supabase/functions/`, `supabase/seed/production_master_data/` | 本番の関数実装・設定・マスターデータ復旧資材をソース管理し、秘密情報とユーザー所有データをコミットしない |
+
+## 2026-10-11 build-time Supabase environment selection
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| Supabase環境の選択・Webアカウント削除 | `lib/main.dart`; `.github/workflows/production-android-build.yml`; `.github/workflows/google-play-test-release.yml`; `account-deletion/index.html`; `docs/account-deletion/index.html` | 本番AABは `APP_ENV=production` と本番 `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` をビルド時に注入し、承認済み本番URL以外なら起動を拒否する。Google Playのテスト配信は `APP_ENV=closed_test` を明示する。Webアカウント削除ページは通常版 / クローズドテスト版を明示選択し、選択した環境のURLとPublishable Keyだけを認証・削除要求に使う。CIのソースガードでコード・workflow・Webページの整合性を確認する |
