@@ -3,14 +3,20 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>聖地クエスト アカウント削除</title>
-<style>body{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;max-width:760px;margin:0 auto;padding:32px 20px;line-height:1.75;color:#172033}label{display:block;margin-top:16px;font-weight:700}input{box-sizing:border-box;width:100%;padding:12px;margin-top:6px;border:1px solid #bbc4d6;border-radius:9px}button{margin-top:22px;padding:13px 18px;border:0;border-radius:10px;background:#b42318;color:#fff;font-weight:800;cursor:pointer}button:disabled{opacity:.55}.box{background:#f3f6fb;padding:16px;border-radius:12px}.status{margin-top:18px;font-weight:700}a{color:#3157c8}</style>
+<style>body{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;max-width:760px;margin:0 auto;padding:32px 20px;line-height:1.75;color:#172033}label{display:block;margin-top:16px;font-weight:700}input,select{box-sizing:border-box;width:100%;padding:12px;margin-top:6px;border:1px solid #bbc4d6;border-radius:9px}.hint{font-size:.95rem;color:#4b5563}button{margin-top:22px;padding:13px 18px;border:0;border-radius:10px;background:#b42318;color:#fff;font-weight:800;cursor:pointer}button:disabled{opacity:.55}.box{background:#f3f6fb;padding:16px;border-radius:12px}.status{margin-top:18px;font-weight:700}a{color:#3157c8}</style>
 </head>
 <body>
 <h1>聖地クエスト アカウント削除</h1>
 <p>このページから、アプリを再インストールせずに聖地クエストのアカウント削除を開始できます。</p>
 <div class="box"><strong>削除される主なデータ</strong><p>認証アカウント、プロフィール、獲得・訪問履歴、イベント参加・お気に入り等、アカウントに紐づくアプリ内データが削除対象です。法令遵守、セキュリティ、不正利用防止等の正当な理由で保持が必要な情報がある場合は、必要な期間に限って保持する場合があります。</p></div>
 <p>メールアドレスとパスワードを設定済みのアカウントは、本人確認後にこのページから削除できます。匿名のまま利用しているアカウントはメールアドレスによる本人確認ができないため、アプリ内の「アカウント」画面から削除してください。</p>
+<p class="hint">対象の環境を選んでください。通常版のアカウントは「本番環境」、Google Playのクローズドテスト版で作成したアカウントは「クローズドテスト版」を選択してください。入力した認証情報は選択した環境にのみ送信されます。</p>
 <form id="deleteForm">
+<label for="accountEnvironment">対象アカウント</label>
+<select id="accountEnvironment" required>
+<option value="production">通常版（本番環境）</option>
+<option value="closed_test">クローズドテスト版</option>
+</select>
 <label for="email">メールアドレス</label><input id="email" type="email" autocomplete="username" required>
 <label for="password">パスワード</label><input id="password" type="password" autocomplete="current-password" minlength="8" required>
 <label style="font-weight:500"><input id="confirm" type="checkbox" style="width:auto;margin-right:8px" required>アカウントと関連データが削除され、この操作を取り消せないことを確認しました。</label>
@@ -20,19 +26,22 @@
 <h2>削除方法</h2><p>メールアドレスとパスワードを設定済みの場合は、下のフォームで本人確認後、削除を完了できます。匿名利用中の場合は、アプリ内の「マイページ → 設定・管理 → アカウント → アカウントを削除」から削除してください。</p>
 <p><a href="../privacy/">プライバシーポリシー</a></p>
 <script>
-const SUPABASE_URL='https://wxlvhpmolrtcwryaazfb.supabase.co';
-const PUBLISHABLE_KEY='sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w';
+const SUPABASE_CONFIGS={
+production:{url:'https://npirfaoxcarfuqjlwgav.supabase.co',key:'sb_publishable_K8zgyNgRvhl0pwWuLE1k_A_IrJLYyGG'},
+closed_test:{url:'https://wxlvhpmolrtcwryaazfb.supabase.co',key:'sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w'}
+};
 const form=document.getElementById('deleteForm'),button=document.getElementById('deleteButton'),status=document.getElementById('status');
 form.addEventListener('submit',async(event)=>{
 event.preventDefault();
 if(!window.confirm('聖地クエストのアカウントと関連データを完全に削除します。よろしいですか？'))return;
 button.disabled=true;status.textContent='本人確認中です…';
+const config=SUPABASE_CONFIGS[document.getElementById('accountEnvironment').value];
 try{
-const authResponse=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('email').value.trim(),password:document.getElementById('password').value})});
+const authResponse=await fetch(config.url+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:config.key,'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('email').value.trim(),password:document.getElementById('password').value})});
 const authData=await authResponse.json();
 if(!authResponse.ok||!authData.access_token)throw new Error('メールアドレスまたはパスワードを確認してください。');
 status.textContent='アカウントを削除しています…';
-const deleteResponse=await fetch(SUPABASE_URL+'/functions/v1/delete-account',{method:'POST',headers:{apikey:PUBLISHABLE_KEY,Authorization:'Bearer '+authData.access_token,'Content-Type':'application/json'},body:'{}'});
+const deleteResponse=await fetch(config.url+'/functions/v1/delete-account',{method:'POST',headers:{apikey:config.key,Authorization:'Bearer '+authData.access_token,'Content-Type':'application/json'},body:'{}'});
 const deleteData=await deleteResponse.json().catch(()=>({}));
 if(!deleteResponse.ok||deleteData.ok!==true)throw new Error('削除処理に失敗しました。時間をおいてもう一度お試しください。');
 form.remove();status.textContent='アカウントと関連データの削除が完了しました。';

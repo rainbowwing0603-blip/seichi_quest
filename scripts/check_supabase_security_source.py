@@ -28,6 +28,11 @@ bootstrap_script = ROOT / "scripts/bootstrap-production-schema.ps1"
 repair_script = ROOT / "scripts/repair-production-migration-history.ps1"
 powershell_syntax_script = ROOT / "scripts/check_powershell_syntax.ps1"
 security_workflow = ROOT / ".github/workflows/supabase-security-source-check.yml"
+main_app = (ROOT / "lib/main.dart").read_text(encoding="utf-8")
+production_build_workflow = (ROOT / ".github/workflows/production-android-build.yml").read_text(encoding="utf-8")
+play_test_workflow = (ROOT / ".github/workflows/google-play-test-release.yml").read_text(encoding="utf-8")
+account_deletion_page = (ROOT / "account-deletion/index.html").read_text(encoding="utf-8")
+docs_account_deletion_page = (ROOT / "docs/account-deletion/index.html").read_text(encoding="utf-8")
 cutover_runbook = ROOT / "docs/production-cutover-runbook.md"
 release_policy_runbook = ROOT / "supabase/seed/PRODUCTION_RELEASE_POLICY.md"
 event_service = (ROOT / "lib/services/event_service.dart").read_text(encoding="utf-8")
@@ -42,6 +47,11 @@ places_timestamp = places_timestamp_migration.read_text(encoding="utf-8")
 candidate = candidate_baseline.read_text(encoding="utf-8")
 repair_script_content = repair_script.read_text(encoding="utf-8")
 
+require("Supabase target uses build-time defines rather than a hardcoded runtime target", "String.fromEnvironment(\n  'SUPABASE_URL'" in main_app and "String.fromEnvironment(\n  'SUPABASE_PUBLISHABLE_KEY'" in main_app)
+require("production app startup rejects closed-test Supabase settings", "appEnvironment == 'production'" in main_app and "_closedTestSupabaseUrl" in main_app and "_productionSupabaseUrl" in main_app and "Production build is not configured with the approved production Supabase project." in main_app)
+require("production build injects production Supabase URL and key", '--dart-define="SUPABASE_URL=$SUPABASE_URL"' in production_build_workflow and '--dart-define="SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PUBLISHABLE_KEY"' in production_build_workflow and '--dart-define="APP_ENV=production"' in production_build_workflow)
+require("Google Play test build explicitly uses closed-test environment", '--dart-define="APP_ENV=closed_test"' in play_test_workflow)
+require("web account deletion pages route credentials only to the explicitly selected environment", all("production:{url:'https://npirfaoxcarfuqjlwgav.supabase.co',key:'sb_publishable_K8zgyNgRvhl0pwWuLE1k_A_IrJLYyGG'}" in page and "closed_test:{url:'https://wxlvhpmolrtcwryaazfb.supabase.co',key:'sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w'}" in page and "accountEnvironment" in page and "fetch(config.url+" in page and "apikey:config.key" in page for page in (account_deletion_page, docs_account_deletion_page)))
 require("new tables are not auto-exposed", "auto_expose_new_tables = false" in config)
 require("missing seed.sql is not configured", '[db.seed]\n# Disabled until a curated seed file is checked in; the current ./seed.sql is missing.\nenabled = false\nsql_paths = []' in config)
 require("registry key comes from environment", 'Deno.env.get("ROADSIDESTATION_IMPORT_KEY_V2")' in importer)
