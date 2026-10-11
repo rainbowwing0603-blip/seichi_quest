@@ -22,7 +22,7 @@ Last checked: 2026-10-11
 - Verified the live profile gender column/index, four-argument profile RPC, recommendation implementation in `private`, story-preview server-time RPC grant, and current ranking/admin policy state before reconciling history. The older `20261005231529_story_preview_server_time` version was also recorded as applied after confirming its resulting function and grants are already present.
 - Recorded six already-reflected migration versions as applied in `supabase_migrations.schema_migrations`; no historical SQL was replayed against production.
 - The versions originally recorded directly in production now have no-op compatibility marker files in source `20261010232928` and `20261010234108`. The canonical, effective migrations for clean installs remain `20261011090000` and `20261011093000` respectively.
-- Verified via the Supabase migration listing that production has 93 versions, matching the 93 migration files in this branch. Recheck this parity before any future production migration push.
+- Verified by a fresh source-to-production version-set comparison on 2026-10-11: production has 94 history versions and this branch has 94 SQL migration files; missing and extra version IDs are both zero. Re-run `supabase migration list --linked` and verify the full version set before every production migration push.
 
 ## Changes applied
 
