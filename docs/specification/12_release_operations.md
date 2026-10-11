@@ -31,8 +31,11 @@ Release AABは `flutter build appbundle --release` を基本とする。提出�
 ## 品質ゲート
 少なくとも `flutter analyze` と `flutter test` を通し、GPS/獲得、不正対策、イベント切替、同期、主要画面、クラスタ、regional progress、NEXT/ソナー、天候/太陽表現、広告禁止ゾーン、更新Policyを確認してから配布する。
 
-## Git
-リリースタグは不変。機能開発はブランチ→PR→main。仕様変更を伴う場合は `docs/specification` も同PRで更新する。main統合前に本番DBの未回収migration/Function driftを確認する。
+## Git / ブランチ運用
+- リリース検証の正本は `feature/android-next-release`。本番ビルドworkflowもこのブランチ以外からの実行を拒否する。
+- 2026-10-11のGitHub比較では `main` とリリースブランチが分岐し、リリースブランチは85コミット先行・111コミット遅れ。これは単純なfast-forwardではなく、機能・設定・履歴を含む統合作業が必要な状態。
+- **分岐解消までは `main` をリリースブランチへ一括マージせず、リリースブランチを勝手に切り替えない。** `main` への統合は、変更ファイル・ワークフロー・DB migration・アセットを比較し、段階的な専用PRとCIで行う。
+- リリースタグは不変。機能開発はブランチ→PR→レビュー。仕様変更を伴う場合は `docs/specification` も同じPRで更新する。main統合前に本番DBの未回収migration/Function driftを確認する。
 
 ## Play Console
 AAB作成とPlay Consoleへのアップロードは別事実として記録する。ローカルビルド成功だけで「公開済み」「アップロード済み」と記録しない。
