@@ -166,14 +166,15 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     try {
-      await _client.from('profiles').upsert({
-        'id': user.id,
-        'display_name': displayName,
-        'age_group': _ageGroup,
-        'gender': _gender,
-        'avatar_key': _avatarKey,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }, onConflict: 'id');
+      await _client.rpc(
+        'save_my_profile',
+        params: {
+          'p_display_name': displayName,
+          'p_age_group': _ageGroup,
+          'p_avatar_key': _avatarKey,
+          'p_gender': _gender,
+        },
+      );
 
       if (!mounted) {
         return;

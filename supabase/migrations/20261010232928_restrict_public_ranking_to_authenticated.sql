@@ -1,0 +1,5 @@
+-- Compatibility marker for production migration-history parity.
+-- This version was applied directly in production before the source branch was
+-- reconciled. The equivalent restriction is represented by
+-- 20261011090000_restrict_public_ranking_to_authenticated.sql for clean installs.
+-- Intentionally no-op: do not re-run the historical policy change here.

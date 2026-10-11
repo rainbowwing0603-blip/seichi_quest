@@ -1,8 +1,8 @@
 # 聖地クエスト 仕様書インデックス
 
-基準日: 2026-10-08  
-基準コード: `8d1badbd75a489b8b03d478270f85f3dd21dbccb`  
-アプリ版: `1.0.0+17`  
+基準日: 2026-10-11  
+基準コード: `main` (source version `1.0.0+19`)  
+アプリ版: `1.0.0+19`  
 配布状態: Version 17はリリース準備済み。Google Playへの実配布完了は未確認で、Play Consoleを正本として確認する。
 
 このディレクトリは、聖地クエストの実装・運用・復旧をコードと本番Supabaseから逆引きできる正本として管理する。記述は原則として **実装済み / 一部実装 / 将来構想 / 要確認** を区別する。
@@ -16,7 +16,8 @@
 - 位置不正対策は端末側mock判定とサーバー側状態/cooldown、サーバー時刻を組み合わせる。
 - お知らせ、広告配置Policy、アプリ更新Policyを共通基盤として持つ。
 - Rewarded Adによる物語1時間プレビューを実装。Release Android buildではRewarded ad unit IDをビルド時に注入する。
-- 2026-10-08時点のmain HEADは `8d1badbd75a489b8b03d478270f85f3dd21dbccb`、versionCodeは17。
+- 2026-10-11時点のmain source versionは `1.0.0+19`。Play Consoleのclosed-test release番号とソースのversionCodeは別管理として、実配布状態はPlay Consoleを正本として確認する。
+- Supabase本番 migration history と `supabase/migrations/*.sql` は94件で一致。詳細は `supabase/ENVIRONMENT_SYNC_STATUS.md`。
 
 ## 文書一覧
 1. [01_product_overview.md](01_product_overview.md) プロダクト概要

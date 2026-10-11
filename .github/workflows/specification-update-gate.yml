@@ -1,0 +1,49 @@
+name: Specification Update Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  specification-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check whether implementation changes require specification updates
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pull_number = context.payload.pull_request.number;
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              { owner, repo, pull_number, per_page: 100 }
+            );
+            const changed = files.map(file => file.filename);
+            const implementationPatterns = [
+              /^lib\//,
+              /^android\//,
+              /^ios\//,
+              /^supabase\//,
+              /^\.github\/workflows\//,
+              /^pubspec\.yaml$/,
+              /^pubspec\.lock$/,
+            ];
+            const implementationChanges = changed.filter(path =>
+              implementationPatterns.some(pattern => pattern.test(path))
+            );
+            const specChanges = changed.filter(path =>
+              path.startsWith("docs/specification/")
+            );
+            core.info("Implementation/operations files changed:");
+            for (const path of implementationChanges) core.info("  " + path);
+            core.info("Specification files changed:");
+            for (const path of specChanges) core.info("  " + path);
+            if (implementationChanges.length > 0 && specChanges.length === 0) {
+              core.setFailed(
+                "仕様書更新がありません。実装・DB・依存関係・CI/CDに影響する変更では、同じPRで docs/specification/ の該当文書と必要に応じて 14_traceability.md を更新してください。仕様変更が不要なら、仕様書を更新しない理由を記録してからレビューしてください。"
+              );
+            }
