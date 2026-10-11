@@ -3836,7 +3836,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
                     ),
                     SizedBox(height: 6),
                     Text(
-                      '上毛かるたの画像は、群馬県の利用許諾を得て使用しています。\\n許諾番号：08-01054',
+                      '上毛かるたの画像は、群馬県の利用許諾を得て使用しています。\n許諾番号：08-01054',
                       style: TextStyle(
                         color: QuestUiTokens.ink,
                         fontSize: 12,
