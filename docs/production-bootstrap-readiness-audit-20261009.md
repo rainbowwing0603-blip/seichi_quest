@@ -62,10 +62,10 @@ Five advisor `rls_enabled_no_policy` findings are intentional for server-only ta
 ### Remaining release gates
 
 1. **Auth:** verify anonymous sign-in in the production Supabase Dashboard. This setting cannot be proven from database grants or the local `config.toml`.
-2. **Storage and artwork:** production currently has zero Storage buckets and zero objects. Review intended bucket policies and asset rights separately; official Jomo Karuta artwork permission is not confirmed.
+2. **Storage and artwork:** production bucket configuration exists for `event-card-images` and `content-media`; the `event-card-images` bucket currently has zero objects. Verify intended policies, production asset uploads, and rights separately; official Jomo Karuta artwork permission is not confirmed.
 3. **Maintenance Edge Functions:** only `delete-account` is deployed in production (active version 2, `verify_jwt=true`). Do not deploy roadside-station importer/GPS maintenance functions until independently generated V2 secrets are configured, their fail-closed and dry-run behavior is verified, and deployment/operation is explicitly approved.
 4. **Account deletion:** exercise the authenticated delete/cascade flow with a disposable test account before production release. Do not use a real user account as the test.
-5. **Release policy:** `app_release_policies` intentionally has zero rows at the pre-release stage. Add a reviewed row only after the actual production binary version/build and public store listing URL are confirmed. Do not copy closed-test values.
+5. **Release policy:** production currently has an active row `latest_build=13`, `minimum_build=11`, `latest_version=1.0.0`. Before changing it, compare against the actual production binary and store listing URL. Do not copy closed-test values.
 6. **Production app:** build with `APP_ENV=production` and the production Supabase URL/publishable key; smoke-test the app, then separately review the Play Console track and uploaded AAB. No production app release has been performed by the database cutover.
 
 The production app is **not yet cleared for release**. Do not rerun the one-time bootstrap, re-import the master data, or replay previously applied migrations. Before a future production push, verify that `supabase migration list --linked` still shows parity with the source branch.
