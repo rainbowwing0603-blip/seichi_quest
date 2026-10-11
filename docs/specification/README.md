@@ -18,7 +18,8 @@
 - Rewarded Adによる物語1時間プレビューを実装。Release Android buildではRewarded ad unit IDをビルド時に注入する。
 - 2026-10-11時点のmain source versionは `1.0.0+19`。Play Consoleのclosed-test release番号とソースのversionCodeは別管理として、実配布状態はPlay Consoleを正本として確認する。
 - Supabase本番 migration history と `supabase/migrations/*.sql` は94件で一致。詳細は `supabase/ENVIRONMENT_SYNC_STATUS.md`。
-- `main` がPlayリリースの正本。`feature/android-next-release` はブランチ固有の機能を保持しているため、一括マージせず、重複変更は小さなPRで検証しながら統合する。
+- `main` は本番Android AABビルドと本番リリース設定の正本。Google Playのテスト配信workflowは `feature/android-next-release` を既定ブランチとし、Play側の最大versionCodeから次の番号を割り当てる。したがって、`main` のソース版 `1.0.0+19` とPlay Console上のクローズドテストrelease 20は別の番号体系である。
+- 本番ビルド経路とクローズドテスト配信経路は分けて管理する。両ブランチを一括マージ・リセットせず、変更を移す場合は重複ファイルを個別に確認した小さなPRで検証する。
 
 ## 文書一覧
 1. [01_product_overview.md](01_product_overview.md) プロダクト概要
