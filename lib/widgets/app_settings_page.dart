@@ -285,7 +285,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          '許諾番号：08-01054\\n利用期間：2026年10月1日～2027年3月31日',
+                          '許諾番号：08-01054\n利用期間：2026年10月1日～2027年3月31日',
                           style: TextStyle(
                             fontSize: 12,
                             height: 1.6,
