@@ -67,7 +67,7 @@ AAB作成とPlay Consoleへのアップロードは別事実として記録す�
 
 残る本番リリース前ゲートは次のとおり。
 - Auth匿名サインイン：Supabase Dashboardで実設定を確認する。ローカルの `config.toml` だけでは本番設定の証明にならない。
-- Storage：本番バケット・オブジェクトは現在0件。必要なバケット/ポリシーと素材の権利を別途確認する。上毛かるた公式画像の許諾は未確認。
+- Storage：本番バケット・オブジェクトは現在0件。必要なバケット/ポリシーと素材の権利を別途確認する。上毛かるた画像の使用許諾は2026-10-08に取得済み。素材の登録・公開状態は別途確認する。
 - メンテナンス用Edge Functions：本番にあるのは `delete-account` v2（`verify_jwt=true`）のみ。道の駅/GPS用関数はV2 secret設定とテストを完了し、別途承認されるまで本番へデプロイしない。
 - アカウント削除：使い捨てテストアカウントで認証・削除カスケードを実機確認する。
 - `app_release_policies`：現在0件は初回本番リリース前の意図した状態。実際に公開するビルド番号/バージョンと公開ストアURLを確定してから登録し、クローズドテストの値を流用しない。
@@ -78,4 +78,4 @@ AAB作成とPlay Consoleへのアップロードは別事実として記録す�
 - Production Supabase migration履歴は94件、`feature/android-next-release` のSQL migrationファイルも94件。2026-10-11のversion-set比較では、source-only / production-only version IDは0件。今後の本番migration push前にも `supabase migration list --linked` を実行し、件数だけでなくversion IDの差分がゼロであることを確認する。
 - `.github/workflows/production-android-build.yml` は署名付き本番AABを成果物として作るだけで、Playへのアップロード・公開や `app_release_policies` の更新は行わない。
 - 1時間の物語プレビュー解放はクライアント実装が存在する（`story_rewarded_ad_service.dart`, `story_preview_unlock_service.dart`, `story_preview_section.dart`）。解放期限の判定にはSupabaseサーバー時刻を使う。コード/単体テストの存在は、実機での広告視聴・失敗時の挙動・再起動後の解放状態まで含むE2E合格を意味しない。
-- リリース前に残る実地確認は、本番のGitHub Environment設定と署名鍵、Maps/AdMobの本番値、Play Consoleの未使用versionCode、本番Auth匿名サインイン、Storageの権利確認済み素材、アカウント削除、スタンプ獲得・物語広告解放の実機E2E。これらはGitHubソースだけから成功と断定しない。
+- リリース前に残る実地確認は、本番のGitHub Environment設定と署名鍵、Maps/AdMobの本番値、Play Consoleの未使用versionCode、本番Auth匿名サインイン、10月8日に使用許諾を取得した上毛かるた画像の素材・公開状態の最終確認、アカウント削除、スタンプ獲得・物語広告解放の実機E2E。これらはGitHubソースだけから成功と断定しない。

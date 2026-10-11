@@ -16,7 +16,7 @@
 **解消済み** 旧 `seichi` テーブルは2026-09-25 migrationで廃止済み。event_contentベースの汎用収集モデルを正本とする。
 
 ## 6. 上毛かるた画像
-**運用要確認** Storageやmedia_pathが存在しても、それだけで利用許諾済みとは扱わない。許諾前は公開可否を権利確認に従う。
+**許諾取得済み（2026-10-08）** 上毛かるた画像の使用許諾を取得し、使用を開始。個々の素材の最終確認・公開可否は別途確認する。
 
 ## 7. Release / Play
 **更新済み / 継続確認** Version 16はPlay Alphaへ配信済み。Version 16ではRelease buildへRewarded story ad unit IDが注入されず、Rewarded Story Previewボタンが非表示になることを確認した。Version 17ではGitHub Actionsのbuild処理を修正し、Rewarded IDの空値をbuild時に検出する。Version 17のPlay配信と実機検証は未完了。
