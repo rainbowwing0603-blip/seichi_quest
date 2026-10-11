@@ -3282,7 +3282,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       onShowDestination: _moveCameraToNextSeichi,
       onExploreEvents: _showEventExplore,
       onRecommendedEventTap: (event) async {
-        await _selectEvent(event);
+        await _openAnnouncementEvent(event.id);
       },
       events: _events,
       onEventTap: (event) async {
