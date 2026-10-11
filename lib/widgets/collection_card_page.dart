@@ -128,6 +128,18 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
   }
 
   Future<Uint8List?> _downloadImage(String url) async {
+    if (url.startsWith('assets/')) {
+      try {
+        final data = await rootBundle.load(url);
+        return data.buffer.asUint8List(
+          data.offsetInBytes,
+          data.lengthInBytes,
+        );
+      } catch (_) {
+        return null;
+      }
+    }
+
     final client = HttpClient();
     try {
       final response = await client
@@ -296,10 +308,8 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
     final descriptionText = _longText
         ? 'この旅で出会った景色と物語を、いつまでも大切にしたい。季節を越えてもう一度訪れたくなる、心に残る場所の記念です。'
         : widget.item.description.trim();
-    final hasReading =
-        widget.debugPreview ||
-        _readingArtwork != null ||
-        readingText?.trim().isNotEmpty == true;
+    // Keep the same two-card composition in the sample preview and in
+    // real collection cards. Missing reading artwork falls back to text.
     return SizedBox(
       width: 360,
       height: 600,
@@ -388,60 +398,36 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
                   ),
                   const SizedBox(height: 14),
                   Expanded(
-                    child: hasReading
-                        ? Row(
-                            children: [
-                              Expanded(
-                                child: _buildKarutaPanel(
-                                  image: hasArtwork ? _artwork : null,
-                                  fallbackText: widget.item.title,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _buildKarutaPanel(
-                                  image: _hideArtwork ? null : _readingArtwork,
-                                  fallbackText:
-                                      readingText?.trim().isNotEmpty == true
-                                      ? readingText!
-                                      : (widget.item.description
-                                                .trim()
-                                                .isNotEmpty
-                                            ? widget.item.description.trim()
-                                            : widget.item.title),
-                                ),
-                              ),
-                            ],
-                          )
-                        : hasArtwork
-                        ? _buildKarutaPanel(
-                            image: _artwork,
-                            fallbackText: widget.item.title,
-                          )
-                        : Center(
-                            child: Container(
-                              padding: const EdgeInsets.all(18),
-                              decoration: BoxDecoration(
-                                color: const Color(0xAA061B30),
-                                border: Border.all(
-                                  color: const Color(0x8875E4E5),
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                widget.item.title,
-                                textAlign: TextAlign.center,
-                                maxLines: 4,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 32,
-                                  height: 1.22,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 145,
+                            height: 181,
+                            child: _buildKarutaPanel(
+                              image: hasArtwork ? _artwork : null,
+                              fallbackText: widget.item.title,
                             ),
                           ),
+                          const SizedBox(width: 10),
+                          SizedBox(
+                            width: 145,
+                            height: 181,
+                            child: _buildKarutaPanel(
+                              image: _hideArtwork ? null : _readingArtwork,
+                              fallbackText:
+                                  readingText?.trim().isNotEmpty == true
+                                  ? readingText!
+                                  : (widget.item.description.trim().isNotEmpty
+                                      ? widget.item.description.trim()
+                                      : widget.item.title),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 21),
                   Container(
@@ -473,20 +459,6 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
                       style: const TextStyle(
                         color: Color(0xFFE0ECF0),
                         fontSize: 11.5,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                  if (!hasReading &&
-                      readingText?.trim().isNotEmpty == true) ...[
-                    const SizedBox(height: 7),
-                    Text(
-                      readingText!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFFE0ECF0),
-                        fontSize: 12,
                         height: 1.35,
                       ),
                     ),
@@ -555,10 +527,10 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
     required String fallbackText,
   }) {
     return Container(
-      padding: const EdgeInsets.all(5),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: const Color(0xEAF3FBFC),
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: const [
           BoxShadow(
             color: Color(0x88010C20),
@@ -584,35 +556,32 @@ class _CollectionCardPageState extends State<CollectionCardPage> {
               ),
             ),
           Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: double.infinity,
-                color: const Color(0xFFF7F6F2),
-                alignment: Alignment.center,
-                child: image != null
-                    ? Image.memory(
-                        image,
-                        fit: BoxFit.contain,
-                        gaplessPlayback: true,
-                        width: double.infinity,
-                      )
-                    : Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Text(
-                          fallbackText,
-                          textAlign: TextAlign.center,
-                          maxLines: 10,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF1B3441),
-                            fontSize: 15,
-                            height: 1.5,
-                            fontWeight: FontWeight.w800,
-                          ),
+            child: Container(
+              width: double.infinity,
+              color: const Color(0xFFF7F6F2),
+              alignment: Alignment.center,
+              child: image != null
+                  ? Image.memory(
+                      image,
+                      fit: BoxFit.contain,
+                      gaplessPlayback: true,
+                      width: double.infinity,
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                        fallbackText,
+                        textAlign: TextAlign.center,
+                        maxLines: 10,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF1B3441),
+                          fontSize: 15,
+                          height: 1.5,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-              ),
+                    ),
             ),
           ),
         ],

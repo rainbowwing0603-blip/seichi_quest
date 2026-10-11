@@ -19,12 +19,12 @@ class ContentBlockPresentationPolicy {
   ContentBlockPresentation resolveForCollectionState(
     List<ContentBlock> blocks, {
     required bool collected,
-    bool storyPreview = false,
+    bool previewUnlocked = false,
   }) {
     final visibleBlocks = ContentRevealPolicy.visibleBlocks(
       blocks,
       collected: collected,
-      storyPreview: storyPreview,
+      previewUnlocked: previewUnlocked,
     );
     return resolve(visibleBlocks);
   }

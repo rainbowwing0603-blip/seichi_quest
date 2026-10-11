@@ -89,10 +89,7 @@ class CollectionPage extends StatelessWidget {
             progress: progress,
           ),
           _buildCollectionFilter(),
-          if (kDebugMode &&
-              !const bool.fromEnvironment('SCREENSHOT_MODE') &&
-              event != null &&
-              questItems.isNotEmpty)
+          if (kDebugMode && event != null && questItems.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
               child: OutlinedButton.icon(
@@ -630,30 +627,39 @@ class CollectionPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(7),
         child: ColoredBox(
           color: Colors.white,
-          child: Image.network(
-            imageUrl,
-            fit: BoxFit.contain,
-            alignment: Alignment.center,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) {
-                return child;
-              }
+          child: imageUrl.startsWith('assets/')
+              ? Image.asset(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.center,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Center(child: _buildStampVisual(item, collected));
+                  },
+                )
+              : Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.center,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) {
+                      return child;
+                    }
 
-              return Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: QuestUiTokens.primary.withValues(alpha: 0.55),
-                  ),
+                    return Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: QuestUiTokens.primary.withValues(alpha: 0.55),
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return Center(child: _buildStampVisual(item, collected));
+                  },
                 ),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) {
-              return Center(child: _buildStampVisual(item, collected));
-            },
-          ),
         ),
       ),
     );
@@ -683,45 +689,42 @@ class CollectionPage extends StatelessWidget {
           ),
         ),
         child: ClipRRect(
-          // CustomPaint itself does not clip to the Container's decoration.
-          // Keep the locked-slot stripes strictly inside the rounded slot.
-          borderRadius: BorderRadius.circular(11),
-          clipBehavior: Clip.antiAlias,
+          borderRadius: BorderRadius.circular(12),
           child: CustomPaint(
-            painter: const _CollectionLockedSlotPainter(),
+            painter: _CollectionLockedSlotPainter(),
             child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 37,
-                      height: 37,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.58),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.92),
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.lock_outline_rounded,
-                        size: 18,
-                        color: QuestUiTokens.mutedInk.withValues(alpha: 0.56),
+            alignment: Alignment.center,
+            children: [
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 37,
+                    height: 37,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.58),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.92),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '未獲得',
-                      style: TextStyle(
-                        color: QuestUiTokens.mutedInk.withValues(alpha: 0.66),
-                        fontSize: 8,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1,
-                      ),
+                    child: Icon(
+                      Icons.lock_outline_rounded,
+                      size: 18,
+                      color: QuestUiTokens.mutedInk.withValues(alpha: 0.56),
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '未獲得',
+                    style: TextStyle(
+                      color: QuestUiTokens.mutedInk.withValues(alpha: 0.66),
+                      fontSize: 8,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
                 ),
               ],
             ),
