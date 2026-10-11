@@ -120,3 +120,10 @@
 | 領域 | 主な実装・仕様 | 必須検証 |
 |---|---|---|
 | 本番 migration履歴の最新状態 | `supabase/ENVIRONMENT_SYNC_STATUS.md`; `docs/production-bootstrap-readiness-audit-20261009.md` | 2026-10-11の読み取り専用照合でソース94ファイルと本番履歴94版が一致し、source-only / production-only versionが0件であることを確認。Story-time RPCのauthenticated-only実行権限とランキングRPCの公開実行拒否を確認。履歴一致は実機E2E完了を意味しないため、本番リリース前に本番設定と実機動作を別途検証する |
+
+
+## 2026-10-11 上毛かるた利用許諾
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 上毛かるた画像の利用許諾 | docs/specification/08_content_platform.md; docs/legal/jomo_karuta_permission.md; lib/widgets/app_settings_page.dart; lib/widgets/event_detail_page.dart | 群馬県許諾第08-01054号の対象・利用期間・条件を表示・記録する。絵札の全体表示、読み札の可読性、縦横比維持を実機確認し、利用後30日以内に利用報告書と利用状況写真を提出する。利用開始が許諾期間前の場合は県に扱いを確認する |
