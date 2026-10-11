@@ -1,6 +1,6 @@
 # Supabase environment sync status
 
-Last checked: 2026-10-10
+Last checked: 2026-10-11
 
 ## Production status
 
@@ -9,13 +9,20 @@ Last checked: 2026-10-10
 - All 25 non-extension tables in `public` have RLS enabled; none are missing RLS.
 - There are 34 policies across `public` and `storage`.
 - The five migrations reconstructed from the deployed production database on 2026-10-09 are recorded in production migration history.
-- `20261010100000_reconcile_production_security` was already applied directly and its migration-history entry has now been recorded after verifying the migration's changes were present. Production history now contains 81 entries, matching the 81 source migration files on this branch.
+- `20261010100000_reconcile_production_security` and the subsequent security/profile changes are reflected in production. On 2026-10-11, six missing migration-history entries were reconciled only after checking the live schema, RPC definitions, and grants. Two production-only historical versions were restored as no-op compatibility marker files in source. Production migration history and this branch now both contain 93 versions/files.
 - Key RPCs exist and the production nearby-content RPC returned 10 rows in a live read-only smoke test.
 - The active app release policy is `latest_build=13`, `minimum_build=11`, `latest_version=1.0.0`; this matches the production release policy currently intended for the app.
 - The `delete-account` Edge Function is active with JWT verification enabled. Its handler requires an authenticated user and deletes only that user's account.
 - Storage bucket configuration is present for `event-card-images` and `content-media`.
 - No production Auth users exist yet, so `private.admin_users` is empty. Do not copy a test-project Auth UUID into production. Once the intended admin signs in or registers in production, add that production user's UUID explicitly if admin content management is needed.
 - The `event-card-images` bucket currently has no stored objects. The bucket and public-read policy are configured, but image assets must be uploaded separately if/when approved for production use.
+
+## Migration history reconciliation (2026-10-11)
+
+- Verified the live profile gender column/index, four-argument profile RPC, recommendation implementation in `private`, story-preview server-time RPC grant, and current ranking/admin policy state before reconciling history.
+- Recorded six already-reflected migration versions as applied in `supabase_migrations.schema_migrations`; no historical SQL was replayed against production.
+- Added no-op compatibility marker files for production-only historical versions `20261010232928` and `20261010234108`. The canonical, effective migrations for clean installs remain `20261011090000` and `20261011093000` respectively.
+- Verified via the Supabase migration listing that production has 93 versions, matching the 93 migration files in this branch. Recheck this parity before any future production migration push.
 
 ## Changes applied
 
@@ -51,7 +58,7 @@ Last checked: 2026-10-10
 
 ## Remaining work
 
-- **Production database schema/security baseline and migration history are reconciled.**
+- **Production database schema/security baseline and migration history are reconciled (93 source files / 93 production versions as of 2026-10-11).**
 - If the test project must exactly match production, contact Supabase Support to move test PostGIS from `public` to `gis`; then repair/apply test migration history and rerun the environment comparison.
 - After a production user account exists, register the intended production admin UUID if the app's admin content-management features are to be used.
 - Upload production-approved event-card and content-media assets when they are ready.

@@ -99,3 +99,11 @@
 |---|---|---|
 | 管理操作の匿名ユーザー拒否 | `supabase/migrations/20261011093000_harden_admin_policies_against_anonymous_auth.sql` | `content_blocks` の管理用 INSERT/UPDATE/DELETE、`events` の管理用 UPDATE、`content-media` Storage の管理用操作は `auth.jwt()->>'is_anonymous' = false` かつ `private.is_admin()` を要求。一般の匿名ユーザーが管理操作を実行できず、正式な管理者の操作は維持されること |
 | Advisor通知の扱い | Supabase Security Advisor lint `0012_auth_allow_anonymous_sign_ins` | 本アプリは匿名サインインを利用してユーザーID単位で収集履歴・訪問履歴・設定を保存する。本人所有行だけのRLSと公開/有効コンテンツの読み取りは仕様上必要なため、通知を消すために匿名サインインやこれらのポリシーを一括無効化しない。公開データと本人所有データの意図したアクセスを確認し、管理系の変更操作は非匿名ユーザーに限定する |
+
+
+## 2026-10-11 production migration-history parity
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| Supabase migration履歴 | `supabase/ENVIRONMENT_SYNC_STATUS.md`; `supabase/migrations/20261010232928_restrict_public_ranking_to_authenticated.sql`; `supabase/migrations/20261010234108_harden_admin_policies_against_anonymous_auth.sql` | 本番で実状態を確認した後にのみ履歴を補正し、既適用SQLを再実行しない。歴史的な本番専用versionはno-op互換ファイルとして保持し、クリーン環境では後続の正規migrationが変更を適用する。source SQL migration数と本番履歴数の一致を確認してから本番pushを許可する |
+| migration parity gate | `README.md`, `supabase/ENVIRONMENT_SYNC_STATUS.md` | 本番migration push前に `supabase migration list --linked` のローカル/リモート差分がゼロであることを確認。差分がある場合は過去SQLを変更・削除せず、結果状態と履歴を照合する |

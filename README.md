@@ -13,12 +13,12 @@
 - Collection: GPS + server-side validation + offline retry
 - Map presentation: spot / cluster / regional progress
 - Features: NEXT destination, sonar, weather/season/day-phase effects, achievements, ranking, announcements, ads, local notifications
-- Current specification baseline: 2026-09-27
+- Current specification baseline: 2026-10-11
 
 仕様・運用・DB・リリースの正本は [docs/specification/README.md](docs/specification/README.md) を参照してください。
 
 ## Development
 
-機能変更時はコードだけでなく、対応する `docs/specification` と traceability を更新します。DB変更はmigrationとして管理し、本番Supabaseへ先行変更した場合はGitへ回収します。
+機能変更時はコードだけでなく、対応する `docs/specification` と traceability を更新します。DB変更はmigrationとして管理し、本番Supabaseへ先行変更した場合はGitへ回収します。`supabase/ENVIRONMENT_SYNC_STATUS.md` の移行履歴一致確認を通過するまで、本番への migration push は行いません。
 
 秘密鍵、Android upload keystore、service_role/secret key、本番ユーザーデータ、許諾前の権利物画像はリポジトリへ保存しません。
