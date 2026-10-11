@@ -2464,15 +2464,106 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     if (mounted && event != null && event.id == currentEventId &&
         newlyCollectedSeichi.isNotEmpty) {
       final item = newlyCollectedSeichi.first;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('${item.title}の獲得記念カードを作れます'),
-        action: SnackBarAction(label: 'カードを見る', onPressed: () {
-          if (!mounted || _currentEventId != event.id) return;
-          Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) =>
-            CollectionCardPage(event: event, item: item,
-              collectedCount: _getCollectedCount(), totalCount: _eventTotalCount)));
-        }),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          padding: EdgeInsets.zero,
+          duration: const Duration(seconds: 6),
+          content: Container(
+            decoration: BoxDecoration(
+              gradient: QuestUiTokens.primaryGradient,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: QuestUiTokens.primary.withValues(alpha: 0.22),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  if (!mounted || _currentEventId != event.id) return;
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => CollectionCardPage(
+                        event: event,
+                        item: item,
+                        collectedCount: _getCollectedCount(),
+                        totalCount: _eventTotalCount,
+                      ),
+                    ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.card_giftcard_rounded,
+                        color: Colors.white,
+                        size: 30,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              '獲得記念カード',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${item.title}の記念カードを作れます',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'カードを見る',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
     }
   }
 
@@ -3273,6 +3364,38 @@ class _SeichiMapPageState extends State<SeichiMapPage>
     await _selectEvent(selectedEvent);
   }
 
+  Future<void> _openRecommendedEventDetail(Event event) async {
+    final isCurrent = event.id == _currentEventId;
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => EventDetailPage(
+          event: event,
+          currentPosition: _currentPosition,
+          participationLabel: isCurrent ? '選択中' : 'クエスト',
+          collectedCount: isCurrent ? _getCollectedCount() : null,
+          totalCount: isCurrent ? _seichiList.length : null,
+          currentNextSeichiId: isCurrent ? _nextSeichi?.id : null,
+          onSetNextDestination: isCurrent ? _setNextDestination : null,
+          onShowOnMap: isCurrent
+              ? (item) {
+                  Navigator.of(context).pop();
+                  _moveCameraToSeichi(item);
+                }
+              : null,
+          onStartRecommendedRoute:
+              isCurrent ? _startRecommendedRoute : null,
+          primaryActionLabel:
+              isCurrent ? 'クエスト画面に戻る' : 'このクエストに参加する',
+          onPrimaryAction: () async {
+            if (!isCurrent) {
+              await _selectEvent(event);
+            }
+          },
+        ),
+      ),
+    );
+  }
   Widget _buildQuestPage() {
     return QuestPage(
       nextItem: _nextSeichi,
@@ -3282,7 +3405,7 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       onShowDestination: _moveCameraToNextSeichi,
       onExploreEvents: _showEventExplore,
       onRecommendedEventTap: (event) async {
-        await _selectEvent(event);
+        await _openRecommendedEventDetail(event);
       },
       events: _events,
       onEventTap: (event) async {

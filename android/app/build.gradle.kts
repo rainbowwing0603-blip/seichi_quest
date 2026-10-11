@@ -10,11 +10,11 @@ plugins {
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 
-if (!keystorePropertiesFile.exists()) {
-    throw GradleException("android/key.properties is required for release signing.")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+} else if (gradle.startParameter.taskNames.any { it.contains("release", ignoreCase = true) }) {
+    throw GradleException("android/key.properties is required for release builds.")
 }
-
-keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 
 android {
     namespace = "jp.seichiquest.app"
@@ -30,9 +30,8 @@ android {
     defaultConfig {
         val googleMapsApiKey =
             keystoreProperties.getProperty("googleMapsApiKey")
-                ?: throw GradleException(
-                    "googleMapsApiKey is required in android/key.properties."
-                )
+                ?: System.getenv("GOOGLE_MAPS_API_KEY")
+                ?: ""
 
         manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
         applicationId = "jp.seichiquest.app"
@@ -53,11 +52,13 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = file(keystoreProperties["storeFile"] as String)
-            storePassword = keystoreProperties["storePassword"] as String
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
         }
     }
     buildTypes {
@@ -68,7 +69,9 @@ android {
                 "ca-app-pub-1391846841313915~6472071786"
 
             // Releaseはupload keystoreで署名
-            signingConfig = signingConfigs.getByName("release")
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }
