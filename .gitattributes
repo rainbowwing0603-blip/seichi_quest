@@ -1,0 +1,20 @@
+# Keep generated Flutter plugin registrants stable across Windows and CI.
+# core.autocrlf=true on Windows otherwise causes LF-generated files to appear modified.
+* text=auto
+
+# Flutter/Dart and generated platform registration files use LF consistently.
+*.dart text eol=lf
+*.cc text eol=lf
+*.h text eol=lf
+*.cmake text eol=lf
+*.swift text eol=lf
+*.kt text eol=lf
+*.kts text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+
+# Preserve Windows-native line endings for command scripts.
+*.bat text eol=crlf
+*.cmd text eol=crlf
