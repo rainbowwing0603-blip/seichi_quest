@@ -3284,6 +3284,10 @@ class _SeichiMapPageState extends State<SeichiMapPage>
       onRecommendedEventTap: (event) async {
         await _selectEvent(event);
       },
+      events: _events,
+      onEventTap: (event) async {
+        await _selectEvent(event);
+      },
       eventAchievements: _eventAchievements,
       itemLabel: _currentEventItemLabel,
     );

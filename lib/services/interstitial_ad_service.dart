@@ -4,16 +4,20 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'ad_sdk_service.dart';
+import 'ad_placement_policy.dart';
 
 class InterstitialAdService {
   InterstitialAdService._();
 
   static final InterstitialAdService instance = InterstitialAdService._();
 
-  static const Duration _productionStartupGracePeriod = Duration(minutes: 10);
-  static const Duration _productionMinimumInterval = Duration(minutes: 30);
-  static const Duration _productionStampGracePeriod = Duration(minutes: 5);
-  static const Duration _productionMinimumScreenStay = Duration(seconds: 15);
+  static const bool _screenshotMode =
+      bool.fromEnvironment('SCREENSHOT_MODE');
+
+  static const Duration _productionStartupGracePeriod = Duration(minutes: 3);
+  static const Duration _productionMinimumInterval = Duration(minutes: 15);
+  static const Duration _productionStampGracePeriod = Duration(minutes: 2);
+  static const Duration _productionMinimumScreenStay = Duration(seconds: 10);
 
   static const Duration _debugStartupGracePeriod = Duration.zero;
   static const Duration _debugMinimumInterval = Duration(seconds: 30);
@@ -40,7 +44,7 @@ class InterstitialAdService {
       'ca-app-pub-3940256099942544/4411468910';
 
   static const String _androidProductionInterstitialAdUnitId =
-      String.fromEnvironment('ADMOB_ANDROID_INTERSTITIAL_AD_UNIT_ID');
+      'ca-app-pub-1391846841313915/4859337718';
   static const String _iosProductionInterstitialAdUnitId =
       String.fromEnvironment('ADMOB_IOS_INTERSTITIAL_AD_UNIT_ID');
 
@@ -54,14 +58,10 @@ class InterstitialAdService {
   bool _isShowing = false;
 
   bool get hasProductionAdUnitId {
-    if (!kReleaseMode) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
       return true;
     }
-    final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
-    final id = isIOS
-        ? _iosProductionInterstitialAdUnitId
-        : _androidProductionInterstitialAdUnitId;
-    return id.trim().isNotEmpty;
+    return _iosProductionInterstitialAdUnitId.isNotEmpty;
   }
 
   String? get _adUnitId {
@@ -71,7 +71,7 @@ class InterstitialAdService {
       final id = isIOS
           ? _iosProductionInterstitialAdUnitId
           : _androidProductionInterstitialAdUnitId;
-      return id.trim().isEmpty ? null : id.trim();
+      return id.isEmpty ? null : id;
     }
 
     return isIOS
@@ -80,6 +80,7 @@ class InterstitialAdService {
   }
 
   void preload() {
+    if (_screenshotMode) return;
     unawaited(_preloadWhenReady());
   }
 
@@ -123,14 +124,12 @@ class InterstitialAdService {
     );
   }
 
-  /// Prevents an interstitial from appearing while a rewarded ad is active.
   bool tryBeginRewardedAd() {
     if (_isShowing) return false;
     _isShowing = true;
     return true;
   }
 
-  /// Releases the shared full-screen ad lock after a rewarded ad finishes.
   void finishRewardedAd({required bool shown}) {
     if (shown) _lastShownAt = DateTime.now();
     _isShowing = false;
@@ -141,38 +140,40 @@ class InterstitialAdService {
   }
 
   bool canShowNow({required Duration screenStay, DateTime? now}) {
+    if (_screenshotMode) return false;
+
     final currentTime = now ?? DateTime.now();
 
     if (_isShowing || _interstitialAd == null) {
       return false;
     }
 
-    if (screenStay < minimumScreenStay) {
-      return false;
-    }
-
-    if (currentTime.difference(_sessionStartedAt) < _startupGracePeriod) {
-      return false;
-    }
-
-    final lastShownAt = _lastShownAt;
-
-    if (lastShownAt != null &&
-        currentTime.difference(lastShownAt) < _minimumInterval) {
-      return false;
-    }
-
-    final lastStampCollectedAt = _lastStampCollectedAt;
-
-    if (lastStampCollectedAt != null &&
-        currentTime.difference(lastStampCollectedAt) < _stampGracePeriod) {
-      return false;
-    }
-
-    return true;
+    return const AdPlacementPolicy().allowsInterstitialTiming(
+      screenStay: screenStay,
+      sessionAge: currentTime.difference(_sessionStartedAt),
+      sinceLastShown: _lastShownAt == null
+          ? null
+          : currentTime.difference(_lastShownAt!),
+      sinceLastStamp: _lastStampCollectedAt == null
+          ? null
+          : currentTime.difference(_lastStampCollectedAt!),
+      minimumScreenStay: minimumScreenStay,
+      startupGracePeriod: _startupGracePeriod,
+      minimumInterval: _minimumInterval,
+      stampGracePeriod: _stampGracePeriod,
+    );
   }
 
-  Future<bool> showIfEligible({required Duration screenStay}) async {
+  Future<bool> showIfEligible({
+    required Duration screenStay,
+    required Set<AdBlockingContext> blockingContexts,
+  }) async {
+    if (!const AdPlacementPolicy().allowsInterstitial(
+      placement: AdPlacement.naturalExitInterstitial,
+      blockingContexts: blockingContexts,
+    )) {
+      return false;
+    }
     if (!canShowNow(screenStay: screenStay)) {
       preload();
       return false;
