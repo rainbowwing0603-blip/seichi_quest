@@ -3,7 +3,7 @@
 基準日: 2026-10-11  
 基準コード: `feature/android-next-release`。GitHubのmainとは履歴が分岐しているため、リリース対象コードはPR・ビルドWorkflowで明示して照合する。  
 アプリ版: `versionName は pubspec.yaml で管理、versionCode はPlayリリースWorkflowで自動採番`  
-配布状態: GitHub Releasesは未作成。SupabaseのAndroidリリースポリシーは `latest_build=11 / minimum_build=11`。Play Console上の実配布buildはこのリポジトリだけでは断定しない。
+配布状態: GitHub Releasesは未作成。Production SupabaseのAndroidリリースポリシーは `latest_build=13 / minimum_build=11 / latest_version=1.0.0`。Play Consoleのクローズドテストbuild番号は本番ポリシーと別管理であり、この値から推測しない。
 
 このディレクトリは、聖地クエストの実装・運用・復旧をコードと本番Supabaseから逆引きできる正本として管理する。記述は原則として **実装済み / 一部実装 / 将来構想 / 要確認** を区別する。
 
