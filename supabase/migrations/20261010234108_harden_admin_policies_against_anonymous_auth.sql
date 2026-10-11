@@ -1,0 +1,5 @@
+-- Compatibility marker for production migration-history parity.
+-- This version was applied directly in production before the source branch was
+-- reconciled. The equivalent permanent-admin-only policies are represented by
+-- 20261011093000_harden_admin_policies_against_anonymous_auth.sql for clean installs.
+-- Intentionally no-op: do not re-run the historical policy change here.
