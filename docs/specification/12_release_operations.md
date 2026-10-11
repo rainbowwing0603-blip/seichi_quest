@@ -73,6 +73,14 @@ AAB作成とPlay Consoleへのアップロードは別事実として記録す�
 - `app_release_policies`：現在0件は初回本番リリース前の意図した状態。実際に公開するビルド番号/バージョンと公開ストアURLを確定してから登録し、クローズドテストの値を流用しない。
 - 本番アプリ：本番URLとpublishable keyでビルドし、実機スモークテスト後にPlay Consoleのトラックとアップロード済みAABを別途確認する。DB移行によって本番アプリを公開したわけではない。
 
+
+## 2026-10-11 本番AABワークフローのキー疎通チェック
+
+- 本番Android成果物ワークフローは、GitHub Environment `production` から `SUPABASE_PUBLISHABLE_KEY` を受け取り、本番プロジェクト `npirfaoxcarfuqjlwgav` に対する接続先確認を行う。
+- PostgREST の `/rest/v1/` ルートを単純に呼び出す確認方法は、本番ビルド前のキー検証として不適切なため、Auth の公開設定エンドポイント `/auth/v1/settings` による疎通確認を使用する。
+- 本チェックの失敗時に認証確認を無効化してビルドを続行しない。環境URL、publishable key、応答ステータスを切り分け、認証検証が成功してからAAB生成を許可する。
+- このワークフローはAABとSHA-256を成果物として保存するのみで、Google Playへのアップロードや公開を実行しない。
+
 ## 2026-10-11 現在の本番準備状況
 
 - Production Supabase migration履歴は94件、`feature/android-next-release` のSQL migrationファイルも94件。2026-10-11のversion-set比較では、source-only / production-only version IDは0件。今後の本番migration push前にも `supabase migration list --linked` を実行し、件数だけでなくversion IDの差分がゼロであることを確認する。
