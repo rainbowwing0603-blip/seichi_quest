@@ -9,7 +9,7 @@ Last checked: 2026-10-11
 - All 25 non-extension tables in `public` have RLS enabled; none are missing RLS.
 - There are 34 policies across `public` and `storage`.
 - The five migrations reconstructed from the deployed production database on 2026-10-09 are recorded in production migration history.
-- `20261010100000_reconcile_production_security` and the subsequent security/profile changes are reflected in production. On 2026-10-11, six missing migration-history entries were reconciled only after checking the live schema, RPC definitions, and grants. Two production-only historical versions were restored as no-op compatibility marker files in source. Production migration history and this branch now both contain 93 versions/files.
+- `20261010100000_reconcile_production_security` and the subsequent security/profile changes are reflected in production. On 2026-10-11, seven missing migration-history entries were reconciled only after checking the live schema, RPC definitions, and grants. Three historical compatibility versions were restored as no-op compatibility marker files in source. Production migration history and this branch now both contain 94 versions/files.
 - Key RPCs exist and the production nearby-content RPC returned 10 rows in a live read-only smoke test.
 - The active app release policy is `latest_build=13`, `minimum_build=11`, `latest_version=1.0.0`; this matches the production release policy currently intended for the app.
 - The `delete-account` Edge Function is active with JWT verification enabled. Its handler requires an authenticated user and deletes only that user's account.
@@ -19,7 +19,7 @@ Last checked: 2026-10-11
 
 ## Migration history reconciliation (2026-10-11)
 
-- Verified the live profile gender column/index, four-argument profile RPC, recommendation implementation in `private`, story-preview server-time RPC grant, and current ranking/admin policy state before reconciling history.
+- Verified the live profile gender column/index, four-argument profile RPC, recommendation implementation in `private`, story-preview server-time RPC grant, and current ranking/admin policy state before reconciling history. The older `20261005231529_story_preview_server_time` version was also recorded as applied after confirming its resulting function and grants are already present.
 - Recorded six already-reflected migration versions as applied in `supabase_migrations.schema_migrations`; no historical SQL was replayed against production.
 - Added no-op compatibility marker files for production-only historical versions `20261010232928` and `20261010234108`. The canonical, effective migrations for clean installs remain `20261011090000` and `20261011093000` respectively.
 - Verified via the Supabase migration listing that production has 93 versions, matching the 93 migration files in this branch. Recheck this parity before any future production migration push.
@@ -58,7 +58,7 @@ Last checked: 2026-10-11
 
 ## Remaining work
 
-- **Production database schema/security baseline and migration history are reconciled (93 source files / 93 production versions as of 2026-10-11).**
+- **Production database schema/security baseline and migration history are reconciled (94 source files / 93 production versions as of 2026-10-11).**
 - If the test project must exactly match production, contact Supabase Support to move test PostGIS from `public` to `gis`; then repair/apply test migration history and rerun the environment comparison.
 - After a production user account exists, register the intended production admin UUID if the app's admin content-management features are to be used.
 - Upload production-approved event-card and content-media assets when they are ready.
