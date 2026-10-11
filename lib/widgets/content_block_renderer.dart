@@ -126,6 +126,7 @@ class ContentBlockRenderer extends StatelessWidget {
 
     final caption = block.body;
     final isHero = block.role == 'hero';
+    final isLocalAsset = imageUrl.startsWith('assets/');
 
     return _buildSection(
       context,
@@ -137,20 +138,35 @@ class ContentBlockRenderer extends StatelessWidget {
             borderRadius: BorderRadius.circular(isHero ? 20 : 16),
             child: AspectRatio(
               aspectRatio: _aspectRatioFor(block),
-              child: Image.network(
-                imageUrl,
-                cacheWidth: (MediaQuery.sizeOf(context).width *
-                        MediaQuery.devicePixelRatioOf(context))
-                    .ceil()
-                    .clamp(1, 2048),
-                width: double.infinity,
-                height: double.infinity,
-                fit: _imageFitFor(block),
-                semanticLabel: block.altText,
-                errorBuilder: (context, error, stackTrace) {
-                  return const SizedBox.shrink();
-                },
-              ),
+              child: isLocalAsset
+                  ? Image.asset(
+                      imageUrl,
+                      cacheWidth: (MediaQuery.sizeOf(context).width *
+                              MediaQuery.devicePixelRatioOf(context))
+                          .ceil()
+                          .clamp(1, 2048),
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: _imageFitFor(block),
+                      semanticLabel: block.altText,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const SizedBox.shrink();
+                      },
+                    )
+                  : Image.network(
+                      imageUrl,
+                      cacheWidth: (MediaQuery.sizeOf(context).width *
+                              MediaQuery.devicePixelRatioOf(context))
+                          .ceil()
+                          .clamp(1, 2048),
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: _imageFitFor(block),
+                      semanticLabel: block.altText,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const SizedBox.shrink();
+                      },
+                    ),
             ),
           ),
           if (caption != null && caption.isNotEmpty) ...[
@@ -172,6 +188,10 @@ class ContentBlockRenderer extends StatelessWidget {
     switch (block.role) {
       case 'picture_card':
       case 'reading_card':
+        // Both karuta cards occupy the exact same portrait frame. Fill that
+        // frame so source images with slightly different intrinsic ratios do
+        // not make one visible card look smaller than the other.
+        return BoxFit.fill;
       case 'product':
         return BoxFit.contain;
       default:
@@ -180,8 +200,15 @@ class ContentBlockRenderer extends StatelessWidget {
   }
 
   double _aspectRatioFor(ContentBlock block) {
-    final configured = block.metadata['aspect_ratio'];
+    // Karuta picture and reading cards should share the same portrait frame.
+    // Do not let per-image metadata make one card appear larger than the other.
+    switch (block.role) {
+      case 'picture_card':
+      case 'reading_card':
+        return 730 / 909;
+    }
 
+    final configured = block.metadata['aspect_ratio'];
     if (configured is num && configured > 0) {
       return configured.toDouble();
     }
@@ -189,9 +216,6 @@ class ContentBlockRenderer extends StatelessWidget {
     switch (block.role) {
       case 'hero':
         return 16 / 9;
-      case 'picture_card':
-      case 'reading_card':
-        return 4 / 3;
       case 'product':
         return 1;
       default:

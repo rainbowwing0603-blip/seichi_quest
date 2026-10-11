@@ -1,25 +1,21 @@
 # 聖地クエスト 仕様書インデックス
 
 基準日: 2026-10-11  
-基準コード: `main` (source version `1.0.0+19`)  
-アプリ版: `1.0.0+19`  
-配布状態: Version 19はリリース準備済み。Google Playへの実配布完了は未確認で、Play Consoleを正本として確認する。
+基準コード: `feature/android-next-release`。GitHubのmainとは履歴が分岐しているため、リリース対象コードはPR・ビルドWorkflowで明示して照合する。  
+アプリ版: `versionName は pubspec.yaml で管理、versionCode はPlayリリースWorkflowで自動採番`  
+配布状態: GitHub Releasesは未作成。Production SupabaseのAndroidリリースポリシーは `latest_build=13 / minimum_build=11 / latest_version=1.0.0`。Play Consoleのクローズドテストbuild番号は本番ポリシーと別管理であり、この値から推測しない。
 
 このディレクトリは、聖地クエストの実装・運用・復旧をコードと本番Supabaseから逆引きできる正本として管理する。記述は原則として **実装済み / 一部実装 / 将来構想 / 要確認** を区別する。
 
 ## 現行ベースライン
-- Flutter/Dart 3.47.1 / 3.13.1、Android中心。applicationIdは `jp.seichiquest.app`。
+- Flutter/Dart、Android中心。applicationIdは `jp.seichiquest.app`。
 - Event / Content / Place / EventContent / ContentBlock を中心とする汎用イベント基盤。
 - 旧 `seichi` テーブルは2026-09-25のmigrationで廃止済み。獲得履歴はevent_contentを正規IDとする。
 - 地図はズームに応じて spot / cluster / regional progress を切替。
 - NEXT、獲得範囲、ソナー、heading-up、天候・季節・時間帯、太陽方位に連動する視覚効果を持つ。
 - 位置不正対策は端末側mock判定とサーバー側状態/cooldown、サーバー時刻を組み合わせる。
 - お知らせ、広告配置Policy、アプリ更新Policyを共通基盤として持つ。
-- Rewarded Adによる物語1時間プレビューを実装。Release Android buildではRewarded ad unit IDをビルド時に注入する。
-- 2026-10-11時点のmain source versionは `1.0.0+19`。Play Consoleのclosed-test release番号とソースのversionCodeは別管理として、実配布状態はPlay Consoleを正本として確認する。
-- Supabase本番 migration history と `supabase/migrations/*.sql` は94件で一致。詳細は `supabase/ENVIRONMENT_SYNC_STATUS.md`。
-- `main` は本番Android AABビルドと本番リリース設定の正本。Google Playのテスト配信workflowは `feature/android-next-release` を既定ブランチとし、Play側の最大versionCodeから次の番号を割り当てる。したがって、`main` のソース版 `1.0.0+19` とPlay Console上のクローズドテストrelease 20は別の番号体系である。
-- 本番ビルド経路とクローズドテスト配信経路は分けて管理する。両ブランチを一括マージ・リセットせず、変更を移す場合は重複ファイルを個別に確認した小さなPRで検証する。
+- 本番Supabaseの2026-10-11確認値はevents 51、places 1,713、contents 2,742、event_contents 2,721、content_blocks 336。リリースポリシーは latest_build=13 / minimum_build=11 / latest_version=1.0.0。
 
 ## 文書一覧
 1. [01_product_overview.md](01_product_overview.md) プロダクト概要
@@ -40,11 +36,7 @@
 16. [16_announcements.md](16_announcements.md) お知らせ
 17. [17_ad_placement_policy.md](17_ad_placement_policy.md) 広告配置Policy
 18. [18_feature_plan_announcements_ads.md](18_feature_plan_announcements_ads.md) お知らせ・広告改善計画
-19. [19_current_baseline_20260927.md](19_current_baseline_20260927.md) 2026-09-27時点の履歴ベースライン
-20. [20_current_baseline_20261008.md](20_current_baseline_20261008.md) 現行ベースライン
-
-補助資料:
-- [../story_rewarded_ads.md](../story_rewarded_ads.md) Rewarded Ad物語プレビュー仕様
+19. [19_current_baseline_20260927.md](19_current_baseline_20260927.md) しるべ導入前の現行ベースライン
 
 ## 更新ルール
 機能変更時はコードだけでなく、該当仕様書と `14_traceability.md` を同じPRで更新する。DB変更はmigration、RLS、RPC、Storage、Edge Functionへの影響を記録する。将来案は実装済みと混在させない。秘密情報、DBダンプ、認証ユーザーデータ、署名鍵、API秘密鍵、許諾前画像のバックアップはこの公開可能な文書群へ格納しない。

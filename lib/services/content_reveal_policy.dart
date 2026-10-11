@@ -22,27 +22,28 @@ abstract final class ContentRevealPolicy {
   static bool isVisible(
     ContentBlock block, {
     required bool collected,
-    bool storyPreview = false,
+    bool previewUnlocked = false,
   }) {
     return switch (modeFor(block)) {
       ContentRevealMode.always => true,
-      ContentRevealMode.afterCollection => collected ||
-          (storyPreview && isStoryPreviewEligible(block)),
+      ContentRevealMode.afterCollection => collected || previewUnlocked,
       ContentRevealMode.hidden => false,
     };
   }
 
-  static bool isStoryPreviewEligible(ContentBlock block) =>
-      modeFor(block) == ContentRevealMode.afterCollection &&
-      const {'description', 'history', 'field_guide', 'story'}.contains(block.role);
-
   static List<ContentBlock> visibleBlocks(
     Iterable<ContentBlock> blocks, {
     required bool collected,
-    bool storyPreview = false,
+    bool previewUnlocked = false,
   }) {
     return blocks
-        .where((block) => isVisible(block, collected: collected, storyPreview: storyPreview))
+        .where(
+          (block) => isVisible(
+            block,
+            collected: collected,
+            previewUnlocked: previewUnlocked,
+          ),
+        )
         .toList(growable: false);
   }
 }

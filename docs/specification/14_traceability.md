@@ -14,47 +14,109 @@
 | ソナー | `painters/sonar_painter.dart`, `widgets/map_page.dart` | Place radius |
 | 天候・太陽 | `weather_service.dart`, `solar_position_service.dart`, `weather_effect_overlay.dart` | external HTTP / local solar calculation |
 | コンテンツ | `content_block_service.dart`, `content_block_renderer.dart`, `quest_spot_detail_sheet.dart` | `contents`, `event_contents`, `content_blocks`, Storage |
-| 物語プレビュー | `services/story_rewarded_ad_service.dart`, `services/story_preview_service.dart`, `widgets/quest_item_content_section.dart` | Supabase server-time RPC / local entitlement |
 | 実績 | `progression_service.dart`, `widgets/quest_page.dart` | `achievements`, `event_achievements` |
 | ランキング | `widgets/ranking_page.dart` | ranking RPC群 |
 | お知らせ | `announcement_service.dart`, announcements widgets | `announcements`, `announcement_reads` |
-| 広告 | `ad_placement_policy.dart`, banner/interstitial services, `story_rewarded_ad_service.dart` | Android AdMob settings / build-time Rewarded ID |
+| 広告 | `ad_placement_policy.dart`, banner/interstitial/rewarded services | GitHub Actions `production` Environment の3種類のAndroid AdMob unit variables、`--dart-define`、本番ビルドの形式/テストIDガード |
 | 設定 | `app_settings_service.dart`, `app_settings_page.dart` | SharedPreferences |
 | アプリ更新 | `app_version_service.dart` | `app_release_policies` |
 | アカウント | `account_page.dart`, `session_service.dart` | Auth, `delete-account` |
 | DB変更 | Flutter呼出し側 | `supabase/migrations/*.sql` |
-| Privacy | app/account UI | `docs/privacy/index.html` |
+| Privacy / account deletion | `privacy/index.html`, `account-deletion/index.html`, `lib/widgets/account_page.dart` | privacy policy, web deletion flow, production Supabase `delete-account` Edge Function |
+
+| リリース・採番 | `.github/workflows/google-play-test-release.yml`, `pubspec.yaml` | Google Play Android Publisher API（既存Bundle最大versionCode + 1） |
+| 仕様更新ゲート | `.github/workflows/specification-update-gate.yml` | PRの変更ファイルを検査し、実装・DB・CI/CD変更時の仕様書更新を要求 |
+
+## 表示仕様: かるた札画像
+
+絵札 (`picture_card`) と読み札 (`reading_card`) は同じ縦長フレーム比率 `730:909` で表示し、両方に `BoxFit.fill` を適用してフレーム全体を同じ寸法で埋める。元画像ごとの縦横比の違いで札の見える大きさが変わることを防ぐ。札画像は縦横比がわずかに変形する場合があるが、フレーム内で一方だけ小さく見えたり、余白が発生したりしないことを優先する。
 
 ## 更新
-ファイル移動・責務分割時はこの表も更新する。機能追加時は対応する仕様書と同じ変更単位でこの表を更新する。テーブルやRPCを削除する前に、対応するFlutter参照が残っていないか確認する。ユーザー向け表示と内部セキュリティ/GPS検証メタデータの境界もレビュー対象とする。
+ファイル移動・責務分割時はこの表も更新する。テーブルやRPCを削除する前に、対応するFlutter参照が残っていないか確認する。ユーザー向け表示と内部セキュリティ/GPS検証メタデータの境界もレビュー対象とする。
 
+| Supabase環境分離 | `lib/main.dart`、リリースWorkflow | `APP_ENV` / `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY`。本番は別Supabaseプロジェクトを使用 |
 
-## 2026-10-11 本番Supabaseソース同期
-
-| 領域 | 主な実装・仕様 | 必須検証 |
-|---|---|---|
-| migration parity | `supabase/ENVIRONMENT_SYNC_STATUS.md`、`supabase/migrations/*.sql` | mainのデプロイ用ソースと本番履歴を94件で一致させる。既存関数定義と権限を照合した履歴補正のみを行い、適用済みSQLを再実行しない |
-| 本番DBセキュリティ | `supabase/migrations/20261010233406_move_security_definer_rpcs_to_private_wrappers.sql`, `20261010233558_add_explicit_deny_policies_to_internal_tables.sql`, `20261011093000_harden_admin_policies_against_anonymous_auth.sql` | 特権RPCはprivate実装＋public invoker wrapper、内部テーブルはdeny-by-default、管理操作は非匿名管理者のみ。Security Source Checkを必須とする |
-| 環境同期 | `supabase/config.toml`, `supabase/functions/`, `supabase/seed/production_master_data/` | 本番の関数実装・設定・マスターデータ復旧資材をソース管理し、秘密情報とユーザー所有データをコミットしない |
-
-## 2026-10-11 build-time Supabase environment selection
+## 2026-10-09 production schema rebuild
 
 | 領域 | 主な実装・仕様 | 必須検証 |
 |---|---|---|
-| Supabase環境の選択・Webアカウント削除 | `lib/main.dart`; `.github/workflows/production-android-build.yml`; `.github/workflows/google-play-test-release.yml`; `account-deletion/index.html`; `docs/account-deletion/index.html` | 本番AABは `APP_ENV=production` と本番 `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` をビルド時に注入し、承認済み本番URL以外なら起動を拒否する。Google Playのテスト配信は `APP_ENV=closed_test` を明示する。Webアカウント削除ページは通常版 / クローズドテスト版を明示選択し、選択した環境のURLとPublishable Keyだけを認証・削除要求に使う。CIのソースガードでコード・workflow・Webページの整合性を確認する |
+| 参加状態 | `lib/services/event_service.dart` → `ensure_event_participation` RPC; `supabase/migrations/20261009010000_secure_event_participation_rpc.sql` | サーバー時刻、`auth.uid()`、非アクティブイベント拒否、直接書込権限の剥奪 |
+| 本番DB設計 | `docs/production-schema-target.md`; `supabase/baselines/closed_test_catalog_snapshot_20261009.sql` | 現行カタログは参照用。新規DBでの空からの再構築とマスターデータ整合性テストが必要 |
+| RLS/GRANT監査 | `supabase/security/production_rls_audit.sql` | 全公開テーブルのRLS、明示GRANT、関数EXECUTE、ビューのsecurity_invoker、他ユーザーアクセス拒否 |
+| Supabaseソースガード | `scripts/check_supabase_security_source.py`; `.github/workflows/supabase-security-source-check.yml` | 固定キーの再混入、auto-exposure、欠落seed、参加RPCの権限要件を静的検査 |
 
-## 2026-10-11 本番AAB workflowのソースブランチ固定
+## 2026-10-10 年代ベースのイベントおすすめ統合
 
 | 領域 | 主な実装・仕様 | 必須検証 |
 |---|---|---|
-| 本番AAB生成元 | `.github/workflows/production-android-build.yml` | 本番AABはレビュー済み `main` からのみ生成する。クローズドテスト配信は `feature/android-next-release` の専用workflowを使用し、本番workflowと混同しない。workflowは成果物生成のみを行い、Google Playへのアップロード・公開は行わない |
+| イベントおすすめ | lib/services/event_recommendation_service.dart, lib/widgets/recommended_events_card.dart, lib/widgets/event_recommendation_section.dart | 未参加イベントのみ、属性集団5人以上、個人情報を返さない |
+| 年代プロフィール | lib/widgets/profile_page.dart | 旧値 10代以下 の互換読込と新値 10代 の保存 |
+| 推薦RPC | supabase/migrations/20261007211445_event_demographic_recommendations.sql, supabase/migrations/20261010181426_fix_event_recommendation_null_gender.sql | 年代のみ・性別NULLでも集計できること、「回答しない」を年代属性として扱わないこと、認証済みEXECUTEのみ |
+
+## 2026-10-10 profile demographic fields
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| プロフィール属性 | `lib/widgets/profile_page.dart` → 4引数 `save_my_profile` RPC。既存3引数RPCは後方互換のため維持 | 性別は任意、許可値のみ保存、プロフィールを他ユーザーが変更できない |
+| 推薦のプライバシー | `supabase/migrations/20261010181454_profile_gender_recommendation_rpc.sql` | 年代「回答しない」を属性集団にしない、性別未設定の利用者も利用可能 |
+| プライバシーポリシー | `privacy/index.html` | 公開ページの内容とアプリ内の削除手順が一致すること。Web削除ページは本番SupabaseのURLとpublishable keyを使用し、テスト環境を参照しないこと |
+
+## 2026-10-11 production profile RPC reconciliation
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 本番プロフィールRPC追随 | `supabase/migrations/20261010231050_reconcile_profile_gender_recommendation_rpc.sql` | 本番DBで4引数 `save_my_profile` とNULL性別対応の `get_event_recommendations` を確認。3引数RPCの後方互換とauthenticated-only EXECUTEを維持 |
+
+## 2026-10-11 PostGIS API hardening follow-up
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| PostGIS extent RPC | `supabase/migrations/20261010231230_restrict_public_postgis_extent_rpc.sql` | 管理対象の拡張関数は所有者権限によりACL変更が拒否される場合があるため、`has_function_privilege` と Security Advisor の再確認を必須とする。失敗時に権限変更済みとみなさない |
+
+## 2026-10-11 production ranking RPC grants
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 公開ランキングRPC | `supabase/migrations/20261011090000_restrict_public_ranking_to_authenticated.sql` | `PUBLIC` と `anon` のEXECUTEを剥奪し、`authenticated` と `service_role` を維持。未認証の直接RPC呼出しは拒否し、匿名サインイン済みアプリセッションではランキング表示を維持する |
+
+## 2026-10-11 production SECURITY DEFINER RPC isolation
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 特権RPCの分離 | `supabase/migrations/20261010233406_move_security_definer_rpcs_to_private_wrappers.sql` | 14個の実装を非公開の `private` スキーマへ移し、`public` は `SECURITY INVOKER` ラッパーに限定。アプリ向け引数・戻り値・authenticated実行権限を維持し、`anon` と `PUBLIC` の実行を拒否 |
+| 内部セキュリティテーブル | `event_collection_resets`, `location_security_events`, `location_security_states`, `roadside_station_registry` | RLS有効、APIロールへの直接テーブル権限なし。RLSポリシーなしは意図的なdeny-by-defaultとして扱い、警告を消すための公開ポリシー追加は行わない |
+
+## 2026-10-11 production internal-table deny policies
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 内部テーブルの直接アクセス防止 | `supabase/migrations/20261010233558_add_explicit_deny_policies_to_internal_tables.sql` | 運用テーブル4件と `private.admin_users` に `anon` / `authenticated` 向けの明示的な拒否ポリシーを設定。既存の特権RPCの処理権限と直接テーブル権限の不存在を確認 |
+| 匿名サインインに関するAdvisor通知 | `authenticated` ロールを使う匿名サインイン方式と公開コンテンツの読み取りポリシー | 自分の履歴のみ読める制約と公開コンテンツの読み取りを維持。通知を消す目的で匿名サインインや必要な読み取りを無効化しない |
+
+## 2026-10-11 production anonymous-auth policy hardening
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 管理操作の匿名ユーザー拒否 | `supabase/migrations/20261011093000_harden_admin_policies_against_anonymous_auth.sql` | `content_blocks` の管理用 INSERT/UPDATE/DELETE、`events` の管理用 UPDATE、`content-media` Storage の管理用操作は `auth.jwt()->>'is_anonymous' = false` かつ `private.is_admin()` を要求。一般の匿名ユーザーが管理操作を実行できず、正式な管理者の操作は維持されること |
+| Advisor通知の扱い | Supabase Security Advisor lint `0012_auth_allow_anonymous_sign_ins` | 本アプリは匿名サインインを利用してユーザーID単位で収集履歴・訪問履歴・設定を保存する。本人所有行だけのRLSと公開/有効コンテンツの読み取りは仕様上必要なため、通知を消すために匿名サインインやこれらのポリシーを一括無効化しない。公開データと本人所有データの意図したアクセスを確認し、管理系の変更操作は非匿名ユーザーに限定する |
 
 
-## 2026-10-11 live production security verification
+## 2026-10-11 production migration-history parity
 
-- Production migration history was read directly and matched all 94 migration files in `main`.
-- Live privilege checks confirmed the public ranking RPC is invoker-security, executable by `authenticated` / `service_role`, and not executable by `anon`.
-- All public tables have RLS enabled. Internal table deny policies and permanent-admin-only policies are present in the live catalog.
-- Anonymous sign-in is an intentional app capability. Do not interpret the advisor's `auth_allow_anonymous_sign_ins` warnings as a blanket instruction to remove published-read or user-owned authenticated-role policies; validate each policy against intended anonymous/permanent-user behavior.
-- Admin policies use scalar subqueries around `auth.jwt()` and `private.is_admin()`. If the performance advisor continues flagging these, verify actual query plans and whether its findings are current before changing production policies.
-- See `supabase/ENVIRONMENT_SYNC_STATUS.md` for the complete live-audit results and remaining operational items.
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| Supabase migration履歴 | `supabase/ENVIRONMENT_SYNC_STATUS.md`; `supabase/migrations/20261010232928_restrict_public_ranking_to_authenticated.sql`; `supabase/migrations/20261010234108_harden_admin_policies_against_anonymous_auth.sql` | 本番で実状態を確認した後にのみ履歴を補正し、既適用SQLを再実行しない。歴史的な本番専用versionはno-op互換ファイルとして保持し、クリーン環境では後続の正規migrationが変更を適用する。source SQL migration数と本番履歴数の一致を確認してから本番pushを許可する |
+| migration parity gate | `README.md`, `supabase/ENVIRONMENT_SYNC_STATUS.md` | 本番migration push前に `supabase migration list --linked` のローカル/リモート差分がゼロであることを確認。差分がある場合は過去SQLを変更・削除せず、結果状態と履歴を照合する |
+
+
+## 2026-10-11 historical story-time migration parity
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| Story preview server time migration history | `supabase/migrations/20261005231529_story_preview_server_time.sql` と `20261005232656_story_preview_server_time.sql` | 2つの履歴バージョンは同じサーバー時刻RPCを構成する。既存本番で現在のRPC定義とauthenticated-only実行権限を確認してから履歴のみ補正し、関数SQLは再実行しない |
+
+## 2026-10-11 current production release-readiness check
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 本番 migration履歴の最新状態 | `supabase/ENVIRONMENT_SYNC_STATUS.md`; `docs/production-bootstrap-readiness-audit-20261009.md` | 2026-10-11の読み取り専用照合でソース94ファイルと本番履歴94版が一致し、source-only / production-only versionが0件であることを確認。Story-time RPCのauthenticated-only実行権限とランキングRPCの公開実行拒否を確認。履歴一致は実機E2E完了を意味しないため、本番リリース前に本番設定と実機動作を別途検証する |

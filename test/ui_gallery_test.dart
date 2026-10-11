@@ -134,6 +134,8 @@ void main() {
         onShowDestination: noop,
         onExploreEvents: noop,
         onRecommendedEventTap: (_) {},
+        events: const [],
+        onEventTap: (_) {},
       ),
     );
     await capture(tester, 'quest_page');

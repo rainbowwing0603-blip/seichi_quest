@@ -1,9 +1,9 @@
 # 広告配置Policy
 
 ## 最優先原則
-収益機会を増やしつつ、ゲーム体験を損なわないことを最優先とする。広告はプレイの途中へ割り込ませず、画面特性に応じて「常設バナー」「インライン」「自然な区切りのInterstitial」「ユーザー任意のRewarded」を使い分ける。
+収益機会を増やしつつ、ゲーム体験を損なわないことを最優先とする。広告はプレイの途中へ割り込ませず、画面特性に応じて「常設バナー」「インライン」「自然な区切りのInterstitial」を使い分ける。
 
-## 3+1層構成
+## 3層構成
 
 ### 1. Banner
 地図など、広告を常設しても主要操作を妨げない画面ではバナーを継続表示してよい。表示時間だけを目的に画面を塞がず、UIを圧迫する場所には置かない。
@@ -19,28 +19,16 @@
 全画面広告は自然な区切りだけで表示候補とする。
 
 Release初期値:
-- 起動後3分間は表示しない
-- 前回Interstitial表示から15分以上
-- スタンプ獲得後2分以上
-- 対象画面を10秒以上利用
+- 起動後10分間は表示しない
+- 前回Interstitial表示から30分以上
+- スタンプ獲得後5分以上
+- 対象画面を15秒以上利用
 - セッション内の最大表示回数は設けない
 
 上記時間を満たしただけでは表示しない。「画面を見終えて戻る」等のユーザー操作上の自然な区切りが必要。
 
-### 4. Rewarded Story Preview
-Rewardedは自動表示せず、未獲得地点の対象物語を読みたいユーザーが明示的に選択した場合だけ表示する。
-
-- 報酬: 対象物語を1時間閲覧
-- スタンプ獲得: 発生しない
-- 対象: description / history / field_guide / story の対象ContentBlock
-- 有効期限: 1時間
-- server clockで期限判定
-- 対象コンテンツ以外の獲得状態を変更しない
-- Rewarded IDが利用できないReleaseではボタンを表示しない
-- Rewarded視聴後は通常のInterstitialを即座に重ねず、通常の頻度制御へ戻す
-
 ## 禁止ゾーン
-Interstitialや新しい割り込み広告を次のタイミングでは開始しない。
+次のタイミングではInterstitialや新しい割り込み広告を開始しない。
 - アプリ起動直後
 - 起動時お知らせ表示中およびその直後
 - オンボーディング
@@ -50,10 +38,12 @@ Interstitialや新しい割り込み広告を次のタイミングでは開始�
 - 地図の移動/目的地操作を妨げるタイミング
 - エラー/権限要求ダイアログとの連続表示
 
-Rewardedはユーザーが明示的にCTAを押した場合のみ例外的に開始する。
+お知らせの起動モーダル内には広告を置かない。
 
 ## 広告種別間の扱い
-Banner/Inline/Interstitial/Rewardedは役割が異なる。BannerやInlineが表示されたことだけを理由にInterstitialの15分間隔をリセットしない。Rewarded表示後は全画面広告の重複表示を避け、通常のInterstitial Policyへ戻す。
+Banner/Inline/Interstitialは役割が異なるため、BannerやInlineが表示されたことだけを理由にInterstitialの30分間隔をリセットしない。Interstitial同士の頻度はInterstitialのPolicyで制御する。
+
+Rewarded広告とInterstitialは同時表示しない。Rewarded広告のロード後に表示条件を再確認し、Interstitialとの共有ロックを取得してから表示する。実際にRewarded広告が表示された場合はInterstitialの最短間隔を再計測し、表示失敗やキャンセルだけでは間隔をリセットしない。
 
 ## 一元管理
 広告可否判断をAdPlacementPolicyへ集約する。各画面が独自に頻度や禁止条件を持たない。placement IDを定義し、将来の計測・A/BテストでもUIコードを分岐だらけにしない。
@@ -65,20 +55,19 @@ Banner/Inline/Interstitial/Rewardedは役割が異なる。BannerやInlineが表
 - announcements_inline
 - event_explore_inline
 - natural_exit_interstitial
-- story_rewarded_preview
 
 ## 計測と調整
-初期値の3分/15分/2分/10秒は固定仕様ではなくクローズドテストの基準値とする。広告収益だけでなく、1セッション当たり表示回数、セッション継続、スタンプ獲得完了、広告直後離脱、画面滞在、Rewarded利用率を確認する。
+現行実装の初期値10分/30分/5分/15秒は固定仕様ではなく、クローズドテストでUXと収益を見ながら検証する基準値とする。広告収益だけでなく、1セッション当たり表示回数、セッション継続、スタンプ獲得完了、広告直後離脱、画面滞在を確認する。
 
-長時間利用者にはInterstitial条件を満たすたび3回目以降も表示可能とする。一方で短時間利用者へ無理にInterstitialを表示しない。Rewardedはユーザー価値が明確な場合のみ利用される構造を維持する。
+長時間利用者には条件を満たすたび3回目以降も表示可能とする。一方で短時間利用者へ無理にInterstitialを表示しない。収益増でもプレイ離脱が増える配置は採用しない。
 
 
+## 本番広告ユニットIDの管理
 
-## 2026-10-08実装差分
-Version 12以降の実装では、Policyだけでなく実コード側にも以下を反映している。
-- Banner: adaptive sizeを試し、50dp超なら通常50dpへfallback。
-- Interstitial: Release 3分/15分/2分/10秒の時間条件を実装。
-- Blocking contextが存在する場合は自然な区切りでもInterstitialを開始しない。
-- Rewarded Story Previewはユーザー操作によるopt-inのみ。
-- SCREENSHOT_MODEでは広告を表示しない。
-- Rewarded表示中とInterstitial表示中の全画面広告重複を防止する。
+Android本番ビルドの広告ユニットIDはソースコードへ直接記述せず、GitHub Actionsの保護された `production` Environment Variablesで管理する。
+
+- `ADMOB_ANDROID_BANNER_AD_UNIT_ID`
+- `ADMOB_ANDROID_INTERSTITIAL_AD_UNIT_ID`
+- `ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID`
+
+本番ビルドWorkflowは3値の形式を事前検証し、Google公式のテスト広告ユニットIDが指定されている場合はビルドを停止する。値はFlutterの `--dart-define` で渡し、Releaseビルドで使用する。Debug/ProfileではGoogle公式テスト広告IDを維持し、広告表示頻度やリワード付与時間などのユーザー体験仕様とは分離して管理する。

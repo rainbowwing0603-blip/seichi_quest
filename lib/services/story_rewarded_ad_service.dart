@@ -6,81 +6,107 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'ad_sdk_service.dart';
 import 'interstitial_ad_service.dart';
 
+/// Shows a user-initiated rewarded ad. A true result means the SDK delivered
+/// the reward callback, not merely that the ad was dismissed.
 class StoryRewardedAdService {
-  static final instance = StoryRewardedAdService();
-  static const _androidId = String.fromEnvironment('ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID');
-  static const _iosId = String.fromEnvironment('ADMOB_IOS_STORY_REWARDED_AD_UNIT_ID');
-  static const _screenshotMode = bool.fromEnvironment('SCREENSHOT_MODE');
+  StoryRewardedAdService._();
 
-  String? get adUnitId {
-    if (_screenshotMode || kIsWeb ||
-        (defaultTargetPlatform != TargetPlatform.android &&
-         defaultTargetPlatform != TargetPlatform.iOS)) {
-      return null;
+  static final StoryRewardedAdService instance = StoryRewardedAdService._();
+
+  static const String _androidTestAdUnitId =
+      'ca-app-pub-3940256099942544/5224354917';
+  static const String _iosTestAdUnitId =
+      'ca-app-pub-3940256099942544/1712485313';
+
+  static const String _androidProductionAdUnitId =
+      String.fromEnvironment('ADMOB_ANDROID_STORY_REWARDED_AD_UNIT_ID');
+  static const String _iosProductionAdUnitId =
+      String.fromEnvironment('ADMOB_IOS_STORY_REWARDED_AD_UNIT_ID');
+
+  String? get _adUnitId {
+    final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+    if (kReleaseMode) {
+      final id = isIOS
+          ? _iosProductionAdUnitId
+          : _androidProductionAdUnitId;
+      return id.trim().isEmpty ? null : id.trim();
     }
-    final ios = defaultTargetPlatform == TargetPlatform.iOS;
-    if (!kReleaseMode) {
-      return ios ? 'ca-app-pub-3940256099942544/1712485313'
-                 : 'ca-app-pub-3940256099942544/5224354917';
-    }
-    final id = ios ? _iosId : _androidId;
-    return id.isEmpty ? null : id;
+    return isIOS ? _iosTestAdUnitId : _androidTestAdUnitId;
   }
 
-  bool _busy = false;
-  bool get available => adUnitId != null;
+  bool get hasProductionAdUnitId => _adUnitId != null;
 
-  Future<bool> show({required bool Function() canPresent}) async {
-    final id = adUnitId;
-    if (_busy || id == null) return false;
-    _busy = true;
+  Future<bool> showForStoryUnlock({
+    required bool Function() canPresent,
+  }) async {
+    final adUnitId = _adUnitId;
+    if (adUnitId == null) return false;
+
+    final adsReady = await AdSdkService.instance.ready;
+    if (!adsReady) return false;
+
     RewardedAd? ad;
-    var acquired = false;
+    var acquiredInterstitialLock = false;
     var shown = false;
+
     try {
-      if (!await AdSdkService.instance.ready.timeout(const Duration(seconds: 20))) return false;
       final loaded = Completer<RewardedAd>();
       RewardedAd.load(
-        adUnitId: id,
+        adUnitId: adUnitId,
         request: const AdRequest(),
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: (value) {
-            if (loaded.isCompleted) { value.dispose(); } else { loaded.complete(value); }
+            if (loaded.isCompleted) {
+              value.dispose();
+            } else {
+              loaded.complete(value);
+            }
           },
           onAdFailedToLoad: (error) {
             if (!loaded.isCompleted) loaded.completeError(error);
           },
         ),
       );
+
       try {
         ad = await loaded.future.timeout(const Duration(seconds: 20));
       } on TimeoutException {
-        // Dispose a late load rather than leaking an ad or presenting unexpectedly.
+        // Dispose a late load instead of presenting it after the user has moved on.
         unawaited(loaded.future.then((value) => value.dispose(), onError: (Object _) {}));
         return false;
       }
+
       if (!canPresent()) return false;
-      acquired = InterstitialAdService.instance.tryBeginRewardedAd();
-      if (!acquired) return false;
-      final completed = Completer<bool>();
-      var earned = false;
-      ad.fullScreenContentCallback = FullScreenContentCallback(
-        onAdShowedFullScreenContent: (_) { shown = true; },
+      acquiredInterstitialLock =
+          InterstitialAdService.instance.tryBeginRewardedAd();
+      if (!acquiredInterstitialLock) return false;
+
+      final completion = Completer<bool>();
+      var rewardEarned = false;
+      ad.fullScreenContentCallback = FullScreenContentCallback<RewardedAd>(
+        onAdShowedFullScreenContent: (_) => shown = true,
         onAdDismissedFullScreenContent: (_) {
-          if (!completed.isCompleted) completed.complete(earned);
+          if (!completion.isCompleted) completion.complete(rewardEarned);
         },
         onAdFailedToShowFullScreenContent: (_, _) {
-          if (!completed.isCompleted) completed.complete(false);
+          if (!completion.isCompleted) completion.complete(false);
         },
       );
-      ad.show(onUserEarnedReward: (_, _) { earned = true; });
-      return await completed.future;
+
+      try {
+        ad.show(onUserEarnedReward: (_, _) => rewardEarned = true);
+      } catch (_) {
+        if (!completion.isCompleted) completion.complete(false);
+      }
+      return await completion.future;
     } catch (_) {
       return false;
     } finally {
       ad?.dispose();
-      if (acquired) InterstitialAdService.instance.finishRewardedAd(shown: shown);
-      _busy = false;
+      if (acquiredInterstitialLock) {
+        InterstitialAdService.instance.finishRewardedAd(shown: shown);
+      }
     }
   }
+
 }
