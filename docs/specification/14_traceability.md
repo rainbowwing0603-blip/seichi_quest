@@ -48,3 +48,13 @@
 | 領域 | 主な実装・仕様 | 必須検証 |
 |---|---|---|
 | 本番AAB生成元 | `.github/workflows/production-android-build.yml` | 本番AABはレビュー済み `main` からのみ生成する。クローズドテスト配信は `feature/android-next-release` の専用workflowを使用し、本番workflowと混同しない。workflowは成果物生成のみを行い、Google Playへのアップロード・公開は行わない |
+
+
+## 2026-10-11 live production security verification
+
+- Production migration history was read directly and matched all 94 migration files in `main`.
+- Live privilege checks confirmed the public ranking RPC is invoker-security, executable by `authenticated` / `service_role`, and not executable by `anon`.
+- All public tables have RLS enabled. Internal table deny policies and permanent-admin-only policies are present in the live catalog.
+- Anonymous sign-in is an intentional app capability. Do not interpret the advisor's `auth_allow_anonymous_sign_ins` warnings as a blanket instruction to remove published-read or user-owned authenticated-role policies; validate each policy against intended anonymous/permanent-user behavior.
+- Admin policies use scalar subqueries around `auth.jwt()` and `private.is_admin()`. If the performance advisor continues flagging these, verify actual query plans and whether its findings are current before changing production policies.
+- See `supabase/ENVIRONMENT_SYNC_STATUS.md` for the complete live-audit results and remaining operational items.
