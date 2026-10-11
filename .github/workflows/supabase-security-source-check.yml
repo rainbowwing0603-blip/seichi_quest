@@ -1,0 +1,52 @@
+name: Supabase Security Source Check
+
+on:
+  pull_request:
+    branches:
+      - feature/android-next-release
+    paths:
+      - "supabase/**"
+      - "docs/production-schema-target.md"
+      - "scripts/check_supabase_security_source.py"
+      - "scripts/*.ps1"
+      - "docs/production-cutover-runbook.md"
+      - ".github/workflows/supabase-security-source-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check maintenance Edge Functions
+        run: >-
+          deno check --node-modules-dir=auto
+          supabase/functions/import-roadside-station-registry/index.ts
+          supabase/functions/enrich-roadside-station-gps/index.ts
+          supabase/functions/reconcile-roadside-station-gps/index.ts
+      - name: Validate production PowerShell scripts parse
+        run: pwsh -NoLogo -NoProfile -File scripts/check_powershell_syntax.ps1
+      - name: Install PostgreSQL client for guarded script dry-runs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Dry-run production bootstrap and master-data import scripts
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:ci-placeholder@db.npirfaoxcarfuqjlwgav.supabase.co:5432/postgres
+        run: |
+          pwsh -NoLogo -NoProfile -File scripts/bootstrap-production-schema.ps1
+          pwsh -NoLogo -NoProfile -File scripts/import-production-master-data.ps1
+      - name: Check Supabase source guardrails
+        run: python scripts/check_supabase_security_source.py
