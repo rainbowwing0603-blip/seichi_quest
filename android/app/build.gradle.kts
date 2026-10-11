@@ -9,12 +9,11 @@ plugins {
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
+val hasKeystoreProperties = keystorePropertiesFile.exists()
 
-if (!keystorePropertiesFile.exists()) {
-    throw GradleException("android/key.properties is required for release signing.")
+if (hasKeystoreProperties) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
-
-keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 
 android {
     namespace = "jp.seichiquest.app"
@@ -28,13 +27,10 @@ android {
     }
 
     defaultConfig {
-        val googleMapsApiKey =
-            keystoreProperties.getProperty("googleMapsApiKey")
-                ?: throw GradleException(
-                    "googleMapsApiKey is required in android/key.properties."
-                )
-
-        manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
+        // Local debug builds may run without release-only signing secrets.
+        // Release configuration is validated separately below.
+        manifestPlaceholders["googleMapsApiKey"] =
+            keystoreProperties.getProperty("googleMapsApiKey") ?: ""
         applicationId = "jp.seichiquest.app"
         minSdk = flutter.minSdkVersion
         // Google Play: 2026-08-31以降の新規アプリ/更新はAPI 36以上が必須。
@@ -52,25 +48,44 @@ android {
             "ca-app-pub-3940256099942544~3347511713"
     }
 
-    signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = file(keystoreProperties["storeFile"] as String)
-            storePassword = keystoreProperties["storePassword"] as String
+    if (hasKeystoreProperties) {
+        signingConfigs {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
         }
     }
-    buildTypes {
 
+    buildTypes {
         release {
             // Releaseは聖地クエスト本番用AdMob App ID
             manifestPlaceholders["adMobAppId"] =
                 "ca-app-pub-1391846841313915~6472071786"
 
-            // Releaseはupload keystoreで署名
-            signingConfig = signingConfigs.getByName("release")
+            // Releaseはupload keystoreで署名。設定がない場合はリリースタスクを失敗させる。
+            if (hasKeystoreProperties) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
+}
+
+// Do not block debug/profile builds when local release-signing secrets are absent.
+// Never allow a release artifact to be produced without the required signing settings.
+if (!hasKeystoreProperties) {
+    tasks.configureEach {
+        if (name == "assembleRelease" || name == "bundleRelease") {
+            doFirst {
+                throw GradleException(
+                    "android/key.properties is required to build a signed release."
+                )
+            }
+        }
+    }
+}
 }
 
 kotlin {
