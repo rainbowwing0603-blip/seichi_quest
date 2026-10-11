@@ -57,7 +57,12 @@ class InterstitialAdService {
   bool _isLoading = false;
   bool _isShowing = false;
 
-  bool get hasProductionAdUnitId => _adUnitId != null;
+  bool get hasProductionAdUnitId {
+    final id = defaultTargetPlatform == TargetPlatform.iOS
+        ? _iosProductionInterstitialAdUnitId
+        : _androidProductionInterstitialAdUnitId;
+    return id.trim().isNotEmpty;
+  }
 
   String? get _adUnitId {
     final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
@@ -66,7 +71,7 @@ class InterstitialAdService {
       final id = isIOS
           ? _iosProductionInterstitialAdUnitId
           : _androidProductionInterstitialAdUnitId;
-      return id.isEmpty ? null : id;
+      return id.trim().isEmpty ? null : id.trim();
     }
 
     return isIOS
