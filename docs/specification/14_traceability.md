@@ -107,3 +107,10 @@
 |---|---|---|
 | Supabase migration履歴 | `supabase/ENVIRONMENT_SYNC_STATUS.md`; `supabase/migrations/20261010232928_restrict_public_ranking_to_authenticated.sql`; `supabase/migrations/20261010234108_harden_admin_policies_against_anonymous_auth.sql` | 本番で実状態を確認した後にのみ履歴を補正し、既適用SQLを再実行しない。歴史的な本番専用versionはno-op互換ファイルとして保持し、クリーン環境では後続の正規migrationが変更を適用する。source SQL migration数と本番履歴数の一致を確認してから本番pushを許可する |
 | migration parity gate | `README.md`, `supabase/ENVIRONMENT_SYNC_STATUS.md` | 本番migration push前に `supabase migration list --linked` のローカル/リモート差分がゼロであることを確認。差分がある場合は過去SQLを変更・削除せず、結果状態と履歴を照合する |
+
+
+## 2026-10-11 historical story-time migration parity
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| Story preview server time migration history | `supabase/migrations/20261005231529_story_preview_server_time.sql` と `20261005232656_story_preview_server_time.sql` | 2つの履歴バージョンは同じサーバー時刻RPCを構成する。既存本番で現在のRPC定義とauthenticated-only実行権限を確認してから履歴のみ補正し、関数SQLは再実行しない |
