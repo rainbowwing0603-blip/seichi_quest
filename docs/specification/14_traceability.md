@@ -120,3 +120,10 @@
 | 領域 | 主な実装・仕様 | 必須検証 |
 |---|---|---|
 | 本番 migration履歴の最新状態 | `supabase/ENVIRONMENT_SYNC_STATUS.md`; `docs/production-bootstrap-readiness-audit-20261009.md` | 2026-10-11の読み取り専用照合でソース94ファイルと本番履歴94版が一致し、source-only / production-only versionが0件であることを確認。Story-time RPCのauthenticated-only実行権限とランキングRPCの公開実行拒否を確認。履歴一致は実機E2E完了を意味しないため、本番リリース前に本番設定と実機動作を別途検証する |
+
+
+## 2026-10-11 本番AABビルド経路の整理
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 本番Android AABビルド | .github/workflows/production-android-build.yml | 本番ビルドはレビュー済み main からのみ実行し、未使用の versionCode（クローズドテストで使用済みの20より大きい値）を明示する。Supabase本番URL・publishable key、署名設定、Mapsキー、バナー・インタースティシャル・リワード広告IDを検証し、AABとSHA-256を成果物として保存する。Google Playへのアップロード・公開はこのワークフローでは行わない。旧 android-production-aab.yml は誤ったブランチ選択とversionCode解決のリスクがあるため廃止する。 |
