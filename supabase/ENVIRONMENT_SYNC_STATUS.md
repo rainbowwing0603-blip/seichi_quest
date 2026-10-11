@@ -17,6 +17,13 @@ Last checked: 2026-10-11
 - No production Auth users exist yet, so `private.admin_users` is empty. Do not copy a test-project Auth UUID into production. Once the intended admin signs in or registers in production, add that production user's UUID explicitly if admin content management is needed.
 - The `event-card-images` bucket currently has no stored objects. The bucket and public-read policy are configured, but image assets must be uploaded separately if/when approved for production use.
 
+## Remaining Advisor findings (2026-10-11)
+
+- **Security Advisor: 20 `auth_allow_anonymous_sign_ins` warnings.** These are the app's intended anonymous-auth ownership policies and public read policies for active/published content. Anonymous sign-in is part of the product's no-email onboarding. Keep the row-ownership predicates; do not disable anonymous sign-in or broadly remove public content reads merely to silence this lint. Admin mutation policies separately require a permanent, non-anonymous admin.
+- **Performance Advisor: 4 `auth_rls_initplan` warnings** on the three `content_blocks` admin policies and `events_admin_update_theme`. Policies already wrap `auth.jwt()` and `private.is_admin()` in scalar subqueries. The remaining warning appears to inspect auth calls inside the helper; retain the tested authorization boundary rather than inline access to the private admin table without a secure design.
+- **Performance Advisor: 14 `unused_index` INFO notices.** Production is newly established and workload is limited. No indexes were dropped based solely on zero observed usage; review query plans and representative production workload before removing indexes.
+- A read-only production query on 2026-10-11 confirmed 25 public application tables, all 25 with RLS, 33 policies in `public`, 5 in `storage`, 94 migration-history versions, and zero `public` SECURITY DEFINER functions executable by `anon`.
+
 ## Migration history reconciliation (2026-10-11)
 
 - Verified the live profile gender column/index, four-argument profile RPC, recommendation implementation in `private`, story-preview server-time RPC grant, and current ranking/admin policy state before reconciling history. The older `20261005231529_story_preview_server_time` version was also recorded as applied after confirming its resulting function and grants are already present.
