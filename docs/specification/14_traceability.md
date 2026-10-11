@@ -127,3 +127,10 @@
 | 領域 | 主な実装・仕様 | 必須検証 |
 |---|---|---|
 | 上毛かるた画像の利用許諾 | docs/specification/08_content_platform.md; docs/legal/jomo_karuta_permission.md; lib/widgets/app_settings_page.dart; lib/widgets/event_detail_page.dart | 群馬県許諾第08-01054号の対象・利用期間・条件を表示・記録する。絵札の全体表示、読み札の可読性、縦横比維持を実機確認し、利用後30日以内に利用報告書と利用状況写真を提出する。利用開始が許諾期間前の場合は県に扱いを確認する |
+
+
+## 2026-10-11 本番AABビルド経路の整理
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| 本番Android AABビルド | .github/workflows/production-android-build.yml | 本番ビルドはレビュー済み main からのみ実行し、未使用の versionCode（クローズドテストで使用済みの20より大きい値）を明示する。Supabase本番URL・publishable key、署名設定、Mapsキー、バナー・インタースティシャル・リワード広告IDを検証し、AABとSHA-256を成果物として保存する。Google Playへのアップロード・公開はこのワークフローでは行わない。旧 android-production-aab.yml は誤ったブランチ選択とversionCode解決のリスクがあるため廃止する。 |
