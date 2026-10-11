@@ -5,6 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -18,6 +19,12 @@ export default {
   fetch: async (req: Request) => {
     if (req.method === "OPTIONS") {
       return new Response("ok", { headers: corsHeaders });
+    }
+    if (req.method !== "POST") {
+      return new Response("method not allowed", {
+        status: 405,
+        headers: { ...corsHeaders, "Allow": "POST, OPTIONS" },
+      });
     }
 
     const { data: ctx, error: authError } =
@@ -36,8 +43,6 @@ export default {
         {
           ok: false,
           error: "ユーザー認証に失敗しました。",
-          auth_message: authError.message,
-          auth_code: authError.code,
         },
         authError.status ?? 401,
       );
@@ -59,7 +64,7 @@ export default {
       );
     }
 
-    console.log(`[DELETE_ACCOUNT] authenticated user: ${userId}`);
+    console.log("[DELETE_ACCOUNT] authenticated request accepted");
 
     try {
       const { error } =
@@ -76,13 +81,12 @@ export default {
           {
             ok: false,
             error: "アカウントの削除に失敗しました。",
-            delete_message: error.message,
           },
           500,
         );
       }
 
-      console.log(`[DELETE_ACCOUNT] deleted user: ${userId}`);
+      console.log("[DELETE_ACCOUNT] account deletion completed");
 
       return jsonResponse({ ok: true });
     } catch (error) {

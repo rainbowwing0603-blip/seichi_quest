@@ -1,33 +1,8 @@
--- Demographic event recommendations.
--- This migration is already applied to production as 20261007211445.
+-- Reconstructed from the deployed closed-test database on 2026-10-09.
+-- Keep EXECUTE limited to authenticated users, matching the live function ACL.
 
-alter table public.profiles
-  add column if not exists gender text;
-
-update public.profiles
-set age_group = '10代'
-where age_group = '10代以下';
-
-alter table public.profiles
-  drop constraint if exists profiles_gender_check;
-
-alter table public.profiles
-  add constraint profiles_gender_check
-  check (
-    gender is null
-    or gender in ('男性', '女性', 'その他', '回答しない')
-  );
-
-create index if not exists idx_profiles_age_gender
-  on public.profiles (age_group, gender, id);
-
-create index if not exists idx_user_event_participations_event_user
-  on public.user_event_participations (event_id, user_id);
-
-create or replace function public.get_event_recommendations(
-  p_limit integer default 5
-)
-returns table (
+create or replace function public.get_event_recommendations(p_limit integer default 5)
+returns table(
   event_id uuid,
   participant_count bigint,
   demographic_population bigint,
@@ -37,12 +12,10 @@ returns table (
 language sql
 stable
 security definer
-set search_path to ''
+set search_path = ''
 as $function$
 with viewer as (
-  select
-    p.age_group,
-    p.gender
+  select p.age_group, p.gender
   from public.profiles p
   where p.id = (select auth.uid())
   limit 1
@@ -62,14 +35,8 @@ demographic_population as (
   from public.profiles p
   cross join profile_mode m
   where m.can_personalize
-    and (
-      m.age_group is null
-      or p.age_group = m.age_group
-    )
-    and (
-      m.gender not in ('男性', '女性')
-      or p.gender = m.gender
-    )
+    and (m.age_group is null or p.age_group = m.age_group)
+    and (m.gender not in ('男性', '女性') or p.gender = m.gender)
 ),
 event_participants as (
   select
@@ -77,14 +44,8 @@ event_participants as (
     count(*)::bigint as participant_count,
     count(*) filter (
       where m.can_personalize
-        and (
-          m.age_group is null
-          or pr.age_group = m.age_group
-        )
-        and (
-          m.gender not in ('男性', '女性')
-          or pr.gender = m.gender
-        )
+        and (m.age_group is null or pr.age_group = m.age_group)
+        and (m.gender not in ('男性', '女性') or pr.gender = m.gender)
     )::bigint as demographic_participant_count
   from public.user_event_participations p
   join public.events e on e.id = p.event_id
@@ -107,8 +68,7 @@ personalized as (
     case
       when m.age_group is not null and m.gender in ('男性', '女性')
         then m.age_group || '・' || m.gender
-      when m.age_group is not null
-        then m.age_group
+      when m.age_group is not null then m.age_group
       else m.gender
     end as recommendation_basis
   from event_participants ep
@@ -153,6 +113,5 @@ order by
 limit greatest(1, least(coalesce(p_limit, 5), 10));
 $function$;
 
-revoke all on function public.get_event_recommendations(integer) from public;
-revoke all on function public.get_event_recommendations(integer) from anon;
+revoke all on function public.get_event_recommendations(integer) from public, anon, authenticated;
 grant execute on function public.get_event_recommendations(integer) to authenticated;

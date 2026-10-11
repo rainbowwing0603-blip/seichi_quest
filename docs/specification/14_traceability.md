@@ -27,3 +27,12 @@
 
 ## 更新
 ファイル移動・責務分割時はこの表も更新する。機能追加時は対応する仕様書と同じ変更単位でこの表を更新する。テーブルやRPCを削除する前に、対応するFlutter参照が残っていないか確認する。ユーザー向け表示と内部セキュリティ/GPS検証メタデータの境界もレビュー対象とする。
+
+
+## 2026-10-11 本番Supabaseソース同期
+
+| 領域 | 主な実装・仕様 | 必須検証 |
+|---|---|---|
+| migration parity | `supabase/ENVIRONMENT_SYNC_STATUS.md`、`supabase/migrations/*.sql` | mainのデプロイ用ソースと本番履歴を94件で一致させる。既存関数定義と権限を照合した履歴補正のみを行い、適用済みSQLを再実行しない |
+| 本番DBセキュリティ | `supabase/migrations/20261010233406_move_security_definer_rpcs_to_private_wrappers.sql`, `20261010233558_add_explicit_deny_policies_to_internal_tables.sql`, `20261011093000_harden_admin_policies_against_anonymous_auth.sql` | 特権RPCはprivate実装＋public invoker wrapper、内部テーブルはdeny-by-default、管理操作は非匿名管理者のみ。Security Source Checkを必須とする |
+| 環境同期 | `supabase/config.toml`, `supabase/functions/`, `supabase/seed/production_master_data/` | 本番の関数実装・設定・マスターデータ復旧資材をソース管理し、秘密情報とユーザー所有データをコミットしない |
