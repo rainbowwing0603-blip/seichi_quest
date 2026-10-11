@@ -45,7 +45,9 @@ jobs:
           (( BUILD_NUMBER <= 2100000000 )) || { echo "::error::build_number exceeds Android/Google Play's supported maximum."; exit 1; }
           [[ "$SUPABASE_URL" == "https://npirfaoxcarfuqjlwgav.supabase.co" ]] || { echo "::error::SUPABASE_URL does not match the approved production project."; exit 1; }
           test -n "$SUPABASE_PUBLISHABLE_KEY" || { echo "::error::SUPABASE_PUBLISHABLE_KEY is missing."; exit 1; }
+          [[ "$SUPABASE_PUBLISHABLE_KEY" == sb_publishable_* ]] || { echo "::error::SUPABASE_PUBLISHABLE_KEY must be a Supabase Publishable key."; exit 1; }
           [[ "$SUPABASE_PUBLISHABLE_KEY" != "sb_publishable_F5e3RPpeUzlQG31-yv4FeA_fExmYk3w" ]] || { echo "::error::Closed-test Supabase key cannot be used for production."; exit 1; }
+          curl --fail --silent --show-error -H "apikey: $SUPABASE_PUBLISHABLE_KEY" "$SUPABASE_URL/rest/v1/" -o /dev/null
           test -n "$ANDROID_KEYSTORE_BASE64"
           test -n "$ANDROID_KEYSTORE_PASSWORD"
           test -n "$ANDROID_KEY_ALIAS"
