@@ -45,7 +45,7 @@ places_timestamp = places_timestamp_migration.read_text(encoding="utf-8")
 candidate = candidate_baseline.read_text(encoding="utf-8")
 repair_script_content = repair_script.read_text(encoding="utf-8")
 
-require("Supabase target uses build-time defines rather than a hardcoded runtime target", "String.fromEnvironment(\\n  'SUPABASE_URL'" in main_app and "String.fromEnvironment(\\n  'SUPABASE_PUBLISHABLE_KEY'" in main_app)
+require("Supabase target uses build-time defines rather than a hardcoded runtime target", "String.fromEnvironment(\n  'SUPABASE_URL'" in main_app and "String.fromEnvironment(\n  'SUPABASE_PUBLISHABLE_KEY'" in main_app)
 require("production app startup rejects closed-test Supabase settings", "appEnvironment == 'production'" in main_app and "_closedTestSupabaseUrl" in main_app and "Production build is still configured with the closed-test Supabase project." in main_app)
 require("production build injects production Supabase URL and key", '--dart-define="SUPABASE_URL=$SUPABASE_URL"' in production_build_workflow and '--dart-define="SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PUBLISHABLE_KEY"' in production_build_workflow and '--dart-define="APP_ENV=production"' in production_build_workflow)
 require("Google Play test build explicitly uses closed-test environment", '--dart-define="APP_ENV=closed_test"' in play_test_workflow)
