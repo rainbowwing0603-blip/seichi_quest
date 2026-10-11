@@ -1956,7 +1956,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         aspectRatio: 16 / 9,
                         child: Image.network(
                           widget.event.coverImageUrl!,
-                          fit: BoxFit.cover,
+                          // Never crop the Jomo Karuta event's licensed card artwork.
+                          fit: widget.event.slug == 'jomo-karuta-gunma'
+                              ? BoxFit.contain
+                              : BoxFit.cover,
                           cacheWidth: 1200,
                           filterQuality: FilterQuality.medium,
                           errorBuilder: (context, error, stackTrace) {
@@ -1974,6 +1977,17 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         ),
                       ),
                     ),
+                    if (widget.event.slug == 'jomo-karuta-gunma') ...[
+                      const SizedBox(height: 8),
+                      const Text(
+                        '上毛かるた（群馬県許諾第08-01054号）',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: QuestUiTokens.mutedInk,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 18),
                   ],
                   Row(
