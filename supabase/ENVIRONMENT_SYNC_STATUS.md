@@ -58,7 +58,7 @@ Last checked: 2026-10-11
 
 ## Remaining work
 
-- **Production database schema/security baseline and migration history are reconciled (94 source files / 93 production versions as of 2026-10-11).**
+- **Production database schema/security baseline and migration history are reconciled (94 source files / 94 production versions, verified by a fresh source-to-production version-set comparison on 2026-10-11).**
 - If the test project must exactly match production, contact Supabase Support to move test PostGIS from `public` to `gis`; then repair/apply test migration history and rerun the environment comparison.
 - After a production user account exists, register the intended production admin UUID if the app's admin content-management features are to be used.
 - Upload production-approved event-card and content-media assets when they are ready.
