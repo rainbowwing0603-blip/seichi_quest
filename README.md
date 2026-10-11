@@ -23,9 +23,9 @@ Version 19はリリース準備済みのソース状態であり、Google Play�
 
 ## Branch policy
 
-- `main` is the source of truth for release builds and Google Play workflows.
-- `feature/android-next-release` retains feature-specific work and is not a separate release source until its changes are reviewed and merged into `main`.
-- Do not merge the two branches wholesale or reset either branch: their app-level changes conflict in collection-card and story-preview UI. Integrate overlapping app changes through narrow, tested PRs.
+- `main` is the source of truth for production Android AAB builds and production release configuration.
+- The Google Play test-release workflow defaults to `feature/android-next-release`; its versionCode is assigned from Play's current maximum, so the closed-test release number is not the same as `main`'s source version `1.0.0+19`.
+- Keep the production and closed-test source paths distinct. Do not wholesale merge or reset either branch: collection-card and story-preview UI changes overlap. Promote changes between branches only through narrow, tested PRs.
 - Before production migration pushes, keep `supabase/migrations/` version-for-version aligned with production history and run the Supabase source guardrails.
 
 ## Development
