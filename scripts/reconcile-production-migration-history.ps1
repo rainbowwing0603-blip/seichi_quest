@@ -93,7 +93,7 @@ SELECT CASE WHEN
   AND to_regprocedure('public.get_public_ranking(uuid,integer)') IS NOT NULL
   AND has_function_privilege('authenticated', 'public.get_public_ranking(uuid,integer)', 'EXECUTE')
   AND NOT has_function_privilege('anon', 'public.get_public_ranking(uuid,integer)', 'EXECUTE')
-  AND to_regcolumn('public.profiles.gender') IS NOT NULL
+  AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='gender')
   AND to_regprocedure('public.st_estimatedextent(text,text)') IS NULL
   AND to_regprocedure('public.st_estimatedextent(text,text,text)') IS NULL
   AND to_regprocedure('public.st_estimatedextent(text,text,text,boolean)') IS NULL
