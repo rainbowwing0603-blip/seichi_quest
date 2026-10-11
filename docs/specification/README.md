@@ -1,7 +1,7 @@
 # 聖地クエスト 仕様書インデックス
 
-基準日: 2026-09-27  
-基準コード: `fix/destination-range-and-float` `3e4b1a89b52f52f09376b8c3d9a5b9e9726a2540`  
+基準日: 2026-10-11  
+基準コード: `feature/android-next-release`。GitHubのmainとは履歴が分岐しているため、リリース対象コードはPR・ビルドWorkflowで明示して照合する。  
 アプリ版: `versionName は pubspec.yaml で管理、versionCode はPlayリリースWorkflowで自動採番`  
 配布状態: GitHub Releasesは未作成。SupabaseのAndroidリリースポリシーは `latest_build=11 / minimum_build=11`。Play Console上の実配布buildはこのリポジトリだけでは断定しない。
 
@@ -15,7 +15,7 @@
 - NEXT、獲得範囲、ソナー、heading-up、天候・季節・時間帯、太陽方位に連動する視覚効果を持つ。
 - 位置不正対策は端末側mock判定とサーバー側状態/cooldown、サーバー時刻を組み合わせる。
 - お知らせ、広告配置Policy、アプリ更新Policyを共通基盤として持つ。
-- 本番Supabaseは2026-09-27確認時点でevents 4、places 1328、contents 1311、event_contents 1311、content_blocks 292。
+- 本番Supabaseの2026-10-11確認値はevents 51、places 1,713、contents 2,742、event_contents 2,721、content_blocks 336。リリースポリシーは latest_build=13 / minimum_build=11 / latest_version=1.0.0。
 
 ## 文書一覧
 1. [01_product_overview.md](01_product_overview.md) プロダクト概要
