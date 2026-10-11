@@ -4,7 +4,7 @@ This workflow builds a signed production AAB for review only. It does **not** up
 
 Workflow: `.github/workflows/production-android-build.yml`
 
-**Dispatch status:** The workflow is now present on the repository's default branch (PR #26). In GitHub Actions, select `Production Android Build (Artifact Only)` and choose `feature/android-next-release` as the run ref. The workflow rejects other refs and only builds a signed AAB artifact; it does not upload or publish to Google Play.
+**Dispatch status:** The workflow is available on `main`. In GitHub Actions, select `Production Android Build (Artifact Only)` and choose `main` as the run ref. The workflow rejects all other refs and only builds a signed AAB artifact; it does not upload or publish to Google Play.
 
 ## Required GitHub Environment configuration
 

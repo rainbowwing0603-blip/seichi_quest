@@ -17,7 +17,7 @@
 | 実績 | `progression_service.dart`, `widgets/quest_page.dart` | `achievements`, `event_achievements` |
 | ランキング | `widgets/ranking_page.dart` | ranking RPC群 |
 | お知らせ | `announcement_service.dart`, announcements widgets | `announcements`, `announcement_reads` |
-| 広告 | `ad_placement_policy.dart`, banner/interstitial/rewarded services | GitHub Actions `production` Environment の3種類のAndroid AdMob unit variables、`--dart-define`、本番ビルドの形式/テストIDガード |
+| 広告 | `ad_placement_policy.dart`, `banner_ad_widget.dart`, `interstitial_ad_service.dart`, `story_rewarded_ad_service.dart` | GitHub Actions `production` Environment の3種類のAndroid AdMob unit variablesを各サービスへ `--dart-define` で渡す。Releaseでは設定済み本番IDのみを使い、未設定時は広告を表示しない。本番ビルドの形式/テストIDガードを維持 |
 | 設定 | `app_settings_service.dart`, `app_settings_page.dart` | SharedPreferences |
 | アプリ更新 | `app_version_service.dart` | `app_release_policies` |
 | アカウント | `account_page.dart`, `session_service.dart` | Auth, `delete-account` |
