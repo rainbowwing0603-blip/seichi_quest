@@ -86,7 +86,6 @@ if (!hasKeystoreProperties) {
         }
     }
 }
-}
 
 kotlin {
     compilerOptions {
