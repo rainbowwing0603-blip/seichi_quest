@@ -432,12 +432,6 @@ class CollectionPage extends StatelessWidget {
     QuestItem item,
     bool collected,
   ) {
-    final presentation = _presentationPolicy.forItem(
-      item,
-      collected: collected,
-    );
-    final showOriginalCard = presentation.revealPrimaryImage;
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
