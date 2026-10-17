@@ -16,31 +16,32 @@ function response(body: unknown, status = 200) {
   });
 }
 
+async function tokensMatch(supplied: string, expected: string): Promise<boolean> {
+  const enc = new TextEncoder();
+  const [a, b] = await Promise.all([
+    crypto.subtle.digest("SHA-256", enc.encode(supplied)),
+    crypto.subtle.digest("SHA-256", enc.encode(expected)),
+  ]);
+  const aa = new Uint8Array(a);
+  const bb = new Uint8Array(b);
+  let diff = 0;
+  for (let i = 0; i < aa.length; i++) diff |= aa[i] ^ bb[i];
+  return diff === 0 && supplied.length === expected.length;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return response({ error: "POST required" }, 405);
 
   const expectedToken = Deno.env.get("STAMP_UPLOAD_TOKEN");
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!expectedToken || !supabaseUrl || !serviceRoleKey) {
+  if (!expectedToken || !serviceRoleKey) {
     return response({ error: "Upload service is not configured" }, 503);
   }
 
   const suppliedToken = req.headers.get("x-stamp-upload-token") ?? "";
-  if (suppliedToken.length !== expectedToken.length ||
-      !crypto.subtle.timingSafeEqual) {
-    // Use a constant-time digest comparison below for Deno runtimes without timingSafeEqual.
-    const enc = new TextEncoder();
-    const [a, b] = await Promise.all([
-      crypto.subtle.digest("SHA-256", enc.encode(suppliedToken)),
-      crypto.subtle.digest("SHA-256", enc.encode(expectedToken)),
-    ]);
-    const aa = new Uint8Array(a);
-    const bb = new Uint8Array(b);
-    let diff = 0;
-    for (let i = 0; i < aa.length; i++) diff |= aa[i] ^ bb[i];
-    if (diff !== 0) return response({ error: "Unauthorized" }, 401);
+  if (!(await tokensMatch(suppliedToken, expectedToken))) {
+    return response({ error: "Unauthorized" }, 401);
   }
 
   let payload: Record<string, unknown>;
