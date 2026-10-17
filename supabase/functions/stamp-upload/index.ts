@@ -34,7 +34,7 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return response({ error: "POST required" }, 405);
 
   const expectedToken = Deno.env.get("STAMP_UPLOAD_TOKEN");
-  const productionKey = Deno.env.get("SUPABASE_PRODUCTION_SERVICE_ROLE_KEY");
+  const productionKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const testKey = Deno.env.get("SUPABASE_TEST_SERVICE_ROLE_KEY");
   if (!expectedToken) {
     return response({ error: "Upload service is not configured" }, 503);
