@@ -12,8 +12,6 @@ import 'quest_spot_detail_sheet.dart';
 import 'quest_ui.dart';
 
 class CollectionPage extends StatelessWidget {
-  static const QuestPresentationPolicy _presentationPolicy = QuestPresentationPolicy();
-
   const CollectionPage({
     super.key,
     required this.eventId,

@@ -42,3 +42,10 @@ Questはイベント実績の進捗と達成状態を表示する。Rankingは�
 - デバッグビルドでは記念カードのテスト導線を提供できるが、SCREENSHOT_MODEでは表示しない。
 - 記念カードはCollectionCardPageとしてコレクション導線から表示する。
 - 未獲得地点のafter_collection story/history/field_guide/descriptionは、Release Rewarded IDが利用可能なら「広告を見て物語を1時間読む」を表示する。広告が利用不能な場合はCTAを表示しない。
+
+## 2026-10-17 差分反映: リモート獲得スタンプ
+- 獲得済みスポットのコレクション画像は、Storageの `content-media/stamps/{eventContentId}.png` を優先して表示する。
+- ファイル名にはイベント内スポットを一意に識別する `eventContentId` を使い、アプリ更新なしでスタンプ画像を追加・差し替えできる構成とする。
+- 本番・検証の両Supabaseプロジェクトで既存の公開バケット `content-media` を使用する。環境ごとに同じ相対パスで画像を配置する。
+- 画像が未登録または取得に失敗した場合は既存の primary image、さらに従来のスタンプ表示へフォールバックし、コレクション画面を壊さない。
+- この変更ではDBスキーマ追加を必要としない。公開バケットには公開してよい画像だけを配置する。
