@@ -34,12 +34,15 @@
 
 ## Edge Function の設定
 
-Edge Function `stamp-upload` には、次の3つの secret が必要です。値は GitHub やチャットへ貼り付けず、Supabase の Edge Function Secrets に登録してください。
+本番 Edge Function は `https://npirfaoxcarfuqjlwgav.supabase.co/functions/v1/stamp-upload` にデプロイ済みです。現在の状態では `STAMP_UPLOAD_TOKEN` が未設定のため、アップロードはまだ有効化されていません。
 
-- `STAMP_UPLOAD_TOKEN`: API 呼び出し用に生成した十分に長いランダムトークン
-- `SUPABASE_TEST_SERVICE_ROLE_KEY`: テストプロジェクトの service-role key（テストまたは `both` を使う場合のみ必要）
+本番だけを使う最小構成では、Supabase Dashboard の **Edge Functions → Secrets** に次の secret を追加します。値は GitHub やチャットへ貼り付けないでください。
 
-本番プロジェクト側の Edge Function では Supabase が提供する `SUPABASE_SERVICE_ROLE_KEY` を使用します。
+- `STAMP_UPLOAD_TOKEN`: API 呼び出し用の長くランダムなトークン
+
+本番プロジェクト側では Supabase が提供する `SUPABASE_SERVICE_ROLE_KEY` を使用します。テストまたは `both` を使う場合に限り、追加で `SUPABASE_TEST_SERVICE_ROLE_KEY` にテストプロジェクトの service-role key を登録してください。
+
+API の JSON 本文は `{\"eventContentId\":\"イベントコンテンツUUID\",\"imageBase64\":\"PNGのBase64\",\"target\":\"production\"}`、認証ヘッダーは `x-stamp-upload-token` です。8 MiB 以下の PNG のみを受け付けます。
 
 本番・テストのキーは必ず別々に登録します。`target` の既定値は `production` です。`both` を指定すると両方へ書き込みます。
 
