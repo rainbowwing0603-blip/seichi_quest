@@ -34,14 +34,20 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return response({ error: "POST required" }, 405);
 
   const expectedToken = Deno.env.get("STAMP_UPLOAD_TOKEN");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!expectedToken || !serviceRoleKey) {
+  const productionKey = Deno.env.get("SUPABASE_PRODUCTION_SERVICE_ROLE_KEY");
+  const testKey = Deno.env.get("SUPABASE_TEST_SERVICE_ROLE_KEY");
+  if (!expectedToken) {
     return response({ error: "Upload service is not configured" }, 503);
   }
 
   const suppliedToken = req.headers.get("x-stamp-upload-token") ?? "";
   if (!(await tokensMatch(suppliedToken, expectedToken))) {
     return response({ error: "Unauthorized" }, 401);
+  }
+
+  const contentLength = Number(req.headers.get("content-length") ?? "0");
+  if (contentLength > 12 * 1024 * 1024) {
+    return response({ error: "Request body exceeds 12 MiB limit" }, 413);
   }
 
   let payload: Record<string, unknown>;
@@ -53,7 +59,7 @@ Deno.serve(async (req: Request) => {
 
   const eventContentId = payload.eventContentId;
   const imageBase64 = payload.imageBase64;
-  const target = payload.target ?? "both";
+  const target = payload.target ?? "production";
   if (typeof eventContentId !== "string" || !UUID_RE.test(eventContentId)) {
     return response({ error: "eventContentId must be a UUID" }, 400);
   }
@@ -81,9 +87,14 @@ Deno.serve(async (req: Request) => {
 
   const results: Array<{ target: string; ok: boolean; url?: string; error?: string }> = [];
   const projects = [
-    { name: "production", url: "https://npirfaoxcarfuqjlwgav.supabase.co" },
-    { name: "test", url: "https://wxlvhpmolrtcwryaazfb.supabase.co" },
+    { name: "production", url: "https://npirfaoxcarfuqjlwgav.supabase.co", key: productionKey },
+    { name: "test", url: "https://wxlvhpmolrtcwryaazfb.supabase.co", key: testKey },
   ].filter((p) => target === "both" || target === p.name);
+
+  const missingKey = projects.find((p) => !p.key);
+  if (missingKey) {
+    return response({ error: `Upload service is not configured for ${missingKey.name}` }, 503);
+  }
 
   for (const project of projects) {
     const objectPath = `stamps/${eventContentId}.png`;
@@ -91,8 +102,8 @@ Deno.serve(async (req: Request) => {
       const res = await fetch(`${project.url}/storage/v1/object/content-media/${objectPath}`, {
         method: "POST",
         headers: {
-          apikey: serviceRoleKey,
-          Authorization: `Bearer ${serviceRoleKey}`,
+          apikey: project.key!,
+          Authorization: `Bearer ${project.key!}`,
           "Content-Type": "image/png",
           "x-upsert": "true",
         },
