@@ -1,0 +1,95 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Seichi Quest Stamp Upload",
+    "version": "1.0.0",
+    "description": "Uploads a PNG stamp to the Seichi Quest Supabase Storage. Requires a private upload token."
+  },
+  "servers": [
+    {
+      "url": "https://npirfaoxcarfuqjlwgav.supabase.co/functions/v1"
+    }
+  ],
+  "paths": {
+    "/stamp-upload": {
+      "post": {
+        "operationId": "uploadStampPng",
+        "summary": "Register a stamp PNG",
+        "description": "Accepts PNG bytes encoded as base64 and stores the image at content-media/stamps/{eventContentId}.png. The target can be production, test, or both.",
+        "security": [
+          {
+            "StampUploadToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "eventContentId",
+                  "imageBase64"
+                ],
+                "properties": {
+                  "eventContentId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Event content UUID, not the event or spot UUID."
+                  },
+                  "imageBase64": {
+                    "type": "string",
+                    "description": "PNG file bytes encoded as base64, optionally prefixed with data:image/png;base64,."
+                  },
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "production",
+                      "test",
+                      "both"
+                    ],
+                    "default": "both"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upload succeeded for all requested targets."
+          },
+          "400": {
+            "description": "Invalid UUID, target, or payload."
+          },
+          "401": {
+            "description": "Upload token invalid."
+          },
+          "413": {
+            "description": "PNG exceeds 8 MiB."
+          },
+          "415": {
+            "description": "Input is not a PNG."
+          },
+          "502": {
+            "description": "One or more Storage uploads failed."
+          },
+          "503": {
+            "description": "Function secrets are not configured."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "StampUploadToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-stamp-upload-token",
+        "description": "Private token configured as STAMP_UPLOAD_TOKEN in the Supabase Edge Function secrets."
+      }
+    }
+  }
+}
