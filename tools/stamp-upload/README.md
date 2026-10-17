@@ -37,8 +37,9 @@
 Edge Function `stamp-upload` には、次の3つの secret が必要です。値は GitHub やチャットへ貼り付けず、Supabase の Edge Function Secrets に登録してください。
 
 - `STAMP_UPLOAD_TOKEN`: API 呼び出し用に生成した十分に長いランダムトークン
-- `SUPABASE_PRODUCTION_SERVICE_ROLE_KEY`: 本番プロジェクトの service-role key
-- `SUPABASE_TEST_SERVICE_ROLE_KEY`: テストプロジェクトの service-role key
+- `SUPABASE_TEST_SERVICE_ROLE_KEY`: テストプロジェクトの service-role key（テストまたは `both` を使う場合のみ必要）
+
+本番プロジェクト側の Edge Function では Supabase が提供する `SUPABASE_SERVICE_ROLE_KEY` を使用します。
 
 本番・テストのキーは必ず別々に登録します。`target` の既定値は `production` です。`both` を指定すると両方へ書き込みます。
 
