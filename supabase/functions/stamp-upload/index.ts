@@ -57,12 +57,49 @@ Deno.serve(async (req: Request) => {
     return response({ error: "Expected JSON body" }, 400);
   }
 
-  const eventContentId = payload.eventContentId;
+  let eventContentId = payload.eventContentId;
+  const placeName = payload.placeName;
   const imageBase64 = payload.imageBase64;
   const fileRefs = payload.openaiFileIdRefs;
   const target = payload.target ?? "production";
-  if (typeof eventContentId !== "string" || !UUID_RE.test(eventContentId)) {
+  if (eventContentId !== undefined && (typeof eventContentId !== "string" || !UUID_RE.test(eventContentId))) {
     return response({ error: "eventContentId must be a UUID" }, 400);
+  }
+  if (eventContentId === undefined && (typeof placeName !== "string" || placeName.trim().length < 2 || placeName.trim().length > 100)) {
+    return response({ error: "Provide eventContentId or placeName" }, 400);
+  }
+  if (eventContentId !== undefined && placeName !== undefined) {
+    return response({ error: "Provide either eventContentId or placeName, not both" }, 400);
+  }
+  if (eventContentId === undefined) {
+    if (!productionKey) return response({ error: "Upload service is not configured" }, 503);
+    const lookupUrl = new URL("https://npirfaoxcarfuqjlwgav.supabase.co/rest/v1/event_contents");
+    lookupUrl.searchParams.set("select", "id,places(name),contents(title),events(name)");
+    lookupUrl.searchParams.set("events.name", "eq.上毛かるた×群馬");
+    lookupUrl.searchParams.set("limit", "2000");
+    try {
+      const lookup = await fetch(lookupUrl, {
+        headers: { apikey: productionKey, Authorization: `Bearer ${productionKey}` },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!lookup.ok) return response({ error: "Could not resolve the place name in production data" }, 502);
+      const rows = await lookup.json() as Array<Record<string, unknown>>;
+      const wanted = (placeName as string).trim().normalize("NFKC");
+      const matches = rows.filter((row) => {
+        const place = row.places as Record<string, unknown> | null;
+        const content = row.contents as Record<string, unknown> | null;
+        return String(place?.name ?? "").normalize("NFKC") === wanted ||
+          String(content?.title ?? "").normalize("NFKC") === wanted;
+      });
+      if (matches.length === 0) return response({ error: "No matching event content found", placeName }, 404);
+      const ids = [...new Set(matches.map((row) => String(row.id)))];
+      if (ids.length !== 1 || !UUID_RE.test(ids[0])) {
+        return response({ error: "Place name is ambiguous; provide eventContentId instead" }, 409);
+      }
+      eventContentId = ids[0];
+    } catch {
+      return response({ error: "Could not resolve the place name" }, 502);
+    }
   }
   const hasBase64 = typeof imageBase64 === "string" && imageBase64.length > 0;
   const hasFileRefs = Array.isArray(fileRefs) && fileRefs.length > 0;
@@ -94,11 +131,12 @@ Deno.serve(async (req: Request) => {
       return response({ error: "Only official OpenAI file URLs are accepted" }, 400);
     }
     try {
-      const fileResponse = await fetch(downloadUrl, { signal: AbortSignal.timeout(10_000) });
+      const fileResponse = await fetch(downloadUrl, { redirect: "error", signal: AbortSignal.timeout(10_000) });
       if (!fileResponse.ok) return response({ error: `OpenAI file download returned HTTP ${fileResponse.status}` }, 502);
       const declaredLength = Number(fileResponse.headers.get("content-length") ?? "0");
       if (declaredLength > MAX_BYTES) return response({ error: "Image exceeds 8 MiB limit" }, 413);
-      const mime = (fileResponse.headers.get("content-type") ?? String(fileRef.mime_type ?? "")).split(";")[0].trim().toLowerCase();
+      const responseMime = (fileResponse.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+      const mime = responseMime.startsWith("image/") ? responseMime : String(fileRef.mime_type ?? "").toLowerCase();
       if (mime !== "image/png" && mime !== "image/webp") {
         return response({ error: "Only PNG and WebP image files are accepted" }, 415);
       }
