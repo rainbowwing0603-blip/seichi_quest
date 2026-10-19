@@ -30,11 +30,11 @@
 - Storage オブジェクトを登録する処理です。DB のイベントコンテンツやアプリ側の参照ロジックは変更しません。
 - `content-media` バケットが存在し、Storage API が利用可能である必要があります。
 - 既存ファイルを上書きするので、UUID を必ず確認してください。
-- 本番・テスト両方への登録が既定です。片方だけ試す場合は `-TestOnly` / `-ProductionOnly` を指定してください。
+- API の既定の登録先は本番です。テストだけ、または両方に登録する場合は `target` を明示してください。
 
 ## Edge Function の設定
 
-本番 Edge Function は `https://npirfaoxcarfuqjlwgav.supabase.co/functions/v1/stamp-upload` にデプロイ済みです。現在の状態では `STAMP_UPLOAD_TOKEN` が未設定のため、アップロードはまだ有効化されていません。
+本番 Edge Function は `https://npirfaoxcarfuqjlwgav.supabase.co/functions/v1/stamp-upload` にデプロイ済みです。`STAMP_UPLOAD_TOKEN` の登録状態は、この接続から読み取れません。未登録の場合は、次の手順で設定するまでアップロードは 503 で拒否されます。
 
 本番だけを使う最小構成では、Supabase Dashboard の **Edge Functions → Secrets** に次の secret を追加します。値は GitHub やチャットへ貼り付けないでください。
 
