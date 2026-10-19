@@ -118,7 +118,7 @@ Deno.serve(async (req: Request) => {
     }
   } else {
     try {
-      const clean = (imageBase64 as string).replace(/^data:image\\/png;base64,/, "");
+      const clean = (imageBase64 as string).replace(/^data:image\/png;base64,/, "");
       const decoded = atob(clean);
       if (decoded.length > MAX_BYTES) return response({ error: "PNG exceeds 8 MiB limit" }, 413);
       binary = Uint8Array.from(decoded, (c) => c.charCodeAt(0));
