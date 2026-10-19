@@ -59,6 +59,7 @@ Deno.serve(async (req: Request) => {
 
   let eventContentId = payload.eventContentId;
   const placeName = payload.placeName;
+  const eventName = payload.eventName;
   const imageBase64 = payload.imageBase64;
   const fileRefs = payload.openaiFileIdRefs;
   const target = payload.target ?? "production";
@@ -75,8 +76,7 @@ Deno.serve(async (req: Request) => {
     if (!productionKey) return response({ error: "Upload service is not configured" }, 503);
     const lookupUrl = new URL("https://npirfaoxcarfuqjlwgav.supabase.co/rest/v1/event_contents");
     lookupUrl.searchParams.set("select", "id,places(name),contents(title),events!inner(name)");
-    lookupUrl.searchParams.set("events.name", "eq.上毛かるた×群馬");
-    lookupUrl.searchParams.set("limit", "2000");
+    lookupUrl.searchParams.set("limit", "5000");
     try {
       const lookup = await fetch(lookupUrl, {
         headers: { apikey: productionKey, Authorization: `Bearer ${productionKey}` },
@@ -85,16 +85,22 @@ Deno.serve(async (req: Request) => {
       if (!lookup.ok) return response({ error: "Could not resolve the place name in production data" }, 502);
       const rows = await lookup.json() as Array<Record<string, unknown>>;
       const wanted = (placeName as string).trim().normalize("NFKC");
+      const wantedEvent = typeof eventName === "string" && eventName.trim().length > 0
+        ? eventName.trim().normalize("NFKC")
+        : null;
       const matches = rows.filter((row) => {
         const place = row.places as Record<string, unknown> | null;
         const content = row.contents as Record<string, unknown> | null;
-        return String(place?.name ?? "").normalize("NFKC") === wanted ||
+        const event = row.events as Record<string, unknown> | null;
+        const nameMatches = String(place?.name ?? "").normalize("NFKC") === wanted ||
           String(content?.title ?? "").normalize("NFKC") === wanted;
+        const eventMatches = !wantedEvent || String(event?.name ?? "").normalize("NFKC") === wantedEvent;
+        return nameMatches && eventMatches;
       });
       if (matches.length === 0) return response({ error: "No matching event content found", placeName }, 404);
       const ids = [...new Set(matches.map((row) => String(row.id)))];
       if (ids.length !== 1 || !UUID_RE.test(ids[0])) {
-        return response({ error: "Place name is ambiguous; provide eventContentId instead" }, 409);
+        return response({ error: "Place name is ambiguous; provide eventName or eventContentId" }, 409);
       }
       eventContentId = ids[0];
     } catch {
