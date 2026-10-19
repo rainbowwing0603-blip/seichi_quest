@@ -74,7 +74,7 @@ Deno.serve(async (req: Request) => {
   if (eventContentId === undefined) {
     if (!productionKey) return response({ error: "Upload service is not configured" }, 503);
     const lookupUrl = new URL("https://npirfaoxcarfuqjlwgav.supabase.co/rest/v1/event_contents");
-    lookupUrl.searchParams.set("select", "id,places(name),contents(title),events(name)");
+    lookupUrl.searchParams.set("select", "id,places(name),contents(title),events!inner(name)");
     lookupUrl.searchParams.set("events.name", "eq.上毛かるた×群馬");
     lookupUrl.searchParams.set("limit", "2000");
     try {
