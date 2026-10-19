@@ -1,0 +1,110 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Seichi Quest Stamp Upload",
+    "version": "1.0.0",
+    "description": "Automatically registers an image generated in ChatGPT using the official openaiFileIdRefs file-reference mechanism. Supports PNG/WebP images and stores them at the event-content UUID path in production Supabase Storage."
+  },
+  "servers": [
+    {
+      "url": "https://npirfaoxcarfuqjlwgav.supabase.co/functions/v1"
+    }
+  ],
+  "paths": {
+    "/stamp-upload": {
+      "post": {
+        "operationId": "registerGeneratedStamp",
+        "summary": "Register a ChatGPT-generated stamp image",
+        "description": "Automatically register the single stamp image generated in this ChatGPT conversation. Use placeName to identify the spot; the API resolves it against production event data. If a place occurs in multiple events, provide eventName. Use eventContentId only when explicitly known. Pass the generated image via openaiFileIdRefs. Production is the default target.",
+        "security": [
+          {
+            "StampUploadToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "placeName",
+                  "openaiFileIdRefs"
+                ],
+                "properties": {
+                  "eventContentId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Optional advanced override: exact event-content UUID. Do not use together with placeName."
+                  },
+                  "imageBase64": {
+                    "type": "string",
+                    "description": "Optional alternative for trusted clients that already have PNG bytes. Do not use this field for the ChatGPT-generated image when openaiFileIdRefs is available."
+                  },
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "production",
+                      "test",
+                      "both"
+                    ],
+                    "default": "production"
+                  },
+                  "openaiFileIdRefs": {
+                    "type": "array",
+                    "description": "Required for direct registration of the image generated in this ChatGPT conversation. Pass the image file(s) from this conversation using OpenAI's built-in file-reference mechanism. Exactly one image is accepted. Do not ask the user to download/re-upload the image.",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "placeName": {
+                    "type": "string",
+                    "description": "Exact spot name, e.g. 鬼押出し園. The API resolves the event-content UUID automatically."
+                  },
+                  "eventName": {
+                    "type": "string",
+                    "description": "Optional exact event name when the same place appears in multiple events."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upload succeeded for all requested targets."
+          },
+          "400": {
+            "description": "Invalid UUID, target, or payload."
+          },
+          "401": {
+            "description": "Upload token invalid."
+          },
+          "413": {
+            "description": "PNG exceeds 8 MiB."
+          },
+          "415": {
+            "description": "Unsupported image type or image bytes do not match the declared type."
+          },
+          "502": {
+            "description": "One or more Storage uploads failed."
+          },
+          "503": {
+            "description": "Function secrets are not configured."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "StampUploadToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-stamp-upload-token",
+        "description": "Private token configured as STAMP_UPLOAD_TOKEN in the Supabase Edge Function secrets."
+      }
+    }
+  }
+}

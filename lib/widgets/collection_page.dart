@@ -7,12 +7,11 @@ import 'collection_card_page.dart';
 import '../policies/quest_presentation_policy.dart';
 import '../policies/quest_event_theme_policy.dart';
 import '../painters/stamp_ring_painter.dart';
+import '../services/content_media_resolver.dart';
 import 'quest_spot_detail_sheet.dart';
 import 'quest_ui.dart';
 
 class CollectionPage extends StatelessWidget {
-  static const QuestPresentationPolicy _presentationPolicy = QuestPresentationPolicy();
-
   const CollectionPage({
     super.key,
     required this.eventId,
@@ -431,12 +430,6 @@ class CollectionPage extends StatelessWidget {
     QuestItem item,
     bool collected,
   ) {
-    final presentation = _presentationPolicy.forItem(
-      item,
-      collected: collected,
-    );
-    final showOriginalCard = presentation.revealPrimaryImage;
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -493,9 +486,9 @@ class CollectionPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: showOriginalCard
-                    ? _buildCollectionImage(item, collected)
-                    : _buildStampVisual(item, collected),
+                child: collected
+                    ? _buildRemoteStampOrOriginal(item)
+                    : _buildStampVisual(item, false),
               ),
               const SizedBox(height: 5),
               _buildCollectionCardStatus(item, collected),
@@ -599,6 +592,40 @@ class CollectionPage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRemoteStampOrOriginal(QuestItem item) {
+    // Production stamp convention: content-media/stamps/{eventContentId}.png.
+    // Missing uploads remain harmless and fall back to the existing image/stamp.
+    final stampUrl = ContentMediaResolver(
+      defaultBucket: 'content-media',
+    ).resolve('stamps/${item.eventContentId}.png');
+
+    if (stampUrl == null) {
+      return _buildCollectionImage(item, true);
+    }
+
+    return Image.network(
+      stampUrl,
+      fit: BoxFit.contain,
+      alignment: Alignment.center,
+      errorBuilder: (context, error, stackTrace) {
+        return _buildCollectionImage(item, true);
+      },
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: QuestUiTokens.primary.withValues(alpha: 0.55),
+            ),
+          ),
+        );
+      },
     );
   }
 
