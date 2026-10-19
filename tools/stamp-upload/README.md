@@ -46,8 +46,8 @@ API の JSON 本文は `{\"eventContentId\":\"イベントコンテンツUUID\",
 
 本番・テストのキーは必ず別々に登録します。`target` の既定値は `production` です。`both` を指定すると両方へ書き込みます。
 
-## GPT で画像を作成した直後の完全自動登録について
+## 自動登録の制約と確認
 
-このスクリプトは、GPT で生成した画像ファイルが PC 上に保存された後の登録を自動化します。Edge Function は `imageBase64` を受け取る API ですが、ChatGPT の画像生成結果をそのままこの API の `imageBase64` に渡せる連携は、まだ検証されていません。「GPT 内で生成した瞬間に自動登録」まで完了したものではありません。service-role key を GPT の会話や公開 API に渡す方式は採用しないでください。
+ChatGPT の通常チャットには Actions を追加できないため、この機能を使うには Actions を設定した専用 GPT 内で画像を生成します。OpenAI が提供する `openaiFileIdRefs` の一時URLを API が取得する方式なので、画像をPCへダウンロードして再アップロードする手順は不要です。Supabase の service-role key は GPT 側へ渡しません。
 
-完全自動化するには、Edge Function のデプロイと secrets 登録に加え、生成画像の実データを安全に API へ渡せる GPT Action / クライアント連携が必要です。API 側は UUID、PNG 形式、サイズ、認証を検証し、本番・テストの認証情報を分離して Storage に書き込む構成です。
+コードは本番 Edge Function にデプロイ済みですが、`STAMP_UPLOAD_TOKEN` と GPT Action の設定はユーザー側で必要です。これらの設定が完了するまで、エンドツーエンドの画像保存・アプリ表示は未検証です。
