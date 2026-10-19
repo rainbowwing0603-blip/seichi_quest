@@ -3,7 +3,7 @@
   "info": {
     "title": "Seichi Quest Stamp Upload",
     "version": "1.0.0",
-    "description": "Uploads a PNG stamp to the Seichi Quest Supabase Storage. Requires a private upload token."
+    "description": "Automatically registers an image generated in ChatGPT using the official openaiFileIdRefs file-reference mechanism. Supports PNG/WebP images and stores them at the event-content UUID path in production Supabase Storage."
   },
   "servers": [
     {
@@ -13,9 +13,9 @@
   "paths": {
     "/stamp-upload": {
       "post": {
-        "operationId": "uploadStampPng",
-        "summary": "Register a stamp PNG",
-        "description": "Accepts PNG bytes encoded as base64 and stores the image at content-media/stamps/{eventContentId}.png. The target can be production, test, or both.",
+        "operationId": "registerGeneratedStamp",
+        "summary": "Register a ChatGPT-generated stamp image",
+        "description": "Use openaiFileIdRefs to transfer the image generated in this ChatGPT conversation directly to the API. The API downloads the short-lived OpenAI file URL, validates it, and saves it to content-media/stamps/{eventContentId}.png. Use the event-content UUID, not the event or place UUID. Production is the default target. Only one image per request.",
         "security": [
           {
             "StampUploadToken": []
@@ -30,7 +30,7 @@
                 "additionalProperties": false,
                 "required": [
                   "eventContentId",
-                  "imageBase64"
+                  "openaiFileIdRefs"
                 ],
                 "properties": {
                   "eventContentId": {
@@ -40,7 +40,7 @@
                   },
                   "imageBase64": {
                     "type": "string",
-                    "description": "PNG file bytes encoded as base64, optionally prefixed with data:image/png;base64,."
+                    "description": "Optional alternative for trusted clients that already have PNG bytes. Do not use this field for the ChatGPT-generated image when openaiFileIdRefs is available."
                   },
                   "target": {
                     "type": "string",
@@ -49,7 +49,14 @@
                       "test",
                       "both"
                     ],
-                    "default": "both"
+                    "default": "production"
+                  },
+                  "openaiFileIdRefs": {
+                    "type": "array",
+                    "description": "Required for direct registration of the image generated in this ChatGPT conversation. Pass the image file(s) from this conversation using OpenAI's built-in file-reference mechanism. Exactly one image is accepted. Do not ask the user to download/re-upload the image.",
+                    "items": {
+                      "type": "string"
+                    }
                   }
                 }
               }
@@ -70,7 +77,7 @@
             "description": "PNG exceeds 8 MiB."
           },
           "415": {
-            "description": "Input is not a PNG."
+            "description": "Unsupported image type or image bytes do not match the declared type."
           },
           "502": {
             "description": "One or more Storage uploads failed."
