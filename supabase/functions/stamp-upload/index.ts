@@ -59,30 +59,77 @@ Deno.serve(async (req: Request) => {
 
   const eventContentId = payload.eventContentId;
   const imageBase64 = payload.imageBase64;
+  const fileRefs = payload.openaiFileIdRefs;
   const target = payload.target ?? "production";
   if (typeof eventContentId !== "string" || !UUID_RE.test(eventContentId)) {
     return response({ error: "eventContentId must be a UUID" }, 400);
   }
-  if (typeof imageBase64 !== "string" || imageBase64.length === 0) {
-    return response({ error: "imageBase64 is required" }, 400);
+  const hasBase64 = typeof imageBase64 === "string" && imageBase64.length > 0;
+  const hasFileRefs = Array.isArray(fileRefs) && fileRefs.length > 0;
+  if (hasBase64 === hasFileRefs) {
+    return response({ error: "Provide exactly one of imageBase64 or openaiFileIdRefs" }, 400);
   }
   if (!["production", "test", "both"].includes(String(target))) {
     return response({ error: "target must be production, test, or both" }, 400);
   }
 
   let binary: Uint8Array;
-  try {
-    const clean = imageBase64.replace(/^data:image\/png;base64,/, "");
-    const decoded = atob(clean);
-    if (decoded.length > MAX_BYTES) return response({ error: "PNG exceeds 8 MiB limit" }, 413);
-    binary = Uint8Array.from(decoded, (c) => c.charCodeAt(0));
-  } catch {
-    return response({ error: "imageBase64 is not valid base64" }, 400);
-  }
+  let storageContentType = "image/png";
+  if (hasFileRefs) {
+    if (fileRefs.length !== 1 || typeof fileRefs[0] !== "object" || fileRefs[0] === null) {
+      return response({ error: "Provide exactly one OpenAI image file reference" }, 400);
+    }
+    const fileRef = fileRefs[0] as Record<string, unknown>;
+    const downloadLink = fileRef.download_link;
+    if (typeof downloadLink !== "string") {
+      return response({ error: "OpenAI file reference is missing download_link" }, 400);
+    }
+    let downloadUrl: URL;
+    try {
+      downloadUrl = new URL(downloadLink);
+    } catch {
+      return response({ error: "Invalid OpenAI download URL" }, 400);
+    }
+    if (downloadUrl.protocol !== "https:" || downloadUrl.hostname !== "files.oaiusercontent.com") {
+      return response({ error: "Only official OpenAI file URLs are accepted" }, 400);
+    }
+    try {
+      const fileResponse = await fetch(downloadUrl, { signal: AbortSignal.timeout(10_000) });
+      if (!fileResponse.ok) return response({ error: `OpenAI file download returned HTTP ${fileResponse.status}` }, 502);
+      const declaredLength = Number(fileResponse.headers.get("content-length") ?? "0");
+      if (declaredLength > MAX_BYTES) return response({ error: "Image exceeds 8 MiB limit" }, 413);
+      const mime = (fileResponse.headers.get("content-type") ?? String(fileRef.mime_type ?? "")).split(";")[0].trim().toLowerCase();
+      if (mime !== "image/png" && mime !== "image/webp") {
+        return response({ error: "Only PNG and WebP image files are accepted" }, 415);
+      }
+      const bytes = new Uint8Array(await fileResponse.arrayBuffer());
+      if (bytes.length > MAX_BYTES) return response({ error: "Image exceeds 8 MiB limit" }, 413);
+      const isPng = bytes.length >= 8 && [137, 80, 78, 71, 13, 10, 26, 10].every((n, i) => bytes[i] === n);
+      const isWebp = bytes.length >= 12 &&
+        String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+        String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
+      if ((mime === "image/png" && !isPng) || (mime === "image/webp" && !isWebp)) {
+        return response({ error: "Image bytes do not match the declared image type" }, 415);
+      }
+      binary = bytes;
+      storageContentType = mime;
+    } catch {
+      return response({ error: "Could not download OpenAI image file" }, 502);
+    }
+  } else {
+    try {
+      const clean = (imageBase64 as string).replace(/^data:image\\/png;base64,/, "");
+      const decoded = atob(clean);
+      if (decoded.length > MAX_BYTES) return response({ error: "PNG exceeds 8 MiB limit" }, 413);
+      binary = Uint8Array.from(decoded, (c) => c.charCodeAt(0));
+    } catch {
+      return response({ error: "imageBase64 is not valid base64" }, 400);
+    }
 
-  const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
-  if (binary.length < 8 || !pngSignature.every((n, i) => binary[i] === n)) {
-    return response({ error: "Image must be a PNG" }, 415);
+    const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
+    if (binary.length < 8 || !pngSignature.every((n, i) => binary[i] === n)) {
+      return response({ error: "Image must be a PNG" }, 415);
+    }
   }
 
   const results: Array<{ target: string; ok: boolean; url?: string; error?: string }> = [];
@@ -104,7 +151,7 @@ Deno.serve(async (req: Request) => {
         headers: {
           apikey: project.key!,
           Authorization: `Bearer ${project.key!}`,
-          "Content-Type": "image/png",
+          "Content-Type": storageContentType,
           "x-upsert": "true",
         },
         body: binary,
