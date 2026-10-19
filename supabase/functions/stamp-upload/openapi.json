@@ -15,7 +15,7 @@
       "post": {
         "operationId": "registerGeneratedStamp",
         "summary": "Register a ChatGPT-generated stamp image",
-        "description": "Automatically register the single stamp image generated in this ChatGPT conversation. Use placeName to identify the spot; the API resolves it against the production 上毛かるた×群馬 event data. Use eventContentId only when explicitly known. Pass the generated image via openaiFileIdRefs. Production is the default target.",
+        "description": "Automatically register the single stamp image generated in this ChatGPT conversation. Use placeName to identify the spot; the API resolves it against production event data. If a place occurs in multiple events, provide eventName. Use eventContentId only when explicitly known. Pass the generated image via openaiFileIdRefs. Production is the default target.",
         "security": [
           {
             "StampUploadToken": []
@@ -60,7 +60,11 @@
                   },
                   "placeName": {
                     "type": "string",
-                    "description": "Exact spot name in the production 上毛かるた×群馬 event, e.g. 鬼押出し園. The API resolves the matching event-content UUID so the user does not need to supply an ID."
+                    "description": "Exact spot name, e.g. 鬼押出し園. The API resolves the event-content UUID automatically."
+                  },
+                  "eventName": {
+                    "type": "string",
+                    "description": "Optional exact event name when the same place appears in multiple events."
                   }
                 }
               }
