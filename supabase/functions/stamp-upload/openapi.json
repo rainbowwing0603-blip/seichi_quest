@@ -15,7 +15,7 @@
       "post": {
         "operationId": "registerGeneratedStamp",
         "summary": "Register a ChatGPT-generated stamp image",
-        "description": "Use openaiFileIdRefs to transfer the image generated in this ChatGPT conversation directly to the API. The API downloads the short-lived OpenAI file URL, validates it, and saves it to content-media/stamps/{eventContentId}.png. Use the event-content UUID, not the event or place UUID. Production is the default target. Only one image per request.",
+        "description": "Automatically register the single stamp image generated in this ChatGPT conversation. Use placeName to identify the spot; the API resolves it against the production 上毛かるた×群馬 event data. Use eventContentId only when explicitly known. Pass the generated image via openaiFileIdRefs. Production is the default target.",
         "security": [
           {
             "StampUploadToken": []
@@ -29,14 +29,14 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "eventContentId",
+                  "placeName",
                   "openaiFileIdRefs"
                 ],
                 "properties": {
                   "eventContentId": {
                     "type": "string",
                     "format": "uuid",
-                    "description": "Event content UUID, not the event or spot UUID."
+                    "description": "Optional advanced override: exact event-content UUID. Do not use together with placeName."
                   },
                   "imageBase64": {
                     "type": "string",
@@ -57,6 +57,10 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "placeName": {
+                    "type": "string",
+                    "description": "Exact spot name in the production 上毛かるた×群馬 event, e.g. 鬼押出し園. The API resolves the matching event-content UUID so the user does not need to supply an ID."
                   }
                 }
               }
